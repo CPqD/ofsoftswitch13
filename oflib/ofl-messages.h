@@ -245,7 +245,8 @@ struct ofl_msg_meter_mod {
     uint16_t command;  /* One of OFPMC_*. */
     uint16_t flags;    /* One of OFPMF_*. */   
     uint32_t meter_id; /* Meter instance. */
-    struct ofl_meter_band_header bands[0]; /* The bands length is
+    size_t  meter_bands_num; 
+    struct ofl_meter_band_header **bands; /* The bands length is
                                               inferred from the length field
                                               in the header. */
 };
@@ -303,7 +304,6 @@ struct ofl_msg_multipart_request_group {
 
     uint32_t   group_id; /* All groups if OFPG_ALL. */
 };
-
 
 
 struct ofl_msg_multipart_request_experimenter {
@@ -454,6 +454,10 @@ ofl_msg_unpack(uint8_t *buf, size_t buf_len,
  * features, it uses the passed in experimenter callback. */
 int
 ofl_msg_free(struct ofl_msg_header *msg, struct ofl_exp *exp);
+
+/* Calling this function frees the passed meter_mod message.*/
+int 
+ofl_msg_free_meter_mod(struct ofl_msg_meter_mod * msg);
 
 /* Calling this function frees the passed in packet_out message. If with_data
  * is true, the data in the packet is also freed. In case of experimenter

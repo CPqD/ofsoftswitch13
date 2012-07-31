@@ -247,6 +247,9 @@ ofl_msg_free(struct ofl_msg_header *msg, struct ofl_exp *exp) {
         case OFPT_ROLE_REQUEST:{
             break;
         }
+        case OFPT_METER_MOD:{
+            return ofl_msg_free_meter_mod((struct ofl_msg_meter_mod*)msg);
+        }
         case OFPT_QUEUE_GET_CONFIG_REPLY: {
             struct ofl_msg_queue_get_config_reply *mod =
                                 (struct ofl_msg_queue_get_config_reply *)msg;
@@ -260,6 +263,14 @@ ofl_msg_free(struct ofl_msg_header *msg, struct ofl_exp *exp) {
     return 0;
 }
 
+int 
+ofl_msg_free_meter_mod(struct ofl_msg_meter_mod * msg){
+
+    OFL_UTILS_FREE_ARR_FUN(msg->bands, msg->meter_bands_num,
+                                   ofl_structs_free_meter_bands);
+    
+    free(msg);
+}
 
 int
 ofl_msg_free_packet_out(struct ofl_msg_packet_out *msg, bool with_data, struct ofl_exp *exp) {
@@ -297,6 +308,7 @@ ofl_msg_free_flow_mod(struct ofl_msg_flow_mod *msg, bool with_match, bool with_i
     free(msg);
     return 0;
 }
+
 
 int
 ofl_msg_free_flow_removed(struct ofl_msg_flow_removed *msg, bool with_stats, struct ofl_exp *exp) {

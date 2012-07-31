@@ -256,6 +256,7 @@ ofl_structs_free_instruction(struct ofl_instruction_header *inst, struct ofl_exp
     switch (inst->type) {
         case OFPIT_GOTO_TABLE:
         case OFPIT_WRITE_METADATA:
+        case OFPIT_METER:
             break;
         case OFPIT_WRITE_ACTIONS:
         case OFPIT_APPLY_ACTIONS: {
@@ -277,6 +278,16 @@ ofl_structs_free_instruction(struct ofl_instruction_header *inst, struct ofl_exp
         }
     }
     free(inst);
+}
+
+void ofl_structs_free_meter_bands(struct ofl_meter_band_header *meter_band){
+    switch (meter_band->type) {
+        case OFPMBT_DROP:
+        case OFPMBT_DSCP_REMARK:
+        case OFPMBT_EXPERIMENTER:
+            break;
+    }
+    free(meter_band);            
 }
 
 void

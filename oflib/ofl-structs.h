@@ -201,7 +201,6 @@ struct ofl_match_tlv{
 /* Common header for all meter bands */
 struct ofl_meter_band_header {
     uint16_t type; /* One of OFPMBT_*. */
-    uint16_t len;  /* Length in bytes of this band. */
     uint32_t rate; /* Rate for this band. */
     uint32_t burst_size; /* Size of bursts. */
 };
@@ -210,7 +209,6 @@ struct ofl_meter_band_header {
 /* OFPMBT_DROP band - drop packets */
 struct ofl_meter_band_drop {
     uint16_t type; /* OFPMBT_DROP. */
-    uint16_t len;  /* Length in bytes of this band. */
     uint32_t rate; /* Rate for dropping packets. */
     uint32_t burst_size; /* Size of bursts. */
 };
@@ -218,7 +216,6 @@ struct ofl_meter_band_drop {
 /* OFPMBT_DSCP_REMARK band - Remark DSCP in the IP header */
 struct ofl_meter_band_dscp_remark {
     uint16_t type; /* OFPMBT_DSCP_REMARK. */
-    uint16_t len;  /* Length in bytes of this band. */
     uint32_t rate; /* Rate for remarking packets. */
     uint32_t burst_size; /* Size of bursts. */
     uint8_t prec_level; /* Number of precendence level to substract. */
@@ -227,7 +224,6 @@ struct ofl_meter_band_dscp_remark {
 /* OFPMBT_EXPERIMENTER band - Write actions in action set */
 struct ofl_meter_band_experimenter {
     uint16_t type; /* One of OFPMBT_*. */
-    uint16_t len;  /* Length in bytes of this band. */
     uint32_t rate; /* Rate for this band. */
     uint32_t burst_size; /* Size of bursts. */
     uint32_t experimenter; /* Experimenter ID which takes the same
@@ -365,6 +361,9 @@ size_t
 ofl_structs_instructions_pack(struct ofl_instruction_header *src, struct ofp_instruction *dst, struct ofl_exp *exp);
 
 size_t
+ofl_structs_meter_band_pack(struct ofl_meter_band_header *src, struct ofp_meter_band_header *dst);
+
+size_t
 ofl_structs_bucket_pack(struct ofl_bucket *src, struct ofp_bucket *dst, struct ofl_exp *exp);
 
 size_t
@@ -448,6 +447,9 @@ ofl_structs_match_unpack(struct ofp_match *src,uint8_t *buf, size_t *len, struct
  * Functions for freeing action structures
  ****************************************************************************/
 
+void 
+ofl_structs_free_meter_bands(struct ofl_meter_band_header *meter_band);
+
 void
 ofl_structs_free_packet_queue(struct ofl_packet_queue *queue);
 
@@ -526,6 +528,12 @@ ofl_structs_instructions_ofp_total_len(struct ofl_instruction_header **instructi
 
 size_t
 ofl_structs_instructions_ofp_len(struct ofl_instruction_header *instruction, struct ofl_exp *exp);
+
+size_t
+ofl_structs_meter_bands_ofp_total_len(struct ofl_meter_band_header **meter_bands, size_t meter_bands_num);
+
+size_t
+ofl_structs_meter_band_ofp_len(struct ofl_meter_band_header *meter_band); 
 
 size_t
 ofl_structs_buckets_ofp_total_len(struct ofl_bucket ** buckets, size_t buckets_num, struct ofl_exp *exp);

@@ -66,6 +66,9 @@ ofl_structs_instructions_ofp_len(struct ofl_instruction_header *instruction, str
         case OFPIT_CLEAR_ACTIONS: {
             return sizeof(struct ofp_instruction_actions);
         }
+        case OFPIT_METER:{
+            return sizeof(struct ofp_instruction_meter);
+        }
         case OFPIT_EXPERIMENTER: {
             if (exp == NULL || exp->inst == NULL || exp->inst->ofp_len == NULL) {
                 OFL_LOG_WARN(LOG_MODULE, "Trying to len experimenter instruction, but no callback was given.");
@@ -78,6 +81,7 @@ ofl_structs_instructions_ofp_len(struct ofl_instruction_header *instruction, str
             return 0;
     }
 }
+
 
 size_t
 ofl_structs_instructions_ofp_total_len(struct ofl_instruction_header **instructions, size_t instructions_num, struct ofl_exp *exp) {
@@ -148,6 +152,15 @@ ofl_structs_instructions_pack(struct ofl_instruction_header *src, struct ofp_ins
 
             return total_len;
         }
+        case OFPIT_METER: {
+            struct ofl_instruction_meter *si = (struct ofl_instruction_meter *) src;
+            struct ofp_instruction_meter *di = (struct ofp_instruction_meter *) dst;
+        
+            di->len = htons(sizeof(struct ofp_instruction_meter));
+            di->meter_id = htonl(si->meter_id);
+
+            return sizeof(struct ofp_instruction_goto_table);
+        }
         case OFPIT_EXPERIMENTER: {
             if (exp == NULL || exp->inst == NULL || exp->inst->pack == NULL) {
                 OFL_LOG_WARN(LOG_MODULE, "Trying to pack experimenter instruction, but no callback was given.");
@@ -161,6 +174,65 @@ ofl_structs_instructions_pack(struct ofl_instruction_header *src, struct ofp_ins
     }
 }
 
+size_t
+ofl_structs_meter_band_ofp_len(struct ofl_meter_band_header *meter_band) {
+    switch (meter_band->type) {
+        case OFPMBT_DROP:   
+            return sizeof(struct ofp_meter_band_drop);
+        case OFPMBT_DSCP_REMARK:
+            return sizeof(struct ofp_meter_band_dscp_remark);
+        case OFPMBT_EXPERIMENTER:
+            return sizeof(struct ofp_meter_band_experimenter);    
+        default:
+             OFL_LOG_WARN(LOG_MODULE, "Trying to len unknown meter type.");
+            return 0;
+    }
+}
+
+size_t
+ofl_structs_meter_bands_ofp_total_len(struct ofl_meter_band_header **meter_bands, size_t meter_bands_num) {
+    size_t sum;
+    OFL_UTILS_SUM_ARR_FUN(sum, meter_bands, meter_bands_num,
+            ofl_structs_meter_band_ofp_len);
+    return sum;
+}
+
+size_t
+ofl_structs_meter_band_pack(struct ofl_meter_band_header *src, struct ofp_meter_band_header *dst){
+    
+    dst->type = htons(src->type);
+    dst->rate = htonl(src->rate);
+    dst->burst_size = htonl(src->burst_size);
+    switch (src->type) {
+        case OFPMBT_DROP:{
+            struct ofp_meter_band_drop *di = (struct ofp_meter_band_drop *)dst;
+            di->len = htons(sizeof(struct ofl_meter_band_drop));
+            memset(di->pad, 0x0, 4);
+            return sizeof(struct ofp_meter_band_drop);
+            break;
+        }
+        case OFPMBT_DSCP_REMARK:{
+            struct ofl_meter_band_dscp_remark *si = (struct ofl_meter_band_dscp_remark*)src;
+            struct ofp_meter_band_dscp_remark *di = (struct ofp_meter_band_dscp_remark *)dst;
+            di->len = htons(sizeof(struct ofp_meter_band_dscp_remark));
+            di->prec_level = si->prec_level;
+            memset(di->pad,0x0,3);
+            return sizeof(struct ofp_meter_band_dscp_remark);            
+            break;
+        }
+        case OFPMBT_EXPERIMENTER:{
+            struct ofl_meter_band_experimenter *si = (struct ofl_meter_band_experimenter*)src;
+            struct ofp_meter_band_experimenter *di = (struct ofp_meter_band_experimenter *)dst;
+            di->len = htons(sizeof(struct ofp_meter_band_experimenter));
+            di->experimenter = htonl(si->experimenter);
+            return sizeof(struct ofp_meter_band_experimenter);        
+            break;
+        }
+        default:
+            OFL_LOG_WARN(LOG_MODULE, "Trying to pack unknown meter type.");
+            return 0;
+    }
+}
 
 
 size_t

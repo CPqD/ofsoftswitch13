@@ -74,8 +74,8 @@ enum ofp_type {
     OFPT_PORT_MOD = 16,    /* Controller/switch message */
     OFPT_TABLE_MOD = 17,   /* Controller/switch message */
     /* Statistics messages. */
-    OFPT_STATS_REQUEST = 18, /* Controller/switch message */
-    OFPT_STATS_REPLY = 19,   /* Controller/switch message */
+    OFPT_MULTIPART_REQUEST = 18, /* Controller/switch message */
+    OFPT_MULTIPART_REPLY = 19,   /* Controller/switch message */
     /* Barrier messages. */
     OFPT_BARRIER_REQUEST = 20, /* Controller/switch message */
     OFPT_BARRIER_REPLY = 21,   /* Controller/switch message */
@@ -673,7 +673,9 @@ enum ofp_flow_mod_flags {
     OFPFF_SEND_FLOW_REM = 1 << 0, /* Send flow removed message when flow
                                    * expires or is deleted. */
     OFPFF_CHECK_OVERLAP = 1 << 1, /* Check for overlapping entries first. */
-    OFPFF_RESET_COUNTS = 1 << 2   /* Reset flow packet and byte counts. */
+    OFPFF_RESET_COUNTS = 1 << 2,   /* Reset flow packet and byte counts. */
+    OFPFF_NO_PKT_COUNTS = 1 << 3,  /* Don’t keep track of packet count. */
+    OFPFF_NO_BYT_COUNTS = 1 << 4  /*Don’t keep track of byte count. */
 };
 
 /* Group numbering. Groups can use any number up to OFPG_MAX. */
@@ -950,7 +952,7 @@ struct ofp_desc {
 };
 OFP_ASSERT(sizeof(struct ofp_desc) == 1056);
 
-/* Body for ofp_stats_request of type OFPMP_FLOW. */
+/* Body for ofp_multipart_request of type OFPMP_FLOW. */
 struct ofp_flow_stats_request {
 	uint8_t table_id;       /* ID of table to read (from ofp_table_stats),
                                OFPTT_ALL for all tables. */
@@ -991,7 +993,7 @@ struct ofp_flow_stats {
 };
 OFP_ASSERT(sizeof(struct ofp_flow_stats) == 56);
 
-/* Body for ofp_stats_request of type OFPMP_AGGREGATE. */
+/* Body for ofp_multipart_request of type OFPMP_AGGREGATE. */
 struct ofp_aggregate_stats_request {
 	uint8_t table_id;       /* ID of table to read (from ofp_table_stats)
                                OFPTT_ALL for all tables. */
@@ -1152,9 +1154,9 @@ uint32_t oxm_ids[0]; /* Array of OXM headers */
 OFP_ASSERT(sizeof(struct ofp_table_feature_prop_oxm) == 4);
 
 
-/* Body for ofp_stats_request of type OFPMP_PORT. */
+/* Body for ofp_multipart_request of type OFPMP_PORT_STATS. */
 struct ofp_port_stats_request {
-	uint32_t port_no; /* OFPMP_PORT message must request statistics
+	uint32_t port_no; /* OFPMP_PORT_STATS message must request statistics
                        * either for a single port (specified in
                        * port_no) or for all ports (if port_no ==
                        * OFPP_ANY). */
@@ -1162,7 +1164,7 @@ struct ofp_port_stats_request {
 };
 OFP_ASSERT(sizeof(struct ofp_port_stats_request) == 8);
 
-/* Body of reply to OFPMP_PORT request. If a counter is unsupported, set
+/* Body of reply to OFPMP_PORT_STATS request. If a counter is unsupported, set
 * the field to all ones. */
 struct ofp_port_stats {
 	uint32_t port_no;
@@ -1320,7 +1322,7 @@ struct ofp_meter_features {
 OFP_ASSERT(sizeof(struct ofp_meter_features) == 16);
 
 
-/* Body for ofp_stats_request/reply of type OFPMP_EXPERIMENTER. */
+/* Body for ofp_multipart_request/reply of type OFPMP_EXPERIMENTER. */
 struct ofp_experimenter_stats_header {
 	uint32_t experimenter; /* Experimenter ID which takes the same form
                               as in struct ofp_experimenter_header. */
@@ -1505,10 +1507,10 @@ enum ofp_hello_failed_code {
 enum ofp_bad_request_code {
     OFPBRC_BAD_VERSION = 0,      /* ofp_header.version not supported. */
     OFPBRC_BAD_TYPE = 1,         /* ofp_header.type not supported. */
-    OFPBRC_BAD_MULTIPART = 2,         /* ofp_stats_request.type not supported. */
+    OFPBRC_BAD_MULTIPART = 2,         /* ofp_multipart_request.type not supported. */
     OFPBRC_BAD_EXPERIMENTER = 3, /* Experimenter id not supported
                                   * (in ofp_experimenter_header or
-                                  * ofp_stats_request or ofp_stats_reply). */
+                                  * ofp_multipart_request or ofp_multipart_reply). */
     OFPBRC_BAD_EXP_TYPE = 4,     /* Experimenter type not supported. */
     OFPBRC_EPERM = 5,            /* Permissions error. */
     OFPBRC_BAD_LEN = 6,          /* Wrong request length for type. */

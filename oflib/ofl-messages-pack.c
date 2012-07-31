@@ -343,6 +343,27 @@ ofl_msg_pack_table_mod(struct ofl_msg_table_mod *msg, uint8_t **buf, size_t *buf
 }
 
 static int
+ofl_msg_pack_meter_mod(struct ofl_msg_meter_mod *msg, uint8_t ** buf, size_t *buf_len){
+    struct ofp_meter_mod *meter_mod;
+    uint8_t *ptr;
+    int i;
+    
+    *buf_len =  sizeof(struct ofp_meter_mod) + ofl_structs_meter_bands_ofp_total_len(msg->bands, msg->meter_bands_num);
+    *buf = malloc(*buf_len);
+    
+    meter_mod = (struct ofp_meter_mod*) (*buf);
+    meter_mod->command = htons(msg->command);
+    meter_mod->flags = htons(msg->flags);
+    meter_mod->meter_id = ntohl(msg->meter_id); 
+    
+    ptr = (*buf) + sizeof(struct ofp_meter_mod);
+    for (i=0; i < msg->meter_bands_num; i++) {
+        ptr += ofl_structs_meter_band_pack(msg->bands[i], (struct ofp_meter_band_header *) ptr);
+    }
+    return 0;    
+}
+
+static int
 ofl_msg_pack_multipart_request_flow(struct ofl_msg_multipart_request_flow *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
     
     struct ofp_multipart_request *req;
@@ -860,7 +881,9 @@ ofl_msg_pack(struct ofl_msg_header *msg, uint32_t xid, uint8_t **buf, size_t *bu
             error = ofl_msg_pack_table_mod((struct ofl_msg_table_mod *)msg, buf, buf_len);
             break;
         }
-
+        case OFPT_METER_MOD:{
+            error =  ofl_msg_pack_meter_mod((struct ofl_msg_meter_mod *)msg, buf, buf_len);            
+        }
         /* Statistics messages. */
         case OFPT_MULTIPART_REQUEST: {
             error = ofl_msg_pack_multipart_request((struct ofl_msg_multipart_request_header *)msg, buf, buf_len, exp);

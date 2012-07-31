@@ -162,7 +162,23 @@ ofl_structs_instructions_unpack(struct ofp_instruction *src, size_t *len, struct
             ilen -= sizeof(struct ofp_instruction_actions);
             break;
         }
+        case OFPIT_METER: {
+            struct ofp_instruction_meter *si;
+            struct ofl_instruction_meter *di;
+            
+            if (ilen < sizeof(struct ofp_instruction_meter)) {
+                OFL_LOG_WARN(LOG_MODULE, "Received METER instruction has invalid length (%zu).", *len);
+                return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
+            }
+            
+            di = (struct ofl_instruction_meter *)malloc(sizeof(struct ofl_instruction_meter));
 
+            di->meter_id = ntohl(si->meter_id);
+
+            inst = (struct ofl_instruction_header *)di;
+            ilen -= sizeof(struct ofp_instruction_meter);
+            break; 
+        }
         case OFPIT_EXPERIMENTER: {
             ofl_err error;
 
