@@ -1,0 +1,7 @@
+.TP
+.BR \-h ", " \-\^\-help
+Prints a brief help message to the console.
+
+.TP
+.BR \-V ", " \-\^\-version
+Prints version information to the console.

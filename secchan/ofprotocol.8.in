@@ -1,0 +1,462 @@
+.ds PN ofprotocol
+.TH ofprotocol 8 "October 2008" "OpenFlow" "OpenFlow Manual"
+
+.SH NAME
+ofprotocol \- secure channel connecting an OpenFlow datapath to a controller
+
+.SH SYNOPSIS
+.B ofprotocol
+[\fIoptions\fR] \fIdatapath\fR controller[,\fIcontroller\fR...]
+
+.SH DESCRIPTION
+The \fBofprotocol\fR program sets up a secure channel between a local
+OpenFlow datapath and a remote controller.  \fBofprotocol\fR connects to
+the local datapath over Netlink and to the controller over TCP or SSL,
+and then forwards OpenFlow messages from one endpoint to the other.
+
+The mandatory \fIdatapath\fR argument argument specifies the local datapath
+to relay.  It takes one of the following forms:
+
+.TP
+\fBnl:\fIdp_idx\fR
+Attach to the local kernel-based datapath over the Netlink protocol.
+The \fIdp_idx\fR argument is the number of a datapath created with
+\fBdpctl\fR(8).
+
+.TP
+\fBunix:\fIfile\fR
+Attach to the userspace datapath implemented by \fBofdatapath\fR(8).
+The \fIfile\fR argument must the same one specified on the
+\fBofdatapath\fR command line.
+
+.PP
+The optional \fIcontroller\fR argument specifies how to connect to 
+an OpenFlow controller. Up to four controllers may be specified, 
+using the following forms:
+
+.TP
+\fBssl:\fIhost\fR[\fB:\fIport\fR]
+The specified SSL \fIport\fR (default: 6633) on the given remote
+\fIhost\fR.  The \fB--private-key\fR, \fB--certificate\fR, and
+\fB--ca-cert\fR options are mandatory when this form is used.
+
+.TP
+\fBtcp:\fIhost\fR[\fB:\fIport\fR]
+The specified TCP \fIport\fR (default: 6633) on the given remote
+\fIhost\fR.
+
+.TP
+\fBunix:\fIfile\fR
+The Unix domain server socket named \fIfile\fR.
+
+.PP
+If multiple controllers are specified, \fBofprotocol\fR will attempt to
+connect to a new controller when a controller connection fails, times
+out, or is closed, or when a controller stops responding to echo requests.
+
+If \fIcontroller\fR is omitted, \fBofprotocol\fR attempts to discover the
+location of the controller automatically (see below).
+
+.SH "CONTACTING THE CONTROLLER"
+The OpenFlow switch must be able to contact the OpenFlow controller
+over the network.  It can do so in one of two ways:
+
+.IP out-of-band
+In this configuration, OpenFlow traffic uses a network separate from
+the data traffic that it controls, that is, the switch does not use
+any of the network devices added to the datapath with \fBdpctl
+addif\fR in its communication with the controller.
+
+To use \fBofprotocol\fR in a network with out-of-band control, specify
+\fB--out-of-band\fR on the \fBofprotocol\fR command line.  The control
+network must be configured separately, before or after \fBofprotocol\fR
+is started.
+
+.IP in-band
+In this configuration, a single network is used for OpenFlow traffic
+and other data traffic, that is, the switch contacts the controller
+over one of the network devices added to the datapath with \fBdpctl
+addif\fR.  This configuration is often more convenient than
+out-of-band control, because it is not necessary to maintain two
+independent networks.
+
+In-band control is the default for \fBofprotocol\fR, so no special
+command-line option is required.
+
+With in-band control, the location of the controller can be configured
+manually or discovered automatically:
+
+.RS
+.IP "controller discovery"
+To make \fBofprotocol\fR discover the location of the controller
+automatically, do not specify the location of the controller on the
+\fBofprotocol\fR command line.
+
+In this mode, \fBofprotocol\fR will broadcast a DHCP request with vendor
+class identifier \fBOpenFlow\fR across the network devices added to
+the datapath with \fBdpctl addif\fR.  It will accept any valid DHCP
+reply that has the same vendor class identifier and includes a
+vendor-specific option with code 1 whose contents are a string
+specifying the location of the controller in the same format used on
+the \fBofprotocol\fR command line (e.g. \fBssl:192.168.0.1\fR).
+
+The DHCP reply may also, optionally, include a vendor-specific option
+with code 2 whose contents are a string specifying the URI to the base
+of the OpenFlow PKI (e.g. \fBhttp://192.168.0.1/openflow/pki\fR).
+This URI is used only for bootstrapping the OpenFlow PKI at initial
+switch setup; \fBofprotocol\fR does not use it at all.
+
+The following ISC DHCP server configuration file assigns the IP
+address range 192.168.0.20 through 192.168.0.30 to OpenFlow switches
+that follow the switch protocol and addresses 192.168.0.1 through
+192.168.0.10 to all other DHCP clients:
+
+default-lease-time 600;
+.br
+max-lease-time 7200;
+.br
+option space openflow;
+.br
+option openflow.controller-vconn code 1 = text;
+.br
+option openflow.pki-uri code 2 = text;
+.br
+class "OpenFlow" {
+.br
+  match if option vendor-class-identifier = "OpenFlow";
+.br
+  vendor-option-space openflow;
+.br
+  option openflow.controller-vconn "tcp:192.168.0.10";
+.br
+  option openflow.pki-uri "http://192.168.0.10/openflow/pki";
+.br
+  option vendor-class-identifier "OpenFlow";
+.br
+}
+.br
+subnet 192.168.0.0 netmask 255.255.255.0 {
+.br
+    pool {
+.br
+        allow members of "OpenFlow";
+.br
+        range 192.168.0.20 192.168.0.30;
+.br
+    }
+.br
+    pool {
+.br
+        deny members of "OpenFlow";
+.br
+        range 192.168.0.1 192.168.0.10;
+.br
+    }
+.br
+}
+.br
+
+.IP "manual configuration"
+To configure in-band control manually, specify the location of the
+controller on the \fBofprotocol\fR command line as the \fIcontroller\fR
+argument.  You must also configure the network device for the OpenFlow
+``local port'' to allow \fBofprotocol\fR to connect to that controller.
+The OpenFlow local port is a virtual network port that \fBofprotocol\fR
+bridges to the physical switch ports.  Its network device name depends
+on the \fIdatapath\fR specified on the \fBofprotocol\fR command line:
+
+.RS
+.TP
+\fBnl:\fIdp_idx\fR
+The local port network device for \fBnl:\fIdp_idx\fR is always named
+\fBof\fIdp_idx\fR, i.e. the device for \fBnl:0\fR is \fBof0\fR.
+
+.TP
+\fBunix:\fIfile\fR
+The local port network device name may be specified on the
+\fBofdatapath\fR command line, using the \fB--local-port\fR option.  It
+is often \fBtap0\fR.
+.RE
+
+.IP
+Before \fBofprotocol\fR starts, the local port network device is not
+bridged to any physical network, so the next step depends on whether
+connectivity is required to configure the device's IP address.  If the
+switch has a static IP address, you may configure its IP address now
+with a command such as:
+.RS
+.IP
+ifconfig of0 192.168.1.1
+.RE
+.IP
+and then invoke \fBofprotocol\fR.
+
+On the other hand, if the switch does not have a static IP address,
+e.g. it obtains its IP address dynamically via DHCP, the DHCP client
+will not be able to contact the DHCP server until the secure channel
+has started up.  Thus, start \fBofprotocol\fR without configuring
+the local port network device, and start the DHCP client afterward.
+.RE
+
+.SH OPTIONS
+.SS "Controller Discovery Options"
+.TP
+\fB--accept-vconn=\fIregex\fR
+When \fBofprotocol\fR performs controller discovery (see \fBCONTACTING
+THE CONTROLLER\fR, above, for more information about controller
+discovery), it validates the controller location obtained via DHCP
+with a POSIX extended regular expression.  Only controllers whose
+names match the regular expression will be accepted.
+
+The default regular expression is \fBssl:.*\fR (meaning that only SSL
+controller connections will be accepted) when any of the SSL
+configuration options \fB--private-key\fR, \fB--certificate\fR, or
+\fB--ca-cert\fR is specified.  The default is \fB.*\fR otherwise
+(meaning that any controller will be accepted).
+
+The \fIregex\fR is implicitly anchored at the beginning of the
+controller location string, as if it begins with \fB^\fR.
+
+When controller discovery is not performed, this option has no effect.
+
+.TP
+\fB--no-resolv-conf\fR
+When \fBofprotocol\fR performs controller discovery (see \fBCONTACTING
+THE CONTROLLER\fR, above, for more information about controller
+discovery), by default it overwrites the system's
+\fB/etc/resolv.conf\fR with domain information and DNS servers
+obtained via DHCP.  If the location of the controller is specified
+using a hostname, rather than an IP address, and the network's DNS
+servers ever change, this behavior is essential.  But because it also
+interferes with any administrator or process that manages
+\fB/etc/resolv.conf\fR, when this option is specified, \fBofprotocol\fR
+will not modify \fB/etc/resolv.conf\fR.
+
+\fBofprotocol\fR will only modify \fBresolv.conf\fR if the DHCP response
+that it receives specifies one or more DNS servers.
+
+When controller discovery is not performed, this option has no effect.
+
+.SS "Networking Options"
+.TP
+\fB-F\fR, \fB--fail=\fR[\fBopen\fR|\fBclosed\fR]
+The controller is, ordinarily, responsible for setting up all flows on
+the OpenFlow switch.  Thus, if the connection to the controller fails,
+no new network connections can be set up.  If the connection to the
+controller stays down long enough, no packets can pass through the
+switch at all.
+
+If this option is set to \fBopen\fR (the default), \fBofprotocol\fR will
+take over responsibility for setting up flows in the local datapath
+when no message has been received from the controller for three times
+the inactivity probe interval (see below), or 45 seconds by default.
+In this ``fail open'' mode, \fBofprotocol\fR causes the datapath to act
+like an ordinary MAC-learning switch.  \fBofprotocol\fR will continue to
+retry connection to the controller in the background and, when the
+connection succeeds, it discontinues its fail-open behavior.  The
+secure channel enters the fail-open mode when
+
+If this option is set to \fBclosed\fR, then \fBofprotocol\fR will not
+set up flows on its own when the controller connection fails.
+
+.TP
+\fB--inactivity-probe=\fIsecs\fR
+When the secure channel is connected to the controller, the secure
+channel waits for a message to be received from the controller for
+\fIsecs\fR seconds before it sends a inactivity probe to the
+controller.  After sending the inactivity probe, if no response is
+received for an additional \fIsecs\fR seconds, the secure channel
+assumes that the connection has been broken and attempts to reconnect.
+The default is 15 seconds, and the minimum value is 1 seconds.
+
+When fail-open mode is configured, changing the inactivity probe
+interval also changes the interval before entering fail-open mode (see
+above).
+
+.TP
+\fB--max-idle=\fIsecs\fR|\fBpermanent\fR
+Sets \fIsecs\fR as the number of seconds that a flow set up by the
+secure channel will remain in the switch's flow table without any
+matching packets being seen.  If \fBpermanent\fR is specified, which
+is not recommended, flows set up by the secure channel will never
+expire.  The default is 15 seconds.
+
+Most flows are set up by the OpenFlow controller, not by the secure
+channel.  This option affects only the following flows, which the
+secure channel sets up itself:
+
+.RS
+.IP \(bu
+When \fB--fail=open\fR is specified, flows set up when the secure
+channel has not been able to contact the controller for the configured
+fail-open delay.
+
+.IP \(bu
+When in-band control is in use, flows set up to bootstrap contacting
+the controller (see \fBCONTACTING THE CONTROLLER\fR, above, for
+more information about in-band control).
+.RE
+
+.IP
+As a result, when both \fB--fail=closed\fR and \fB--out-of-band\fR are
+specified, this option has no effect.
+
+.TP
+\fB--max-backoff=\fIsecs\fR
+Sets the maximum time between attempts to connect to the controller to
+\fIsecs\fR, which must be at least 1.  The actual interval between
+connection attempts starts at 1 second and doubles on each failing
+attempt until it reaches the maximum.  The default maximum backoff
+time is 15 seconds.
+
+.TP
+\fB-l\fR, \fB--listen=\fImethod\fR
+Configures the switch to additionally listen for incoming OpenFlow
+connections for switch management with \fBdpctl\fR.  The \fImethod\fR
+must be given as one of the passive OpenFlow connection methods listed
+below.  This option may be specified multiple times to listen to
+multiple connection methods.
+
+.RS
+.TP
+\fBpssl:\fR[\fIport\fR]
+Listens for SSL connections on \fIport\fR (default: 6633).  The
+\fB--private-key\fR, \fB--certificate\fR, and \fB--ca-cert\fR options
+are mandatory when this form is used.
+
+.TP
+\fBptcp:\fR[\fIport\fR]
+Listens for TCP connections on \fIport\fR (default: 6633).
+
+.TP
+\fBpunix:\fIfile\fR
+Listens for connections on Unix domain server socket named \fIfile\fR.
+.RE
+
+.TP
+\fB-m\fR, \fB--monitor=\fImethod\fR
+Configures the switch to additionally listen for incoming OpenFlow
+connections for switch monitoring with \fBdpctl\fR's \fBmonitor\fR
+command.  The \fImethod\fR must be given as one of the passive
+OpenFlow connection methods listed above as acceptable for
+\fB--listen\fR.
+
+When \fBdpctl monitor\fR makes a monitoring connection, \fBofprotocol\fR
+sends it a copy of every OpenFlow message sent to or received from the
+kernel in the normal course of its operations.  It does not send a
+copy of any messages sent to or from the OpenFlow connection to the
+controller.  Most of these messages will be seen anyhow, however,
+because \fBofprotocol\fR mainly acts as a relay between the controller
+and the kernel.  \fBofprotocol\fR also does not send a copy of any
+messages sent to or from the OpenFlow connection to the controller.
+Such messages will typically \fBnot\fR be seen, because \fBofprotocol\fR
+maintains a separate connection to the kernel for each management
+connection.
+
+Messages are copied to the monitoring connections on a best-effort
+basis.  In particular, if the socket buffer of the monitoring
+connection fills up, some messages will be lost.
+
+.TP
+\fB--in-band\fR, \fB--out-of-band\fR
+Configures \fBofprotocol\fR to operate in in-band or out-of-band control
+mode (see \fBCONTACTING THE CONTROLLER\fR above).  When neither option
+is given, the default is in-band control.
+
+.TP
+\fB--stp\fR, \fB--no-stp\fR
+Enable or disable implementation of IEEE 802.1D Spanning Tree Protocol
+at the switch.  The default is \fB--no-stp\fR in this distribution,
+because bugs in the STP implementation are still being worked out.
+The default will change to \fB--stp\fR at some point in the future.
+
+.TP
+\fB--emerg-flow\fR
+Enable emergecny flow protection and restration at the switch.  If emergency
+flow enabled, \fBofprotocol\fR will attempt to switch flow table to emergency's
+one when a controller connection fails.  The default is disabled in this 
+distribution.
+
+.SS "Rate-Limiting Options"
+
+These options configure how the switch applies a ``token bucket'' to
+limit the rate at which packets in unknown flows are forwarded to an
+OpenFlow controller for flow-setup processing.  This feature prevents
+a single OpenFlow switch from overwhelming a controller.
+
+.TP
+\fB--rate-limit\fR[\fB=\fIrate\fR]
+.
+Limits the maximum rate at which packets will be forwarded to the
+OpenFlow controller to \fIrate\fR packets per second.  If \fIrate\fR
+is not specified then the default of 1,000 packets per second is used.
+
+If \fB--rate-limit\fR is not used, then the switch does not limit the
+rate at which packets are forwarded to the controller.
+
+.TP
+\fB--burst-limit=\fIburst\fR
+.
+Sets the maximum number of unused packet credits that the switch will
+allow to accumulate during time in which no packets are being
+forwarded to the OpenFlow controller to \fIburst\fR (measured in
+packets).  The default \fIburst\fR is one-quarter of the \fIrate\fR
+specified on \fB--rate-limit\fR.
+
+This option takes effect only when \fB--rate-limit\fR is also specified.
+
+.SS "Daemon Options"
+.so lib/daemon.man
+
+.SS "Public Key Infrastructure Options"
+
+.TP
+\fB-p\fR, \fB--private-key=\fIprivkey.pem\fR
+Specifies a PEM file containing the private key used as the switch's
+identity for SSL connections to the controller.
+
+.TP
+\fB-c\fR, \fB--certificate=\fIcert.pem\fR
+Specifies a PEM file containing a certificate, signed by the
+controller's certificate authority (CA), that certifies the switch's
+private key to identify a trustworthy switch.
+
+.TP
+\fB-C\fR, \fB--ca-cert=\fIcacert.pem\fR
+Specifies a PEM file containing the CA certificate used to verify that
+the switch is connected to a trustworthy controller.
+
+.TP
+\fB--bootstrap-ca-cert=\fIcacert.pem\fR
+When \fIcacert.pem\fR exists, this option has the same effect as
+\fB-C\fR or \fB--ca-cert\fR.  If it does not exist, then \fBofprotocol\fR
+will attempt to obtain the CA certificate from the controller on its
+first SSL connection and save it to the named PEM file.  If it is
+successful, it will immediately drop the connection and reconnect, and
+from then on all SSL connections must be authenticated by a
+certificate signed by the CA certificate thus obtained.
+
+\fBThis option exposes the SSL connection to a man-in-the-middle
+attack obtaining the initial CA certificate\fR, but it may be useful
+for bootstrapping.
+
+This option is only useful if the controller sends its CA certificate
+as part of the SSL certificate chain.  The SSL protocol does not
+require the controller to send the CA certificate, but
+\fBcontroller\fR(8) can be configured to do so with the
+\fB--peer-ca-cert\fR option.
+
+.SS "Logging Options"
+.so lib/vlog.man
+.SS "Other Options"
+.so lib/common.man
+.so lib/leak-checker.man
+
+.SH "SEE ALSO"
+
+.BR dpctl (8),
+.BR ofp-discover (8),
+.BR controller (8),
+.BR ofp-pki (8),
+.BR ofdatapath (8),
+.BR vlogconf (8)

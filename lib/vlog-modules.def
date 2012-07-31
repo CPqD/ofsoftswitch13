@@ -1,0 +1,43 @@
+/* Modules that can emit log messages. */
+
+VLOG_MODULE(backtrace)
+VLOG_MODULE(daemon)
+VLOG_MODULE(dhcp)
+VLOG_MODULE(dhcp_client)
+VLOG_MODULE(dpif)
+VLOG_MODULE(fault)
+VLOG_MODULE(flow)
+VLOG_MODULE(leak_checker)
+VLOG_MODULE(learning_switch)
+VLOG_MODULE(mac_learning)
+VLOG_MODULE(netdev)
+VLOG_MODULE(netlink)
+VLOG_MODULE(ofp)
+VLOG_MODULE(oxm_match)
+VLOG_MODULE(pcap)
+VLOG_MODULE(poll_loop)
+VLOG_MODULE(process)
+VLOG_MODULE(rconn)
+VLOG_MODULE(socket_util)
+VLOG_MODULE(stp)
+VLOG_MODULE(svec)
+VLOG_MODULE(vconn)
+VLOG_MODULE(vconn_netlink)
+VLOG_MODULE(vconn_ssl)
+VLOG_MODULE(vconn_stream)
+VLOG_MODULE(vconn_tcp)
+VLOG_MODULE(vconn_unix)
+VLOG_MODULE(vlog)
+VLOG_MODULE(vlog_socket)
+
+#include "../oflib/vlog-modules.def"
+#include "../oflib-exp/vlog-modules.def"
+#include "../secchan/vlog-modules.def"
+#include "../udatapath/vlog-modules.def"
+#include "../utilities/vlog-modules.def"
+
+#ifdef HAVE_EXT
+#include "ext/vlogext-modules.def"
+#endif
+
+#undef VLOG_MODULE
