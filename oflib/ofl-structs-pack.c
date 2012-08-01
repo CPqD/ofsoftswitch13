@@ -159,7 +159,7 @@ ofl_structs_instructions_pack(struct ofl_instruction_header *src, struct ofp_ins
             di->len = htons(sizeof(struct ofp_instruction_meter));
             di->meter_id = htonl(si->meter_id);
 
-            return sizeof(struct ofp_instruction_goto_table);
+            return sizeof(struct ofp_instruction_meter);
         }
         case OFPIT_EXPERIMENTER: {
             if (exp == NULL || exp->inst == NULL || exp->inst->pack == NULL) {
