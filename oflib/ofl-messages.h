@@ -125,15 +125,6 @@ struct ofl_msg_role_request {
 	uint64_t generation_id;   /* Master Election Generation Id */
 };
 
-/* Body of reply to OFPMP_METER_CONFIG request. Meter configuration. */
-struct ofl_meter_config {
-    uint16_t length; /* Length of this entry. */
-    uint16_t flags; /* All OFPMC_* that apply. */
-    uint32_t meter_id; /* Meter instance. */
-    size_t meter_bands_num;
-    struct ofl_meter_band_header **bands; /* The bands length is
-                                              inferred from the length field. */
-};
 
 
 /************************
@@ -177,6 +168,16 @@ struct ofl_msg_async_config {
     uint32_t packet_in_mask[2]; /* Bitmasks of OFPR_* values. */
     uint32_t port_status_mask[2]; /* Bitmasks of OFPPR_* values. */
     uint32_t flow_removed_mask[2];/* Bitmasks of OFPRR_* values. */
+};
+
+/* Body of reply to OFPMP_METER_CONFIG request. Meter configuration. */
+struct ofl_meter_config {
+    uint16_t length; /* Length of this entry. */
+    uint16_t flags; /* All OFPMC_* that apply. */
+    uint32_t meter_id; /* Meter instance. */
+    size_t meter_bands_num;
+    struct ofl_meter_band_header **bands; /* The bands length is
+                                              inferred from the length field. */
 };
 
 struct ofl_msg_packet_out {

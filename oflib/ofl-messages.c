@@ -159,14 +159,11 @@ ofl_msg_free_multipart_reply(struct ofl_msg_multipart_reply_header *msg, struct 
     return 0;
 }
 
-
-
 int
 ofl_msg_free(struct ofl_msg_header *msg, struct ofl_exp *exp) {
      
     switch (msg->type) {
         case OFPT_HELLO: {
-              
             break;
         }
         case OFPT_ERROR: {
@@ -248,8 +245,8 @@ ofl_msg_free(struct ofl_msg_header *msg, struct ofl_exp *exp) {
             break;
         }
         case OFPT_GET_ASYNC_REPLY:
-             OFPT_SET_ASYNC:
-             OFPT_GET_ASYNC_REQUEST:{
+        case OFPT_SET_ASYNC:
+        case OFPT_GET_ASYNC_REQUEST:{
              break;
         }
         case OFPT_METER_MOD:{

@@ -1347,7 +1347,7 @@ ofl_msg_unpack(uint8_t *buf, size_t buf_len, struct ofl_msg_header **msg, uint32
 
         /* Controller command messages. */
         case OFPT_GET_ASYNC_REPLY:
-             OFPT_SET_ASYNC:{
+        case OFPT_SET_ASYNC:{
             error =  ofl_msg_unpack_async_config(oh, &len, msg);
         }
         case OFPT_PACKET_OUT:

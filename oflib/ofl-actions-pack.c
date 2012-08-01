@@ -60,11 +60,11 @@ ofl_actions_ofp_len(struct ofl_action_header *action, struct ofl_exp *exp) {
         case OFPAT_DEC_MPLS_TTL:
             return sizeof(struct ofp_action_header);
         case OFPAT_PUSH_VLAN:
-             OFPAT_PUSH_PBB:
-             OFPAT_PUSH_MPLS:  
+        case OFPAT_PUSH_PBB:
+        case OFPAT_PUSH_MPLS:  
             return sizeof(struct ofp_action_push);
         case OFPAT_POP_VLAN:
-             OFPAT_POP_PBB:
+        case OFPAT_POP_PBB:
             return sizeof(struct ofp_action_header);
         case OFPAT_POP_MPLS:
             return sizeof(struct ofp_action_pop_mpls);
@@ -140,7 +140,7 @@ ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, u
         }
         case OFPAT_PUSH_VLAN:
         case OFPAT_PUSH_MPLS: 
-             OFPAT_PUSH_PBB:{
+        case OFPAT_PUSH_PBB:{
             struct ofl_action_push *sa = (struct ofl_action_push *)src;
             struct ofp_action_push *da = (struct ofp_action_push *)dst;
 
@@ -150,7 +150,7 @@ ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, u
             return sizeof(struct ofp_action_push);
         }
         case OFPAT_POP_VLAN: 
-             OFPAT_POP_PBB: {
+        case OFPAT_POP_PBB: {
             struct ofp_action_header *da = (struct ofp_action_header *)dst;
 
             da->len = htons(sizeof(struct ofp_action_header));
