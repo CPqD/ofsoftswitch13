@@ -237,13 +237,13 @@ flow_table_create(struct datapath *dp, uint8_t table_id) {
 
     table->stats = xmalloc(sizeof(struct ofl_table_stats));
     table->stats->table_id      = table_id;
-    table->stats->name          = ds_cstr(&string);
+    /*table->stats->name          = ds_cstr(&string);
     table->stats->match         = DP_SUPPORTED_MATCH_FIELDS;
     table->stats->instructions  = DP_SUPPORTED_INSTRUCTIONS;
     table->stats->write_actions = DP_SUPPORTED_ACTIONS;
     table->stats->apply_actions = DP_SUPPORTED_ACTIONS;
     table->stats->config        = OFPTC_TABLE_MISS_CONTROLLER;
-    table->stats->max_entries   = FLOW_TABLE_MAX_ENTRIES;
+    table->stats->max_entries   = FLOW_TABLE_MAX_ENTRIES;*/
     table->stats->active_count  = 0;
     table->stats->lookup_count  = 0;
     table->stats->matched_count = 0;
@@ -262,8 +262,7 @@ flow_table_destroy(struct flow_table *table) {
     LIST_FOR_EACH_SAFE (entry, next, struct flow_entry, match_node, &table->match_entries) {
         flow_entry_destroy(entry);
     }
-
-    free(table->stats->name);
+    free(table->features);
     free(table->stats);
     free(table);
 }

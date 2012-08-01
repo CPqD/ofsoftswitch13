@@ -162,23 +162,60 @@ struct ofl_flow_stats {
 struct ofl_table_stats {
     uint8_t    table_id;      /* Identifier of table. Lower numbered tables
                                 are consulted first. */
-    char      *name;
-    uint32_t   wildcards;     /* Bitmap of OFPFMF_* wildcards that are
-                                supported by the table. */
-    uint32_t   match;         /* Bitmap of OFPFW ::::: OFPFMF_* that indicate
-                                the fields the table can match on. */
-    uint32_t   instructions;  /* Bitmap of OFPIT_* values supported. */
-    uint32_t   write_actions; /* Bitmap of OFPAT_* that are supported
-                               by the table with OFPIT_WRITE_ACTIONS. */
-    uint32_t   apply_actions; /* Bitmap of OFPAT_* that are supported
-                                by the table with OFPIT_APPLY_ACTIONS. */
-    uint32_t   config;        /* Bitmap of OFPTC_* values */
-    uint32_t   max_entries;   /* Max number of entries supported. */
     uint32_t   active_count;  /* Number of active entries. */
     uint64_t   lookup_count;  /* Number of packets looked up in table. */
     uint64_t   matched_count; /* Number of packets that hit table. */
 };
 
+struct ofl_table_feature_prop_header {
+    uint16_t type;                /* Table feature type */
+    uint16_t length;              /* Table features length*/
+};
+OFP_ASSERT(sizeof(struct ofp_table_feature_prop_header) == 8);
+
+/* Instructions property */
+struct ofl_table_feature_prop_instructions {
+    struct ofl_table_feature_prop_header header;
+    size_t ids_num;
+    struct ofp_instruction *instruction_ids; /* List of instructions */
+};
+
+struct ofl_table_feature_prop_next_tables {
+    struct ofl_table_feature_prop_header header;
+    size_t table_num;
+    uint8_t *next_table_ids;
+};
+
+/* Actions property */
+struct ofl_table_feature_prop_actions {
+    struct ofl_table_feature_prop_header header;
+    size_t actions_num; 
+    struct ofp_action_header *action_ids; /*Actions list*/
+};
+
+struct ofl_table_feature_prop_oxm {
+    struct ofl_table_feature_prop_header header;
+    uint32_t oxm_num;
+    uint32_t *oxm_ids; /* Array of OXM headers */
+};
+
+
+/* Body for ofp_multipart_request of type OFPMP_TABLE_FEATURES./
+* Body of reply to OFPMP_TABLE_FEATURES request. */
+struct ofl_table_features {
+    uint16_t length;  /* Length is padded to 64 bits. */
+    uint8_t table_id; /* Identifier of table. Lower numbered tables
+                         are consulted first. */
+    uint8_t pad[5];   /* Align to 64-bits. */
+    char name[OFP_MAX_TABLE_NAME_LEN];
+    uint64_t metadata_match; /* Bits of metadata table can match. */
+    uint64_t metadata_write; /* Bits of metadata table can write. */
+    uint32_t config;         /* Bitmap of OFPTC_* values */
+    uint32_t max_entries;    /* Max number of entries supported. */
+    size_t properties_num;  /* Number of properties*/
+    /* Table Feature Property list */
+    struct ofl_table_feature_prop_header **properties;
+};
 
 struct ofl_match_header {
     uint16_t   type;             /* One of OFPMT_* */
@@ -251,6 +288,9 @@ struct ofl_port_stats {
     uint64_t   rx_over_err;  /* Number of packets with RX overrun. */
     uint64_t   rx_crc_err;   /* Number of CRC errors. */
     uint64_t   collisions;   /* Number of collisions. */
+    uint32_t   duration_sec; /* Time port has been alive in seconds */
+    uint32_t   duration_nsec; /* Time port has been alive in nanoseconds 
+                                 beyond duration_sec */
 };
 
 struct ofl_bucket_counter {
@@ -264,6 +304,9 @@ struct ofl_group_stats {
     uint64_t   packet_count;
     uint64_t   byte_count;
     size_t                      counters_num;
+    uint32_t   duration_sec; /* Time group has been alive in seconds */
+    uint32_t   duration_nsec; /* Time group has been alive in nanoseconds 
+                                 beyond duration_sec */    
     struct ofl_bucket_counter **counters;
 };
 
@@ -293,9 +336,10 @@ struct ofl_queue_stats {
     uint64_t   tx_bytes;   /* Number of transmitted bytes. */
     uint64_t   tx_packets; /* Number of transmitted packets. */
     uint64_t   tx_errors;  /* Number of packets dropped due to overrun. */
+    uint32_t   duration_sec; /* Time queue has been alive in seconds */
+    uint32_t   duration_nsec; /* Time queue has been alive in nanoseconds 
+                                 beyond duration_sec */    
 };
-
-
 
 struct ofl_group_desc_stats {
     uint8_t             type;        /* One of OFPGT_*. */
@@ -305,6 +349,35 @@ struct ofl_group_desc_stats {
     struct ofl_bucket **buckets;
 };
 
+
+/* Statistics for each meter band */
+struct ofl_meter_band_stats {
+    uint64_t packet_band_count; /* Number of packets in band. */
+    uint64_t byte_band_count; /* Number of bytes in band. */
+};
+
+/* Body of reply to OFPMP_METER request. Meter statistics. */
+struct ofl_meter_stats {
+    uint32_t meter_id; /* Meter instance. */
+    uint16_t len;             /* Length in bytes of this stats. */
+    uint32_t flow_count;      /* Number of flows bound to meter. */
+    uint64_t packet_in_count; /* Number of packets in input. */
+    uint64_t byte_in_count;   /* Number of bytes in input. */
+    uint32_t duration_sec;    /* Time meter has been alive in seconds. */
+    uint32_t duration_nsec;   /* Time meter has been alive in nanoseconds beyond
+                               duration_sec. */
+    size_t meter_bands_num;
+    struct ofl_meter_band_stats **band_stats; /* The band_stats length is
+                                                  inferred from the length field. */
+};
+
+struct ofl_meter_features {
+    uint32_t max_meter; /* Maximum number of meters. */
+    uint32_t band_types; /* Bitmaps of OFPMBT_* values supported. */
+    uint32_t capabilities; /* Bitmaps of "ofp_meter_flags". */
+    uint8_t max_bands; /* Maximum bands per meters */
+    uint8_t max_color; /* Maximum color value */
+};
 
 /****************************************************************************
  * Utility functions to match structure

@@ -292,7 +292,6 @@ void ofl_structs_free_meter_bands(struct ofl_meter_band_header *meter_band){
 
 void
 ofl_structs_free_table_stats(struct ofl_table_stats *stats) {
-    free(stats->name);
     free(stats);
 }
 

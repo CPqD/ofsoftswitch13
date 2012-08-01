@@ -159,6 +159,7 @@ ofl_msg_pack_packet_in(struct ofl_msg_packet_in *msg, uint8_t **buf, size_t *buf
     packet_in->total_len   = htons(msg->total_len);
     packet_in->reason      =       msg->reason;
     packet_in->table_id    =       msg->table_id;
+    packet_in->cookie      = hton64(msg->cookie);
 
     ptr = (*buf) + (sizeof(struct ofp_packet_in) - 4);
     ofl_structs_match_pack(msg->match,&(packet_in->match),ptr, NETWORK_ORDER, NULL);
@@ -362,6 +363,22 @@ ofl_msg_pack_meter_mod(struct ofl_msg_meter_mod *msg, uint8_t ** buf, size_t *bu
     }
     return 0;    
 }
+
+static int
+ofl_msg_pack_async_config(struct ofl_msg_async_config *msg, uint8_t **buf, size_t *buf_len){
+    struct ofp_async_config *ac;
+    int i;
+    *buf_len = sizeof(struct ofp_async_config);
+    *buf = malloc(*buf_len);
+    
+    ac = (struct ofp_async_config*)(*buf);
+    for(i = 0; i < 2; i++){
+        ac->packet_in_mask[i] = msg->packet_in_mask[i];
+        ac->port_status_mask[i] = msg->port_status_mask[i];
+        ac->flow_removed_mask[i] =  msg->flow_removed_mask[i];
+    }
+    return 0;
+} 
 
 static int
 ofl_msg_pack_multipart_request_flow(struct ofl_msg_multipart_request_flow *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
@@ -823,8 +840,11 @@ ofl_msg_pack(struct ofl_msg_header *msg, uint32_t xid, uint8_t **buf, size_t *bu
             }
             break;
         }
-
         /* Switch configuration messages. */
+        case OFPT_GET_ASYNC_REQUEST:{
+            error = ofl_msg_pack_empty(msg, buf, buf_len);
+            break;
+        }
         case OFPT_FEATURES_REQUEST: {
             error = ofl_msg_pack_empty(msg, buf, buf_len);
             break;
@@ -861,6 +881,10 @@ ofl_msg_pack(struct ofl_msg_header *msg, uint32_t xid, uint8_t **buf, size_t *bu
         }
 
         /* Controller command messages. */
+        case OFPT_GET_ASYNC_REPLY:
+             OFPT_SET_ASYNC:{
+            error = ofl_msg_pack_async_config((struct ofl_msg_async_config *)msg, buf, buf_len);       
+        }
         case OFPT_PACKET_OUT: {
             error = ofl_msg_pack_packet_out((struct ofl_msg_packet_out *)msg, buf, buf_len, exp);
             break;

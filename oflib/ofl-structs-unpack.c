@@ -394,6 +394,8 @@ ofl_structs_group_stats_unpack(struct ofp_group_stats *src, size_t *len, struct 
     s->ref_count = ntohl(src->ref_count);
     s->packet_count = ntoh64(src->packet_count);
     s->byte_count = ntoh64(src->byte_count);
+    s->duration_sec =  htonl(src->duration_sec);
+    s->duration_nsec =  htonl(src->duration_nsec);
 
     error = ofl_utils_count_ofp_bucket_counters(src->bucket_stats, slen, &s->counters_num);
     if (error) {
@@ -633,7 +635,8 @@ ofl_structs_port_stats_unpack(struct ofp_port_stats *src, size_t *len, struct of
     p->rx_over_err  = ntoh64(src->rx_over_err);
     p->rx_crc_err   = ntoh64(src->rx_crc_err);
     p->collisions   = ntoh64(src->collisions);
-
+    p->duration_sec = ntohl(src->duration_sec);
+    p->duration_nsec = ntohl(src->duration_nsec);
     *dst = p;
     return 0;
 }
@@ -664,7 +667,8 @@ ofl_structs_queue_stats_unpack(struct ofp_queue_stats *src, size_t *len, struct 
     p->tx_bytes =   ntoh64(src->tx_bytes);
     p->tx_packets = ntoh64(src->tx_packets);
     p->tx_errors =  ntoh64(src->tx_errors);
-
+    p->duration_sec = ntohl(src->duration_sec);
+    p->duration_nsec = ntohl(src->duration_nsec);
     *dst = p;
     return 0;
 }

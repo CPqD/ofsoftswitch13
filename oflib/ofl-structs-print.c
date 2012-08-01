@@ -638,13 +638,9 @@ void
 ofl_structs_table_stats_print(FILE *stream, struct ofl_table_stats *s) {
     fprintf(stream, "{table=\"");
     ofl_table_print(stream, s->table_id);
-    fprintf(stream, "\", name=\"%s\", wcards=\"0x%"PRIx32"\", match=\"0x%"PRIx32"\", "
-                          "insts=\"0x%"PRIx32"\", w_acts=\"0x%"PRIx32"\", a_acts=\"0x%"PRIx32"\", "
-                          "conf=\"0x%"PRIx32"\", max=\"%u\", active=\"%u\", "
+    fprintf(stream, "\", active=\"%u\", "
                           "lookup=\"%"PRIu64"\", match=\"%"PRIu64"\"",
-                  s->name, s->wildcards, s->match,
-                  s->instructions, s->write_actions, s->apply_actions,
-                  s->config, s->max_entries, s->active_count,
+                  s->active_count,
                   s->lookup_count, s->matched_count);
 }
 

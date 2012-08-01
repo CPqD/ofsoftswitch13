@@ -368,6 +368,8 @@ ofl_structs_group_stats_pack(struct ofl_group_stats *src, struct ofp_group_stats
     memset(dst->pad2, 0x00, 4);
     dst->packet_count = hton64(src->packet_count);
     dst->byte_count =   hton64(src->byte_count);
+    dst->duration_sec =  htonl(src->duration_sec);
+    dst->duration_nsec =  htonl(src->duration_nsec);
 
     data = (uint8_t *)dst->bucket_stats;
 
@@ -575,6 +577,8 @@ ofl_structs_port_stats_pack(struct ofl_port_stats *src, struct ofp_port_stats *d
     dst->rx_over_err  = hton64(src->rx_over_err);
     dst->rx_crc_err   = hton64(src->rx_crc_err);
     dst->collisions   = hton64(src->collisions);
+    dst->duration_sec =  htonl(src->duration_sec);
+    dst->duration_nsec =  htonl(src->duration_nsec);
 
     return sizeof(struct ofp_port_stats);
 }
@@ -586,6 +590,8 @@ ofl_structs_queue_stats_pack(struct ofl_queue_stats *src, struct ofp_queue_stats
     dst->tx_bytes = hton64(src->tx_bytes);
     dst->tx_packets = hton64(src->tx_packets);
     dst->tx_errors = hton64(src->tx_errors);
+    dst->duration_sec = ntohl(src->duration_sec);
+    dst->duration_nsec = ntohl(src->duration_nsec);
 
     return sizeof(struct ofp_queue_stats);
 }

@@ -247,6 +247,11 @@ ofl_msg_free(struct ofl_msg_header *msg, struct ofl_exp *exp) {
         case OFPT_ROLE_REQUEST:{
             break;
         }
+        case OFPT_GET_ASYNC_REPLY:
+             OFPT_SET_ASYNC:
+             OFPT_GET_ASYNC_REQUEST:{
+             break;
+        }
         case OFPT_METER_MOD:{
             return ofl_msg_free_meter_mod((struct ofl_msg_meter_mod*)msg);
         }

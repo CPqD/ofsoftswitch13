@@ -263,10 +263,10 @@ pipeline_handle_table_mod(struct pipeline *pl,
         size_t i;
 
         for (i=0; i<PIPELINE_TABLES; i++) {
-            pl->tables[i]->stats->config = msg->config;
+            pl->tables[i]->features->config = msg->config;
         }
     } else {
-        pl->tables[msg->table_id]->stats->config = msg->config;
+        pl->tables[msg->table_id]->features->config = msg->config;
     }
 
     ofl_msg_free((struct ofl_msg_header *)msg, pl->dp->exp);
@@ -483,7 +483,7 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
 static void
 execute_table(struct pipeline *pl, struct flow_table *table,
               struct flow_table **next_table, struct packet *pkt) {
-    if ((table->stats->config & OFPTC_TABLE_MISS_CONTINUE) != 0) {
+    if ((table->features->config & OFPTC_TABLE_MISS_CONTINUE) != 0) {
         // send to next table, if exists
         if (table->stats->table_id < PIPELINE_TABLES - 1) {
             (*next_table) = pl->tables[table->stats->table_id + 1];
@@ -491,7 +491,7 @@ execute_table(struct pipeline *pl, struct flow_table *table,
             VLOG_WARN_RL(LOG_MODULE, &rl, "Last flow table is set to miss continue.");
         }
 
-    } else if ((table->stats->config & OFPTC_TABLE_MISS_DROP) != 0) {
+    } else if ((table->features->config & OFPTC_TABLE_MISS_DROP) != 0) {
         VLOG_DBG_RL(LOG_MODULE, &rl, "Table set to drop packet.");
 
     } else { // OFPTC_TABLE_MISS_CONTROLLER

@@ -47,8 +47,9 @@
 
 struct flow_table {
     struct datapath         *dp;
-    struct ofl_table_stats  *stats;  /* structure storing table statistics. */
-
+    struct ofl_table_features * features;   /*store table features*/
+    struct ofl_table_stats  *stats;         /* structure storing table statistics. */
+    
     struct list              match_entries; /* list of entries in order. */
     struct list              hard_entries;  /* list of entries with hard timeout;
                                                ordered by their timeout times. */

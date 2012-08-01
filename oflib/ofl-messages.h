@@ -125,6 +125,17 @@ struct ofl_msg_role_request {
 	uint64_t generation_id;   /* Master Election Generation Id */
 };
 
+/* Body of reply to OFPMP_METER_CONFIG request. Meter configuration. */
+struct ofl_meter_config {
+    uint16_t length; /* Length of this entry. */
+    uint16_t flags; /* All OFPMC_* that apply. */
+    uint32_t meter_id; /* Meter instance. */
+    size_t meter_bands_num;
+    struct ofl_meter_band_header **bands; /* The bands length is
+                                              inferred from the length field. */
+};
+
+
 /************************
  * Asynchronous messages
  ************************/
@@ -136,6 +147,7 @@ struct ofl_msg_packet_in {
     uint16_t                    total_len;   /* Full length of frame. */
     enum ofp_packet_in_reason   reason;      /* Reason packet is being sent (one of OFPR_*) */
     uint8_t                     table_id;    /* ID of the table that was looked up */
+    uint64_t                    cookie;
     struct ofl_match_header     *match;
     size_t     data_length;
     uint8_t   *data;
@@ -158,6 +170,14 @@ struct ofl_msg_port_status {
 /******************************
  * Controller command messages
  ******************************/
+
+/* Asynchronous message configuration. */
+struct ofl_msg_async_config {
+    struct ofl_msg_header header; /* OFPT_GET_ASYNC_REPLY or OFPT_SET_ASYNC. */
+    uint32_t packet_in_mask[2]; /* Bitmasks of OFPR_* values. */
+    uint32_t port_status_mask[2]; /* Bitmasks of OFPPR_* values. */
+    uint32_t flow_removed_mask[2];/* Bitmasks of OFPRR_* values. */
+};
 
 struct ofl_msg_packet_out {
     struct ofl_msg_header   header; /* OFPT_PACKET_OUT, */
@@ -305,6 +325,12 @@ struct ofl_msg_multipart_request_group {
     uint32_t   group_id; /* All groups if OFPG_ALL. */
 };
 
+struct ofl_msg_meter_multipart_request {
+    struct ofl_msg_multipart_request_header   header; /* OFPMP_METER */
+    
+    int32_t meter_id; /* Meter instance, or OFPM_ALL. */
+};
+
 
 struct ofl_msg_multipart_request_experimenter {
     struct ofl_msg_multipart_request_header   header; /* OFPMP_EXPERIMENTER */
@@ -388,7 +414,6 @@ struct ofl_msg_multipart_reply_group_features {
     uint32_t max_groups[4];
     uint32_t actions[4];
 };
-
 
 struct ofl_msg_multipart_reply_experimenter {
     struct ofl_msg_multipart_reply_header   header; /* OFPMP_EXPERIMENTER */

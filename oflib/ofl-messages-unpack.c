@@ -205,6 +205,28 @@ ofl_msg_unpack_set_config(struct ofp_header *src, size_t *len, struct ofl_msg_he
      return 0;
 }
 
+static ofl_err 
+ofl_msg_unpack_async_config(struct ofp_header *src, size_t *len, struct ofl_msg_header **msg){
+    struct ofp_async_config *sac;
+    struct ofl_msg_async_config *dac;
+    int i;
+    
+    if (*len < sizeof(struct ofp_async_config)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received ASYNC CONFIG message has invalid length (%zu).", *len);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+    sac = (struct ofp_async_config*)src;
+    dac = (struct ofl_msg_async_config*)malloc(sizeof(struct ofl_msg_async_config));
+    for(i = 0; i < 2; i++){
+        dac->packet_in_mask[i] = sac->packet_in_mask[i];
+        dac->port_status_mask[i] = sac->port_status_mask[i];
+        dac->flow_removed_mask[i] =  sac->flow_removed_mask[i];
+    }
+    
+    *msg = (struct ofl_msg_header*)dac;
+    return 0;
+}
+
 static ofl_err
 ofl_msg_unpack_packet_in(struct ofp_header *src, uint8_t* buf, size_t *len, struct ofl_msg_header **msg) {
     struct ofp_packet_in *sp;
@@ -213,11 +235,12 @@ ofl_msg_unpack_packet_in(struct ofp_header *src, uint8_t* buf, size_t *len, stru
 
     if (*len < sizeof(struct ofp_packet_in)) {
         OFL_LOG_WARN(LOG_MODULE, "Received PACKET_IN message has invalid length (%zu).", *len);
-        return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
 
     sp = (struct ofp_packet_in *)src;
 
+    /* TODO: Check in_port oxm_field */
     /*if (ntohl(sp->in_port) == 0 ||
         (ntohl(sp->in_port) > OFPP_MAX &&
          ntohl(sp->in_port) != OFPP_LOCAL)) {
@@ -226,7 +249,7 @@ ofl_msg_unpack_packet_in(struct ofp_header *src, uint8_t* buf, size_t *len, stru
             OFL_LOG_WARN(LOG_MODULE, "Received PACKET_IN message has invalid in_port (%s).", ps);
             free(ps);
         }
-        return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_ARGUMENT);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBAC_BAD_ARGUMENT);
     }*/
 
     if (sp->table_id == 0xff) {
@@ -235,7 +258,7 @@ ofl_msg_unpack_packet_in(struct ofp_header *src, uint8_t* buf, size_t *len, stru
             OFL_LOG_WARN(LOG_MODULE, "Received PACKET_IN has invalid table_id (%s).", ts);
             free(ts);
         }
-        return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_ARGUMENT);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBAC_BAD_ARGUMENT);
     }
     *len -= sizeof(struct ofp_packet_in) - sizeof(struct ofp_match);
     dp = (struct ofl_msg_packet_in *)malloc(sizeof(struct ofl_msg_packet_in));
@@ -243,6 +266,7 @@ ofl_msg_unpack_packet_in(struct ofp_header *src, uint8_t* buf, size_t *len, stru
     dp->total_len = ntohs(sp->total_len);
     dp->reason = (enum ofp_packet_in_reason)sp->reason;
     dp->table_id = sp->table_id;
+    dp->cookie = ntoh64(sp->cookie);
     
     ptr = buf + (sizeof(struct ofp_packet_in)-4);
     ofl_structs_match_unpack(&(sp->match),ptr, len ,&(dp->match),NULL);
@@ -257,7 +281,6 @@ ofl_msg_unpack_packet_in(struct ofp_header *src, uint8_t* buf, size_t *len, stru
     *msg = (struct ofl_msg_header *)dp;
     return 0;
 }
-
 
 static ofl_err
 ofl_msg_unpack_flow_removed(struct ofp_header *src,uint8_t *buf, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp) {
@@ -279,7 +302,7 @@ ofl_msg_unpack_flow_removed(struct ofp_header *src,uint8_t *buf, size_t *len, st
             OFL_LOG_WARN(LOG_MODULE, "Received FLOW_REMOVED message has invalid table_id (%s).", ts);
             free(ts);
         }
-        return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_ARGUMENT);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBAC_BAD_ARGUMENT);
     }
     *len -=  sizeof(struct ofp_flow_removed) - sizeof(struct ofp_match) ;
 
@@ -319,7 +342,7 @@ ofl_msg_unpack_port_status(struct ofp_header *src, size_t *len, struct ofl_msg_h
 
     if (*len < sizeof(struct ofp_port_status)) {
         OFL_LOG_WARN(LOG_MODULE, "Received PORT_STATUS message has invalid length (%zu).", *len);
-        return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
     *len -= (sizeof(struct ofp_port_status) - sizeof(struct ofp_port));
 
@@ -349,7 +372,7 @@ ofl_msg_unpack_packet_out(struct ofp_header *src, size_t *len, struct ofl_msg_he
 
     if (*len < sizeof(struct ofp_packet_out)) {
         OFL_LOG_WARN(LOG_MODULE, "Received PACKET_OUT message has invalid length (%zu).", *len);
-        return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
 
     sp = (struct ofp_packet_out *)src;
@@ -361,7 +384,7 @@ ofl_msg_unpack_packet_out(struct ofp_header *src, size_t *len, struct ofl_msg_he
             OFL_LOG_WARN(LOG_MODULE, "Received PACKET_OUT message with invalid in_port (%s).", ps);
             free(ps);
         }
-        return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_ARGUMENT);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBAC_BAD_ARGUMENT);
     }*/
 
     if (ntohl(sp->buffer_id) != 0xffffffff &&
@@ -371,7 +394,7 @@ ofl_msg_unpack_packet_out(struct ofp_header *src, size_t *len, struct ofl_msg_he
             OFL_LOG_WARN(LOG_MODULE, "Received PACKET_OUT message with data and buffer_id (%s).", bs);
             free(bs);
         }
-        return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
     *len -= sizeof(struct ofp_packet_out);
 
@@ -382,7 +405,7 @@ ofl_msg_unpack_packet_out(struct ofp_header *src, size_t *len, struct ofl_msg_he
     if (*len < ntohs(sp->actions_len)) {
         OFL_LOG_WARN(LOG_MODULE, "Received PACKET_OUT message has invalid action length (%zu).", *len);
         free(dp);
-        return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
 
     error = ofl_utils_count_ofp_actions(&(sp->actions), ntohs(sp->actions_len), &actions_num);
@@ -427,7 +450,7 @@ ofl_msg_unpack_flow_mod(struct ofp_header *src,uint8_t* buf, size_t *len, struct
     
     if (*len < (sizeof(struct ofp_flow_mod) - sizeof(struct ofp_match))) {
         OFL_LOG_WARN(LOG_MODULE, "Received FLOW_MOD message has invalid length (%zu).", *len);
-        return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
     *len -= (sizeof(struct ofp_flow_mod) - sizeof(struct ofp_match));
 
@@ -573,7 +596,7 @@ ofl_msg_unpack_port_mod(struct ofp_header *src, size_t *len, struct ofl_msg_head
             OFL_LOG_WARN(LOG_MODULE, "Received PORT_MOD message has invalid in_port (%s).", ps);
             free(ps);
         }
-        return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_ARGUMENT);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBAC_BAD_ARGUMENT);
     }*/
     *len -= sizeof(struct ofp_port_mod);
 
@@ -1323,6 +1346,10 @@ ofl_msg_unpack(uint8_t *buf, size_t buf_len, struct ofl_msg_header **msg, uint32
             break;
 
         /* Controller command messages. */
+        case OFPT_GET_ASYNC_REPLY:
+             OFPT_SET_ASYNC:{
+            error =  ofl_msg_unpack_async_config(oh, &len, msg);
+        }
         case OFPT_PACKET_OUT:
             error = ofl_msg_unpack_packet_out(oh, &len, msg, exp);
             break;
