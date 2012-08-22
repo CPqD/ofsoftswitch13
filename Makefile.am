@@ -56,7 +56,7 @@ SUFFIXES = .in
                 -e 's,[@]pkgdatadir[@],$(pkgdatadir),g' \
                 -e 's,[@]PERL[@],$(PERL),g' > $@
 
-include lib/automake.mk    
+include lib/automake.mk
 include nbee_link/automake.mk
 include oflib/automake.mk
 include oflib-exp/automake.mk
@@ -64,4 +64,8 @@ include secchan/automake.mk
 include utilities/automake.mk
 include udatapath/automake.mk
 include include/automake.mk
-#include debian/automake.mk
+include debian/automake.mk
+
+netpdldir = $(datadir)/openflow
+netpdl_DATA = customnetpdl.xml
+AM_CPPFLAGS += -DNETPDLDIR='"$(netpdldir)"'

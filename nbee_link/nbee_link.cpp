@@ -7,7 +7,9 @@
 
 #include <iostream>
 #include <string.h>
-#include <nbee/nbee.h>
+#include <sys/stat.h>
+#include <errno.h>
+#include <nbee.h>
 #include <netinet/in.h>
 
 #include "nbee_link.h"
@@ -21,6 +23,8 @@ nbPDMLReader *PDMLReader;
 int PacketCounter= 1;
 struct pcap_pkthdr * pkhdr;
 
+#define NETPDLFILE "customnetpdl.xml"
+
 extern "C" int nblink_initialize(void)
 {
 
@@ -29,12 +33,18 @@ extern "C" int nblink_initialize(void)
     int NetPDLDecoderFlags = nbDECODER_GENERATEPDML_COMPLETE;
     int ShowNetworkNames = 0;
 
-    char* NetPDLFileName = (char*) "customnetpdl.xml";
+    char* NetPDLFileName = (char*) NETPDLDIR"/"NETPDLFILE;
+    struct stat netpdlstat;
 
     pkhdr = new struct pcap_pkthdr;
 
     if (nbIsInitialized() == nbFAILURE)
     {
+	    if (stat(NETPDLFILE, &netpdlstat) > 0 || errno != ENOENT)
+	    {
+	            NetPDLFileName += sizeof(NETPDLDIR) + 1 - 1; /* null char and '/' cancel out */
+	    }
+
 	    if (nbInitialize(NetPDLFileName, NetPDLProtoDBFlags, ErrBuf, sizeof(ErrBuf)) == nbFAILURE)
 	    {
 		    printf("Error initializing the NetBee Library; %s\n", ErrBuf);
