@@ -114,7 +114,6 @@ send_packet_to_controller(struct pipeline *pl, struct packet *pkt, uint8_t table
     msg.match = (struct ofl_match_header*)m;
     dp_send_message(pl->dp, (struct ofl_msg_header *)&msg, NULL);
     ofl_structs_free_match((struct ofl_match_header* ) m, NULL); 
-    
 }
 
 void
@@ -130,7 +129,7 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
     if (!packet_handle_std_is_ttl_valid(pkt->handle_std)) {
         if ((pl->dp->config.flags & OFPC_INVALID_TTL_TO_CONTROLLER) != 0) {
             VLOG_DBG_RL(LOG_MODULE, &rl, "Packet has invalid TTL, sending to controller.");
-
+            
             send_packet_to_controller(pl, pkt, 0/*table_id*/, OFPR_INVALID_TTL);
         } else {
             VLOG_DBG_RL(LOG_MODULE, &rl, "Packet has invalid TTL, dropping.");
@@ -150,28 +149,26 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
         next_table    = NULL;
         
         entry = flow_table_lookup(table, pkt);
-        if (entry != NULL) {
-	   if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
+       if (entry != NULL) {
+	       if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
                 char *m = ofl_structs_flow_stats_to_string(entry->stats, pkt->dp->exp);
                 VLOG_DBG_RL(LOG_MODULE, &rl, "found matching entry: %s.", m);
                 free(m);
-            }
+           }
 
             execute_entry(pl, entry, &next_table, pkt);
 
-            if (next_table == NULL) {
+           if (next_table == NULL) {
                 action_set_execute(pkt->action_set, pkt);
                 packet_destroy(pkt);
                 return;
-            }
+           }
 
         } else {
-			VLOG_DBG_RL(LOG_MODULE, &rl, "no matching entry found. executing table conf.");
-			execute_table(pl, table, &next_table, pkt);
-			if (next_table == NULL) {
-				packet_destroy(pkt);
-				return;
-			}
+			/* OpenFlow 1.3 default behavior on a table miss */
+			VLOG_DBG_RL(LOG_MODULE, &rl, "No matching entry found. Dropping packet.");
+			packet_destroy(pkt);
+			return;
         }
     }
     VLOG_WARN_RL(LOG_MODULE, &rl, "Reached outside of pipeline processing cycle.");
@@ -475,41 +472,5 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
                 break;
             }
         }
-    }
-}
-
-/* Executes the instructions associated to the flow table, if no matching flow
- * entry was found. */
-static void
-execute_table(struct pipeline *pl, struct flow_table *table,
-              struct flow_table **next_table, struct packet *pkt) {
-    if ((table->features->config & OFPTC_TABLE_MISS_CONTINUE) != 0) {
-        // send to next table, if exists
-        if (table->stats->table_id < PIPELINE_TABLES - 1) {
-            (*next_table) = pl->tables[table->stats->table_id + 1];
-        } else {
-            VLOG_WARN_RL(LOG_MODULE, &rl, "Last flow table is set to miss continue.");
-        }
-
-    } else if ((table->features->config & OFPTC_TABLE_MISS_DROP) != 0) {
-        VLOG_DBG_RL(LOG_MODULE, &rl, "Table set to drop packet.");
-
-    } else { // OFPTC_TABLE_MISS_CONTROLLER
-        struct sw_port *p;
-
-        p = pkt->in_port == OFPP_LOCAL ? pl->dp->local_port
-                                     : dp_ports_lookup(pl->dp, pkt->in_port);
-
-        if (p == NULL) {
-            VLOG_WARN_RL(LOG_MODULE, &rl, "Packet received on non-existing port (%u).", pkt->in_port);
-            return;
-        }
-
-        if ((p->conf->config & OFPPC_NO_PACKET_IN) != 0) {
-            VLOG_DBG_RL(LOG_MODULE, &rl, "Packet-in disabled on port (%u)", p->stats->port_no);
-            return;
-        }
-        
-        send_packet_to_controller(pl, pkt, table->stats->table_id, OFPR_NO_MATCH);
     }
 }
