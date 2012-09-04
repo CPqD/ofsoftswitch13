@@ -76,7 +76,7 @@ action_set_clear_actions(struct action_set *set);
 /* Executes the actions in the set on the packet. Packet is the owner of the
  * action set right now, but this might be changed in the future. */
 void
-action_set_execute(struct action_set *set, struct packet *pkt);
+action_set_execute(struct action_set *set, struct packet *pkt, uint64_t cookie);
 
 /* Converts the action set to a string representation. */
 char *

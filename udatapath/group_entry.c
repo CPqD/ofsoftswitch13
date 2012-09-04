@@ -167,7 +167,10 @@ execute_all(struct group_entry *entry, struct packet *pkt) {
         entry->stats->counters[i]->byte_count += p->buffer->size;
         entry->stats->counters[i]->packet_count++;
 
-        action_set_execute(p->action_set, p);
+        /* Cookie field is set 0xffffffffffffffff
+           because we cannot associate to any
+           particular flow */
+        action_set_execute(p->action_set, p, 0xffffffffffffffff);
 
         packet_destroy(p);
     }
@@ -194,8 +197,10 @@ execute_select(struct group_entry *entry, struct packet *pkt) {
         entry->stats->packet_count++;
         entry->stats->counters[b]->byte_count += p->buffer->size;
         entry->stats->counters[b]->packet_count++;
-
-        action_set_execute(p->action_set, p);
+        /* Cookie field is set 0xffffffffffffffff
+           because we cannot associate to any
+           particular flow */
+        action_set_execute(p->action_set, p, 0xffffffffffffffff);
         packet_destroy(p);
     } else {
         VLOG_DBG_RL(LOG_MODULE, &rl, "No bucket in group.");
@@ -222,8 +227,10 @@ execute_indirect(struct group_entry *entry, struct packet *pkt) {
         entry->stats->packet_count++;
         entry->stats->counters[0]->byte_count += p->buffer->size;
         entry->stats->counters[0]->packet_count++;
-
-        action_set_execute(p->action_set, p);
+        /* Cookie field is set 0xffffffffffffffff
+           because we cannot associate to any
+           particular flow */
+        action_set_execute(p->action_set, p, 0xffffffffffffffff);
         packet_destroy(p);
     } else {
         VLOG_DBG_RL(LOG_MODULE, &rl, "No bucket in group.");
@@ -251,8 +258,10 @@ execute_ff(struct group_entry *entry, struct packet *pkt) {
         entry->stats->packet_count++;
         entry->stats->counters[b]->byte_count += p->buffer->size;
         entry->stats->counters[b]->packet_count++;
-
-        action_set_execute(p->action_set, p);
+        /* Cookie field is set 0xffffffffffffffff
+           because we cannot associate to any
+           particular flow */
+        action_set_execute(p->action_set, p, 0xffffffffffffffff);
         packet_destroy(p);
     } else {
         VLOG_DBG_RL(LOG_MODULE, &rl, "No bucket in group.");

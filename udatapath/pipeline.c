@@ -92,7 +92,9 @@ send_packet_to_controller(struct pipeline *pl, struct packet *pkt, uint8_t table
     msg.total_len   = pkt->buffer->size;
     msg.reason      = reason;
     msg.table_id    = table_id;
+    msg.cookie      = 0xffffffffffffffff;
     msg.data = pkt->buffer->data;
+         
           
     /* A max_len of OFPCML_NO_BUFFER means that the complete
         packet should be sent, and it should not be buffered.*/
@@ -156,10 +158,13 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
                 free(m);
            }
 
-            execute_entry(pl, entry, &next_table, pkt);
+           execute_entry(pl, entry, &next_table, pkt);
 
            if (next_table == NULL) {
-                action_set_execute(pkt->action_set, pkt);
+               /* Cookie field is set 0xffffffffffffffff
+                because we cannot associate it to any
+                particular flow */
+                action_set_execute(pkt->action_set, pkt, 0xffffffffffffffff);
                 packet_destroy(pkt);
                 return;
            }
@@ -455,8 +460,7 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
             }
             case OFPIT_APPLY_ACTIONS: {
                 struct ofl_instruction_actions *ia = (struct ofl_instruction_actions *)inst;
-
-                dp_execute_action_list(pkt, ia->actions_num, ia->actions);
+                dp_execute_action_list(pkt, ia->actions_num, ia->actions, entry->stats->cookie);
                 break;
             }
             case OFPIT_CLEAR_ACTIONS: {

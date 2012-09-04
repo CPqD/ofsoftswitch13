@@ -51,11 +51,11 @@ dp_execute_action(struct packet *pkt,
 /* Executes the list of action on the given packet. */
 void
 dp_execute_action_list(struct packet *pkt,
-                size_t actions_num, struct ofl_action_header **actions);
+                size_t actions_num, struct ofl_action_header **actions, uint64_t cookie);
 
 /* Outputs the packet on the given port and queue. */
 void
-dp_actions_output_port(struct packet *pkt, uint32_t out_port, uint32_t out_queue, uint16_t max_len);
+dp_actions_output_port(struct packet *pkt, uint32_t out_port, uint32_t out_queue, uint16_t max_len, uint64_t cookie);
 
 /* Returns true if the given list of actions has an output action to the port. */
 bool

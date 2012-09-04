@@ -187,7 +187,7 @@ action_set_clear_actions(struct action_set *set) {
 }
 
 void
-action_set_execute(struct action_set *set, struct packet *pkt) {
+action_set_execute(struct action_set *set, struct packet *pkt, uint64_t cookie) {
     struct action_set_entry *entry, *next;
 
     LIST_FOR_EACH_SAFE(entry, next, struct action_set_entry, node, &set->actions) {
@@ -214,7 +214,7 @@ action_set_execute(struct action_set *set, struct packet *pkt) {
             pkt->out_queue = 0;
 
             action_set_clear_actions(pkt->action_set);
-            dp_actions_output_port(pkt, port_id, queue_id, max_len);
+            dp_actions_output_port(pkt, port_id, queue_id, max_len, cookie);
             return;
         }
     }

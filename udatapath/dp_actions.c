@@ -611,7 +611,7 @@ dp_execute_action(struct packet *pkt,
 
 void
 dp_execute_action_list(struct packet *pkt,
-                size_t actions_num, struct ofl_action_header **actions) {
+                size_t actions_num, struct ofl_action_header **actions, uint64_t cookie) {
     size_t i;
 
     VLOG_DBG_RL(LOG_MODULE, &rl, "Executing action list.");
@@ -633,7 +633,7 @@ dp_execute_action_list(struct packet *pkt,
             pkt->out_port_max_len = 0;
             pkt->out_queue = 0;
             VLOG_DBG_RL(LOG_MODULE, &rl, "Port action; sending to port (%u).", port);
-            dp_actions_output_port(pkt, port, queue, max_len);
+            dp_actions_output_port(pkt, port, queue, max_len, cookie);
         }
 
     }
@@ -641,7 +641,7 @@ dp_execute_action_list(struct packet *pkt,
 
 
 void
-dp_actions_output_port(struct packet *pkt, uint32_t out_port, uint32_t out_queue, uint16_t max_len) {
+dp_actions_output_port(struct packet *pkt, uint32_t out_port, uint32_t out_queue, uint16_t max_len, uint64_t cookie) {
 
     switch (out_port) {
         case (OFPP_TABLE): {
@@ -666,7 +666,7 @@ dp_actions_output_port(struct packet *pkt, uint32_t out_port, uint32_t out_queue
             msg.reason = OFPR_ACTION;
             msg.table_id = pkt->table_id;
             msg.data        = pkt->buffer->data;
-            
+            msg.cookie = cookie;
             
             if (pkt->dp->config.miss_send_len != OFPCML_NO_BUFFER){
                 dp_buffers_save(pkt->dp->buffers, pkt);

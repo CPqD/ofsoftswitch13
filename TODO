@@ -23,21 +23,18 @@ B.11.2 More flexible table miss support
 
 TODO
 ==================================================================
-
-Remove table-miss config flags (EXT-108).
-Define table-miss flow entry as the all wildcard, lowest priority flow entry (EXT-108).
-Mandate support of the table-miss flow entry in every table to process 
-table-miss packets (EXT-108). Add capabilities to describe the 
-table-miss flow entry (EXT-123). Change table-miss default to 
-drop packets (EXT-119).
+Add capabilities to describe the 
+table-miss flow entry (EXT-123). 
 
 ONGOING
 =================================================================
 
-
 DONE
 ==================================================================
-
+Remove table-miss config flags (EXT-108).
+Define table-miss flow entry as the all wildcard, lowest priority flow entry (EXT-108).
+Mandate support of the table-miss flow entry in every table to process table-miss packets (EXT-108)
+Change table-miss default to drop packets (EXT-119).
 
 B.11.3 IPv6 Extension Header handling support
 
@@ -188,10 +185,7 @@ Cookies in packet-in
 
 TODO
 ==================================================================
-Cookie field was added to the packet-in message (EXT-7). 
-This field takes its value from the flow the
-sends the packet to the controller. If the packet was not sent by 
-a flow, this field is set to 0xffffffffffffffff.
+
 
 ONGOING
 ==================================================================
@@ -199,6 +193,10 @@ ONGOING
 
 DONE
 ==================================================================
+Cookie field was added to the packet-in message (EXT-7). 
+This field takes its value from the flow the
+sends the packet to the controller. If the packet was not sent by 
+a flow, this field is set to 0xffffffffffffffff.
 
 B.11.13 On demand flow counters
 
