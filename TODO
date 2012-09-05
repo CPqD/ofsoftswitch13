@@ -169,14 +169,14 @@ Duration for stats
 
 TODO
 ==================================================================
+
+
+ONGOING
+==================================================================
 A duration field was added to most statistics, including port statistics, 
 group statistics, queue statistics and meter statistics (EXT-102). 
 ]The duration field enables to more accurately calculate packet and byte rate
 from the counters included in those statistics.
-
-ONGOING
-==================================================================
-
 
 DONE
 ==================================================================
@@ -202,9 +202,6 @@ B.11.13 On demand flow counters
 
 TODO
 ==================================================================
-New flow-mod flags have been added to disable packet and byte 
-counters on a per-flow basis. Disabling such counters may improve 
-flow handling performance in the switch.
 
 ONGOING
 ==================================================================
@@ -212,4 +209,6 @@ ONGOING
 
 DONE
 ==================================================================
-
+New flow-mod flags have been added to disable packet and byte 
+counters on a per-flow basis. Disabling such counters may improve 
+flow handling performance in the switch.
