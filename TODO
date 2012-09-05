@@ -169,17 +169,15 @@ Duration for stats
 
 TODO
 ==================================================================
-
+Duration for meter stats.
 
 ONGOING
 ==================================================================
-A duration field was added to most statistics, including port statistics, 
-group statistics, queue statistics and meter statistics (EXT-102). 
-]The duration field enables to more accurately calculate packet and byte rate
-from the counters included in those statistics.
+
 
 DONE
 ==================================================================
+Done for port, queue and group stats
 
 Cookies in packet-in
 

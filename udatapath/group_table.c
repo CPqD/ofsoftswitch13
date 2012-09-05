@@ -242,11 +242,13 @@ group_table_handle_stats_request_group(struct group_table *table,
             size_t i = 0;
 
             HMAP_FOR_EACH(e, struct group_entry, node, &table->entries) {
+                 group_entry_update(e->stats);
                  reply.stats[i] = e->stats;
                  i++;
              }
 
         } else {
+            group_entry_update(entry->stats);
             reply.stats[0] = entry->stats;
         }
 

@@ -32,7 +32,6 @@
 #include <string.h>
 #include "dynamic-string.h"
 #include "datapath.h"
-#include "dp_capabilities.h"
 #include "flow_table.h"
 #include "flow_entry.h"
 #include "oflib/ofl.h"
@@ -185,8 +184,10 @@ flow_table_lookup(struct flow_table *table, struct packet *pkt) {
             case (OFPMT_OXM): {
                if (packet_handle_std_match(pkt->handle_std,
                                             (struct ofl_match *)m)) {
-                    entry->stats->byte_count += pkt->buffer->size;
-                    entry->stats->packet_count++;
+                    if (!entry->no_byt_count)                                            
+                        entry->stats->byte_count += pkt->buffer->size;
+                    if (!entry->no_pkt_count)
+                        entry->stats->packet_count++;
                     entry->last_used = time_msec();
 
                     table->stats->matched_count++;

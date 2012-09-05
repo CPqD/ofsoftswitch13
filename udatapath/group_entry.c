@@ -83,7 +83,9 @@ struct group_entry *
 group_entry_create(struct datapath *dp, struct group_table *table, struct ofl_msg_group_mod *mod) {
     struct group_entry *entry;
     size_t i;
-
+    uint64_t now;
+    
+    now = time_msec();
     entry = xmalloc(sizeof(struct group_entry));
 
     entry->dp          = dp;
@@ -102,6 +104,8 @@ group_entry_create(struct datapath *dp, struct group_table *table, struct ofl_ms
     entry->stats->byte_count    = 0;
     entry->stats->counters_num  = mod->buckets_num;
     entry->stats->counters      = xmalloc(sizeof(struct ofl_bucket_counter *) * entry->stats->counters_num);
+    entry->stats->duration_sec  = 0;
+    entry->stats->duration_nsec = 0;
 
     for (i=0; i<entry->stats->counters_num; i++) {
         entry->stats->counters[i] = xmalloc(sizeof(struct ofl_bucket_counter));
@@ -301,6 +305,12 @@ group_entry_execute(struct group_entry *entry,
             VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute unknown group type (%u) in group (%u).", entry->desc->type, entry->stats->group_id);
         }
     }
+}
+
+void
+group_entry_update(struct group_entry *entry){
+    entry->stats->duration_sec  =  (time_msec() - entry->created) / 1000;
+    entry->stats->duration_nsec = ((time_msec() - entry->created) % 1000) * 1000;
 }
 
 /* Returns true if the group entry has  reference to the flow entry. */

@@ -56,7 +56,7 @@ struct group_entry {
     struct group_table          *table;
     struct ofl_group_desc_stats *desc;
     struct ofl_group_stats      *stats;
-
+    uint64_t created;
     void                        *data;     /* private data for group implementation. */
 
     struct list                  flow_refs; /* references to flows referencing the group. */
@@ -89,5 +89,10 @@ group_entry_add_flow_ref(struct group_entry *entry, struct flow_entry *fe);
 /* Removes a flow reference from the group entry. */
 void
 group_entry_del_flow_ref(struct group_entry *entry, struct flow_entry *fe);
+
+/* Updates the time fields of the group entry statistics. Used before generating
+ * group statistics messages. */
+void
+group_entry_update(struct group_entry *entry);
 
 #endif /* GROUP_entry_H */

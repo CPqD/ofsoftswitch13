@@ -297,8 +297,16 @@ flow_entry_create(struct datapath *dp, struct flow_table *table, struct ofl_msg_
     entry->stats->idle_timeout     = mod->idle_timeout;
     entry->stats->hard_timeout     = mod->hard_timeout;
     entry->stats->cookie           = mod->cookie;
-    entry->stats->packet_count     = 0;
-    entry->stats->byte_count       = 0;
+    entry->no_pkt_count = ((mod->flags & OFPFF_NO_PKT_COUNTS) != 0);
+    entry->no_byt_count = ((mod->flags & OFPFF_NO_BYT_COUNTS) != 0); 
+    if (entry->no_pkt_count)
+        entry->stats->packet_count     = 0xffffffffffffffff;
+    else 
+        entry->stats->packet_count     = 0;
+    if (entry->no_byt_count)
+        entry->stats->byte_count       = 0xffffffffffffffff;
+    else 
+        entry->stats->byte_count       = 0;
 
     entry->stats->match            = mod->match;
     entry->stats->instructions_num = mod->instructions_num;
@@ -311,7 +319,6 @@ flow_entry_create(struct datapath *dp, struct flow_table *table, struct ofl_msg_
                                   : now + mod->hard_timeout * 1000;
     entry->last_used    = now;
     entry->send_removed = ((mod->flags & OFPFF_SEND_FLOW_REM) != 0);
-
     list_init(&entry->match_node);
     list_init(&entry->idle_node);
     list_init(&entry->hard_node);

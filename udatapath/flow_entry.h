@@ -62,6 +62,8 @@ struct flow_entry {
     bool                     send_removed; /* true if a flow removed should be sent
                                               when removing a flow. */
 
+    bool                     no_pkt_count; /* true if doesn't keep track of flow matched packets*/     
+    bool                     no_byt_count; /* true if doesn't keep track of flow matched bytes*/
     struct list              group_refs;  /* list of groups referencing the flow. */
 };
 

@@ -65,6 +65,7 @@ struct sender;
 struct sw_queue {
     struct sw_port *port; /* reference to the parent port */
     uint16_t class_id; /* internal mapping from OF queue_id to tc class_id */
+    uint64_t created;
     struct ofl_queue_stats *stats;
     struct ofl_packet_queue *props;
 };
@@ -94,6 +95,7 @@ struct sw_port {
     /* port queues */
     uint16_t max_queues;
     uint16_t num_queues;
+    uint64_t created;
     struct sw_queue queues[NETDEV_MAX_QUEUES];
 };
 
