@@ -74,13 +74,13 @@ stp_local_packet_cb(struct relay *r, void *stp_)
     struct flow flow;
 
     oh = msg->data;
-    if (oh->type == OFPT_FEATURES_REPLY
+    /*if (oh->type == OFPT_FEATURES_REPLY
         && msg->size >= offsetof(struct ofp_switch_features, ports)) {
     	/* TODO Zoltan: Temporarily removed when moving to Openflow 1.1 */
         /* struct ofp_switch_features *osf = msg->data;
-        osf->capabilities |= htonl(OFPC_STP); */
+        osf->capabilities |= htonl(OFPC_STP); *
         return false;
-    }
+    }*/
 
     if (!get_ofp_packet_eth_header(r, &opi, &eth)
         || !eth_addr_equals(eth->eth_dst, stp_eth_addr)) {

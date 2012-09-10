@@ -236,7 +236,7 @@ update_netdev_monitor_devices(struct port_watcher *pw)
 static bool
 port_watcher_local_packet_cb(struct relay *r, void *pw_)
 {
-    struct port_watcher *pw = pw_;
+    /*struct port_watcher *pw = pw_;
     struct ofpbuf *msg = r->halves[HALF_LOCAL].rxbuf;
     struct ofp_header *oh = msg->data;
 
@@ -255,7 +255,7 @@ port_watcher_local_packet_cb(struct relay *r, void *pw_)
             VLOG_INFO(LOG_MODULE, "Datapath id is %012"PRIx64, ntohll(pw->datapath_id));
         }
 
-        /* Update each port included in the message. */
+        /* Update each port included in the message. 
         memset(seen, false, sizeof seen);
         n_ports = ((msg->size - offsetof(struct ofp_switch_features, ports))
                    / sizeof *osf->ports);
@@ -271,7 +271,7 @@ port_watcher_local_packet_cb(struct relay *r, void *pw_)
             seen[ntohl(opp->port_no)] = true;
         }
 
-        /* Delete all the ports not included in the message. */
+        /* Delete all the ports not included in the message.
         for (p = port_array_first(&pw->ports, &port_no); p;
              p = port_array_next(&pw->ports, &port_no)) {
             if (!seen[port_no]) {
@@ -293,8 +293,8 @@ port_watcher_local_packet_cb(struct relay *r, void *pw_)
             update_netdev_monitor_devices(pw);
         }
     }
-    return false;
-}
+    return false;*/
+} 
 
 static void
 bring_netdev_up_or_down(const char *name, bool down)

@@ -552,14 +552,11 @@ struct ofp_switch_features {
                                  implementer-defined. */
 	uint32_t n_buffers;       /* Max packets buffered at once. */
 	uint8_t n_tables;         /* Number of tables supported by datapath. */
-	uint8_t pad[3];           /* Align to 64-bits. */
+	uint8_t auxiliary_id;     /* Identify auxiliary connections. */
+	uint8_t pad[2];           /* Align to 64-bits. */
 	/* Features. */
 	uint32_t capabilities;    /* Bitmap of support "ofp_capabilities". */
 	uint32_t reserved;
-	/* Port info.*/
-	struct ofp_port ports[0]; /* Port definitions. The number of ports
-                                is inferred from the length field in
-                                the header. */
 };
 OFP_ASSERT(sizeof(struct ofp_switch_features) == 32);
 
