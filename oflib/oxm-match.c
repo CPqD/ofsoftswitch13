@@ -228,16 +228,16 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
         case OFI_OXM_OF_IN_PHY_PORT:{
             /* Check for inport presence */
             if (check_present_prereq(match,OXM_OF_IN_PORT))
-                ofl_structs_match_put32(match, f->header, get_unaligned_u32(value));
+                ofl_structs_match_put32(match, f->header, *((uint32_t*) value));
             else return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_PREREQ);
             
         }
         case OFI_OXM_OF_METADATA:{
-            ofl_structs_match_put64(match, f->header, get_unaligned_u64(value));
+            ofl_structs_match_put64(match, f->header, *((uint64_t*) value));
             return 0;
         }
         case OFI_OXM_OF_METADATA_W:{
-            ofl_structs_match_put64m(match, f->header, get_unaligned_u64(value),get_unaligned_u64(mask));
+            ofl_structs_match_put64m(match, f->header,*((uint64_t*) value),*((uint64_t*) mask));
             return 0;
         }
         /* Ethernet header. */
@@ -392,6 +392,31 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
             ofl_structs_match_put8(match, f->header, *v);
             return 0;
         }
+        case OFI_OXM_OF_MPLS_BOS:{
+             uint8_t *v = (uint8_t*) value;
+             ofl_structs_match_put8(match, f->header, *v);
+             return 0;
+        }
+        case OFI_OXM_OF_PBB_ISID:
+             ofl_structs_match_put32(match, f->header, ntohl(*((uint32_t*) value)));
+             return 0;
+        case OFI_OXM_OF_PBB_ISID_W:
+             ofl_structs_match_put32m(match, f->header, ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)));
+             return 0;                            
+        case OFI_OXM_OF_TUNNEL_ID:{
+            ofl_structs_match_put64(match, f->header, *((uint64_t*) value));
+            return 0;
+        }
+        case OFI_OXM_OF_TUNNEL_ID_W:{
+            ofl_structs_match_put64m(match, f->header,*((uint64_t*) value),*((uint64_t*) mask));
+            return 0;
+        }        
+        case OFI_OXM_OF_IPV6_EXTHDR:        
+            ofl_structs_match_put16(match, f->header, ntohs(*((uint16_t*) value)));
+            return 0;        
+        case OFI_OXM_OF_IPV6_EXTHDR_W:
+            ofl_structs_match_put16m(match, f->header, ntohs(*((uint16_t*) value)),ntohs(*((uint16_t*) mask)));
+            return 0;        
         case N_OXM_FIELDS:
             NOT_REACHED();
     }

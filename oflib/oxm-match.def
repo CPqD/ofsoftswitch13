@@ -47,6 +47,7 @@
 
 #define OXM_DL_NONE   (0, 0)
 #define OXM_DL_ARP    (ETH_TYPE_ARP, 0)
+#define OXM_DL_PBB    (ETH_TYPE_PBB_ISID,0)
 #define OXM_DL_IP     (ETH_TYPE_IP, 0)
 #define OXM_DL_MPLS   (ETH_TYPE_MPLS, ETH_TYPE_MPLS_MCAST)
 #define OXM_DL_IPV6   (ETH_TYPE_IPV6, 0)
@@ -96,6 +97,9 @@ DEFINE_FIELD    (OF_IPV6_ND_SLL,    OXM_DL_IPV6,     IPPROTO_ICMPV6, false)
 DEFINE_FIELD    (OF_IPV6_ND_TLL,    OXM_DL_IPV6,     IPPROTO_ICMPV6, false)
 DEFINE_FIELD    (OF_MPLS_LABEL,     OXM_DL_MPLS,     0,              false)
 DEFINE_FIELD    (OF_MPLS_TC,        OXM_DL_MPLS,     0,              false)
-
+DEFINE_FIELD    (OF_MPLS_BOS,        OXM_DL_MPLS,    0,              false)
+DEFINE_FIELD_M    (OF_PBB_ISID,       OXM_DL_PBB,      0,              true)
+DEFINE_FIELD_M    (OF_TUNNEL_ID,      OXM_DL_NONE,     0,              true)
+DEFINE_FIELD_M    (OF_IPV6_EXTHDR,    OXM_DL_IPV6,     0,              true)
 
 #undef DEFINE_FIELD

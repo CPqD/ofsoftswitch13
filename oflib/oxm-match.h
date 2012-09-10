@@ -212,7 +212,18 @@
 #define OXM_OF_MPLS_LABEL OXM_HEADER (0x8000, 34, 4)
 
 /* MPLS TC. */
-#define OXM_OF_MPLS_TC OXM_HEADER     (0x8000, 35, 1)
+#define OXM_OF_MPLS_TC OXM_HEADER       (0x8000, 35, 1)
+
+#define OXM_OF_MPLS_BOS OXM_HEADER      (0x8000, 36, 1)
+
+#define OXM_OF_PBB_ISID OXM_HEADER      (0x8000, 37, 4)
+#define OXM_OF_PBB_ISID_W OXM_HEADER_W  (0x8000, 37, 4)
+
+#define OXM_OF_TUNNEL_ID OXM_HEADER     (0x8000, 38, 8)
+#define OXM_OF_TUNNEL_ID_W OXM_HEADER_W (0x8000, 38, 8)
+
+#define OXM_OF_IPV6_EXTHDR  OXM_HEADER      (0x8000, 39, 2)
+#define OXM_OF_IPV6_EXTHDR_W  OXM_HEADER_W  (0x8000, 39, 2)
 
 /* ## ------------------------------- ## */
 /* ## IPv6 compatible fields. ## */
