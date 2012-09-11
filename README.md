@@ -29,8 +29,7 @@ B.11.2 More flexible table miss support
 
 TODO
 
-- Add capabilities to describe the 
-- table-miss flow entry (EXT-123). 
+- Add capabilities to describe the table-miss flow entry (EXT-123). 
 
 ONGOING
 
