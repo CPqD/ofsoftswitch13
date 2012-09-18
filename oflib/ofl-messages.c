@@ -186,10 +186,6 @@ ofl_msg_free(struct ofl_msg_header *msg, struct ofl_exp *exp) {
             break;
         }
         case OFPT_FEATURES_REPLY: {
-            
-            struct ofl_msg_features_reply *rep = (struct ofl_msg_features_reply *)msg;
-            OFL_UTILS_FREE_ARR_FUN(rep->ports, rep->ports_num,
-                                   ofl_structs_free_port);
             break;
         }
         case OFPT_GET_CONFIG_REQUEST: {

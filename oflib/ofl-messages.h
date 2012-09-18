@@ -101,9 +101,9 @@ struct ofl_msg_features_reply {
     uint32_t          n_buffers;    /* Max packets buffered at once. */
     uint8_t           n_tables;     /* Number of tables supported by
                                       datapath. */
+    uint8_t           auxiliary_id; /* Identify auxiliary connections */
     uint32_t          capabilities; /* Bitmap of support ofp_capabilities. */
-    size_t            ports_num;
-    struct ofl_port **ports;      /* Port definitions. */
+    uint32_t          reserved;
 };
 
 struct ofl_msg_get_config_reply {
@@ -165,10 +165,9 @@ struct ofl_msg_port_status {
 /* Asynchronous message configuration. */
 struct ofl_msg_async_config {
     struct ofl_msg_header header; /* OFPT_GET_ASYNC_REPLY or OFPT_SET_ASYNC. */
-    uint32_t packet_in_mask[2]; /* Bitmasks of OFPR_* values. */
-    uint32_t port_status_mask[2]; /* Bitmasks of OFPPR_* values. */
-    uint32_t flow_removed_mask[2];/* Bitmasks of OFPRR_* values. */
+    struct ofl_async_config *config; 
 };
+
 
 /* Body of reply to OFPMP_METER_CONFIG request. Meter configuration. */
 struct ofl_meter_config {
@@ -306,7 +305,6 @@ struct ofl_msg_multipart_request_flow {
 
 struct ofl_msg_multipart_request_port {
     struct ofl_msg_multipart_request_header   header; /* OFPMP_PORT_STATS */
-
     uint32_t   port_no; /* OFPMP_PORT_STATS message must request statistics
                           either for a single port (specified in
                           port_no) or for all ports (if port_no ==
@@ -315,15 +313,19 @@ struct ofl_msg_multipart_request_port {
 
 struct ofl_msg_multipart_request_queue {
     struct ofl_msg_multipart_request_header   header; /* OFPMP_QUEUE */
-
     uint32_t   port_no; /* All ports if OFPP_ANY. */
     uint32_t   queue_id; /* All queues if OFPQ_ALL. */
 };
 
 struct ofl_msg_multipart_request_group {
     struct ofl_msg_multipart_request_header   header; /* OFPMP_GROUP */
-
     uint32_t   group_id; /* All groups if OFPG_ALL. */
+};
+
+struct ofl_msg_multipart_request_table_features{
+    struct ofl_msg_multipart_request_header   header; /* OFPMP_TABLE_FEATURES */
+    size_t tables_num;
+    struct ofl_table_features **table_features;    
 };
 
 struct ofl_msg_meter_multipart_request {
@@ -379,6 +381,13 @@ struct ofl_msg_multipart_reply_table {
     struct ofl_table_stats **stats;
 };
 
+struct ofl_msg_multipart_reply_table_features {
+    struct ofl_msg_multipart_reply_header   header; /* OFPMP_TABLE_FEATURES */
+    size_t tables_num;
+    struct ofl_table_features ** features;
+
+};
+
 struct ofl_msg_multipart_reply_port {
     struct ofl_msg_multipart_reply_header   header; /* OFPMP_PORT_STATS */
 
@@ -414,6 +423,20 @@ struct ofl_msg_multipart_reply_group_features {
     uint32_t capabilities;
     uint32_t max_groups[4];
     uint32_t actions[4];
+};
+
+struct ofl_msg_multipart_reply_meter {
+    struct ofl_msg_multipart_reply_header   header; /* OFPMP_METER */
+
+    size_t                   stats_num;
+    struct ofl_meter_stats **stats;
+};
+
+struct ofl_msg_multipart_reply_meter_conf {
+    struct ofl_msg_multipart_reply_header   header; /* OFPMP_METER_CONFIG */
+
+    size_t                        stats_num;
+    struct ofl_meter_config **stats;
 };
 
 struct ofl_msg_multipart_reply_experimenter {

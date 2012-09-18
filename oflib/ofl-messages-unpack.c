@@ -130,7 +130,8 @@ ofl_msg_unpack_features_reply(struct ofp_header *src, size_t *len, struct ofl_ms
 
     dr->datapath_id  = ntoh64(sr->datapath_id);
     dr->n_buffers    = ntohl( sr->n_buffers);
-    dr->n_tables     = ntohl( sr->n_tables);
+    dr->n_tables     =  sr->n_tables;
+    dr->auxiliary_id = sr->auxiliary_id;
     dr->capabilities = ntohl( sr->capabilities);
     
     *msg = (struct ofl_msg_header *)dr;

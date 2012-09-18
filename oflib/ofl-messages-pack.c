@@ -104,7 +104,8 @@ ofl_msg_pack_features_reply(struct ofl_msg_features_reply *msg, uint8_t **buf, s
     features->datapath_id  = hton64(msg->datapath_id);
     features->n_buffers    = htonl( msg->n_buffers);
     features->n_tables     =        msg->n_tables;
-    memset(features->pad, 0x00, 3);
+    features->auxiliary_id = msg->auxiliary_id;
+    memset(features->pad, 0x00, 2);
     features->capabilities = htonl( msg->capabilities);
     features->reserved = 0x00000000;
 
