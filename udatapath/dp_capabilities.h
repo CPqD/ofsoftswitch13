@@ -42,35 +42,14 @@
  * Datapath capabilities.
  ****************************************************************************/
 
-
 #define DP_SUPPORTED_CAPABILITIES ( OFPC_FLOW_STATS        \
                                | OFPC_TABLE_STATS          \
                                | OFPC_PORT_STATS           \
                                | OFPC_GROUP_STATS          \
                             /* | OFPC_IP_REASM       */    \
                                | OFPC_QUEUE_STATS          )
-
-#define DP_SUPPORTED_INSTRUCTIONS ( (1 << OFPIT_GOTO_TABLE)         \
-                                  | (1 << OFPIT_WRITE_METADATA)     \
-                                  | (1 << OFPIT_WRITE_ACTIONS)      \
-                                  | (1 << OFPIT_APPLY_ACTIONS)      \
-                                  | (1 << OFPIT_CLEAR_ACTIONS) )
-
-#define DP_SUPPORTED_ACTIONS ( (1 << OFPAT_OUTPUT)          \
-                             | (1 << OFPAT_COPY_TTL_OUT)    \
-                             | (1 << OFPAT_COPY_TTL_IN)     \
-                             | (1 << OFPAT_SET_MPLS_TTL)    \
-                             | (1 << OFPAT_DEC_MPLS_TTL)    \
-                             | (1 << OFPAT_PUSH_VLAN)       \
-                             | (1 << OFPAT_POP_VLAN)        \
-                             | (1 << OFPAT_PUSH_MPLS)       \
-                             | (1 << OFPAT_POP_MPLS)        \
-                             | (1 << OFPAT_SET_QUEUE)       \
-                             | (1 << OFPAT_GROUP)           \
-                             | (1 << OFPAT_SET_NW_TTL)      \
-                             | (1 << OFPAT_DEC_NW_TTL) )
-
-
+                               /*| OFPC_PORT_BLOCKED */   
+                               
 #define DP_SUPPORTED_MATCH_FIELDS ( OFPXMT_OFB_IN_PORT        \
                                   | OFPXMT_OFB_IN_PHY_PORT    \
                                   | OFPXMT_OFB_METADATA       \
@@ -107,6 +86,6 @@
                                   | OFPXMT_OFB_IPV6_ND_TLL    \
                                   | OFPXMT_OFB_MPLS_LABEL     \
                                   | OFPXMT_OFB_MPLS_TC         )
-
+                                
 
 #endif /* DP_CAPABILITIES_H */

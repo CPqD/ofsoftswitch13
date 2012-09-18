@@ -1031,11 +1031,12 @@ struct ofp_table_stats {
 };
 OFP_ASSERT(sizeof(struct ofp_table_stats) == 24);
 
-struct ofp_table_feature_prop_header {
+struct ofp_table_feature_prop_header{
+    uint16_t type;  /* One of OFPTFPT_NEXT_TABLES,
+                       OFPTFPT_NEXT_TABLES_MISS. */
+    uint16_t length; /* Length in bytes of this property. */
 
-    uint16_t type;                /* Table feature type */
-    uint16_t length;              /* Table features length*/
-    uint8_t pad[4];               /* Align to 64-bits */
+    uint8_t pad[4];
 };
 OFP_ASSERT(sizeof(struct ofp_table_feature_prop_header) == 8);
 
@@ -1081,72 +1082,73 @@ enum ofp_table_feature_prop_type {
 
 /* Instructions property */
 struct ofp_table_feature_prop_instructions {
-uint16_t type; /* One of OFPTFPT_INSTRUCTIONS,
-                  OFPTFPT_INSTRUCTIONS_MISS. */
-uint16_t length; /* Length in bytes of this property. */
-/* Followed by:
-*
-- Exactly (length - 4) bytes containing the instruction ids, then
-*
-- Exactly (length + 7)/8*8 - (length) (between 0 and 7)
-*
-bytes of all-zero bytes */
-struct ofp_instruction instruction_ids[0]; /* List of instructions */
+    uint16_t type; /* One of OFPTFPT_INSTRUCTIONS,
+                      OFPTFPT_INSTRUCTIONS_MISS. */
+    uint16_t length; /* Length in bytes of this property. */
+    /* Followed by:
+    *
+    - Exactly (length - 4) bytes containing the instruction ids, then
+    *
+    - Exactly (length + 7)/8*8 - (length) (between 0 and 7)
+    *
+    bytes of all-zero bytes */
+    struct ofp_instruction instruction_ids[0]; /* List of instructions */
 };
 OFP_ASSERT(sizeof(struct ofp_table_feature_prop_instructions) == 4);
 
+
 struct ofp_table_feature_prop_next_tables {
-uint16_t type;   /* One of OFPTFPT_NEXT_TABLES,
-                   OFPTFPT_NEXT_TABLES_MISS. */
-uint16_t length; /* Length in bytes of this property. */
-/* Followed by:
-*
-- Exactly (length - 4) bytes containing the table_ids, then
-*
-- Exactly (length + 7)/8*8 - (length) (between 0 and 7)
-*
-bytes of all-zero bytes */
-uint8_t next_table_ids[0];
+    uint16_t type;   /* One of OFPTFPT_NEXT_TABLES,
+                       OFPTFPT_NEXT_TABLES_MISS. */
+    uint16_t length; /* Length in bytes of this property. */
+    /* Followed by:
+    *
+    - Exactly (length - 4) bytes containing the table_ids, then
+    *
+    - Exactly (length + 7)/8*8 - (length) (between 0 and 7)
+    *
+    bytes of all-zero bytes */
+    uint8_t next_table_ids[0];
 };
 OFP_ASSERT(sizeof(struct ofp_table_feature_prop_next_tables) == 4);
 
 /* Actions property */
 struct ofp_table_feature_prop_actions {
-uint16_t type; /* One of OFPTFPT_WRITE_ACTIONS,
-                  OFPTFPT_WRITE_ACTIONS_MISS,
-                  OFPTFPT_APPLY_ACTIONS,
-                  OFPTFPT_APPLY_ACTIONS_MISS. */
+    uint16_t type; /* One of OFPTFPT_WRITE_ACTIONS,
+                      OFPTFPT_WRITE_ACTIONS_MISS,
+                      OFPTFPT_APPLY_ACTIONS,
+                      OFPTFPT_APPLY_ACTIONS_MISS. */
 
-uint16_t length; /* Length in bytes of this property. */
-/* Followed by:
-*
-- Exactly (length - 4) bytes containing the action_ids, then
-*
-- Exactly (length + 7)/8*8 - (length) (between 0 and 7)
-*
-bytes of all-zero bytes */
-struct ofp_action_header action_ids[0];/* List of actions */
+    uint16_t length; /* Length in bytes of this property. */
+    /* Followed by:
+    *
+    - Exactly (length - 4) bytes containing the action_ids, then
+    *
+    - Exactly (length + 7)/8*8 - (length) (between 0 and 7)
+    *
+    bytes of all-zero bytes */
+    struct ofp_action_header action_ids[0];/* List of actions */
 };
 OFP_ASSERT(sizeof(struct ofp_table_feature_prop_actions) == 4);
 
 /* Match, Wildcard or Set-Field property */
 struct ofp_table_feature_prop_oxm {
-uint16_t type; /* One of OFPTFPT_MATCH,
-                  OFPTFPT_WILDCARDS,
-                  OFPTFPT_WRITE_SETFIELD,
-                  OFPTFPT_WRITE_SETFIELD_MISS,
-                  OFPTFPT_APPLY_SETFIELD,
-                  OFPTFPT_APPLY_SETFIELD_MISS. */
+    uint16_t type; /* One of OFPTFPT_MATCH,
+                      OFPTFPT_WILDCARDS,
+                      OFPTFPT_WRITE_SETFIELD,
+                      OFPTFPT_WRITE_SETFIELD_MISS,
+                      OFPTFPT_APPLY_SETFIELD,
+                      OFPTFPT_APPLY_SETFIELD_MISS. */
 
-uint16_t length; /* Length in bytes of this property. */
-/* Followed by:
-*
-- Exactly (length - 4) bytes containing the oxm_ids, then
-*
-- Exactly (length + 7)/8*8 - (length) (between 0 and 7)
-*
-bytes of all-zero bytes */
-uint32_t oxm_ids[0]; /* Array of OXM headers */
+    uint16_t length; /* Length in bytes of this property. */
+    /* Followed by:
+    *
+    - Exactly (length - 4) bytes containing the oxm_ids, then
+    *
+    - Exactly (length + 7)/8*8 - (length) (between 0 and 7)
+    *
+    bytes of all-zero bytes */
+    uint32_t oxm_ids[0]; /* Array of OXM headers */
 };
 OFP_ASSERT(sizeof(struct ofp_table_feature_prop_oxm) == 4);
 

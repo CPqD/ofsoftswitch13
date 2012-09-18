@@ -388,14 +388,25 @@ monitor(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED) {
 }
 
 static void
+table_features(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED) {
+    struct ofl_msg_multipart_request_table_features req =  
+        {{{.type = OFPT_MULTIPART_REQUEST},
+              .type = OFPMP_TABLE_FEATURES, .flags = 0x0000},
+             .tables_num = 0,
+             .table_features = NULL,
+          };
+    
+    dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&req, NULL);
+}
+
+
+static void
 features(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED) {
     struct ofl_msg_header req =
             {.type = OFPT_FEATURES_REQUEST};
 
     dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&req, NULL);
 }
-
-
 
 static void
 get_config(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED) {
@@ -771,6 +782,7 @@ static struct command all_commands[] = {
 
     {"features", 0, 0, features },
     {"get-config", 0, 0, get_config},
+    {"table-features", 0, 0, table_features},
     {"stats-desc", 0, 0, stats_desc },
     {"stats-flow", 0, 2, stats_flow},
     {"stats-aggr", 0, 2, stats_aggr},

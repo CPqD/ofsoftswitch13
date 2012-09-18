@@ -126,6 +126,12 @@ struct ofl_config {
                                 send to the controller. */
 };
 
+struct ofl_async_config {
+    uint32_t packet_in_mask[2]; /* Bitmasks of OFPR_* values. */
+    uint32_t port_status_mask[2]; /* Bitmasks of OFPPR_* values. */
+    uint32_t flow_removed_mask[2];/* Bitmasks of OFPRR_* values. */
+};
+
 struct ofl_bucket {
     uint16_t   weight;      /* Relative weight of bucket. Only
                               defined for select groups. */
@@ -169,7 +175,6 @@ struct ofl_table_stats {
 
 struct ofl_table_feature_prop_header {
     uint16_t type;                /* Table feature type */
-    uint16_t length;              /* Table features length*/
 };
 OFP_ASSERT(sizeof(struct ofp_table_feature_prop_header) == 8);
 
@@ -177,7 +182,7 @@ OFP_ASSERT(sizeof(struct ofp_table_feature_prop_header) == 8);
 struct ofl_table_feature_prop_instructions {
     struct ofl_table_feature_prop_header header;
     size_t ids_num;
-    struct ofp_instruction *instruction_ids; /* List of instructions */
+    struct ofl_instruction_header *instruction_ids; /* List of instructions */
 };
 
 struct ofl_table_feature_prop_next_tables {
@@ -190,7 +195,7 @@ struct ofl_table_feature_prop_next_tables {
 struct ofl_table_feature_prop_actions {
     struct ofl_table_feature_prop_header header;
     size_t actions_num; 
-    struct ofp_action_header *action_ids; /*Actions list*/
+    struct ofl_action_header *action_ids; /*Actions list*/
 };
 
 struct ofl_table_feature_prop_oxm {
@@ -207,7 +212,7 @@ struct ofl_table_features {
     uint8_t table_id; /* Identifier of table. Lower numbered tables
                          are consulted first. */
     uint8_t pad[5];   /* Align to 64-bits. */
-    char name[OFP_MAX_TABLE_NAME_LEN];
+    char *name;
     uint64_t metadata_match; /* Bits of metadata table can match. */
     uint64_t metadata_write; /* Bits of metadata table can write. */
     uint32_t config;         /* Bitmap of OFPTC_* values */
@@ -437,6 +442,12 @@ size_t
 ofl_structs_meter_band_pack(struct ofl_meter_band_header *src, struct ofp_meter_band_header *dst);
 
 size_t
+ofl_structs_table_properties_pack(struct ofl_table_feature_prop_header * src, struct ofp_table_feature_prop_header *dst, uint8_t *data, struct ofl_exp *exp);
+
+size_t
+ofl_structs_table_features_pack(struct ofl_table_features *src, struct ofp_table_features *dst, struct ofl_exp *exp);
+
+size_t
 ofl_structs_bucket_pack(struct ofl_bucket *src, struct ofp_bucket *dst, struct ofl_exp *exp);
 
 size_t
@@ -474,7 +485,6 @@ ofl_structs_bucket_counter_pack(struct ofl_bucket_counter *src, struct ofp_bucke
 size_t
 ofl_structs_match_pack(struct ofl_match_header *src, struct ofp_match *dst, uint8_t* oxm_fields, enum byte_order order, struct ofl_exp *exp);
 
-
 ofl_err
 ofl_structs_instructions_unpack(struct ofp_instruction *src, size_t *len, struct ofl_instruction_header **dst, struct ofl_exp *exp);
 
@@ -504,6 +514,9 @@ ofl_structs_group_stats_unpack(struct ofp_group_stats *src, size_t *len, struct 
 
 ofl_err
 ofl_structs_queue_stats_unpack(struct ofp_queue_stats *src, size_t *len, struct ofl_queue_stats **dst);
+
+ofl_err
+ofl_structs_meter_band_unpack(struct ofp_meter_band_header *src, size_t *len, struct ofl_meter_band_header **dst);
 
 ofl_err
 ofl_structs_group_desc_stats_unpack(struct ofp_group_desc_stats *src, size_t *len, struct ofl_group_desc_stats **dst, struct ofl_exp *exp);
@@ -595,6 +608,8 @@ ofl_utils_count_ofp_packet_queues(void *data, size_t data_len, size_t *count);
 ofl_err
 ofl_utils_count_ofp_queue_props(void *data, size_t data_len, size_t *count);
 
+ofl_err
+ofl_utils_count_ofp_table_features(void *data, size_t data_len, size_t *count);
 
 size_t
 ofl_structs_instructions_ofp_total_len(struct ofl_instruction_header **instructions, size_t instructions_num, struct ofl_exp *exp);
@@ -628,6 +643,14 @@ ofl_structs_group_stats_ofp_len(struct ofl_group_stats *stats);
 
 size_t
 ofl_structs_group_desc_stats_ofp_total_len(struct ofl_group_desc_stats ** stats, size_t stats_num, struct ofl_exp *exp);
+
+size_t 
+ofl_structs_table_features_properties_ofp_len(struct ofl_table_feature_prop_header *prop, struct ofl_exp *exp);
+
+size_t
+ofl_structs_table_features_properties_ofp_total_len(struct ofl_table_feature_prop_header **props, size_t features_num, struct ofl_exp *exp);
+
+size_t ofl_structs_table_features_ofp_total_len(struct ofl_table_features **feat, size_t tables_num, struct ofl_exp * exp);
 
 size_t
 ofl_structs_group_desc_stats_ofp_len(struct ofl_group_desc_stats *stats, struct ofl_exp *exp);

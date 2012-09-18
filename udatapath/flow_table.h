@@ -38,7 +38,11 @@
 
 
 #define FLOW_TABLE_MAX_ENTRIES 1024
-
+#define TABLE_FEATURES_NUM 17
+#define N_OXM_FIELDS 40
+#define N_INSTRUCTIONS 7
+#define N_ACTIONS 17
+#define N_WILDCARDED 16
 /****************************************************************************
  * Implementation of a flow table. The current implementation stores flow
  * entries in priority and then insertion order.
@@ -46,17 +50,24 @@
 
 
 struct flow_table {
-    struct datapath         *dp;
-    struct ofl_table_features * features;   /*store table features*/
-    struct ofl_table_stats  *stats;         /* structure storing table statistics. */
+    struct datapath           *dp;
+    struct ofl_table_features *features;      /*store table features*/
+    struct ofl_table_stats    *stats;         /* structure storing table statistics. */
     
-    struct list              match_entries; /* list of entries in order. */
-    struct list              hard_entries;  /* list of entries with hard timeout;
-                                               ordered by their timeout times. */
-    struct list              idle_entries;  /* unordered list of entries with
-                                               idle timeout. */
+    struct list               match_entries;  /* list of entries in order. */
+    struct list               hard_entries;   /* list of entries with hard timeout;
+                                                ordered by their timeout times. */
+    struct list               idle_entries;   /* unordered list of entries with
+                                                idle timeout. */
 };
 
+extern uint32_t oxm_ids[];
+
+extern uint32_t wildcarded[]; 
+
+extern struct ofl_instruction_header instructions[];
+
+extern struct ofl_action_header actions[];
 /* Handles a flow mod message. */
 ofl_err
 flow_table_flow_mod(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool *match_kept, bool *insts_kept);

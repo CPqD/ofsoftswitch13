@@ -748,7 +748,9 @@ ofl_msg_unpack_multipart_request_table_features(struct ofp_multipart_request *os
     /* Check the length */
     
     sm = (struct ofp_table_features **)os->body;   
-
+    
+    //*len -= 
+    
     
 
     return 0;

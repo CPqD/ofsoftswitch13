@@ -35,13 +35,40 @@
 #include "flow_table.h"
 #include "flow_entry.h"
 #include "oflib/ofl.h"
+#include "oflib/oxm-match.h"
 #include "time.h"
+#include "dp_capabilities.h"
 //#include "packet_handle_std.h"
 
 #include "vlog.h"
 #define LOG_MODULE VLM_flow_t
 
 static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(60, 60);
+
+uint32_t  oxm_ids[]={OXM_OF_IN_PORT,OXM_OF_IN_PHY_PORT,OXM_OF_METADATA,OXM_OF_ETH_DST,
+                        OXM_OF_ETH_SRC,OXM_OF_ETH_TYPE, OXM_OF_VLAN_VID, OXM_OF_VLAN_PCP, OXM_OF_IP_DSCP,
+                        OXM_OF_IP_ECN, OXM_OF_IP_PROTO, OXM_OF_IPV4_SRC, OXM_OF_IPV4_DST, OXM_OF_TCP_SRC,
+                        OXM_OF_TCP_DST, OXM_OF_UDP_SRC, OXM_OF_UDP_DST, OXM_OF_SCTP_SRC, OXM_OF_SCTP_DST,
+                        OXM_OF_ICMPV4_TYPE, OXM_OF_ICMPV4_CODE, OXM_OF_ARP_OP, OXM_OF_ARP_SPA,OXM_OF_ARP_TPA,
+                        OXM_OF_ARP_SHA, OXM_OF_ARP_THA, OXM_OF_IPV6_SRC, OXM_OF_IPV6_DST, OXM_OF_IPV6_FLABEL,
+                        OXM_OF_ICMPV6_TYPE, OXM_OF_ICMPV6_CODE, OXM_OF_IPV6_ND_TARGET, OXM_OF_IPV6_ND_SLL,
+                        OXM_OF_IPV6_ND_TLL, OXM_OF_MPLS_LABEL, OXM_OF_MPLS_TC, OXM_OF_MPLS_BOS, OXM_OF_PBB_ISID,
+                        OXM_OF_TUNNEL_ID, OXM_OF_IPV6_EXTHDR};
+
+uint32_t wildcarded[] = {OXM_OF_METADATA_W, OXM_OF_ETH_DST_W, OXM_OF_ETH_SRC_W, OXM_OF_VLAN_VID_W, OXM_OF_IPV4_SRC_W,
+                               OXM_OF_IPV4_DST_W, OXM_OF_ARP_SPA_W, OXM_OF_ARP_TPA_W, OXM_OF_ARP_SHA_W, OXM_OF_ARP_THA_W, OXM_OF_IPV6_SRC_W,
+                               OXM_OF_IPV6_DST_W , OXM_OF_IPV6_FLABEL_W, OXM_OF_PBB_ISID_W, OXM_OF_TUNNEL_ID_W, OXM_OF_IPV6_EXTHDR_W};                        
+
+
+struct ofl_instruction_header instructions[] = { {OFPIT_GOTO_TABLE}, 
+                  {OFPIT_WRITE_METADATA },{OFPIT_WRITE_ACTIONS},{OFPIT_APPLY_ACTIONS},
+                  {OFPIT_CLEAR_ACTIONS},{OFPIT_METER},{OFPIT_EXPERIMENTER} } ;
+
+struct ofl_action_header actions[] = { {OFPAT_OUTPUT, 0}, 
+                  {OFPAT_COPY_TTL_OUT, 0},{OFPAT_COPY_TTL_IN, 0},{OFPAT_SET_MPLS_TTL, 0},
+                  {OFPAT_DEC_MPLS_TTL, 0},{OFPAT_PUSH_VLAN, 0},{OFPAT_POP_VLAN, 0}, {OFPAT_PUSH_MPLS, 0},
+                  {OFPAT_POP_MPLS, 0},{OFPAT_SET_QUEUE, 0}, {OFPAT_GROUP, 0}, {OFPAT_SET_NW_TTL, 0}, {OFPAT_DEC_NW_TTL, 0}, 
+                  {OFPAT_SET_FIELD, 0}, {OFPAT_PUSH_PBB, 0}, {OFPAT_POP_PBB, 0}, {OFPAT_EXPERIMENTER, 0} } ;
 
 /* When inserting an entry, this function adds the flow entry to the list of
  * hard and idle timeout entries, if appropriate. */
@@ -226,6 +253,91 @@ flow_table_timeout(struct flow_table *table) {
     }
 }
 
+
+static void 
+flow_table_create_property(struct ofl_table_feature_prop_header **prop, enum ofp_table_feature_prop_type type){
+
+    switch(type){
+        case OFPTFPT_INSTRUCTIONS:
+        case OFPTFPT_INSTRUCTIONS_MISS:{
+            struct ofl_table_feature_prop_instructions *inst_capabilities;
+            inst_capabilities = xmalloc(sizeof(struct ofl_table_feature_prop_instructions));
+            inst_capabilities->header.type = type;
+            inst_capabilities->instruction_ids = instructions;
+            *prop =  (struct ofl_table_feature_prop_header*) inst_capabilities; 
+            break;        
+        }
+        case OFPTFPT_NEXT_TABLES:
+        case OFPTFPT_NEXT_TABLES_MISS:{
+             struct ofl_table_feature_prop_next_tables *tbl_reachable;
+             int i;
+             tbl_reachable = xmalloc(sizeof(struct ofl_table_feature_prop_next_tables));
+             tbl_reachable->header.type = type;
+             tbl_reachable->table_num = PIPELINE_TABLES ;
+             tbl_reachable->next_table_ids = xmalloc(sizeof(uint8_t) * tbl_reachable->table_num);
+             for(i=0; i < tbl_reachable->table_num; i++)
+                tbl_reachable->next_table_ids[i] = i;
+             *prop = (struct ofl_table_feature_prop_header*) tbl_reachable;
+             break;
+        }
+        case OFPTFPT_APPLY_ACTIONS:
+        case OFPTFPT_APPLY_ACTIONS_MISS:
+        case OFPTFPT_WRITE_ACTIONS:
+        case OFPTFPT_WRITE_ACTIONS_MISS:{
+             struct ofl_table_feature_prop_actions *act_capabilities;
+             act_capabilities = xmalloc(sizeof(struct ofl_table_feature_prop_actions));
+             act_capabilities->header.type =  type;
+             act_capabilities->actions_num= N_ACTIONS;
+             act_capabilities->action_ids = actions;
+             *prop =  (struct ofl_table_feature_prop_header*) act_capabilities; 
+             break;
+        }
+        case OFPTFPT_MATCH:
+        case OFPTFPT_APPLY_SETFIELD:
+        case OFPTFPT_APPLY_SETFIELD_MISS:
+        case OFPTFPT_WRITE_SETFIELD:
+        case OFPTFPT_WRITE_SETFIELD_MISS:{
+            struct ofl_table_feature_prop_oxm *oxm_capabilities; 
+            oxm_capabilities = xmalloc(sizeof(struct ofl_table_feature_prop_oxm));
+            oxm_capabilities->header.type = type;
+            oxm_capabilities->oxm_num = N_OXM_FIELDS;
+            oxm_capabilities->oxm_ids = oxm_ids;
+            /* TODO: Don't know why it's messing with 
+            the instruction list... */            
+            //*prop =  (struct ofl_table_feature_prop_header*) oxm_capabilities;
+            break;
+        }  
+        case OFPTFPT_WILDCARDS:{
+            struct ofl_table_feature_prop_oxm *oxm_capabilities;
+            oxm_capabilities = xmalloc(sizeof(struct ofl_table_feature_prop_oxm)); 
+            oxm_capabilities->header.type = type;
+            oxm_capabilities->oxm_num = N_WILDCARDED;
+            oxm_capabilities->oxm_ids = wildcarded;
+            /* TODO: Don't know why it's messing with 
+            the instruction list... */
+            //*prop =  (struct ofl_table_feature_prop_header*) oxm_capabilities;
+            break;        
+        }
+    }
+}
+
+static void
+flow_table_features(struct ofl_table_features *features){
+
+    int type, j;
+
+    features->properties = xmalloc(sizeof(struct ofl_table_feature_prop_header) * features->properties_num);
+    
+     /*Instructions */
+    j = 0;
+    for(type = OFPTFPT_INSTRUCTIONS; type <= OFPTFPT_APPLY_SETFIELD_MISS; type++){ 
+        flow_table_create_property(&(features->properties[j]), type);
+        if(type == OFPTFPT_WILDCARDS)
+            type++;
+        j++;        
+    }
+}
+
 struct flow_table *
 flow_table_create(struct datapath *dp, uint8_t table_id) {
     struct flow_table *table;
@@ -235,20 +347,29 @@ flow_table_create(struct datapath *dp, uint8_t table_id) {
 
     table = xmalloc(sizeof(struct flow_table));
     table->dp = dp;
-
+    
+    /*Init table stats */
     table->stats = xmalloc(sizeof(struct ofl_table_stats));
     table->stats->table_id      = table_id;
-    /*table->stats->name          = ds_cstr(&string);
-    table->stats->match         = DP_SUPPORTED_MATCH_FIELDS;
-    table->stats->instructions  = DP_SUPPORTED_INSTRUCTIONS;
-    table->stats->write_actions = DP_SUPPORTED_ACTIONS;
-    table->stats->apply_actions = DP_SUPPORTED_ACTIONS;
-    table->stats->config        = OFPTC_TABLE_MISS_CONTROLLER;
-    table->stats->max_entries   = FLOW_TABLE_MAX_ENTRIES;*/
     table->stats->active_count  = 0;
     table->stats->lookup_count  = 0;
     table->stats->matched_count = 0;
 
+    /* Init Table features */
+    table->features = xmalloc(sizeof(struct ofl_table_features));
+    table->features->table_id = table_id;
+    table->features->name          = ds_cstr(&string);
+    /*table->stats->match         = DP_SUPPORTED_MATCH_FIELDS;
+    table->stats->instructions  = DP_SUPPORTED_INSTRUCTIONS;
+    table->stats->write_actions = DP_SUPPORTED_ACTIONS;
+    table->stats->apply_actions = DP_SUPPORTED_ACTIONS;*/
+    table->features->metadata_match = 0xffffffffffffffff; 
+    table->features->metadata_write = 0xffffffffffffffff;
+    table->features->config        = OFPTC_TABLE_MISS_CONTROLLER;
+    table->features->max_entries   = FLOW_TABLE_MAX_ENTRIES;
+    table->features->properties_num = TABLE_FEATURES_NUM;
+    flow_table_features(table->features);
+    
     list_init(&table->match_entries);
     list_init(&table->hard_entries);
     list_init(&table->idle_entries);

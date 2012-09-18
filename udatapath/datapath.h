@@ -137,6 +137,8 @@ struct remote {
     void *cb_aux;
 
     uint32_t role; /*OpenFlow controller role.*/
+    struct ofl_async_config config_msg;  /* Asynchronous messages configuration, 
+                                            set from controller*/
 };
 
 /* Creates a new datapath */

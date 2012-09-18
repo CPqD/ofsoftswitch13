@@ -184,9 +184,8 @@ dp_run(struct datapath *dp) {
         pipeline_timeout(dp->pipeline);
     }
     poll_timer_wait(1000);
-
     dp_ports_run(dp);
-
+    
     /* Talk to remotes. */
     LIST_FOR_EACH_SAFE (r, rn, struct remote, node, &dp->remotes) {
         remote_run(dp, r);
@@ -392,9 +391,16 @@ send_openflow_buffer(struct datapath *dp, struct ofpbuf *buffer,
     } else {
         /* Broadcast to all remotes. */
         struct remote *r, *prev = NULL;
+        uint8_t msg_type; 
+        /* Get the type of the message */
+        memcpy(&msg_type,((char* ) buffer->data) + 1, sizeof(uint8_t)); 
         LIST_FOR_EACH (r, struct remote, node, &dp->remotes) {
             /* do not send to remotes with slave role */
-            if (r->role == OFPCR_ROLE_SLAVE) {
+            if (r->role == OFPCR_ROLE_EQUAL || r->role == OFPCR_ROLE_MASTER){
+            
+            } 
+            else if (r->role == OFPCR_ROLE_SLAVE) {
+                
                 continue;
             }
             if (prev) {
@@ -424,7 +430,7 @@ dp_send_message(struct datapath *dp, struct ofl_msg_header *msg,
         VLOG_DBG_RL(LOG_MODULE, &rl, "sending: %s", msg_str);
         free(msg_str);
     }
-
+    
     error = ofl_msg_pack(msg, sender == NULL ? 0 : sender->xid, &buf, &buf_size, dp->exp);
     if (error) {
         VLOG_WARN_RL(LOG_MODULE, &rl, "There was an error packing the message!");

@@ -45,7 +45,17 @@
 #define LOG_MODULE ofl_str
 OFL_LOG_INIT(LOG_MODULE)
 
+ofl_err
+ofl_utils_count_ofp_table_features(void *data, size_t data_len, size_t *count){
 
+    struct ofp_table_feature_prop_header *feature;
+    uint8_t *d;
+    
+    d = (uint8_t*) data;
+    
+   // while (data_len >= sizeof(struct ofp)) 
+    
+}
 
 ofl_err
 ofl_utils_count_ofp_instructions(void *data, size_t data_len, size_t *count) {

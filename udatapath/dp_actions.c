@@ -374,7 +374,7 @@ push_mpls(struct packet *pkt, struct ofl_action_push *act) {
 
             memmove(pkt->buffer->data, eth, head_offset);
             new_eth = (struct eth_header *)(pkt->buffer->data);
-            new_snap = snap == NULL ? NULL
+            new_snap = snap == NULL ? NULL 
                     : (struct snap_header *)((uint8_t *)snap - MPLS_HEADER_LEN);
             new_vlan = vlan == NULL ? NULL
                     : (struct vlan_header *)((uint8_t *)vlan - MPLS_HEADER_LEN);

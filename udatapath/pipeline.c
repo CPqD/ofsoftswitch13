@@ -149,25 +149,25 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
         pkt->table_id = next_table->stats->table_id;
         table         = next_table;
         next_table    = NULL;
-        
+         
         entry = flow_table_lookup(table, pkt);
-       if (entry != NULL) {
-	       if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
+        if (entry != NULL) {
+	        if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
                 char *m = ofl_structs_flow_stats_to_string(entry->stats, pkt->dp->exp);
                 VLOG_DBG_RL(LOG_MODULE, &rl, "found matching entry: %s.", m);
                 free(m);
-           }
+            }
 
-           execute_entry(pl, entry, &next_table, pkt);
+            execute_entry(pl, entry, &next_table, pkt);
 
-           if (next_table == NULL) {
+            if (next_table == NULL) {
                /* Cookie field is set 0xffffffffffffffff
                 because we cannot associate it to any
                 particular flow */
                 action_set_execute(pkt->action_set, pkt, 0xffffffffffffffff);
                 packet_destroy(pkt);
                 return;
-           }
+            }
 
         } else {
 			/* OpenFlow 1.3 default behavior on a table miss */
@@ -336,6 +336,37 @@ pipeline_handle_stats_request_table(struct pipeline *pl,
     ofl_msg_free((struct ofl_msg_header *)msg, pl->dp->exp);
     return 0;
 }
+
+ofl_err
+pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
+                                    struct ofl_msg_multipart_request_table_features *msg,
+                                    const struct sender *sender) {
+    size_t i;
+    
+    /* If the message body is empty
+       query for table capabilities */
+    if(msg->table_features == NULL){
+       struct ofl_table_features **features;
+       for (i = 0; i < PIPELINE_TABLES; i++){
+            features[i] = pl->tables[i]->features; 
+       } 
+    
+       { 
+            struct ofl_msg_multipart_reply_table_features reply =
+                {{{.type = OFPT_MULTIPART_REPLY},
+                  .type = OFPMP_TABLE_FEATURES, .flags = 0x0000},
+                 .features     = features,
+                 .tables_num = PIPELINE_TABLES};
+            dp_send_message(pl->dp, (struct ofl_msg_header *)&reply, sender);                 
+       } 
+                 
+    }
+    /* Change tables configuration */
+    else{ 
+        
+    }
+    return 0;
+}                                    
 
 ofl_err
 pipeline_handle_stats_request_aggregate(struct pipeline *pl,

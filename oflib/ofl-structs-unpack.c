@@ -755,6 +755,54 @@ ofl_structs_bucket_counter_unpack(struct ofp_bucket_counter *src, size_t *len, s
     return 0;
 }
 
+ofl_err
+ofl_structs_meter_band_unpack(struct ofp_meter_band_header *src, size_t *len, struct ofl_meter_band_header **dst){
+	/*struct ofl_meter_band_header *mb;
+	ofl_err error;
+	size_t i;
+
+	if(*len < sizeof(struct ofp_meter_band_header)){
+		OFL_LOG_WARN(LOG_MODULE, "Received meter band is too short (%zu).", *len);
+		return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+	}
+	//mb = (struct ofl_meter_band_header *) malloc(sizeof(struct ofl_meter_band_header));
+	switch (src->type){
+		case OFPMBT_DROP:{
+			struct ofl_meter_band_drop *b = (struct ofl_meter_band_drop *)malloc(sizeof(struct ofl_meter_band_drop));
+			b->type = ntohs(src->type);
+			b->rate = ntohl(src->rate);
+			b->burst_size = ntohl(src->burst_size);
+			mb = (struct ofl_meter_band_header *)b;
+			*dst = mb;
+			break;
+		}
+		case OFPMBT_DSCP_REMARK:{
+			struct ofl_meter_band_dscp_remark *b = (struct ofl_meter_band_dscp_remark *)malloc(sizeof(ofl_meter_band_dscp_remark));
+			b->type = ntohs(src->type);
+			b->rate = ntohl(src->rate);
+			b->burst_size = ntohl(src->burst_size);
+			b->prec_level = src->prec_level;
+			mb = (struct ofl_meter_band_header *)b;
+			*dst = mb;
+			break;
+		}
+		case OFPMBT_EXPERIMENTER:{
+			struct ofl_meter_band_experimenter *b = (struct ofl_meter_band_experimenter *)malloc(sizeof(ofl_meter_band_experimenter));
+			b->type = ntohs(src->type);
+			b->rate = ntohl(src->rate);
+			b->burst_size = ntohl(src->burst_size);
+			b->experimenter = ntohl(src->experimenter);
+			mb = (struct ofl_meter_band_header *)b;
+			*dst = mb;
+			break;
+		}
+	}
+	*len -= ntohs(src->len);
+	return 0;*/
+}
+
+
+
 static ofl_err
 ofl_structs_oxm_match_unpack(struct ofp_match* src, uint8_t* buf, size_t *len, struct ofl_match **dst){
 
