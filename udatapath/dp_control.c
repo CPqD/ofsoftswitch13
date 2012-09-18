@@ -77,17 +77,10 @@ handle_control_features_request(struct datapath *dp,
              .n_buffers    = dp_buffers_size(dp->buffers),
              .n_tables     = PIPELINE_TABLES,
              .capabilities = DP_SUPPORTED_CAPABILITIES,
-             .ports_num    = dp->ports_num,
-             .ports        = xmalloc(sizeof(struct ofl_port *) * dp->ports_num)};
-
-    LIST_FOR_EACH (p, struct sw_port, node, &dp->port_list) {
-        reply.ports[i] = p->conf;
-        i++;
-    }
+             .reserved = 0x00000000};
 
     dp_send_message(dp, (struct ofl_msg_header *)&reply, sender);
 
-    free(reply.ports);
     ofl_msg_free(msg, dp->exp);
 
     return 0;
@@ -203,6 +196,9 @@ handle_control_stats_request(struct datapath *dp,
         }
         case (OFPMP_TABLE): {
             return pipeline_handle_stats_request_table(dp->pipeline, msg, sender);
+        }
+        case (OFPMP_TABLE_FEATURES):{
+            return pipeline_handle_stats_request_table_features_request(dp->pipeline, msg, sender);
         }
         case (OFPMP_PORT_STATS): {
             return dp_ports_handle_stats_request_port(dp, (struct ofl_msg_multipart_request_port *)msg, sender);

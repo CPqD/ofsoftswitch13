@@ -81,14 +81,10 @@ ofl_msg_print_features_reply(struct ofl_msg_features_reply *msg, FILE *stream) {
     size_t i;
 
     fprintf(stream, "{dpid=\"0x%016"PRIx64"\", buffs=\"%u\", tabs=\"%u\", "
-                          "caps=\"0x%"PRIx32"\", ports=[",
+                          "caps=\"0x%"PRIx32"\"",
                   msg->datapath_id, msg->n_buffers, msg->n_tables,
                   msg->capabilities);
 
-    for (i=0; i < msg->ports_num; i++) {
-        ofl_structs_port_print(stream, msg->ports[i]);
-        if (i < msg->ports_num - 1) { fprintf(stream, ", "); }
-    }
     fprintf(stream, "]}");
 }
 

@@ -96,10 +96,8 @@ ofl_msg_pack_role_request(struct ofl_msg_role_request *msg, uint8_t **buf, size_
 static int
 ofl_msg_pack_features_reply(struct ofl_msg_features_reply *msg, uint8_t **buf, size_t *buf_len) {
     struct ofp_switch_features *features;
-    uint8_t *ptr;
-    int i;
 
-    *buf_len = sizeof(struct ofp_switch_features) + msg->ports_num * sizeof(struct ofp_port);
+    *buf_len = sizeof(struct ofp_switch_features);
     *buf     = (uint8_t *)malloc(*buf_len);
 
     features = (struct ofp_switch_features *)(*buf);
@@ -109,12 +107,6 @@ ofl_msg_pack_features_reply(struct ofl_msg_features_reply *msg, uint8_t **buf, s
     memset(features->pad, 0x00, 3);
     features->capabilities = htonl( msg->capabilities);
     features->reserved = 0x00000000;
-
-    ptr  = (*buf) + sizeof(struct ofp_switch_features);
-
-    for (i=0; i<msg->ports_num; i++) {
-        ptr += ofl_structs_port_pack(msg->ports[i], (struct ofp_port *)ptr);
-    }
 
     return 0;
 }
@@ -373,9 +365,9 @@ ofl_msg_pack_async_config(struct ofl_msg_async_config *msg, uint8_t **buf, size_
     
     ac = (struct ofp_async_config*)(*buf);
     for(i = 0; i < 2; i++){
-        ac->packet_in_mask[i] = msg->packet_in_mask[i];
-        ac->port_status_mask[i] = msg->port_status_mask[i];
-        ac->flow_removed_mask[i] =  msg->flow_removed_mask[i];
+        ac->packet_in_mask[i] = msg->config->packet_in_mask[i];
+        ac->port_status_mask[i] = msg->config->port_status_mask[i];
+        ac->flow_removed_mask[i] =  msg->config->flow_removed_mask[i];
     }
     return 0;
 } 
@@ -454,6 +446,27 @@ ofl_msg_pack_multipart_request_group(struct ofl_msg_multipart_request_group *msg
     return 0;
 }
 
+static int 
+ofl_msg_pack_multipart_request_table_features(struct ofl_msg_multipart_request_table_features *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
+    struct ofp_multipart_request *req;
+    struct ofp_table_features **features;
+    size_t i;
+    
+    *buf_len = sizeof(struct ofp_multipart_request) + sizeof(struct ofp_table_features) + 
+               ofl_structs_table_features_ofp_total_len(msg->table_features, msg->tables_num, exp);
+               
+    *buf = (uint8_t*) malloc(*buf_len);
+    
+    req = (struct ofp_multipart_request*) (*buf);
+    features = (struct ofp_table_features **)req->body;
+    
+    for(i = 0; i < msg->tables_num; i++ ){
+        ofl_structs_table_features_pack(msg->table_features[i], features[i], exp);    
+    }               
+
+    return 0;
+}
+
 static int
 ofl_msg_pack_multipart_request_empty(struct ofl_msg_multipart_request_header *msg UNUSED, uint8_t **buf, size_t *buf_len) {
 
@@ -467,7 +480,7 @@ ofl_msg_pack_multipart_request_empty(struct ofl_msg_multipart_request_header *ms
 static int
 ofl_msg_pack_multipart_request(struct ofl_msg_multipart_request_header *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
     struct ofp_multipart_request *req;
-    int error;
+    int error = 0;
 
     switch (msg->type) {
     case OFPMP_DESC: {
@@ -482,6 +495,10 @@ ofl_msg_pack_multipart_request(struct ofl_msg_multipart_request_header *msg, uin
     case OFPMP_TABLE: {
         error = ofl_msg_pack_multipart_request_empty(msg, buf, buf_len);
         break;
+    }
+    case OFPMP_TABLE_FEATURES:{
+        ofl_msg_pack_multipart_request_table_features((struct ofl_msg_multipart_request_table_features*)msg, buf, buf_len,exp);
+        break;    
     }
     case OFPMP_PORT_STATS: {
         error = ofl_msg_pack_multipart_request_port((struct ofl_msg_multipart_request_port *)msg, buf, buf_len);
