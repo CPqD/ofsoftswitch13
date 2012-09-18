@@ -29,8 +29,7 @@ B.11.2 More flexible table miss support
 
 TODO
 
-- Add capabilities to describe the 
-- table-miss flow entry (EXT-123). 
+- Add capabilities to describe the table-miss flow entry (EXT-123). 
 
 ONGOING
 
@@ -46,9 +45,7 @@ B.11.3 IPv6 Extension Header handling support
 
 TODO
 
-
 ONGOING
-
 
 DONE
 
@@ -67,7 +64,6 @@ B.11.4 Per flow meters
 
 TODO
 
-
 ONGOING
 
 - Flexible meter framework based on per-flow meters and meter bands.
@@ -77,7 +73,8 @@ ONGOING
 
 DONE
 
-- B.11.5 Per connection event filtering
+B.11.5 Per connection event filtering
+--------------------------------------
 
 TODO
 
@@ -85,9 +82,7 @@ TODO
 - Controller message to set/get the asynchronous message filter.
 - Set default filter value to match OpenFlow 1.2 behaviour.
 
-
 ONGOING
-
 
 DONE
 
@@ -103,19 +98,16 @@ TODO
 - Add auxiliary-id to the protocol to disambiguate the type of connection.
 - Enable auxiliary connection over UDP and DTLS.
 
-
 ONGOING
-
 
 DONE
 
-- B.11.7 MPLS BoS matching
+B.11.7 MPLS BoS matching
+--------------------------
 
 TODO
 
-
 ONGOING
-
 
 DONE
 
@@ -129,9 +121,7 @@ TODO
 
 - Push and Pop operation to add PBB header as a tag.
 
-
 ONGOING
-
 
 DONE
 
@@ -147,9 +137,7 @@ TODO
 - Action-list can add tags in arbitrary order.
 - Tag order is predefined for tagging in the action-set.
 
-
 ONGOING
-
 
 DONE
 
@@ -158,9 +146,7 @@ B.11.10 Tunnel-ID metadata
 
 TODO
 
-
 ONGOING
-
 
 DONE
 
@@ -175,7 +161,6 @@ TODO
 
 ONGOING
 
-
 DONE
 
 - Done for port, queue and group stats
@@ -185,9 +170,7 @@ Cookies in packet-in
 
 TODO
 
-
 ONGOING
-
 
 DONE
 
@@ -202,7 +185,6 @@ B.11.13 On demand flow counters
 TODO
 
 ONGOING
-
 
 DONE
 
