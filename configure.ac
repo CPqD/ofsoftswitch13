@@ -31,7 +31,7 @@
 # derivatives without specific, written prior permission.
 
 AC_PREREQ(2.60)
-AC_INIT([openflow], [1.1.0], [openflow-discuss@openflowswitch.org])
+AC_INIT([openflow], [1.3.0], [openflow-discuss@openflowswitch.org])
 NX_BUILDNR
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([build-aux])
