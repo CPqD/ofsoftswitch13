@@ -90,7 +90,7 @@ pipeline_handle_stats_request_table(struct pipeline *pl,
 /* Handles a table feature  request. */
 ofl_err
 pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
-                                    struct ofl_msg_multipart_request_table_features *msg ,
+                                    struct ofl_msg_multipart_request_header *msg,
                                     const struct sender *sender);
 
 /* Handles an aggregate stats request. */

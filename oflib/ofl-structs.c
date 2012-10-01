@@ -46,16 +46,47 @@
 OFL_LOG_INIT(LOG_MODULE)
 
 ofl_err
-ofl_utils_count_ofp_table_features(void *data, size_t data_len, size_t *count){
+ofl_utils_count_ofp_table_features_properties(void *data, size_t data_len, size_t *count){
 
-    struct ofp_table_feature_prop_header *feature;
+    struct ofp_table_feature_prop_header *prop;
     uint8_t *d;
     
     d = (uint8_t*) data;
-    
-   // while (data_len >= sizeof(struct ofp)) 
-    
+    *count = 0;    
+    while (data_len >= sizeof(struct ofp_table_feature_prop_header)){
+        prop = (struct ofp_table_feature_prop_header *) d;
+        if (data_len < ntohs(prop->length) || ntohs(prop->length) < sizeof(struct ofp_table_feature_prop_header) ){
+             OFL_LOG_WARN(LOG_MODULE, "Received property has invalid length.");
+             return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_LEN); 
+        }
+        data_len -= ROUND_UP(ntohs(prop->length), 8);
+        d += ROUND_UP(ntohs(prop->length), 8);  
+        (*count)++;
+    } 
+    return 0; 
 }
+
+ofl_err
+ofl_utils_count_ofp_table_features(void *data, size_t data_len, size_t *count){
+    struct ofp_table_features *feature;
+    uint8_t *d;
+    
+    d = (uint8_t*) data;
+    *count = 0;
+    while (data_len >= sizeof(struct ofp_table_features)){
+        feature = (struct ofp_table_features *) d;
+        if (data_len < ntohs(feature->length) || ntohs(feature->length) < sizeof(struct ofp_table_features) ){
+             OFL_LOG_WARN(LOG_MODULE, "Received feature has invalid length.");
+             return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_LEN); 
+        }
+        data_len -= ntohs(feature->length);
+        d += ntohs(feature->length);  
+        (*count)++;
+    } 
+    return 0;
+}
+
+
 
 ofl_err
 ofl_utils_count_ofp_instructions(void *data, size_t data_len, size_t *count) {
@@ -65,10 +96,9 @@ ofl_utils_count_ofp_instructions(void *data, size_t data_len, size_t *count) {
     d = (uint8_t *)data;
     *count = 0;
     /* this is needed so that buckets are handled correctly */
-    
-    while (data_len >= sizeof(struct ofp_instruction)) {
+    while (data_len >= sizeof(struct ofp_instruction)- 4) {
         inst = (struct ofp_instruction *)d;
-        if (data_len < ntohs(inst->len) || ntohs(inst->len) < sizeof(struct ofp_instruction)) {
+        if (data_len < ntohs(inst->len) || ntohs(inst->len) < sizeof(struct ofp_instruction) - 4) {
             OFL_LOG_WARN(LOG_MODULE, "Received instruction has invalid length.");
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
                     

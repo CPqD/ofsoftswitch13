@@ -64,11 +64,11 @@ struct ofl_instruction_header instructions[] = { {OFPIT_GOTO_TABLE},
                   {OFPIT_WRITE_METADATA },{OFPIT_WRITE_ACTIONS},{OFPIT_APPLY_ACTIONS},
                   {OFPIT_CLEAR_ACTIONS},{OFPIT_METER}} ;
 
-struct ofl_action_header actions[] = { {OFPAT_OUTPUT, 0}, 
-                  {OFPAT_COPY_TTL_OUT, 0},{OFPAT_COPY_TTL_IN, 0},{OFPAT_SET_MPLS_TTL, 0},
-                  {OFPAT_DEC_MPLS_TTL, 0},{OFPAT_PUSH_VLAN, 0},{OFPAT_POP_VLAN, 0}, {OFPAT_PUSH_MPLS, 0},
-                  {OFPAT_POP_MPLS, 0},{OFPAT_SET_QUEUE, 0}, {OFPAT_GROUP, 0}, {OFPAT_SET_NW_TTL, 0}, {OFPAT_DEC_NW_TTL, 0}, 
-                  {OFPAT_SET_FIELD, 0}, {OFPAT_PUSH_PBB, 0}, {OFPAT_POP_PBB, 0}, {OFPAT_EXPERIMENTER, 0} } ;
+struct ofl_action_header actions[] = { {OFPAT_OUTPUT, 4}, 
+                  {OFPAT_COPY_TTL_OUT, 4},{OFPAT_COPY_TTL_IN, 4},{OFPAT_SET_MPLS_TTL, 4},
+                  {OFPAT_DEC_MPLS_TTL, 4},{OFPAT_PUSH_VLAN, 4},{OFPAT_POP_VLAN, 4}, {OFPAT_PUSH_MPLS, 4},
+                  {OFPAT_POP_MPLS, 4},{OFPAT_SET_QUEUE, 4}, {OFPAT_GROUP, 4}, {OFPAT_SET_NW_TTL, 4}, {OFPAT_DEC_NW_TTL, 4}, 
+                  {OFPAT_SET_FIELD, 4}, {OFPAT_PUSH_PBB, 4}, {OFPAT_POP_PBB, 4} } ;
 
 /* When inserting an entry, this function adds the flow entry to the list of
  * hard and idle timeout entries, if appropriate. */
@@ -265,6 +265,7 @@ flow_table_create_property(struct ofl_table_feature_prop_header **prop, enum ofp
             inst_capabilities->header.type = type;
 			inst_capabilities->ids_num = N_INSTRUCTIONS;
             inst_capabilities->instruction_ids = instructions;
+            inst_capabilities->header.length = ofl_structs_table_features_properties_ofp_len(&inst_capabilities->header, NULL);            
             (*prop) =  (struct ofl_table_feature_prop_header*) inst_capabilities;
             break;        
         }
@@ -278,6 +279,7 @@ flow_table_create_property(struct ofl_table_feature_prop_header **prop, enum ofp
              tbl_reachable->next_table_ids = xmalloc(sizeof(uint8_t) * tbl_reachable->table_num);
              for(i=0; i < tbl_reachable->table_num; i++)
                 tbl_reachable->next_table_ids[i] = i;
+             tbl_reachable->header.length = ofl_structs_table_features_properties_ofp_len(&tbl_reachable->header, NULL); 
              *prop = (struct ofl_table_feature_prop_header*) tbl_reachable;
              break;
         }
@@ -290,6 +292,7 @@ flow_table_create_property(struct ofl_table_feature_prop_header **prop, enum ofp
              act_capabilities->header.type =  type;
              act_capabilities->actions_num= N_ACTIONS;
              act_capabilities->action_ids = actions;
+             act_capabilities->header.length = ofl_structs_table_features_properties_ofp_len(&act_capabilities->header, NULL);                         
              *prop =  (struct ofl_table_feature_prop_header*) act_capabilities; 
              break;
         }
@@ -303,8 +306,7 @@ flow_table_create_property(struct ofl_table_feature_prop_header **prop, enum ofp
             oxm_capabilities->header.type = type;
             oxm_capabilities->oxm_num = N_OXM_FIELDS;
             oxm_capabilities->oxm_ids = oxm_ids;
-            /* TODO: Don't know why it's messing with 
-            the instruction list... */            
+            oxm_capabilities->header.length = ofl_structs_table_features_properties_ofp_len(&oxm_capabilities->header, NULL);             
             *prop =  (struct ofl_table_feature_prop_header*) oxm_capabilities;
             break;
         }  
@@ -314,8 +316,7 @@ flow_table_create_property(struct ofl_table_feature_prop_header **prop, enum ofp
             oxm_capabilities->header.type = type;
             oxm_capabilities->oxm_num = N_WILDCARDED;
             oxm_capabilities->oxm_ids = wildcarded;
-            /* TODO: Don't know why it's messing with 
-            the instruction list... */
+            oxm_capabilities->header.length = ofl_structs_table_features_properties_ofp_len(&oxm_capabilities->header, NULL);                         
             *prop =  (struct ofl_table_feature_prop_header*) oxm_capabilities;
             break;
         }        
@@ -331,16 +332,14 @@ flow_table_features(struct ofl_table_features *features){
 
     int type, j;
     features->properties = xmalloc(sizeof(struct ofl_table_feature_prop_header) * features->properties_num);
-     /*Instructions */
     j = 0;
-    for(type = OFPTFPT_INSTRUCTIONS; type <= OFPTFPT_MATCH; type++){ 
+    for(type = OFPTFPT_INSTRUCTIONS; type <= OFPTFPT_APPLY_SETFIELD_MISS; type++){ 
         features->properties[j] = xmalloc(sizeof(struct ofl_table_feature_prop_header));
         flow_table_create_property(&features->properties[j], type);
-        if(type == OFPTFPT_WILDCARDS){
-            features->properties[j] = NULL;
+        if(type == OFPTFPT_MATCH|| type == OFPTFPT_WILDCARDS){
             type++;
         }
-        j++;        
+        j++;
     }
 }
 
@@ -369,7 +368,7 @@ flow_table_create(struct datapath *dp, uint8_t table_id) {
     table->features->metadata_write = 0xffffffffffffffff;
     table->features->config        = OFPTC_TABLE_MISS_CONTROLLER;
     table->features->max_entries   = FLOW_TABLE_MAX_ENTRIES;
-    table->features->properties_num = 1;//TABLE_FEATURES_NUM;
+    table->features->properties_num = TABLE_FEATURES_NUM;
     flow_table_features(table->features);
     
     list_init(&table->match_entries);

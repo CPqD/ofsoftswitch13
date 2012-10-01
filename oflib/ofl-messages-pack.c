@@ -451,20 +451,21 @@ static int
 ofl_msg_pack_multipart_request_table_features(struct ofl_msg_multipart_request_table_features *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
     struct ofp_multipart_request *req;
     struct ofp_table_features **features;
-    size_t i;
+    size_t i, features_len;
+    uint8_t *data;
     
-    *buf_len = sizeof(struct ofp_multipart_request) + sizeof(struct ofp_table_features) + 
-               ofl_structs_table_features_ofp_total_len(msg->table_features, msg->tables_num, exp);
-               
+    features_len = ofl_structs_table_features_ofp_total_len(msg->table_features, msg->tables_num, exp);
+    *buf_len = sizeof(struct ofp_multipart_request) + features_len;
     *buf = (uint8_t*) malloc(*buf_len);
     
     req = (struct ofp_multipart_request*) (*buf);
-    features = (struct ofp_table_features **)req->body;
     
-    for(i = 0; i < msg->tables_num; i++ ){
-        ofl_structs_table_features_pack(msg->table_features[i], features[i], exp);    
-    }               
-
+    if (features_len){ 
+        data = (uint8_t*) req->body;
+        for(i = 0; i < msg->tables_num; i++ ){
+            data += ofl_structs_table_features_pack(msg->table_features[i], (struct ofp_table_features*) data, data, exp);    
+        }
+    }        
     return 0;
 }
 
@@ -700,6 +701,7 @@ ofl_msg_pack_multipart_reply_group_features(struct ofl_msg_multipart_reply_group
     struct ofp_multipart_reply *resp;
     struct ofp_group_features_stats *stats;
     int i;
+    
     *buf_len = sizeof(struct ofp_multipart_reply) + sizeof(struct ofp_group_features_stats);
     *buf     = (uint8_t *)malloc(*buf_len);
 
@@ -712,6 +714,26 @@ ofl_msg_pack_multipart_reply_group_features(struct ofl_msg_multipart_reply_group
         stats->actions[i] = htonl(msg->actions[i]);
     }
 
+    return 0;
+}
+
+static int 
+ofl_msg_pack_multipart_reply_table_features(struct ofl_msg_multipart_reply_table_features *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
+    struct ofp_multipart_reply *resp;
+    size_t i, features_len;
+    uint8_t *data;
+    
+    features_len = ofl_structs_table_features_ofp_total_len(msg->table_features, msg->tables_num, exp);
+    *buf_len = sizeof(struct ofp_multipart_reply) + features_len;
+    *buf = (uint8_t*) malloc(*buf_len);
+
+    resp = (struct ofp_multipart_reply*) (*buf);
+    if (features_len){ 
+        data = (uint8_t*) resp->body;
+        for(i = 0; i < msg->tables_num; i++ ){
+           data += ofl_structs_table_features_pack(msg->table_features[i], (struct ofp_table_features*) data, data, exp);    
+        }
+    }
     return 0;
 }
 
@@ -735,6 +757,10 @@ ofl_msg_pack_multipart_reply(struct ofl_msg_multipart_reply_header *msg, uint8_t
         }
         case OFPMP_TABLE: {
             error = ofl_msg_pack_multipart_reply_table((struct ofl_msg_multipart_reply_table *)msg, buf, buf_len);
+            break;
+        }
+        case OFPMP_TABLE_FEATURES: {
+            error = ofl_msg_pack_multipart_reply_table_features((struct ofl_msg_multipart_reply_table_features*)msg, buf, buf_len, exp);        
             break;
         }
         case OFPMP_PORT_STATS: {
@@ -764,6 +790,7 @@ ofl_msg_pack_multipart_reply(struct ofl_msg_multipart_reply_header *msg, uint8_t
             } else {
                 error = exp->stats->reply_pack(msg, buf, buf_len);
             }
+            break;
         }
         default: {
             OFL_LOG_WARN(LOG_MODULE, "Trying to pack unknown stat resp type.");
@@ -774,9 +801,7 @@ ofl_msg_pack_multipart_reply(struct ofl_msg_multipart_reply_header *msg, uint8_t
     if (error) {
         return error;
     }
-
     resp = (struct ofp_multipart_reply *)(*buf);
-
     resp->type  = htons(msg->type);
     resp->flags = htons(msg->flags);
     memset(resp->pad, 0x00, 4);
@@ -970,7 +995,6 @@ ofl_msg_pack(struct ofl_msg_header *msg, uint32_t xid, uint8_t **buf, size_t *bu
     }
 
     oh = (struct ofp_header *)(*buf);
-
     oh->version =        OFP_VERSION;
     oh->type    =        msg->type;
     oh->length  = htons(*buf_len);

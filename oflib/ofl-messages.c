@@ -336,7 +336,7 @@ ofl_msg_merge_multipart_reply_flow(struct ofl_msg_multipart_reply_flow *orig, st
 
     orig->stats_num = new_stats_num;
 
-    return ((merge->header.flags & OFPSF_REPLY_MORE) == 0);
+    return ((merge->header.flags & OFPMPF_REPLY_MORE) == 0);
 }
 
 bool
@@ -356,7 +356,7 @@ ofl_msg_merge_multipart_reply_table(struct ofl_msg_multipart_reply_table *orig, 
 
     orig->stats_num = new_stats_num;
 
-    return ((merge->header.flags & OFPSF_REPLY_MORE) == 0);
+    return ((merge->header.flags & OFPMPF_REPLY_MORE) == 0);
 }
 
 bool
@@ -376,7 +376,7 @@ ofl_msg_merge_multipart_reply_port(struct ofl_msg_multipart_reply_port *orig, st
 
     orig->stats_num = new_stats_num;
 
-    return ((merge->header.flags & OFPSF_REPLY_MORE) == 0);
+    return ((merge->header.flags & OFPMPF_REPLY_MORE) == 0);
 }
 
 bool
@@ -396,6 +396,6 @@ ofl_msg_merge_multipart_reply_queue(struct ofl_msg_multipart_reply_queue *orig, 
 
     orig->stats_num = new_stats_num;
 
-    return ((merge->header.flags & OFPSF_REPLY_MORE) == 0);
+    return ((merge->header.flags & OFPMPF_REPLY_MORE) == 0);
 }
 

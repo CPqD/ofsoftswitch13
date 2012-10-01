@@ -38,10 +38,10 @@
 
 
 #define FLOW_TABLE_MAX_ENTRIES 1024
-#define TABLE_FEATURES_NUM 17
+#define TABLE_FEATURES_NUM 15
 #define N_OXM_FIELDS 40
-#define N_INSTRUCTIONS 7
-#define N_ACTIONS 17
+#define N_INSTRUCTIONS 6
+#define N_ACTIONS 16
 #define N_WILDCARDED 16
 /****************************************************************************
  * Implementation of a flow table. The current implementation stores flow

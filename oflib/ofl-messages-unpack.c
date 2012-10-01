@@ -741,18 +741,33 @@ ofl_msg_unpack_multipart_request_port(struct ofp_multipart_request *os, size_t *
 }
 
 static ofl_err
+ofl_msg_unpack_multipart_request_empty(struct ofp_multipart_request *os UNUSED, size_t *len, struct ofl_msg_header **msg) {
+    // ofp_multipart_request length was checked at ofl_msg_unpack_multipart_request
+    len -= sizeof(struct ofp_multipart_request);
+
+    *msg = (struct ofl_msg_header *)malloc(sizeof(struct ofl_msg_multipart_request_header));
+    return 0;
+}
+
+static ofl_err
 ofl_msg_unpack_multipart_request_table_features(struct ofp_multipart_request *os, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp){
     struct ofp_table_features **sm;
     struct ofl_msg_multipart_request_table_features *dm;
+    ofl_err error;
     
-    /* Check the length */
+    dm = (struct ofl_msg_multipart_request_table_features*) malloc(sizeof(struct ofl_msg_multipart_request_table_features));
+    if (!(*len)){
+        dm->tables_num = 0;
+        dm->table_features = NULL;
+        *msg = (struct ofl_msg_header*) dm;         
+        return 0;
+    }
     
-    sm = (struct ofp_table_features **)os->body;   
+    //error = ofl_utils_count_ofp_table_features(void *data, size_t data_len, size_t *count)    
+    //*len -= sizeof() 
     
-    //*len -= 
     
-    
-
+    *msg = (struct ofl_msg_header*) dm;
     return 0;
 }
 
@@ -805,16 +820,6 @@ ofl_msg_unpack_multipart_request_group(struct ofp_multipart_request *os, size_t 
     dm->group_id = ntohl(sm->group_id);
 
     *msg = (struct ofl_msg_header *)dm;
-    return 0;
-}
-
-
-static ofl_err
-ofl_msg_unpack_multipart_request_empty(struct ofp_multipart_request *os UNUSED, size_t *len, struct ofl_msg_header **msg) {
-    // ofp_multipart_request length was checked at ofl_msg_unpack_multipart_request
-    len -= sizeof(struct ofp_multipart_request);
-
-    *msg = (struct ofl_msg_header *)malloc(sizeof(struct ofl_msg_multipart_request_header));
     return 0;
 }
 
@@ -1176,6 +1181,31 @@ ofl_msg_unpack_multipart_reply_group_features(struct ofp_multipart_reply *os, si
 }
 
 static ofl_err
+ofl_msg_unpack_multipart_reply_table_features(struct ofp_multipart_reply *src, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp){
+    struct ofl_msg_multipart_reply_table_features *dm;
+	int i;
+	ofl_err error;
+	uint8_t *features; 
+	
+    dm = (struct ofl_msg_multipart_reply_table_features*) malloc(sizeof(struct ofl_msg_multipart_reply_table_features) );
+    
+    error = ofl_utils_count_ofp_table_features((uint8_t*) src->body, *len, &dm->tables_num);
+    if (error) {
+        free(dm);
+        return error;
+    }
+    dm->table_features = (struct ofl_table_features **) malloc(sizeof(struct ofl_table_features) * dm->tables_num);
+    features = (uint8_t* ) src->body;
+
+    for(i = 0; i < dm->tables_num; i++){
+        error = ofl_structs_table_features_unpack((struct ofp_table_features*) features, len, &dm->table_features[i] , exp);
+        features += ntohs(((struct ofp_table_features*) features)->length); 
+    }   
+    *msg = (struct ofl_msg_header *)dm;
+    return 0;
+}
+
+static ofl_err
 ofl_msg_unpack_multipart_reply(struct ofp_header *src, uint8_t *buf, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp) {
     struct ofl_msg_multipart_reply_header *ofls;
     struct ofp_multipart_reply *os;
@@ -1204,6 +1234,10 @@ ofl_msg_unpack_multipart_reply(struct ofp_header *src, uint8_t *buf, size_t *len
         }
         case OFPMP_TABLE: {
             error = ofl_msg_unpack_multipart_reply_table(os, len, msg);
+            break;
+        }
+        case OFPMP_TABLE_FEATURES: {
+            error = ofl_msg_unpack_multipart_reply_table_features(os, len, msg, exp);
             break;
         }
         case OFPMP_PORT_STATS: {
@@ -1355,7 +1389,7 @@ ofl_msg_unpack(uint8_t *buf, size_t buf_len, struct ofl_msg_header **msg, uint32
     }
 
     if (len != ntohs(oh->length)) {
-        OFL_LOG_WARN(LOG_MODULE, "Received message length does not match the length field.");
+        OFL_LOG_WARN(LOG_MODULE, "Received message length %d does not match the length field %d.", len, ntohs(oh->length) );
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
 

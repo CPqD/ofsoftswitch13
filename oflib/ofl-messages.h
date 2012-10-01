@@ -384,7 +384,7 @@ struct ofl_msg_multipart_reply_table {
 struct ofl_msg_multipart_reply_table_features {
     struct ofl_msg_multipart_reply_header   header; /* OFPMP_TABLE_FEATURES */
     size_t tables_num;
-    struct ofl_table_features ** features;
+    struct ofl_table_features ** table_features;
 
 };
 

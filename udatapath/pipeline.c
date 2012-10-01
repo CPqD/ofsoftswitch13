@@ -339,27 +339,32 @@ pipeline_handle_stats_request_table(struct pipeline *pl,
 
 ofl_err
 pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
-                                    struct ofl_msg_multipart_request_table_features *msg,
+                                    struct ofl_msg_multipart_request_header *msg,
                                     const struct sender *sender) {
-    size_t i;
+    size_t i, j;
+    struct ofl_msg_multipart_request_table_features *feat = (struct ofl_msg_multipart_request_table_features *) msg;
     
+    j = 0;
     /* If the message body is empty
        query for table capabilities */
-    if(msg->table_features == NULL){
-       struct ofl_table_features **features;
-       for (i = 0; i < PIPELINE_TABLES; i++){
-            features[i] = pl->tables[i]->features; 
+    if(feat->table_features == NULL){
+       loop: ;
+       struct ofl_table_features **features = xmalloc(sizeof(struct ofl_table_features) * 17);
+       for (i = 0; i < 17; i++){
+            features[i] = pl->tables[j]->features; 
+            j++;
        } 
-    
-       { 
+        {
             struct ofl_msg_multipart_reply_table_features reply =
                 {{{.type = OFPT_MULTIPART_REPLY},
-                  .type = OFPMP_TABLE_FEATURES, .flags = 0x0000},
-                 .features     = features,
-                 .tables_num = PIPELINE_TABLES};
+                  .type = OFPMP_TABLE_FEATURES, .flags = j == PIPELINE_TABLES? 0x00000000:OFPMPF_REPLY_MORE},
+                 .table_features     = features,
+                 .tables_num = 17};
             dp_send_message(pl->dp, (struct ofl_msg_header *)&reply, sender);                 
-       } 
-                 
+        } 
+       if (j < PIPELINE_TABLES){
+           goto loop;
+       }          
     }
     /* Change tables configuration */
     else{ 

@@ -175,6 +175,7 @@ struct ofl_table_stats {
 
 struct ofl_table_feature_prop_header {
     uint16_t type;                /* Table feature type */
+    uint16_t length;              /* Property length */
 };
 OFP_ASSERT(sizeof(struct ofp_table_feature_prop_header) == 8);
 
@@ -200,7 +201,7 @@ struct ofl_table_feature_prop_actions {
 
 struct ofl_table_feature_prop_oxm {
     struct ofl_table_feature_prop_header header;
-    uint32_t oxm_num;
+    size_t oxm_num;
     uint32_t *oxm_ids; /* Array of OXM headers */
 };
 
@@ -445,7 +446,7 @@ size_t
 ofl_structs_table_properties_pack(struct ofl_table_feature_prop_header * src, struct ofp_table_feature_prop_header *dst, uint8_t *data, struct ofl_exp *exp);
 
 size_t
-ofl_structs_table_features_pack(struct ofl_table_features *src, struct ofp_table_features *dst, struct ofl_exp *exp);
+ofl_structs_table_features_pack(struct ofl_table_features *src, struct ofp_table_features *dst, uint8_t* data, struct ofl_exp *exp);
 
 size_t
 ofl_structs_bucket_pack(struct ofl_bucket *src, struct ofp_bucket *dst, struct ofl_exp *exp);
@@ -487,6 +488,9 @@ ofl_structs_match_pack(struct ofl_match_header *src, struct ofp_match *dst, uint
 
 ofl_err
 ofl_structs_instructions_unpack(struct ofp_instruction *src, size_t *len, struct ofl_instruction_header **dst, struct ofl_exp *exp);
+
+ofl_err
+ofl_structs_table_features_unpack(struct ofp_table_features *src, size_t *len, struct ofl_table_features **dst, struct ofl_exp *exp);
 
 ofl_err
 ofl_structs_bucket_unpack(struct ofp_bucket *src, size_t *len, uint8_t gtype, struct ofl_bucket **dst, struct ofl_exp *exp);
@@ -607,6 +611,9 @@ ofl_utils_count_ofp_packet_queues(void *data, size_t data_len, size_t *count);
 
 ofl_err
 ofl_utils_count_ofp_queue_props(void *data, size_t data_len, size_t *count);
+
+ofl_err
+ofl_utils_count_ofp_table_features_properties(void *data, size_t data_len, size_t *count);
 
 ofl_err
 ofl_utils_count_ofp_table_features(void *data, size_t data_len, size_t *count);
