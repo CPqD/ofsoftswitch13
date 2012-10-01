@@ -206,12 +206,12 @@ dpctl_transact(struct vconn *vconn, struct ofl_msg_header *req,
     if (error) {
         ofp_fatal(0, "Error during transaction.");
     }
-
     error = ofl_msg_unpack(ofpbufrepl->data, ofpbufrepl->size, repl, NULL /*xid_ptr*/, &dpctl_exp);
+    
     if (error) {
         ofp_fatal(0, "Error unpacking reply.");
     }
-
+    
     /* NOTE: if unpack was successful, message takes over ownership of buffer's
      *       data. Rconn and vconn does not allocate headroom, so the ofpbuf
      *       wrapper can simply be deleted, keeping the data for the message. */
@@ -600,7 +600,7 @@ flow_mod(struct vconn *vconn, int argc, char *argv[]) {
         parse_match(argv[1], &(msg.match));
         
          msg.instructions_num = inst_num;
-         msg.instructions = xmalloc(sizeof(struct ofl_instrcution_header *) * inst_num);
+         msg.instructions = xmalloc(sizeof(struct ofl_instruction_header *) * inst_num);
 
          for (i=0; i < inst_num; i++) {
             parse_inst(argv[2+i], &(msg.instructions[i]));
