@@ -856,8 +856,12 @@ struct ofp_multipart_request {
 };
 OFP_ASSERT(sizeof(struct ofp_multipart_request) == 16);
 
+enum ofp_multipart_request_flags {
+    OFPMPF_REQ_MORE = 1 << 0 /* More requests to follow. */
+};
+
 enum ofp_multipart_reply_flags {
-    OFPSF_REPLY_MORE  = 1 << 0  /* More replies to follow. */
+    OFPMPF_REPLY_MORE  = 1 << 0  /* More replies to follow. */
 };
 
 struct ofp_multipart_reply {
@@ -1491,6 +1495,7 @@ enum ofp_error_type {
     OFPET_SWITCH_CONFIG_FAILED = 10, /* Switch config request failed. */
     OFPET_ROLE_REQUEST_FAILED = 11,  /* Controller Role request failed. */
     OFPET_METER_MOD_FAILED = 12,     /* Error in meter. */
+    OFPET_TABLE_FEATURES_FAILED = 13, /* Setting table features failed. */
     OFPET_EXPERIMENTER = 0xffff      /* Experimenter error messages. */
 };
 
@@ -1701,12 +1706,12 @@ enum ofp_meter_mod_failed_code {
 /* ofp_error_msg ’code’ values for OFPET_TABLE_FEATURES_FAILED. ’data’ contains
 * at least the first 64 bytes of the failed request. */
 enum ofp_table_features_failed_code {
-OFPTFFC_BAD_TABLE = 0,    /* Specified table does not exist. */
-OFPTFFC_BAD_METADATA = 1, /* Invalid metadata mask. */
-OFPTFFC_BAD_TYPE = 2,     /* Unknown property type. */
-OFPTFFC_BAD_LEN = 3,      /* Length problem in properties. */
-OFPTFFC_BAD_ARGUMENT = 4, /* Unsupported property value. */
-OFPTFFC_EPERM = 5,        /* Permissions error. */
+    OFPTFFC_BAD_TABLE = 0,    /* Specified table does not exist. */
+    OFPTFFC_BAD_METADATA = 1, /* Invalid metadata mask. */
+    OFPTFFC_BAD_TYPE = 2,     /* Unknown property type. */
+    OFPTFFC_BAD_LEN = 3,      /* Length problem in properties. */
+    OFPTFFC_BAD_ARGUMENT = 4, /* Unsupported property value. */
+    OFPTFFC_EPERM = 5,        /* Permissions error. */
 };
 
 /* OFPET_EXPERIMENTER: Error message (datapath -> controller). */
