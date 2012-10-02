@@ -37,6 +37,7 @@
 
 #include "ofl.h"
 #include "ofl-print.h"
+#include "oxm-match.h"
 #include "openflow/openflow.h"
 
 
@@ -177,6 +178,8 @@ ofl_action_type_print(FILE *stream, uint16_t type) {
         case OFPAT_POP_MPLS: {       fprintf(stream, "mpls_pop"); return; }
         case OFPAT_SET_QUEUE: {      fprintf(stream, "queue"); return; }
         case OFPAT_GROUP: {          fprintf(stream, "group"); return; }
+        case OFPAT_PUSH_PBB:  {      fprintf(stream, "pbb_psh"); return; }
+        case OFPAT_POP_PBB:   {      fprintf(stream, "pbb_pop"); return; }
         case OFPAT_SET_NW_TTL: {     fprintf(stream, "nw_ttl"); return; }
         case OFPAT_DEC_NW_TTL: {     fprintf(stream, "nw_dec"); return; }
         case OFPAT_EXPERIMENTER: {   fprintf(stream, "exp"); return; }
@@ -184,7 +187,65 @@ ofl_action_type_print(FILE *stream, uint16_t type) {
     }
 }
 
+char *
+ofl_oxm_type_to_string(uint16_t type) {
+    char *str;
+    size_t str_size;
+    FILE *stream = open_memstream(&str, &str_size);
 
+    ofl_oxm_type_print(stream, type);
+    fclose(stream);
+    return str;
+}
+
+void
+ofl_oxm_type_print(FILE *stream, uint32_t type){
+    switch(type){
+    case OXM_OF_IN_PORT:            {fprintf(stream, "in_port"); return; }
+    case OXM_OF_IN_PHY_PORT:        {fprintf(stream, "in_phy_port"); return; }
+    case OXM_OF_METADATA:           {fprintf(stream, "metadata"); return; }
+    case OXM_OF_ETH_DST:            {fprintf(stream, "eth_dst"); return; }
+    case OXM_OF_ETH_SRC:            {fprintf(stream, "eth_src"); return; }
+    case OXM_OF_ETH_TYPE:           {fprintf(stream, "eth_type"); return; }
+    case OXM_OF_VLAN_VID:           {fprintf(stream, "vlan_vid"); return; }
+    case OXM_OF_VLAN_PCP:           {fprintf(stream, "vlan_pcp"); return; }
+    case OXM_OF_IP_DSCP:            {fprintf(stream, "ip_dscp"); return; }
+    case OXM_OF_IP_ECN:             {fprintf(stream, "ip_ecn"); return; }
+    case OXM_OF_IP_PROTO:           {fprintf(stream, "ip_proto"); return; }
+    case OXM_OF_IPV4_SRC:           {fprintf(stream, "ipv4_src"); return; }
+    case OXM_OF_IPV4_DST:           {fprintf(stream, "ipv4_dst"); return; }
+    case OXM_OF_TCP_SRC:            {fprintf(stream, "tcp_src"); return; }
+    case OXM_OF_TCP_DST:            {fprintf(stream, "tcp_dst"); return; }
+    case OXM_OF_UDP_SRC:            {fprintf(stream, "udp_src"); return; }
+    case OXM_OF_UDP_DST:            {fprintf(stream, "udp_dst"); return; }
+    case OXM_OF_SCTP_SRC:           {fprintf(stream, "sctp_src"); return; }
+    case OXM_OF_SCTP_DST:           {fprintf(stream, "udp_dst"); return; }
+    case OXM_OF_ICMPV4_CODE:        {fprintf(stream, "icmpv4_code"); return; }
+    case OXM_OF_ICMPV4_TYPE:        {fprintf(stream, "icmpv4_type"); return; }
+    case OXM_OF_ARP_OP:             {fprintf(stream, "arp_op"); return; }
+    case OXM_OF_ARP_SPA:            {fprintf(stream, "arp_spa"); return; }
+    case OXM_OF_ARP_TPA:            {fprintf(stream, "arp_tpa"); return; }
+    case OXM_OF_ARP_SHA:            {fprintf(stream, "arp_sha"); return; }
+    case OXM_OF_ARP_THA:            {fprintf(stream, "arp_tha"); return; }
+    case OXM_OF_IPV6_SRC:           {fprintf(stream, "ipv6_src"); return; }
+    case OXM_OF_IPV6_DST:           {fprintf(stream, "ipv6_dst"); return; }
+    case OXM_OF_IPV6_FLABEL:        {fprintf(stream, "ipv6_flabel"); return; }
+    case OXM_OF_ICMPV6_TYPE:        {fprintf(stream, "icmpv6_type"); return; }
+    case OXM_OF_ICMPV6_CODE:        {fprintf(stream, "icmpv6_code"); return; }
+    case OXM_OF_IPV6_ND_TARGET:     {fprintf(stream, "ipv6_nd_target"); return; }
+    case OXM_OF_IPV6_ND_SLL:        {fprintf(stream, "ipv6_nd_sll"); return; }
+    case OXM_OF_IPV6_ND_TLL:        {fprintf(stream, "ipv6_nd_tll"); return; }
+    case OXM_OF_MPLS_LABEL:         {fprintf(stream, "mpls_label"); return; }
+    case OXM_OF_MPLS_TC:            {fprintf(stream, "mpls_tc"); return; }
+    case OXM_OF_MPLS_BOS:           {fprintf(stream, "mpls_bos"); return; }
+    case OXM_OF_PBB_ISID:           {fprintf(stream, "pbb_isid"); return; }
+    case OXM_OF_TUNNEL_ID:          {fprintf(stream, "tunnel_id"); return; }
+    case OXM_OF_IPV6_EXTHDR:        {fprintf(stream, "ipv6_exthdr"); return; }
+    default: {                       fprintf(stream, "?(%d)", type); return; }    
+    }
+
+
+}
 
 char *
 ofl_instruction_type_to_string(uint16_t type) {
@@ -205,6 +266,7 @@ ofl_instruction_type_print(FILE *stream, uint16_t type) {
         case OFPIT_WRITE_ACTIONS: {  fprintf(stream, "write"); return; }
         case OFPIT_APPLY_ACTIONS: {  fprintf(stream, "apply"); return; }
         case OFPIT_CLEAR_ACTIONS: {  fprintf(stream, "clear"); return; }
+        case OFPIT_METER:         {  fprintf(stream, "meter"); return; }
         case OFPIT_EXPERIMENTER: {   fprintf(stream, "exp"); return; }
         default: {                   fprintf(stream, "?(%u)", type); return; }
     }
@@ -602,8 +664,6 @@ ofl_group_type_print(FILE *stream, uint8_t type) {
     }
 }
 
-
-
 char *
 ofl_stats_type_to_string(uint16_t type) {
     char *str;
@@ -617,16 +677,40 @@ ofl_stats_type_to_string(uint16_t type) {
 void
 ofl_stats_type_print(FILE *stream, uint16_t type) {
     switch (type) {
-        case (OFPMP_DESC):         { fprintf(stream, "desc"); return; }
-        case (OFPMP_FLOW):         { fprintf(stream, "flow"); return; }
-        case (OFPMP_AGGREGATE):    { fprintf(stream, "aggr"); return; }
-        case (OFPMP_TABLE):        { fprintf(stream, "table"); return; }
-        case (OFPMP_PORT_STATS):         { fprintf(stream, "port"); return; }
-        case (OFPMP_QUEUE):        { fprintf(stream, "queue"); return; }
-        case (OFPMP_GROUP):        { fprintf(stream, "grp"); return; }
-        case (OFPMP_GROUP_DESC):   { fprintf(stream, "gdesc"); return; }
-        case (OFPMP_EXPERIMENTER): { fprintf(stream, "exp"); return; }
-        default: {                   fprintf(stream, "?(%u)", type); return; }
+        case (OFPMP_DESC):          { fprintf(stream, "desc"); return; }
+        case (OFPMP_FLOW):          { fprintf(stream, "flow"); return; }
+        case (OFPMP_AGGREGATE):     { fprintf(stream, "aggr"); return; }
+        case (OFPMP_TABLE):         { fprintf(stream, "table"); return; }
+        case (OFPMP_TABLE_FEATURES):{ fprintf(stream, "table-features"); return; }
+        case (OFPMP_PORT_STATS):    { fprintf(stream, "port"); return; }
+        case (OFPMP_QUEUE):         { fprintf(stream, "queue"); return; }
+        case (OFPMP_GROUP):         { fprintf(stream, "grp"); return; }
+        case (OFPMP_GROUP_DESC):    { fprintf(stream, "gdesc"); return; }
+        case (OFPMP_EXPERIMENTER):  { fprintf(stream, "exp"); return; }
+        default: {                    fprintf(stream, "?(%u)", type); return; }
+    }
+}
+
+void 
+ofl_properties_type_print(FILE *stream, uint16_t type){
+    switch(type){
+        case (OFPTFPT_INSTRUCTIONS):        { fprintf(stream, "instructions"); return; }
+        case (OFPTFPT_INSTRUCTIONS_MISS):   { fprintf(stream, "instructions_miss"); return; }
+        case (OFPTFPT_NEXT_TABLES):         { fprintf(stream, "next_tables"); return; }
+        case (OFPTFPT_NEXT_TABLES_MISS):    { fprintf(stream, "next_tables_miss"); return; }
+        case (OFPTFPT_WRITE_ACTIONS):       { fprintf(stream, "write_actions"); return; }
+        case (OFPTFPT_WRITE_ACTIONS_MISS):  { fprintf(stream, "write_actions_miss"); return; }
+        case (OFPTFPT_APPLY_ACTIONS):       { fprintf(stream, "apply_actions"); return; }
+        case (OFPTFPT_APPLY_ACTIONS_MISS):  { fprintf(stream, "apply_actions_miss"); return; }
+        case (OFPTFPT_MATCH):               { fprintf(stream, "oxms"); return; }
+        case (OFPTFPT_WILDCARDS):           { fprintf(stream, "wildcards"); return; }
+        case (OFPTFPT_WRITE_SETFIELD):     { fprintf(stream, "write_setfield"); return; }
+        case (OFPTFPT_WRITE_SETFIELD_MISS):{ fprintf(stream, "write_setfield_miss"); return; }
+        case (OFPTFPT_APPLY_SETFIELD):     { fprintf(stream, "apply_setfield"); return; }
+        case (OFPTFPT_APPLY_SETFIELD_MISS):{ fprintf(stream, "apply_setfield_miss"); return; }
+        case (OFPTFPT_EXPERIMENTER):        { fprintf(stream, "experimenter"); return; }
+        case (OFPTFPT_EXPERIMENTER_MISS):   { fprintf(stream, "experimenter_miss"); return; }
+        default: {                            fprintf(stream, "?(%u)", type); return; }            
     }
 }
 

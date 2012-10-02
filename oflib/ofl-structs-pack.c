@@ -414,7 +414,7 @@ ofl_structs_table_properties_pack(struct ofl_table_feature_prop_header * src, st
                 memcpy(data, &header, sizeof(uint32_t));
                 data += sizeof(uint32_t);
             }
-            memset(data, 0x0, ROUND_UP(sp->header.length,8)- sp->header.length);
+           memset(data, 0x0, ROUND_UP(sp->header.length,8)- sp->header.length);
            return ROUND_UP(ntohs(dp->length),8); 
         }
         case OFPTFPT_EXPERIMENTER:

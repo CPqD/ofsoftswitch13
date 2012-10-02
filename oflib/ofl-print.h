@@ -81,6 +81,12 @@ void
 ofl_action_type_print(FILE *stream, uint16_t type);
 
 char *
+ofl_oxm_type_to_string(uint16_t type);
+
+void
+ofl_oxm_type_print(FILE *stream, uint32_t type);
+
+char *
 ofl_instruction_type_to_string(uint16_t type);
 
 void
@@ -157,6 +163,9 @@ ofl_stats_type_to_string(uint16_t type);
 
 void
 ofl_stats_type_print(FILE *stream, uint16_t type);
+
+void 
+ofl_properties_type_print(FILE *stream, uint16_t type);
 
 char *
 ofl_hex_to_string(uint8_t *buf, size_t buf_size);

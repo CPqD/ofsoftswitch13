@@ -645,6 +645,102 @@ ofl_structs_table_stats_print(FILE *stream, struct ofl_table_stats *s) {
 }
 
 char *
+ofl_structs_table_properties_to_string(struct ofl_table_feature_prop_header *s){
+    char *str;
+    size_t str_size;
+    FILE *stream = open_memstream(&str, &str_size);
+    ofl_structs_table_properties_print(stream, s);
+    fclose(stream);
+    return str;
+}
+
+void
+ofl_structs_table_properties_print(FILE * stream, struct ofl_table_feature_prop_header* s){
+    int i;    
+    fprintf(stream, "{property=\"");
+    ofl_properties_type_print(stream, s->type);
+    switch(s->type){
+        case OFPTFPT_INSTRUCTIONS:
+        case OFPTFPT_INSTRUCTIONS_MISS:{
+            struct ofl_table_feature_prop_instructions *insts = (struct ofl_table_feature_prop_instructions*) s; 
+            fprintf(stream, "[");        
+            for(i = 0; i < insts->ids_num -1; i++){
+                ofl_instruction_type_print(stream, insts->instruction_ids[i].type);                 
+                fprintf(stream, ", ");        
+            }
+            ofl_instruction_type_print(stream, insts->instruction_ids[insts->ids_num-1].type);                             
+            fprintf(stream, "]");        
+            break;
+        }
+        case OFPTFPT_NEXT_TABLES:
+        case OFPTFPT_NEXT_TABLES_MISS:{
+            struct ofl_table_feature_prop_next_tables *tbls = (struct ofl_table_feature_prop_next_tables*) s;
+            fprintf(stream, "[");
+            for(i = 0; i < tbls->table_num -1; i++){
+                fprintf(stream, "%d, ", tbls->next_table_ids[i]);
+            }
+                fprintf(stream, "%d]", tbls->next_table_ids[tbls->table_num -1]);                                                          
+            break;
+        }
+        case OFPTFPT_APPLY_ACTIONS:
+        case OFPTFPT_APPLY_ACTIONS_MISS:
+        case OFPTFPT_WRITE_ACTIONS:
+        case OFPTFPT_WRITE_ACTIONS_MISS:{
+            struct ofl_table_feature_prop_actions *acts = (struct ofl_table_feature_prop_actions*) s;
+            fprintf(stream, "[");
+            for(i = 0; i < acts->actions_num -1; i++){
+                ofl_action_type_print(stream, acts->action_ids[i].type);                 
+                fprintf(stream, ", ");        
+            }
+            ofl_action_type_print(stream, acts->action_ids[acts->actions_num-1].type);                             
+            fprintf(stream, "]");                                    
+            break;
+        }
+        case OFPTFPT_MATCH:
+        case OFPTFPT_WILDCARDS:
+        case OFPTFPT_APPLY_SETFIELD:
+        case OFPTFPT_APPLY_SETFIELD_MISS:
+        case OFPTFPT_WRITE_SETFIELD:
+        case OFPTFPT_WRITE_SETFIELD_MISS:{
+            struct ofl_table_feature_prop_oxm *oxms = (struct ofl_table_feature_prop_oxm*) s;
+            fprintf(stream, "[");
+            for(i = 0; i < oxms->oxm_num -1; i++){
+                ofl_oxm_type_print(stream, oxms->oxm_ids[i]);
+                fprintf(stream, ", " );
+            }
+                ofl_oxm_type_print(stream, oxms->oxm_ids[oxms->oxm_num -1]);
+            break;
+        }
+        
+        
+    }
+}
+
+char *
+ofl_structs_table_features_to_string(struct ofl_table_features *s){
+    char *str;
+    size_t str_size;
+    FILE *stream = open_memstream(&str, &str_size);
+    ofl_structs_table_features_print(stream, s);
+    fclose(stream);
+    return str;
+}
+
+void
+ofl_structs_table_features_print(FILE *stream, struct ofl_table_features *s){
+    int i;
+    fprintf(stream, "{table=\"");
+    ofl_table_print(stream, s->table_id);  
+    fprintf(stream, "\", name=\"%s\", "
+                          "metadata_match=\"%"PRIx64"\", metadata_write=\"%"PRIx64"\", config=\"%"PRIu32"\"," 
+                          "max_entries=\"%"PRIu32"\"",
+                  s->name, s->metadata_match, s->metadata_write, s->config, s->max_entries);      
+    for(i =0; i < s->properties_num -1; i++){
+        ofl_structs_table_properties_print(stream, s->properties[i]);    
+    }    
+}
+
+char *
 ofl_structs_port_stats_to_string(struct ofl_port_stats *s) {
         char *str;
     size_t str_size;

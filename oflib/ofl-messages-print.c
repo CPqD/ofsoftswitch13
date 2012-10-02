@@ -78,7 +78,6 @@ ofl_msg_print_experimenter(struct ofl_msg_experimenter *msg, FILE *stream) {
 
 static void
 ofl_msg_print_features_reply(struct ofl_msg_features_reply *msg, FILE *stream) {
-    size_t i;
 
     fprintf(stream, "{dpid=\"0x%016"PRIx64"\", buffs=\"%u\", tabs=\"%u\", "
                           "caps=\"0x%"PRIx32"\"",
@@ -254,6 +253,21 @@ ofl_msg_print_stats_request_group(struct ofl_msg_multipart_request_group *msg, F
 }
 
 static void
+ofl_msg_print_table_features_request(struct ofl_msg_multipart_request_table_features* msg, FILE *stream){
+
+    size_t i;
+    if (msg->table_features == NULL){
+        return;
+    }
+    else {
+        fprintf(stream, ", table_features=\"");
+        for(i = 0; i < msg->tables_num; i++)
+            ofl_structs_table_features_print(stream, msg->table_features[i]);
+        fprintf(stream, "\"");
+    }
+}
+
+static void
 ofl_msg_print_stats_request_experimenter(struct ofl_msg_multipart_request_experimenter *msg, FILE *stream) {
     fprintf(stream, ", exp_id=\"");
     ofl_group_print(stream, msg->experimenter_id);
@@ -287,6 +301,10 @@ ofl_msg_print_multipart_request(struct ofl_msg_multipart_request_header *msg, FI
             break;
         }
         case OFPMP_TABLE: {
+            break;
+        }
+        case OFPMP_TABLE_FEATURES: {
+            ofl_msg_print_table_features_request((struct ofl_msg_multipart_request_table_features*)msg, stream);        
             break;
         }
         case OFPMP_PORT_STATS: {
@@ -425,6 +443,21 @@ ofl_msg_print_stats_reply_experimenter(struct ofl_msg_multipart_reply_experiment
 }
 
 static void
+ofl_msg_print_table_features_reply(struct ofl_msg_multipart_reply_table_features* msg, FILE *stream){
+
+    size_t i;
+    if (msg->table_features == NULL){
+        return;
+    }
+    else {
+        fprintf(stream, ", table_features=\"");
+        for(i = 0; i < msg->tables_num; i++)
+            ofl_structs_table_features_print(stream, msg->table_features[i]);
+        fprintf(stream, "\"");
+    }
+}
+
+static void
 ofl_msg_print_multipart_reply(struct ofl_msg_multipart_reply_header *msg, FILE *stream, struct ofl_exp *exp) {
     if (msg->type == OFPMP_EXPERIMENTER) {
         if (exp != NULL && exp->stats != NULL && exp->stats->reply_to_string != NULL) {
@@ -456,6 +489,10 @@ ofl_msg_print_multipart_reply(struct ofl_msg_multipart_reply_header *msg, FILE *
         }
         case (OFPMP_TABLE): {
             ofl_msg_print_stats_reply_table((struct ofl_msg_multipart_reply_table *)msg, stream);
+            break;
+        }
+        case (OFPMP_TABLE_FEATURES):{
+            ofl_msg_print_table_features_reply((struct ofl_msg_multipart_reply_table_features*)msg, stream);
             break;
         }
         case OFPMP_PORT_STATS: {

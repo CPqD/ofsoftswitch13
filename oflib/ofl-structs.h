@@ -752,6 +752,18 @@ void
 ofl_structs_table_stats_print(FILE *stream, struct ofl_table_stats *s);
 
 char *
+ofl_structs_table_properties_to_string(struct ofl_table_feature_prop_header *s);
+
+void
+ofl_structs_table_properties_print(FILE * stream, struct ofl_table_feature_prop_header* s);
+
+char *
+ofl_structs_table_features_to_string(struct ofl_table_features *s);
+
+void
+ofl_structs_table_features_print(FILE *stream, struct ofl_table_features *s);
+
+char *
 ofl_structs_port_stats_to_string(struct ofl_port_stats *s);
 
 void

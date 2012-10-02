@@ -55,9 +55,9 @@ uint32_t  oxm_ids[]={OXM_OF_IN_PORT,OXM_OF_IN_PHY_PORT,OXM_OF_METADATA,OXM_OF_ET
                         OXM_OF_IPV6_ND_TLL, OXM_OF_MPLS_LABEL, OXM_OF_MPLS_TC, OXM_OF_MPLS_BOS, OXM_OF_PBB_ISID,
                         OXM_OF_TUNNEL_ID, OXM_OF_IPV6_EXTHDR};
 
-uint32_t wildcarded[] = {OXM_OF_METADATA_W, OXM_OF_ETH_DST_W, OXM_OF_ETH_SRC_W, OXM_OF_VLAN_VID_W, OXM_OF_IPV4_SRC_W,
-                               OXM_OF_IPV4_DST_W, OXM_OF_ARP_SPA_W, OXM_OF_ARP_TPA_W, OXM_OF_ARP_SHA_W, OXM_OF_ARP_THA_W, OXM_OF_IPV6_SRC_W,
-                               OXM_OF_IPV6_DST_W , OXM_OF_IPV6_FLABEL_W, OXM_OF_PBB_ISID_W, OXM_OF_TUNNEL_ID_W, OXM_OF_IPV6_EXTHDR_W};                        
+uint32_t wildcarded[] = {OXM_OF_METADATA, OXM_OF_ETH_DST, OXM_OF_ETH_SRC, OXM_OF_VLAN_VID, OXM_OF_IPV4_SRC,
+                               OXM_OF_IPV4_DST, OXM_OF_ARP_SPA, OXM_OF_ARP_TPA, OXM_OF_ARP_SHA, OXM_OF_ARP_THA, OXM_OF_IPV6_SRC,
+                               OXM_OF_IPV6_DST , OXM_OF_IPV6_FLABEL, OXM_OF_PBB_ISID, OXM_OF_TUNNEL_ID, OXM_OF_IPV6_EXTHDR};                        
 
 
 struct ofl_instruction_header instructions[] = { {OFPIT_GOTO_TABLE}, 
