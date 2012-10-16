@@ -240,7 +240,7 @@ ofl_structs_table_features_properties_ofp_len(struct ofl_table_feature_prop_head
              int len = 0;
              int i;
              for(i = 0; i < inst_prop->ids_num; i++){
-                 if (inst_prop[i].header.type == OFPIT_EXPERIMENTER) {
+				if (inst_prop->instruction_ids[i].type == OFPIT_EXPERIMENTER) {
                      if (exp == NULL || exp->inst == NULL || exp->inst->unpack == NULL) {
                         OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER instruction, but no callback was given.");
                         return ofl_error(OFPET_BAD_INSTRUCTION, OFPBIC_UNSUP_INST);
@@ -266,9 +266,9 @@ ofl_structs_table_features_properties_ofp_len(struct ofl_table_feature_prop_head
         case OFPTFPT_APPLY_ACTIONS_MISS:{
              struct ofl_table_feature_prop_actions *act_prop = (struct ofl_table_feature_prop_actions*) prop;
              int len = 0;
-             int i;                      
+             int i;
              for(i = 0; i < act_prop->actions_num; i++){
-                 if (act_prop[i].header.type == OFPAT_EXPERIMENTER) 
+				 if (act_prop->action_ids[i].type == OFPAT_EXPERIMENTER) 
                      len += 8;  
                  else
                      len += 4;
