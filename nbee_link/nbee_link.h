@@ -36,6 +36,11 @@ typedef struct pcap_pkthdr {	/* needed to make Nbee happy */
 //        uint8_t* value;
 //}field_values_t;
 
+struct control_eh_fields {
+       uint8_t count_DOEH;
+       uint32_t position_EH[10];
+};
+
 struct packet_fields {
        struct hmap_node hmap_node;
        uint32_t header;                  /* OXM_* value. */

@@ -137,13 +137,14 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             break;
         }
 
-        case OFPAT_PUSH_VLAN:
+        case OFPAT_PUSH_VLAN: 
+        case OFPAT_PUSH_PBB:
         case OFPAT_PUSH_MPLS: {
             struct ofp_action_push *sa;
             struct ofl_action_push *da;
 
             if (*len < sizeof(struct ofp_action_push)) {
-                OFL_LOG_WARN(LOG_MODULE, "Received PUSH_VLAN/MPLS action has invalid length (%zu).", *len);
+                OFL_LOG_WARN(LOG_MODULE, "Received PUSH_VLAN/MPLS/PBB action has invalid length (%zu).", *len);
                 return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
             }
 
@@ -154,8 +155,10 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
                      ntohs(sa->ethertype) != ETH_TYPE_VLAN_PBB)) ||
                 ((ntohs(src->type) == OFPAT_PUSH_MPLS) &&
                     (ntohs(sa->ethertype) != ETH_TYPE_MPLS &&
-                     ntohs(sa->ethertype) != ETH_TYPE_MPLS_MCAST))) {
-                OFL_LOG_WARN(LOG_MODULE, "Received PUSH_VLAN/MPLS has invalid eth type. (%u)", ntohs(sa->ethertype));
+                     ntohs(sa->ethertype) != ETH_TYPE_MPLS_MCAST)) ||
+                ((ntohs(src->type) == OFPAT_PUSH_PBB) &&
+                    (ntohs(sa->ethertype) != ETH_TYPE_PBB))) {
+                OFL_LOG_WARN(LOG_MODULE, "Received PUSH_VLAN/MPLS/PBB has invalid eth type. (%u)", ntohs(sa->ethertype));
                 return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_ARGUMENT);
             }
 
@@ -167,13 +170,14 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             break;
         }
 
-        case OFPAT_POP_VLAN: {
+        case OFPAT_POP_VLAN: 
+        case OFPAT_POP_PBB: {
             //ofp_action_header length was already checked
             *len -= sizeof(struct ofp_action_header);
             *dst = (struct ofl_action_header *)malloc(sizeof(struct ofl_action_header));
             break;
         }
-
+                
         case OFPAT_POP_MPLS: {
             struct ofp_action_pop_mpls *sa;
             struct ofl_action_pop_mpls *da;

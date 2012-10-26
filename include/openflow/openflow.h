@@ -336,6 +336,19 @@ enum ofp_vlan_id {
     OFPVID_NONE = 0x0000,    /* No VLAN id was set. */
 };
 
+/* Bit definitions for IPv6 Extension Header pseudo-field. */
+enum ofp_ipv6exthdr_flags {
+    OFPIEH_NONEXT = 1 << 0, /* "No next header" encountered. */
+    OFPIEH_ESP = 1 << 1, /* Encrypted Sec Payload header present. */
+    OFPIEH_AUTH = 1 << 2, /* Authentication header present. */
+    OFPIEH_DEST = 1 << 3, /* 1 or 2 dest headers present. */
+    OFPIEH_FRAG = 1 << 4, /* Fragment header present. */
+    OFPIEH_ROUTER = 1 << 5, /* Router header present. */
+    OFPIEH_HOP = 1 << 6, /* Hop-by-hop header present. */
+    OFPIEH_UNREP = 1 << 7, /* Unexpected repeats encountered. */
+    OFPIEH_UNSEQ = 1 << 8, /* Unexpected sequencing encountered. */
+};
+
 /* Header for OXM experimenter match fields. */
 struct ofp_oxm_experimenter_header {
 	uint32_t oxm_header;   /* oxm_class = OFPXMC_EXPERIMENTER */
@@ -499,7 +512,7 @@ struct ofp_action_nw_ttl {
 };
 OFP_ASSERT(sizeof(struct ofp_action_nw_ttl) == 8);
 
-/* Action structure for OFPAT_PUSH_VLAN/MPLS. */
+/* Action structure for OFPAT_PUSH_VLAN/MPLS/PBB. */
 struct ofp_action_push {
 	uint16_t type;      /* OFPAT_PUSH_VLAN/MPLS/PBB. */
 	uint16_t len;       /* Length is 8. */

@@ -114,7 +114,8 @@ static inline bool eth_addr_is_reserved(const uint8_t ea[ETH_ADDR_LEN])
 #define ETH_TYPE_IPV6          0x86dd
 #define ETH_TYPE_ARP           0x0806
 #define ETH_TYPE_VLAN          0x8100
-#define ETH_TYPE_VLAN_PBB      0x88a8
+#define ETH_TYPE_VLAN_PBB_B    0x88a8
+#define ETH_TYPE_VLAN_PBB_S    0x88e7
 #define ETH_TYPE_MPLS          0x8847
 #define ETH_TYPE_MPLS_MCAST    0x8848
 
@@ -324,6 +325,15 @@ struct qtag_prefix {
     uint16_t tci;
 };
 
+#define PBB_HEADER_LEN 18
+
+struct pbb_header {
+    uint32_t id; /* Service Instance Identifier */
+    uint8_t c_eth_dst[ETH_ADDR_LEN]; /* Customer Destination Address */
+    uint8_t c_eth_src[ETH_ADDR_LEN]; /* Customer Source Address */
+    uint16_t pbb_next_type;
+};
+
 #define MPLS_LABEL_MAX   1048575
 #define MPLS_TC_MAX            7
 
@@ -356,6 +366,7 @@ struct protocols_std {
    struct udp_header      * udp;
    struct sctp_header     * sctp;
    struct icmp_header     * icmp;
+   struct pbb_header      * pbb;
 };
 
 static inline void 
@@ -371,8 +382,8 @@ protocol_reset(struct protocols_std *proto) {
     proto->tcp       = NULL;
     proto->udp       = NULL;
     proto->sctp      = NULL;
-    proto->icmp      = NULL;    
-    
+    proto->icmp      = NULL;
+    proto->pbb       = NULL;
 }
 
 

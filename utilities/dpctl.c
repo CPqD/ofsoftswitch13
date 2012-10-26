@@ -1458,15 +1458,17 @@ parse_action(uint16_t type, char *str, struct ofl_action_header **act) {
             break;
         }
         case (OFPAT_PUSH_VLAN):
+        case (OFPAT_PUSH_PBB):
         case (OFPAT_PUSH_MPLS): {
             struct ofl_action_push *a = xmalloc(sizeof(struct ofl_action_push));
             if (sscanf(str, "0x%"SCNx16"", &(a->ethertype)) != 1) {
-                ofp_fatal(0, "Error parsing ethertype in push_mpls/vlan action: %s.", str);
+                ofp_fatal(0, "Error parsing ethertype in push_mpls/vlan/pbb action: %s.", str);
             }
             (*act) = (struct ofl_action_header *)a;
             break;
         }
-        case (OFPAT_POP_VLAN): {
+        case (OFPAT_POP_VLAN):
+        case (OFPAT_POP_PBB): {
             struct ofl_action_header *a = xmalloc(sizeof(struct ofl_action_header));
             (*act) = a;
             break;

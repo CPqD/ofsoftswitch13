@@ -471,6 +471,85 @@ pop_mpls(struct packet *pkt, struct ofl_action_pop_mpls *act) {
     }
 }
 
+/*Executes push pbb action. */
+static void
+push_pbb(struct packet *pkt, struct ofl_action_push *act) {
+    // TODO Zoltan: if 802.3, check if new length is still valid
+    packet_handle_std_validate(pkt->handle_std);
+    if (pkt->handle_std->proto->eth != NULL) {
+        struct eth_header  *eth,  *new_eth;
+        struct snap_header *snap, *new_snap;
+        struct pbb_header *pbb, *new_pbb, *push_pbb;
+        struct vlan_header * vlan;
+        size_t eth_size;
+
+        eth = pkt->handle_std->proto->eth;
+        snap = pkt->handle_std->proto->eth_snap;
+        pbb = pkt->handle_std->proto->pbb;
+        vlan = pkt->handle_std->proto->vlan;
+
+/*        eth_size = snap == NULL*/
+/*                   ? ETH_HEADER_LEN*/
+/*                   : ETH_HEADER_LEN + LLC_HEADER_LEN + SNAP_HEADER_LEN;*/
+
+        if (ofpbuf_headroom(pkt->buffer) >= PBB_HEADER_LEN) {
+            // there is available space in headroom, move eth backwards
+            pkt->buffer->data = (uint8_t *)(pkt->buffer->data) - PBB_HEADER_LEN;
+            pkt->buffer->size += PBB_HEADER_LEN;
+
+            memmove(pkt->buffer->data, eth, eth_size);
+
+            new_eth = (struct eth_header *)(pkt->buffer->data);
+            new_snap = snap == NULL ? NULL
+                                   : (struct snap_header *)((uint8_t *)new_eth
+                                        + ETH_HEADER_LEN + PBB_HEADER_LEN + LLC_HEADER_LEN);
+            push_pbb = (struct pbb_header *)((uint8_t *)new_eth + eth_size);
+            new_pbb = pbb;
+
+        } else {
+            // not enough headroom, use tailroom of the packet
+
+            // Note: ofpbuf_put_uninit might relocate the whole packet
+            ofpbuf_put_uninit(pkt->buffer, PBB_HEADER_LEN);
+
+            new_eth = (struct eth_header *)(pkt->buffer->data);
+            new_snap = snap == NULL ? NULL
+                                   : (struct snap_header *)((uint8_t *)new_eth
+                                        + ETH_HEADER_LEN + PBB_HEADER_LEN + LLC_HEADER_LEN);
+            push_pbb = (struct pbb_header *)((uint8_t *)new_eth + ETH_HEADER_LEN);
+
+            // push data to create space for new PBB 
+            memmove((uint8_t *)push_pbb + PBB_HEADER_LEN, push_pbb,
+                    pkt->buffer->size - ETH_HEADER_LEN);
+
+/*            new_pbb = pbb == NULL ? NULL*/
+/*              : (struct pbb_header *)((uint8_t *)push_pbb + PBB_HEADER_LEN);*/
+        }
+
+        push_pbb->id = new_pbb == NULL ? 0x0000 : new_pbb->id;
+        push_pbb->id = vlan == NULL 
+                       ? push_pbb->id 
+                       : push_pbb->id & (((uint32_t) (vlan->vlan_tci & ~htonl(VLAN_PCP_MASK)) )<< 16);
+        memcpy(push_pbb->c_eth_dst,eth,ETH_HEADER_LEN);
+
+        if (new_snap != NULL) {
+            
+            push_pbb->pbb_next_type = new_snap->snap_type;
+//            new_snap->snap_type = ntohs(act->ethertype);
+            new_eth->eth_type = htons(ntohs(new_eth->eth_type) + PBB_HEADER_LEN);
+        } else {
+            push_pbb->pbb_next_type = new_eth->eth_type;
+            new_eth->eth_type = ntohs(act->ethertype);
+        }
+
+        pkt->handle_std->valid = false;
+
+    } else {
+        VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute push pbb action on packet with no eth.");
+    }
+}
+
+
 
 /* Executes set queue action. */
 static void

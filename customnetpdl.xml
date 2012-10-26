@@ -201,6 +201,8 @@
 			<case value="0x81FD"> <nextproto proto="#ismp"/> </case>
 			<case value="0x8847" comment="mpls-unicast"> <nextproto proto="#mpls"/> </case>
 			<case value="0x8848" comment="mpls-multicast"> <nextproto proto="#mpls"/> </case>
+			<case value="0x88A8"> <nextproto proto="#pbb_b" comment="802.1ad encapsulation"/> </case>
+			<case value="0x88E7"> <nextproto proto="#pbb_s" comment="802.1ah service encapsulation"/> </case>
 		</switch>
 	</encapsulation>
 
@@ -345,6 +347,8 @@
 			<case value="0x8863"> <nextproto proto="#pppoed"/> </case>
 			<case value="0x8864"> <nextproto proto="#pppoe"/> </case>
 			<case value="0x86DD"> <nextproto proto="#ipv6"/> </case>
+			<case value="0x88A8"> <nextproto proto="#pbb_b" comment="802.1ad encapsulation"/> </case>
+			<case value="0x88E7"> <nextproto proto="#pbb_s" comment="802.1ah service encapsulation"/> </case>
 		</switch>
 	</encapsulation>
 
@@ -637,7 +641,7 @@
 			-->
 			<field type="bit" name="label" longname="{0x8000 34} Label" mask="0xFFFFF000" size="4" showtemplate="FieldDec"/>
 			<field type="bit" name="cos" longname="{0x8000 35} Class of Service" mask="0x00000E00" size="4" showtemplate="FieldDec"/>
-			<field type="bit" name="s" longname="Bottom of Stack" mask="0x00000100" size="4" showtemplate="FieldDec"/>
+			<field type="bit" name="s" longname="{0x8000 36} Bottom of Stack" mask="0x00000100" size="4" showtemplate="FieldDec"/>
 			<field type="bit" name="ttl" longname="{0x0002 80} Time To Live"  mask="0x000000FF" size="4" showtemplate="FieldDec"/>
 		</fields>
 	</format>
@@ -4586,7 +4590,7 @@ Please note: it was this before
 		</fields>
 
 
-		<block name="HBH" longname="{0x0002 8}">
+		<block name="HBH" longname="{0x8000 39 6 1}">
 			<field type="fixed" name="nexthdr" longname="{0x8000 10} Next Header" size="1" showtemplate="ipv6.nexthdr"/>
 			<field type="fixed" name="helen" longname="Length (multiple of 8 bytes, not including the first 8)" size="1" showtemplate="ipv6.hbhlen"/>
 			<loop type="size" expr="(buf2int(helen) * 8) + 6">	<!-- '6' because the first two bytes are nexthdr and helen -->
@@ -4594,7 +4598,7 @@ Please note: it was this before
 			</loop>
 		</block>
 
-		<block name="FH" longname="{0x0002 32}">
+		<block name="FH" longname="{0x8000 39 4 4}">
 			<field type="fixed" name="nexthdr" longname="{0x8000 10} Next Header" size="1" showtemplate="ipv6.nexthdr"/>
 			<field type="fixed" name="reserved" longname="Reserved (multiple of 8 bytes)" comment="This is in multiple of 8 bytes" size="1" showtemplate="FieldDec"/>
 			<field type="bit" name="fragment offset" longname="Fragment Offset" mask="0xFFF0" size="2" showtemplate="FieldDec"/>
@@ -4603,7 +4607,7 @@ Please note: it was this before
 			<field type="fixed" name="identification" longname="Identification" size="4" showtemplate="FieldDec"/>
 		</block>
 
-		<block name="AH" longname="{0x0002 40}">
+		<block name="AH" longname="{0x8000 39 2 5}">
 			<field type="fixed" name="nexthdr" longname="{0x8000 10} Next Header" size="1" showtemplate="ipv6.nexthdr"/>
 			<field type="fixed" name="payload len" longname="Payload Len" size="1" showtemplate="FieldDec"/>
 			<field type="fixed" name="reserved" longname="Reserved" size="2" showtemplate="FieldDec"/>
@@ -4611,7 +4615,7 @@ Please note: it was this before
 			<field type="fixed" name="snf" longname="Sequence Number Field" size="4" showtemplate="FieldDec"/>
 		</block>
 
-		<block name="DOH" longname="{0x0002 16}">
+		<block name="DOH" longname="{0x8000 39 3 2}">
 			<field type="fixed" name="nexthdr" longname="{0x8000 10} Next Header" size="1" showtemplate="ipv6.nexthdr"/>
 			<field type="fixed" name="helen" longname="Length (multiple of 8 bytes, not including the first 8)" size="1" showtemplate="ipv6.hbhlen"/>
 			<loop type="size" expr="(buf2int(helen) * 8)+6"> <!-- '6' because the first two bytes are nexthdr and helen -->
@@ -4619,7 +4623,7 @@ Please note: it was this before
 			</loop>
 		</block>
 
-		<block name="RH" longname="{0x0002 24}">
+		<block name="RH" longname="{0x8000 39 5 3}">
 			<field type="fixed" name="nexthdr" longname="{0x8000 10} Next Header" size="1" showtemplate="ipv6.nexthdr"/>
 			<field type="fixed" name="hlen" longname="Length (multiple of 8 bytes)" comment="This is in multiple of 8 bytes" size="1" showtemplate="FieldDec"/>	
 			<field type="fixed" name="rtype" longname="Routing Type" size="1" showtemplate="FieldDec"/>
@@ -4798,6 +4802,74 @@ Please note: it was this before
 		</showsumtemplate>
 	</visualization>
 
+</protocol>
+
+<protocol name="pbb_b" longname="PBB (Provider Backbone Bridge)" showsumtemplate="pbb">
+    <format>
+        <fields>
+			<field type="bit" name="prio" longname="Priority" mask="0xE000" size="2" showtemplate="FieldDec"/>
+			<field type="bit" name="dei" longname="Drop Eligibility" mask="0x1000" size="2" showtemplate="FieldDec"/>
+			<field type="bit" name="bvid" longname="Base vlan ID" mask="0x0FFF" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="type" longname="{0x8000 5} Type" size="2" showtemplate="eth.typelength"/>
+		</fields>
+	</format>
+
+	<encapsulation>
+		<switch expr="buf2int(type)">
+			<case value="0" maxvalue="1500"> <nextproto proto="#llc"/> </case>
+			<case value="0x800"> <nextproto proto="#ip"/> </case>
+			<case value="0x806"> <nextproto proto="#arp"/> </case>
+			<case value="0x8100"> <nextproto proto="#vlan" comment="Standard 802.1Q in 802.1Q encapsulation"/> </case>
+			<case value="0x9100"> <nextproto proto="#vlan" comment="802.1Q in 802.1Q encapsulation used by Cisco"/> </case>
+			<case value="0x8863"> <nextproto proto="#pppoed"/> </case>
+			<case value="0x8864"> <nextproto proto="#pppoe"/> </case>
+			<case value="0x86DD"> <nextproto proto="#ipv6"/> </case>
+			<case value="0x88E7"> <nextproto proto="#pbb_s" comment="802.1ad service encapsulation"/> </case>
+		</switch>
+	</encapsulation>
+	<visualization>
+		<showsumtemplate name="pbb">
+			<section name="next"/>
+			<text value="PBB ID: "/>
+			<protofield name="id" showdata="showvalue"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+
+<protocol name="pbb_s" longname="PBB (Provider Backbone Bridge) Service Instance" showsumtemplate="pbb">
+    <format>
+        <fields>
+			<field type="bit" name="prio" longname="Priority Code" mask="0xE0000000" size="4" showtemplate="FieldDec"/>
+			<field type="bit" name="dei" longname="Drop Eligibility" mask="0x10000000" size="4" showtemplate="FieldDec"/>
+			<field type="bit" name="uca" longname="Use customer Addresses" mask="0x08000000" size="4" showtemplate="FieldDec"/>
+			<field type="bit" name="res" longname="Reserved" mask="0x07000000" size="4" showtemplate="FieldDec"/>
+			<field type="bit" name="isid" longname="{0x8000 37} Service Instance Identifier" mask="0x00FFFFFF" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="c-dst" longname="Customer Destination Address" size="6" showtemplate="MACaddressEth"/>
+			<field type="fixed" name="c-src" longname="Customer Source Address" size="6" showtemplate="MACaddressEth"/>
+			<field type="fixed" name="type" longname="{0x8000 5} Type" size="2" showtemplate="eth.typelength"/>
+		</fields>
+	</format>
+
+	<encapsulation>
+		<switch expr="buf2int(type)">
+			<case value="0" maxvalue="1500"> <nextproto proto="#llc"/> </case>
+			<case value="0x800"> <nextproto proto="#ip"/> </case>
+			<case value="0x806"> <nextproto proto="#arp"/> </case>
+			<case value="0x8100"> <nextproto proto="#vlan" comment="Standard 802.1Q in 802.1Q encapsulation"/> </case>
+			<case value="0x9100"> <nextproto proto="#vlan" comment="802.1Q in 802.1Q encapsulation used by Cisco"/> </case>
+			<case value="0x8863"> <nextproto proto="#pppoed"/> </case>
+			<case value="0x8864"> <nextproto proto="#pppoe"/> </case>
+			<case value="0x86DD"> <nextproto proto="#ipv6"/> </case>
+		</switch>
+        <nextproto proto="#eth"/>
+	</encapsulation>
+	<visualization>
+		<showsumtemplate name="pbb">
+			<section name="next"/>
+			<text value="PBB ID: "/>
+			<protofield name="id" showdata="showvalue"/>
+		</showsumtemplate>
+	</visualization>
 </protocol>
 
 <protocol name="icmp6" longname="ICMPv6 (Internet Control Message Protocol version 6)" showsumtemplate="icmp6">

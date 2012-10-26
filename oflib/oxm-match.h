@@ -281,7 +281,6 @@
 /* IPv4 TTL */
 #define OXM_OF_IPV4_TTL OXM_HEADER (0x0002, 81, 1)
 
-
 int 
 oxm_pull_match(struct ofpbuf * buf, struct ofl_match *match_dst, int match_len);
 
