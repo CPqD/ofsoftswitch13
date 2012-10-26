@@ -550,6 +550,30 @@ push_pbb(struct packet *pkt, struct ofl_action_push *act) {
 }
 
 
+/*Executes pop pbb action. */
+static void
+pop_pbb(struct packet *pkt, struct ofl_action_header *act UNUSED) {
+    packet_handle_std_validate(pkt->handle_std);
+    if (pkt->handle_std->proto->eth != NULL && pkt->handle_std->proto->pbb != NULL) {
+        struct eth_header *eth = pkt->handle_std->proto->eth;
+        struct snap_header *eth_snap = pkt->handle_std->proto->eth_snap;
+        struct vlan_header *vlan = pkt->handle_std->proto->vlan;
+        struct pbb_header *pbb = pkt->handle_std->proto->pbb;
+        size_t move_size;
+
+        move_size = (uint8_t *) pbb->c_eth_dst - (uint8_t *)eth;
+
+//        pkt->buffer->data = (uint8_t *)pkt->buffer->data + move_size;
+//        eth = (uint8_t *)eth + move_size;
+        memmove(pkt->buffer->data, pbb->c_eth_dst, (pkt->buffer->size - move_size));
+        pkt->buffer->size -= move_size;
+        
+        pkt->handle_std->valid = false;
+    } else {
+        VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute POP_PBB action on packet with no PBB header.");
+    }
+}
+
 
 /* Executes set queue action. */
 static void
