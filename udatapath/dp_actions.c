@@ -364,9 +364,6 @@ push_mpls(struct packet *pkt, struct ofl_action_push *act) {
                    ? ETH_HEADER_LEN
                    : ETH_HEADER_LEN + LLC_HEADER_LEN + SNAP_HEADER_LEN;
 
-        head_offset = vlan == NULL ? eth_size
-              : (uint8_t *)vlan - (uint8_t *)eth + VLAN_HEADER_LEN;
-
         if (ofpbuf_headroom(pkt->buffer) >= MPLS_HEADER_LEN) {
             // there is available space in headroom, move eth backwards
             pkt->buffer->data = (uint8_t *)(pkt->buffer->data) - MPLS_HEADER_LEN;
@@ -376,9 +373,7 @@ push_mpls(struct packet *pkt, struct ofl_action_push *act) {
             new_eth = (struct eth_header *)(pkt->buffer->data);
             new_snap = snap == NULL ? NULL 
                     : (struct snap_header *)((uint8_t *)snap - MPLS_HEADER_LEN);
-            new_vlan = vlan == NULL ? NULL
-                    : (struct vlan_header *)((uint8_t *)vlan - MPLS_HEADER_LEN);
-            push_mpls = (struct mpls_header *)((uint8_t *)new_eth + head_offset);
+            push_mpls = (struct mpls_header *)((uint8_t *)new_eth + eth_size);
             new_mpls = mpls;
             new_ipv4 = ipv4;
 
@@ -389,13 +384,14 @@ push_mpls(struct packet *pkt, struct ofl_action_push *act) {
             new_eth = (struct eth_header *)(pkt->buffer->data);
             new_snap = snap == NULL ? NULL
                     : (struct snap_header *)((uint8_t *)snap - (uint8_t *)eth + (uint8_t *)new_eth);
-            new_vlan = vlan == NULL ? NULL
-                    : (struct vlan_header *)((uint8_t *)vlan - (uint8_t *)eth + (uint8_t *)new_eth);
-            push_mpls = (struct mpls_header *)((uint8_t *)new_eth + head_offset);
+            push_mpls = (struct mpls_header *)((uint8_t *)new_eth + eth_size);
 
             // push data to create space for new vlan tag
             memmove((uint8_t *)push_mpls + MPLS_HEADER_LEN, push_mpls,
-                    pkt->buffer->size - head_offset);
+                    pkt->buffer->size - eth_size);
+
+            new_vlan = vlan == NULL ? NULL
+                    : (struct vlan_header *)((uint8_t *)vlan + MPLS_HEADER_LEN);
 
             new_mpls = mpls == NULL ? NULL
                     : (struct mpls_header *)((uint8_t *)push_mpls + MPLS_HEADER_LEN);
