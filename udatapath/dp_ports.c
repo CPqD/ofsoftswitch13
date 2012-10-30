@@ -525,8 +525,8 @@ dp_ports_lookup(struct datapath *dp, uint32_t port_no) {
     if (port_no == OFPP_LOCAL) {
         return dp->local_port;
     }
-
-    if (port_no < 1 || port_no > DP_MAX_PORTS) {
+    /* Local port already checked, so dp->ports -1 */
+    if (port_no < 1 || port_no > dp->ports_num -1) {
         return NULL;
     }
 
@@ -559,8 +559,8 @@ dp_ports_output(struct datapath *dp, struct ofpbuf *buffer, uint32_t out_port,
 
     p = dp_ports_lookup(dp, out_port);
 
-/* FIXME:  Needs update for queuing */
-#if defined(OF_HW_PLAT) && !defined(USE_NETDEV)
+    /* FIXME:  Needs update for queuing */
+    #if defined(OF_HW_PLAT) && !defined(USE_NETDEV)
     if ((p != NULL) && IS_HW_PORT(p)) {
         if (dp && dp->hw_drv) {
             if (dp->hw_drv->port_link_get(dp->hw_drv, p->port_no)) {
@@ -748,7 +748,8 @@ dp_ports_handle_port_desc_request(struct datapath *dp,
 
     free(reply.stats);
     ofl_msg_free((struct ofl_msg_header *)msg, dp->exp);
-
+    
+    return 0;
 }
 
 static void
