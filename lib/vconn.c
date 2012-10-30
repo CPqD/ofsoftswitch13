@@ -650,6 +650,7 @@ vconn_recv_xid(struct vconn *vconn, uint32_t xid, struct ofpbuf **replyp)
     for (;;) {
         uint32_t recv_xid;
         uint16_t reply_flag;
+        uint8_t type;
         struct ofpbuf *reply;
         int error;
 
@@ -658,11 +659,16 @@ vconn_recv_xid(struct vconn *vconn, uint32_t xid, struct ofpbuf **replyp)
             *replyp = NULL;
             return error;
         }
-        reply_flag = ((struct ofp_multipart_reply *) reply->data)->flags;
-        while(ntohs(reply_flag) == OFPMPF_REPLY_MORE){
-           error = vconn_recv_block(vconn, &reply);
-           reply_flag = ((struct ofp_multipart_reply *) reply->data)->flags;
-        }
+        /* Only multipart messages */
+        type = ((struct ofp_header*) reply->data)->type;
+        if (type == OFPT_MULTIPART_REPLY || type == OFPT_MULTIPART_REQUEST){
+            reply_flag = ((struct ofp_multipart_reply *) reply->data)->flags;
+            
+            while(ntohs(reply_flag) == OFPMPF_REPLY_MORE){
+               error = vconn_recv_block(vconn, &reply);
+               reply_flag = ((struct ofp_multipart_reply *) reply->data)->flags;
+            }
+        }    
         recv_xid = ((struct ofp_header *) reply->data)->xid;
         if (xid == recv_xid) {
             *replyp = reply;

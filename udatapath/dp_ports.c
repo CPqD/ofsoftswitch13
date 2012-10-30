@@ -864,7 +864,6 @@ dp_ports_handle_queue_get_config_request(struct datapath *dp,
                  .port       = msg->port,
                  .queues_num = p->num_queues,
                  .queues     = xmalloc(sizeof(struct ofl_packet_queue *) * p->num_queues)};
-
         for (i=0; i<p->max_queues; i++) {
             if (p->queues[i].port != NULL) {
                 reply.queues[idx] = p->queues[i].props;
@@ -912,11 +911,12 @@ new_queue(struct sw_port * port, struct sw_queue * queue,
     queue->class_id = class_id;
 
     queue->props = xmalloc(sizeof(struct ofl_packet_queue));
+    queue->props->queue_id = queue_id;
     queue->props->properties = xmalloc(sizeof(struct ofl_queue_prop_header *));
     queue->props->properties_num = 1;
     queue->props->properties[0] = xmalloc(sizeof(struct ofl_queue_prop_min_rate));
     ((struct ofl_queue_prop_min_rate *)(queue->props->properties[0]))->header.type = OFPQT_MIN_RATE;
-    ((struct ofl_queue_prop_min_rate *)(queue->props->properties[0]))->rate = ntohs(mr->rate);
+    ((struct ofl_queue_prop_min_rate *)(queue->props->properties[0]))->rate = mr->rate;
 
     port->num_queues++;
     return 0;

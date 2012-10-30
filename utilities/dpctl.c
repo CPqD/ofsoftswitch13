@@ -209,7 +209,6 @@ dpctl_transact(struct vconn *vconn, struct ofl_msg_header *req,
     ofpbufreq = ofpbuf_new(0);
     ofpbuf_use(ofpbufreq, bufreq, bufreq_size);
     ofpbuf_put_uninit(ofpbufreq, bufreq_size);
-
     error = vconn_transact(vconn, ofpbufreq, &ofpbufrepl);
     if (error) {
         ofp_fatal(0, "Error during transaction.");
@@ -298,7 +297,6 @@ dpctl_send(struct vconn *vconn, struct ofl_msg_header *msg) {
 static void
 dpctl_send_and_print(struct vconn *vconn, struct ofl_msg_header *msg) {
     char *str;
-
     str = ofl_msg_to_string(msg, &dpctl_exp);
     printf("\nSENDING:\n%s\n\n", str);
     free(str);
@@ -755,7 +753,7 @@ queue_get_config(struct vconn *vconn, int argc UNUSED, char *argv[]) {
         ofp_fatal(0, "Error parsing queue_get_config port: %s.", argv[0]);
     }
 
-    dpctl_send_and_print(vconn, (struct ofl_msg_header *)&msg);
+    dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&msg, NULL);
 }
 
 
@@ -840,13 +838,13 @@ queue_del(struct vconn *vconn, int argc UNUSED, char *argv[]) {
 }
 
 static void 
-get_async(struct vconn *vconn, int argc UNUSED, char *argv[]){
+get_async(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED){
 
     struct ofl_msg_async_config msg = 
              {{.type = OFPT_GET_ASYNC_REQUEST},
              .config = NULL};
 
-    dpctl_send_and_print(vconn, (struct ofl_msg_header *)&msg);
+    dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&msg, NULL);
 }
 
 static struct command all_commands[] = {
