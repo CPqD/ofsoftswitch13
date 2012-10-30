@@ -302,6 +302,7 @@ flow_table_create_property(struct ofl_table_feature_prop_header **prop, enum ofp
         case OFPTFPT_WRITE_SETFIELD:
         case OFPTFPT_WRITE_SETFIELD_MISS:{
             struct ofl_table_feature_prop_oxm *oxm_capabilities; 
+            int i;
             oxm_capabilities = xmalloc(sizeof(struct ofl_table_feature_prop_oxm));
             oxm_capabilities->header.type = type;
             oxm_capabilities->oxm_num = N_OXM_FIELDS;
@@ -420,9 +421,11 @@ flow_table_aggregate_stats(struct flow_table *table, struct ofl_msg_multipart_re
     LIST_FOR_EACH(entry, struct flow_entry, match_node, &table->match_entries) {
         if ((msg->out_port == OFPP_ANY || flow_entry_has_out_port(entry, msg->out_port)) &&
             (msg->out_group == OFPG_ANY || flow_entry_has_out_group(entry, msg->out_group))) {
-
-            (*packet_count) += entry->stats->packet_count;
-            (*byte_count)   += entry->stats->byte_count;
+			
+			if (!entry->no_pkt_count)
+            	(*packet_count) += entry->stats->packet_count;
+			if (!entry->no_byt_count)            
+				(*byte_count)   += entry->stats->byte_count;
             (*flow_count)++;
         }
     }

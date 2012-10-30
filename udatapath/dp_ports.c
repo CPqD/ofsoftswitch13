@@ -722,6 +722,35 @@ dp_ports_handle_stats_request_port(struct datapath *dp,
     return 0;
 }
 
+ofl_err
+dp_ports_handle_port_desc_request(struct datapath *dp,
+                                  struct ofl_msg_multipart_request_header *msg UNUSED,
+                                  const struct sender *sender UNUSED){
+    struct sw_port *port;
+    size_t i = 0;
+
+
+    struct ofl_msg_multipart_reply_port_desc reply =
+            {{{.type = OFPT_MULTIPART_REPLY},
+             .type = OFPMP_PORT_DESC, .flags = 0x0000},
+             .stats_num   = 0,
+             .stats       = NULL};
+    
+    reply.stats_num = dp->ports_num;
+    reply.stats     = xmalloc(sizeof(struct ofl_port *) * dp->ports_num);
+
+    LIST_FOR_EACH(port, struct sw_port, node, &dp->port_list) {
+        reply.stats[i] = port->conf;
+        i++;
+    }            
+
+    dp_send_message(dp, (struct ofl_msg_header *)&reply, sender);
+
+    free(reply.stats);
+    ofl_msg_free((struct ofl_msg_header *)msg, dp->exp);
+
+}
+
 static void
 dp_ports_queue_update(struct sw_queue *queue) {
     queue->stats->duration_sec  =  (time_msec() - queue->created) / 1000;

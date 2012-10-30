@@ -109,6 +109,9 @@ static void
 parse_group_mod_args(char *str, struct ofl_msg_group_mod *req);
 
 static void
+parse_meter_mod_args(char *str, struct ofl_msg_meter_mod *req);
+
+static void
 parse_bucket(char *str, struct ofl_bucket *b);
 
 static void
@@ -132,6 +135,8 @@ parse_port_mod(char *str, struct ofl_msg_port_mod *msg);
 static void
 parse_table_mod(char *str, struct ofl_msg_table_mod *msg);
 
+static void
+parse_band(char *str, struct ofl_msg_meter_mod *m, struct ofl_meter_band_header **b);
 
 static void
 make_all_match(struct ofl_match_header **match);
@@ -147,6 +152,9 @@ parse_queue(char *str, uint32_t *port);
 
 static int
 parse_group(char *str, uint32_t *group);
+
+static int
+parse_meter(char *str, uint32_t *meter);
 
 static int
 parse_table(char *str, uint8_t *table);
@@ -229,9 +237,7 @@ dpctl_transact_and_print(struct vconn *vconn, struct ofl_msg_header *req,
     str = ofl_msg_to_string(req, &dpctl_exp);
     printf("\nSENDING:\n%s\n\n", str);
     free(str);
-
     dpctl_transact(vconn, req, &reply);
-
     str = ofl_msg_to_string(reply, &dpctl_exp);
     printf("\nRECEIVED:\n%s\n\n", str);
     free(str);
@@ -428,6 +434,15 @@ stats_desc(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED) {
 }
 
 static void
+port_desc(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED) {
+    struct ofl_msg_multipart_request_header req =
+            {{.type = OFPT_MULTIPART_REQUEST},
+             .type = OFPMP_PORT_DESC, .flags = 0x0000};
+
+    dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&req, NULL);
+}
+
+static void
 stats_flow(struct vconn *vconn, int argc, char *argv[]) {
     struct ofl_msg_multipart_request_flow req =
             {{{.type = OFPT_MULTIPART_REQUEST},
@@ -438,7 +453,6 @@ stats_flow(struct vconn *vconn, int argc, char *argv[]) {
              .out_port = OFPP_ANY,
              .out_group = OFPG_ANY,
              .match = NULL};
-
     if (argc > 0) {
         parse_flow_stat_args(argv[0], &req);
     }
@@ -552,10 +566,6 @@ stats_group_desc(struct vconn *vconn, int argc, char *argv[]) {
     dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&req, NULL);
 }
 
-
-
-
-
 static void
 set_config(struct vconn *vconn, int argc UNUSED, char *argv[]) {
     struct ofl_msg_set_config msg =
@@ -612,7 +622,6 @@ flow_mod(struct vconn *vconn, int argc, char *argv[]) {
 }
 
 
-
 static void
 group_mod(struct vconn *vconn, int argc, char *argv[]) {
     struct ofl_msg_group_mod msg =
@@ -648,7 +657,61 @@ group_mod(struct vconn *vconn, int argc, char *argv[]) {
     dpctl_send_and_print(vconn, (struct ofl_msg_header *)&msg);
 }
 
+static void meter_mod(struct vconn *vconn, int argc, char *argv[]){
 
+    struct ofl_msg_meter_mod msg = 
+                {{.type = OFPT_METER_MOD},
+                 .command = OFPMC_ADD,
+                 .flags   = OFPMF_KBPS,
+                 .meter_id = 0,       
+                 .meter_bands_num = 0,
+                 .bands = NULL};
+   
+   parse_meter_mod_args(argv[0], &msg);             
+           
+   if (argc > 1){
+        size_t i;
+        size_t bands_num = argc - 1; 
+        msg.meter_bands_num = bands_num;
+        msg.bands = xmalloc(sizeof(struct ofl_meter_band_header *) * bands_num);                       
+        for (i=0; i < bands_num; i++) {
+            parse_band(argv[i+1], &msg, &msg.bands[i]); 
+        } 
+   }
+   dpctl_send_and_print(vconn, (struct ofl_msg_header *)&msg);
+
+}
+
+static void
+stats_meter(struct vconn *vconn, int argc UNUSED, char *argv[]){
+
+    struct ofl_msg_multipart_meter_request req =
+            {{{.type = OFPT_MULTIPART_REQUEST},
+              .type = OFPMP_METER, .flags = 0x0000},
+             .meter_id = OFPM_ALL};
+
+    if (argc > 0 && parse_meter(argv[0], &req.meter_id)) {
+        ofp_fatal(0, "Error parsing meter: %s.", argv[0]);
+    }
+
+    dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&req, NULL);
+
+}
+
+static void
+meter_config(struct vconn *vconn, int argc UNUSED, char *argv[]){
+
+    struct ofl_msg_multipart_meter_request req =
+            {{{.type = OFPT_MULTIPART_REQUEST},
+              .type = OFPMP_METER_CONFIG, .flags = 0x0000},
+             .meter_id = OFPM_ALL};
+
+    if (argc > 0 && parse_meter(argv[0], &req.meter_id)) {
+        ofp_fatal(0, "Error parsing meter: %s.", argv[0]);
+    }
+
+    dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&req, NULL);
+}
 
 static void
 port_mod(struct vconn *vconn, int argc UNUSED, char *argv[]) {
@@ -776,6 +839,16 @@ queue_del(struct vconn *vconn, int argc UNUSED, char *argv[]) {
     dpctl_send_and_print(vconn, (struct ofl_msg_header *)&msg);
 }
 
+static void 
+get_async(struct vconn *vconn, int argc UNUSED, char *argv[]){
+
+    struct ofl_msg_async_config msg = 
+             {{.type = OFPT_GET_ASYNC_REQUEST},
+             .config = NULL};
+
+    dpctl_send_and_print(vconn, (struct ofl_msg_header *)&msg);
+}
+
 static struct command all_commands[] = {
     {"ping", 0, 2, ping},
     {"monitor", 0, 0, monitor},
@@ -791,15 +864,19 @@ static struct command all_commands[] = {
     {"stats-queue", 0, 2, stats_queue },
     {"stats-group", 0, 1, stats_group },
     {"stats-group-desc", 0, 1, stats_group_desc },
-
+    {"stats-meter", 0, 1, stats_meter},
+    {"meter-config", 0, 1, meter_config},
+    {"port-desc", 0, 0, port_desc},     
     {"set-config", 1, 1, set_config},
-    {"flow-mod", 1, 7/*+1 for each inst type*/, flow_mod },
+    {"flow-mod", 1, 8/*+1 for each inst type*/, flow_mod },
     {"group-mod", 1, UINT8_MAX, group_mod },
+    {"meter-mod", 1, UINT8_MAX, meter_mod},
+    {"get-async",0,0, get_async},
     {"port-mod", 1, 1, port_mod },
     {"table-mod", 1, 1, table_mod },
     {"queue-get-config", 1, 1, queue_get_config},
-
     {"set-desc", 1, 1, set_desc},
+ 
     {"queue-mod", 3, 3, queue_mod},
     {"queue-del", 2, 2, queue_del}
 };
@@ -1612,6 +1689,15 @@ parse_inst(char *str, struct ofl_instruction_header **inst) {
                     (*inst) = (struct ofl_instruction_header *)i;
                     return;
                 }
+                case (OFPIT_METER): {
+                    struct ofl_instruction_meter *i = xmalloc(sizeof(struct ofl_instruction_meter));
+                    i->header.type = OFPIT_METER;
+                    if(parse32(s, NULL, 0, OFPM_MAX ,&i->meter_id)){
+                        ofp_fatal(0, "Error parsing meter instruction: %s.", s);                        
+                    }
+                    (*inst) = (struct ofl_instruction_header *)i; 
+                    return;               
+                }
                 case (OFPIT_CLEAR_ACTIONS): {
                     struct ofl_instruction_header *i = xmalloc(sizeof(struct ofl_instruction_header));
                     i->type = OFPIT_CLEAR_ACTIONS;
@@ -1802,6 +1888,100 @@ parse_bucket(char *str, struct ofl_bucket *b) {
 }
 
 static void
+parse_meter_mod_args(char *str, struct ofl_msg_meter_mod *req){
+    char *token, *saveptr = NULL;
+
+    for (token = strtok_r(str, KEY_SEP, &saveptr); token != NULL; token = strtok_r(NULL, KEY_SEP, &saveptr)) {
+        if (strncmp(token, METER_MOD_COMMAND KEY_VAL, strlen(METER_MOD_COMMAND KEY_VAL)) == 0) {
+            uint16_t command;
+            if (parse16(token + strlen(GROUP_MOD_COMMAND KEY_VAL), meter_mod_cmd_names, NUM_ELEMS(meter_mod_cmd_names),0,  &command)) {
+                ofp_fatal(0, "Error parsing meter_mod command: %s.", token);
+            }
+            req->command = command;
+            continue;
+        }
+        if (strncmp(token, METER_MOD_FLAGS KEY_VAL, strlen(METER_MOD_FLAGS KEY_VAL)) == 0) {
+            if (parse16(token + strlen(METER_MOD_FLAGS KEY_VAL), NULL, 0, 0xffff,  &req->flags)) {
+                ofp_fatal(0, "Error parsing meter_mod flags: %s.", token);
+            }
+            continue;
+        }
+        if (strncmp(token, METER_MOD_METER KEY_VAL, strlen(METER_MOD_METER KEY_VAL)) == 0) {
+            uint32_t meter_id;
+            if (parse32(token + strlen(METER_MOD_METER KEY_VAL), NULL, 0, 1024,  &meter_id)) {
+                ofp_fatal(0, "Error parsing meter_mod id: %s.", token);
+            }
+            req->meter_id = meter_id;
+            continue;
+        }
+        ofp_fatal(0, "Error parsing group_mod arg: %s.", token);
+    }    
+    
+} 
+
+static void 
+parse_band_args(char *str, struct ofl_msg_meter_mod *m, struct ofl_meter_band_header *b){
+    char *token, *saveptr = NULL;
+    for (token = strtok_r(str, KEY_SEP, &saveptr); token != NULL; token = strtok_r(NULL, KEY_SEP, &saveptr)) {
+        if (strncmp(token, BAND_RATE KEY_VAL, strlen(BAND_RATE KEY_VAL)) == 0) {
+            if (parse32(token + strlen(BAND_RATE KEY_VAL), NULL, 0, UINT32_MAX, &b->rate)) {
+                ofp_fatal(0, "Error parsing band rate: %s.", token);
+            }
+            continue;
+        }
+        if (strncmp(token, BAND_BURST_SIZE, strlen(BAND_BURST_SIZE KEY_VAL)) == 0) {
+            if(m->flags & OFPMF_BURST){
+                if (parse32(token + strlen(BAND_RATE KEY_VAL), NULL, 0, UINT32_MAX, &b->burst_size)) {
+                    ofp_fatal(0, "Error parsing band rate: %s.", token);
+                }
+                continue;
+            }
+            else ofp_fatal(0, "Error parsing burst size. Meter flags should contain %x.", OFPMF_BURST);
+        }
+    }
+}
+
+static void
+parse_band(char *str, struct ofl_msg_meter_mod *m, struct ofl_meter_band_header **b){
+    char *s;
+    size_t i;
+    for (i=0; i<NUM_ELEMS(band_names); i++) {
+
+        if (strncmp(str, band_names[i].name, strlen(band_names[i].name)) == 0) {
+            s = str + strlen(band_names[i].name);
+            
+            if (strncmp(s, KEY_VAL2, strlen(KEY_VAL2)) != 0) {
+                ofp_fatal(0, "Error parsing meter band: %s.", str);
+            }
+            
+            s+= strlen(KEY_VAL2);
+            switch(band_names[i].code){
+                case(OFPMBT_DROP):{
+                    struct ofl_meter_band_drop *d = (struct ofl_meter_band_drop*) xmalloc(sizeof(struct ofl_meter_band_drop));
+                    d->type = OFPMBT_DROP;
+                    d->rate = 0;
+                    d->burst_size = 0;                    
+                    parse_band_args(s, m, (struct ofl_meter_band_header*)d);
+                    *b = (struct ofl_meter_band_header*) d;
+                    break;
+                }
+                case(OFPMBT_DSCP_REMARK):{
+                    struct ofl_meter_band_dscp_remark *d = (struct ofl_meter_band_dscp_remark*) xmalloc(sizeof(struct ofl_meter_band_dscp_remark));
+                    d->type = OFPMBT_DSCP_REMARK;
+                    d->rate = 0;
+                    d->burst_size = 0;
+                    d->prec_level = 0;
+                    parse_band_args(s, m, (struct ofl_meter_band_header*)d);
+                    *b = (struct ofl_meter_band_header*) d; 
+                    break;
+                }
+            }
+         }
+    }    
+}
+
+
+static void
 parse_config(char *str, struct ofl_config *c) {
     char *token, *saveptr = NULL;
 
@@ -1900,6 +2080,11 @@ parse_group(char *str, uint32_t *group) {
 }
 
 static int
+parse_meter(char *str, uint32_t *meter) {
+    return parse32(str, NULL, 0, OFPM_MAX, meter);
+}
+
+static int
 parse_table(char *str, uint8_t *table) {
     return parse8(str, table_names, NUM_ELEMS(table_names), 0xfe, table);
 }
@@ -1929,10 +2114,6 @@ parse_vlan_vid(char *str, uint16_t *vid) {
     return parse16(str, vlan_vid_names, NUM_ELEMS(vlan_vid_names), 0xfff, vid);
 }
 
-
-
-
-
 static int
 parse8(char *str, struct names8 *names, size_t names_num, uint8_t max, uint8_t *val) {
     size_t i;
@@ -1953,7 +2134,7 @@ parse8(char *str, struct names8 *names, size_t names_num, uint8_t max, uint8_t *
 static int
 parse16(char *str, struct names16 *names, size_t names_num, uint16_t max, uint16_t *val) {
     size_t i;
-    
+
     for (i=0; i<names_num; i++) {
         if (strcmp(str, names[i].name) == 0) {
             *val = names[i].code;

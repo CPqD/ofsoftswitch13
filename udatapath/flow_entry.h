@@ -65,6 +65,7 @@ struct flow_entry {
     bool                     no_pkt_count; /* true if doesn't keep track of flow matched packets*/     
     bool                     no_byt_count; /* true if doesn't keep track of flow matched bytes*/
     struct list              group_refs;  /* list of groups referencing the flow. */
+    struct list              meter_refs;  /* list of meters referencing the flow. */
 };
 
 struct packet;

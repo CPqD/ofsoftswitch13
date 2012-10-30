@@ -49,7 +49,21 @@
                             /* | OFPC_IP_REASM       */    \
                                | OFPC_QUEUE_STATS          )
                                /*| OFPC_PORT_BLOCKED */   
-                               
+    
+#define DP_SUPPORTED_ACTIONS ( (1 << OFPAT_OUTPUT)          \
+                             | (1 << OFPAT_COPY_TTL_OUT)    \
+                             | (1 << OFPAT_COPY_TTL_IN)     \
+                             | (1 << OFPAT_SET_MPLS_TTL)    \
+                             | (1 << OFPAT_DEC_MPLS_TTL)    \
+                             | (1 << OFPAT_PUSH_VLAN)       \
+                             | (1 << OFPAT_POP_VLAN)        \
+                             | (1 << OFPAT_PUSH_MPLS)       \
+                             | (1 << OFPAT_POP_MPLS)        \
+                             | (1 << OFPAT_SET_QUEUE)       \
+                             | (1 << OFPAT_GROUP)           \
+                             | (1 << OFPAT_SET_NW_TTL)      \
+                             | (1 << OFPAT_DEC_NW_TTL) )
+                           
 #define DP_SUPPORTED_MATCH_FIELDS ( OFPXMT_OFB_IN_PORT        \
                                   | OFPXMT_OFB_IN_PHY_PORT    \
                                   | OFPXMT_OFB_METADATA       \
@@ -87,5 +101,13 @@
                                   | OFPXMT_OFB_MPLS_LABEL     \
                                   | OFPXMT_OFB_MPLS_TC         )
                                 
+#define DP_SUPPORTED_GROUPS ( OFPGT_ALL      \
+							| OFPGT_SELECT   \
+							| OFPGT_INDIRECT \
+							| OFPGT_FF)
 
+#define DP_SUPPORTED_GROUP_CAPABILITIES ( OFPGFC_SELECT_WEIGHT      \
+							            /*| OFPGFC_SELECT_LIVENESS    \
+							            | OFPGFC_CHAINING           \
+							            | OFPGFC_CHAINING_CHECKS*/)
 #endif /* DP_CAPABILITIES_H */

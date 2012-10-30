@@ -43,6 +43,7 @@
 #include "pipeline.h"
 #include "flow_table.h"
 #include "flow_entry.h"
+#include "meter_table.h"
 #include "oflib/ofl.h"
 #include "oflib/ofl-structs.h"
 #include "nbee_link/nbee_link.h"
@@ -58,11 +59,7 @@ static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(60, 60);
 
 static void
 execute_entry(struct pipeline *pl, struct flow_entry *entry,
-              struct flow_table **table, struct packet *pkt);
-
-static void
-execute_table(struct pipeline *pl, struct flow_table *table,
-              struct flow_table **next_table, struct packet *pkt);
+              struct flow_table **table, struct packet **pkt);
 
 struct pipeline *
 pipeline_create(struct datapath *dp) {
@@ -158,8 +155,11 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
                 free(m);
             }
 
-            execute_entry(pl, entry, &next_table, pkt);
-
+            execute_entry(pl, entry, &next_table, &pkt);
+            /* Packet could be destroyed by a meter instruction */
+            if (!pkt)
+                return;
+            
             if (next_table == NULL) {
                /* Cookie field is set 0xffffffffffffffff
                 because we cannot associate it to any
@@ -342,6 +342,7 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
                                     struct ofl_msg_multipart_request_header *msg,
                                     const struct sender *sender) {
     size_t i, j;
+    struct ofl_table_features **features;
     struct ofl_msg_multipart_request_table_features *feat = (struct ofl_msg_multipart_request_table_features *) msg;
     
     j = 0;
@@ -349,7 +350,7 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
        query for table capabilities */
     if(feat->table_features == NULL){
        loop: ;
-       struct ofl_table_features **features = xmalloc(sizeof(struct ofl_table_features) * 17);
+       features = (struct ofl_table_features**) xmalloc(sizeof(struct ofl_table_features) * 17);
        for (i = 0; i < 17; i++){
             features[i] = pl->tables[j]->features; 
             j++;
@@ -447,7 +448,7 @@ get_instruction(size_t insts_num, struct ofl_instruction_header **insts, uint16_
 /* Executes the instructions associated with a flow entry */
 static void
 execute_entry(struct pipeline *pl, struct flow_entry *entry,
-              struct flow_table **next_table, struct packet *pkt) {
+              struct flow_table **next_table, struct packet **pkt) {
     /* NOTE: CLEAR instruction must be executed before WRITE_ACTIONS;
      *       GOTO instruction must be executed last according to spec. */
     struct ofl_instruction_header *inst, *cinst;
@@ -470,10 +471,10 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
                 /* NOTE: Hackish solution. If packet had multiple handles, metadata
                  *       should be updated in all. */
                  
-                packet_handle_std_validate(pkt->handle_std);
+                packet_handle_std_validate((*pkt)->handle_std);
                 
                 /* Search field on the description of the packet. */
-                HMAP_FOR_EACH_WITH_HASH(f,struct packet_fields, hmap_node, hash_int(OXM_OF_METADATA,0), &pkt->handle_std->match.match_fields){
+                HMAP_FOR_EACH_WITH_HASH(f,struct packet_fields, hmap_node, hash_int(OXM_OF_METADATA,0), &(*pkt)->handle_std->match.match_fields){
                     uint64_t *metadata = (uint64_t*) f->value; 
                     memset(f->value,(*metadata & ~wi->metadata_mask) | (wi->metadata & wi->metadata_mask), sizeof(uint64_t));     
                 }
@@ -487,28 +488,33 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
                 if (!clear_execd) {
                     cinst = get_instruction(entry->stats->instructions_num, entry->stats->instructions, OFPIT_CLEAR_ACTIONS);
                     if (cinst != NULL) {
-                        action_set_clear_actions(pkt->action_set);
+                        action_set_clear_actions((*pkt)->action_set);
                         clear_execd = true;
                     }
-                    action_set_write_actions(pkt->action_set, wa->actions_num, wa->actions);
+                    action_set_write_actions((*pkt)->action_set, wa->actions_num, wa->actions);
                 }
                 break;
             }
             case OFPIT_APPLY_ACTIONS: {
                 struct ofl_instruction_actions *ia = (struct ofl_instruction_actions *)inst;
-                dp_execute_action_list(pkt, ia->actions_num, ia->actions, entry->stats->cookie);
+                dp_execute_action_list((*pkt), ia->actions_num, ia->actions, entry->stats->cookie);
                 break;
             }
             case OFPIT_CLEAR_ACTIONS: {
                 /* Only execute clear if it has not been executed out of order */
                 if (!clear_execd) {
-                    action_set_clear_actions(pkt->action_set);
+                    action_set_clear_actions((*pkt)->action_set);
                     clear_execd = true;
                 }
                 break;
             }
+            case OFPIT_METER: {
+            	struct ofl_instruction_meter *im = (struct ofl_instruction_meter *)inst;
+            	meter_table_apply(pl->dp->meters, pkt ,im->meter_id, entry);
+            	break;
+            }            
             case OFPIT_EXPERIMENTER: {
-                dp_exp_inst(pkt, (struct ofl_instruction_experimenter *)inst);
+                dp_exp_inst((*pkt), (struct ofl_instruction_experimenter *)inst);
                 break;
             }
         }

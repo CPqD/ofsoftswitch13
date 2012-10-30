@@ -71,6 +71,14 @@ ofl_msg_free_multipart_request(struct ofl_msg_multipart_request_header *msg, str
         case OFPMP_GROUP:
         case OFPMP_GROUP_DESC:
         case OFPMP_GROUP_FEATURES:
+        case OFPMP_METER:
+        case OFPMP_METER_CONFIG:
+        case OFPMP_METER_FEATURES:
+            break;
+        case OFPMP_TABLE_FEATURES:{
+            //ofl_msg_free_multipart_request_table_features((struct ofl_msg_multipart_request_table_features*)msg);
+        }
+        case OFPMP_PORT_DESC:
             break;
         case OFPMP_EXPERIMENTER: {
             if (exp == NULL || exp->stats == NULL || exp->stats->req_free == NULL) {
@@ -133,11 +141,32 @@ ofl_msg_free_multipart_reply(struct ofl_msg_multipart_reply_header *msg, struct 
                                    ofl_structs_free_group_stats);
             break;
         }
+        case OFPMP_METER:{
+            struct ofl_msg_multipart_reply_meter *stat = (struct ofl_msg_multipart_reply_meter*)msg;
+            OFL_UTILS_FREE_ARR_FUN(stat->stats, stat->stats_num,
+                                   ofl_structs_free_meter_stats);            
+            break;
+        }
+        case OFPMP_METER_CONFIG:{
+            struct ofl_msg_multipart_reply_meter_conf *conf = (struct ofl_msg_multipart_reply_meter_conf *)msg;
+            OFL_UTILS_FREE_ARR_FUN(conf->stats, conf->stats_num,
+                                   ofl_structs_free_meter_config);             
+            break;
+        }
+        case OFPMP_METER_FEATURES:{
+            break;
+        }
         case OFPMP_GROUP_DESC: {
             struct ofl_msg_multipart_reply_group_desc *stat = (struct ofl_msg_multipart_reply_group_desc *)msg;
             OFL_UTILS_FREE_ARR_FUN2(stat->stats, stat->stats_num,
                                     ofl_structs_free_group_desc_stats, exp);
             break;
+        }
+        case OFPMP_PORT_DESC:{
+            struct ofl_msg_multipart_reply_port_desc *stat = (struct ofl_msg_multipart_reply_port_desc *)msg;        
+            OFL_UTILS_FREE_ARR_FUN(stat->stats, stat->stats_num,
+                                    ofl_structs_free_port);
+            break;            
         }
         case OFPMP_EXPERIMENTER: {
             if (exp == NULL || exp->stats || exp->stats->reply_free == NULL) {
@@ -246,7 +275,7 @@ ofl_msg_free(struct ofl_msg_header *msg, struct ofl_exp *exp) {
              break;
         }
         case OFPT_METER_MOD:{
-            return ofl_msg_free_meter_mod((struct ofl_msg_meter_mod*)msg);
+            return ofl_msg_free_meter_mod((struct ofl_msg_meter_mod*)msg, true);
         }
         case OFPT_QUEUE_GET_CONFIG_REPLY: {
             struct ofl_msg_queue_get_config_reply *mod =
@@ -262,12 +291,13 @@ ofl_msg_free(struct ofl_msg_header *msg, struct ofl_exp *exp) {
 }
 
 int 
-ofl_msg_free_meter_mod(struct ofl_msg_meter_mod * msg){
-
-    OFL_UTILS_FREE_ARR_FUN(msg->bands, msg->meter_bands_num,
-                                   ofl_structs_free_meter_bands);
-    
+ofl_msg_free_meter_mod(struct ofl_msg_meter_mod * msg, bool with_bands){
+    if (with_bands) {
+       OFL_UTILS_FREE_ARR_FUN(msg->bands, msg->meter_bands_num,
+                                  ofl_structs_free_meter_bands);
+    }
     free(msg);
+    return 0;
 }
 
 int

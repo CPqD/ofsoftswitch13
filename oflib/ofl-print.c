@@ -273,7 +273,6 @@ ofl_instruction_type_print(FILE *stream, uint16_t type) {
 }
 
 
-
 char *
 ofl_queue_prop_type_to_string(uint16_t type) {
     char *str;
@@ -497,8 +496,12 @@ ofl_message_type_print(FILE *stream, uint16_t type) {
         case OFPT_BARRIER_REQUEST: {          fprintf(stream, "barr_req"); return; }
         case OFPT_BARRIER_REPLY: {            fprintf(stream, "barr_repl"); return; }
         case OFPT_QUEUE_GET_CONFIG_REQUEST: { fprintf(stream, "q_cnf_req"); return; }
-        case OFPT_QUEUE_GET_CONFIG_REPLY: {   fprintf(stream, "q_cnf_repl"); return; }
-        default: {                            fprintf(stream, "?(%u)", type); return; }
+        case OFPT_QUEUE_GET_CONFIG_REPLY:   { fprintf(stream, "q_cnf_repl"); return; }
+		case OFPT_GET_ASYNC_REQUEST:        { fprintf(stream, "get_async_req"); return;}
+		case OFPT_GET_ASYNC_REPLY:          { fprintf(stream, "get_async_rep"); return;}
+		case OFPT_SET_ASYNC:                { fprintf(stream, "set_async"); return;}
+		case OFPT_METER_MOD:				{ fprintf(stream, "meter_mod"); return;}        
+		default: {                            fprintf(stream, "?(%u)", type); return; }
     }
 }
 
@@ -565,6 +568,7 @@ ofl_flow_removed_reason_print(FILE *stream, uint8_t reason) {
         case (OFPRR_HARD_TIMEOUT): { fprintf(stream, "hard"); return; }
         case (OFPRR_DELETE):       { fprintf(stream, "del"); return; }
         case (OFPRR_GROUP_DELETE): { fprintf(stream, "group"); return; }
+        case (OFPRR_METER_DELETE): { fprintf(stream, "meter"); return; }        
         default:                   { fprintf(stream, "?(%u)", reason); return; }
     }
 }
@@ -640,6 +644,47 @@ ofl_group_mod_command_print(FILE *stream, uint16_t command) {
     }
 }
 
+char *
+ofl_meter_mod_command_to_string(uint16_t command) {
+    char *str;
+    size_t str_size;
+    FILE *stream = open_memstream(&str, &str_size);
+
+    ofl_meter_mod_command_print(stream, command);
+    fclose(stream);
+    return str;
+}
+
+void
+ofl_meter_mod_command_print(FILE *stream, uint16_t command){
+	switch(command){
+		case (OFPMC_ADD): {    fprintf(stream, "add"); return; }
+		case (OFPMC_MODIFY): { fprintf(stream, "mod"); return; }
+		case (OFPMC_DELETE): { fprintf(stream, "del"); return; } 
+		default: { fprintf(stream, "?(%u)", command); return;}			
+	}
+}
+
+char *
+ofl_meter_band_type_to_string(uint16_t type) {
+    char *str;
+    size_t str_size;
+    FILE *stream = open_memstream(&str, &str_size);
+
+    ofl_meter_band_type_print(stream, type);
+    fclose(stream);
+    return str;
+}
+
+void
+ofl_meter_band_type_print(FILE *stream, uint16_t type) {
+    switch (type) {
+        case OFPMBT_DROP:        {    fprintf(stream, "drop"); return; }
+        case OFPMBT_DSCP_REMARK: {    fprintf(stream, "dscp_remark"); return; }
+        case OFPMBT_EXPERIMENTER: {    fprintf(stream, "exp"); return; }  
+        default: {                   fprintf(stream, "?(%u)", type); return; }
+    }              
+}        
 
 
 char *
@@ -686,6 +731,10 @@ ofl_stats_type_print(FILE *stream, uint16_t type) {
         case (OFPMP_QUEUE):         { fprintf(stream, "queue"); return; }
         case (OFPMP_GROUP):         { fprintf(stream, "grp"); return; }
         case (OFPMP_GROUP_DESC):    { fprintf(stream, "gdesc"); return; }
+        case (OFPMP_METER):         { fprintf(stream, "mstats"); return; }
+        case (OFPMP_METER_CONFIG):  { fprintf(stream, "mconf"); return; }
+        case (OFPMP_METER_FEATURES):{ fprintf(stream, "mfeat"); return; }
+        case (OFPMP_PORT_DESC):     { fprintf(stream, "port-desc"); return; }   
         case (OFPMP_EXPERIMENTER):  { fprintf(stream, "exp"); return; }
         default: {                    fprintf(stream, "?(%u)", type); return; }
     }
@@ -712,6 +761,98 @@ ofl_properties_type_print(FILE *stream, uint16_t type){
         case (OFPTFPT_EXPERIMENTER_MISS):   { fprintf(stream, "experimenter_miss"); return; }
         default: {                            fprintf(stream, "?(%u)", type); return; }            
     }
+}
+
+
+void
+ofl_async_packet_in(FILE *stream, uint32_t packet_in_mask){
+    bool e = false;
+
+    fprintf(stream, "packet_in(" );
+    if(packet_in_mask &  (1 << 0)){
+       fprintf(stream, "no_match");
+       e = true; 
+    }
+    if(packet_in_mask & ((1 << 1))){
+        if(e)
+            fprintf(stream,", ");
+        fprintf(stream, "action");
+        e = true;  
+    }
+    if(packet_in_mask & ((1 << 2))){
+        if(e)
+            fprintf(stream,", ");    
+        fprintf(stream, "invalid_ttl");
+        e = true;
+    }
+    if (!e)
+        fprintf(stream, "none"); 
+    fprintf(stream, ")" );
+}
+
+void
+ofl_async_port_status(FILE *stream, uint32_t port_status_mask){
+    bool e = false;
+    
+    fprintf(stream, "port_status(" );
+    if(port_status_mask&  (1 << 0)){
+        fprintf(stream, "add");
+        e = true;   
+    }    
+    if(port_status_mask & ((1 << 1))){
+        if(e)
+            fprintf(stream,", ");        
+        fprintf(stream, "delete"); 
+        e = true;
+    }               
+    if(port_status_mask & ((1 << 2))){
+        if(e)
+            fprintf(stream,", ");     
+        fprintf(stream, "modify");
+        e = true;
+    }
+    if (!e)
+        fprintf(stream, "none");
+     fprintf(stream, ")" );            
+}
+
+void
+ofl_async_flow_removed(FILE *stream, uint32_t flow_rem_mask){
+    bool e = false;
+    
+    fprintf(stream, "flow_removed(" );    
+    if(flow_rem_mask &  (1 << 0)){
+        fprintf(stream, "idle_timeout");
+        e = true;   
+    }        
+    if(flow_rem_mask & ((1 << 1))){
+        if(e)
+            fprintf(stream,", ");      
+        fprintf(stream, "hard_timeout"); 
+        e = true;           
+    }
+    if(flow_rem_mask & ((1 << 2))){
+        if(e)
+            fprintf(stream,", ");      
+        fprintf(stream, "delete");
+        e = true;
+    }        
+    if(flow_rem_mask & ((1 << 3))){
+        if(e)
+            fprintf(stream,", ");        
+        fprintf(stream, "group delete");
+        e = true;
+     }   
+    if(flow_rem_mask & ((1 << 4))){
+        if(e)
+            fprintf(stream,", ");       
+        fprintf(stream, "meter delete");        
+        e = true;
+    }
+    if (!e)
+        fprintf(stream, "none"); 
+
+    fprintf(stream, ")" );          
 }
 
 char *

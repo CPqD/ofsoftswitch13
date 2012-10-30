@@ -50,6 +50,7 @@
 #include "ofp.h"
 #include "ofpbuf.h"
 #include "group_table.h"
+#include "meter_table.h"
 #include "oflib/ofl.h"
 #include "oflib-exp/ofl-exp.h"
 #include "oflib-exp/ofl-exp-nicira.h"
@@ -76,10 +77,10 @@ static void remote_wait(struct remote *);
 static void remote_destroy(struct remote *);
 
 
-#define MFR_DESC     "Stanford University and Ericsson Research"
-#define HW_DESC      "OpenFlow 1.2 Reference Userspace Switch"
+#define MFR_DESC     "Stanford University, Ericsson Research and CPqD Research"
+#define HW_DESC      "OpenFlow 1.3 Reference Userspace Switch"
 #define SW_DESC      __DATE__" "__TIME__
-#define DP_DESC      "OpenFlow 1.2 Reference Userspace Switch Datapath"
+#define DP_DESC      "OpenFlow 1.3 Reference Userspace Switch Datapath"
 #define SERIAL_NUM   "1"
 
 
@@ -109,7 +110,6 @@ gen_datapath_id(void) {
 struct datapath *
 dp_new(void) {
     struct datapath *dp;
-
     dp = xmalloc(sizeof(struct datapath));
 
     dp->mfr_desc   = strncpy(xmalloc(DESC_STR_LEN), MFR_DESC, DESC_STR_LEN);
@@ -139,6 +139,7 @@ dp_new(void) {
     dp->buffers = dp_buffers_create(dp);
     dp->pipeline = pipeline_create(dp);
     dp->groups = group_table_create(dp);
+    dp->meters = meter_table_create(dp);
 
     list_init(&dp->port_list);
     dp->ports_num = 0;
@@ -296,12 +297,19 @@ remote_destroy(struct remote *r)
 static struct remote *
 remote_create(struct datapath *dp, struct rconn *rconn)
 {
+    size_t i;
     struct remote *remote = xmalloc(sizeof *remote);
     list_push_back(&dp->remotes, &remote->node);
     remote->rconn = rconn;
     remote->cb_dump = NULL;
     remote->n_txq = 0;
     remote->role = OFPCR_ROLE_EQUAL;
+    /* Set the remote configuration to receive any asynchronous message*/
+    for(i = 0; i < 2; i++){
+        memset(&remote->config.packet_in_mask[i], 0x7, sizeof(uint32_t));
+        memset(&remote->config.port_status_mask[i], 0x7, sizeof(uint32_t));
+        memset(&remote->config.flow_removed_mask[i], 0x1f, sizeof(uint32_t));                
+    }
     return remote;
 }
 
@@ -388,6 +396,7 @@ send_openflow_buffer(struct datapath *dp, struct ofpbuf *buffer,
     if (sender) {
         /* Send back to the sender. */
         return send_openflow_buffer_to_remote(buffer, sender->remote);
+    
     } else {
         /* Broadcast to all remotes. */
         struct remote *r, *prev = NULL;
@@ -395,14 +404,61 @@ send_openflow_buffer(struct datapath *dp, struct ofpbuf *buffer,
         /* Get the type of the message */
         memcpy(&msg_type,((char* ) buffer->data) + 1, sizeof(uint8_t)); 
         LIST_FOR_EACH (r, struct remote, node, &dp->remotes) {
-            /* do not send to remotes with slave role */
+            /* do not send to remotes with slave role apart from port status */
             if (r->role == OFPCR_ROLE_EQUAL || r->role == OFPCR_ROLE_MASTER){
-            
+                /*Check if the message is enabled in the asynchronous configuration*/
+                switch(msg_type){
+                    case (OFPT_PACKET_IN):{
+                        struct ofp_packet_in *p = (struct ofp_packet_in*)buffer->data; 
+                        /* Do not send message if the reason is not enabled */
+                        if((p->reason == OFPR_NO_MATCH) && !(r->config.packet_in_mask[0] & 0x1))
+                            continue;
+                        if((p->reason == OFPR_ACTION) && !(r->config.packet_in_mask[0] & 0x2))                        
+                            continue;
+                        if((p->reason == OFPR_INVALID_TTL) && !(r->config.packet_in_mask[0] & 0x4))                        
+                            continue;                            
+                        break;
+                    }
+                    case (OFPT_PORT_STATUS):{
+                        struct ofp_port_status *p = (struct ofp_port_status*)buffer->data;
+                        if((p->reason == OFPPR_ADD) && !(r->config.port_status_mask[0] & 0x1))
+                            continue;
+                        if((p->reason == OFPPR_DELETE) && !(r->config.port_status_mask[0] & 0x2))                        
+                            continue;
+                        if((p->reason == OFPPR_MODIFY) && !(r->config.packet_in_mask[0] & 0x4))                        
+                            continue;                        
+                    }
+                    case (OFPT_FLOW_REMOVED):{
+                        struct ofp_flow_removed *p= (struct ofp_flow_removed *)buffer->data;
+                        if((p->reason == OFPRR_IDLE_TIMEOUT) && !(r->config.port_status_mask[0] & 0x1))
+                            continue;
+                        if((p->reason == OFPRR_HARD_TIMEOUT) && !(r->config.port_status_mask[0] & 0x2))                        
+                            continue;
+                        if((p->reason == OFPRR_DELETE) && !(r->config.packet_in_mask[0] & 0x4))                        
+                            continue;                     
+                        if((p->reason == OFPRR_GROUP_DELETE) && !(r->config.packet_in_mask[0] & 0x8))                        
+                            continue;
+                        if((p->reason == OFPRR_METER_DELETE) && !(r->config.packet_in_mask[0] & 0x10))                        
+                            continue;                            
+                    }
+                }
             } 
-            else if (r->role == OFPCR_ROLE_SLAVE) {
-                
-                continue;
-            }
+            else { 
+                /* In this implementation we assume that a controller with role slave
+                   can is able to receive only port stats messages */
+                if (r->role == OFPCR_ROLE_SLAVE && msg_type != OFPT_PORT_STATUS) {
+                    continue;
+                }
+                else {
+                    struct ofp_port_status *p = (struct ofp_port_status*)buffer->data;
+                    if((p->reason == OFPPR_ADD) && !(r->config.port_status_mask[1] & 0x1))
+                        continue;
+                    if((p->reason == OFPPR_DELETE) && !(r->config.port_status_mask[1] & 0x2))                        
+                        continue;
+                    if((p->reason == OFPPR_MODIFY) && !(r->config.packet_in_mask[1] & 0x4))                        
+                        continue; 
+                }
+            }    
             if (prev) {
                 send_openflow_buffer_to_remote(ofpbuf_clone(buffer), prev);
             }
@@ -519,3 +575,27 @@ dp_handle_role_request(struct datapath *dp, struct ofl_msg_role_request *msg,
     }
     return 0;
 }
+
+ofl_err
+dp_handle_async_request(struct datapath *dp, struct ofl_msg_async_config *msg,
+                                            const struct sender *sender) {
+    
+    uint16_t async_type = msg->header.type;
+    switch(async_type){
+        case (OFPT_GET_ASYNC_REQUEST):{
+            struct ofl_msg_async_config reply =
+                    {{.type = OFPT_GET_ASYNC_REPLY},
+                     .config = &sender->remote->config};
+            dp_send_message(dp, (struct ofl_msg_header *)&reply, sender);
+
+            ofl_msg_free((struct ofl_msg_header*)msg, dp->exp);
+            
+            break;
+        }    
+        case (OFPT_SET_ASYNC):{
+            memcpy(&sender->remote->config, msg->config, sizeof(struct ofl_async_config));
+            break;
+        }
+    }                                        
+    return 0;                                        
+}                                            

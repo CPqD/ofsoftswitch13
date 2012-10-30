@@ -377,6 +377,16 @@ struct ofl_meter_stats {
                                                   inferred from the length field. */
 };
 
+/* Body of reply to OFPMP_METER_CONFIG request. Meter configuration. */
+struct ofl_meter_config {
+    uint16_t length; /* Length of this entry. */
+    uint16_t flags; /* All OFPMC_* that apply. */
+    uint32_t meter_id; /* Meter instance. */
+    size_t meter_bands_num;
+    struct ofl_meter_band_header **bands; /* The bands length is
+                                              inferred from the length field. */
+};
+
 struct ofl_meter_features {
     uint32_t max_meter; /* Maximum number of meters. */
     uint32_t band_types; /* Bitmaps of OFPMBT_* values supported. */
@@ -441,6 +451,12 @@ ofl_structs_instructions_pack(struct ofl_instruction_header *src, struct ofp_ins
 
 size_t
 ofl_structs_meter_band_pack(struct ofl_meter_band_header *src, struct ofp_meter_band_header *dst);
+
+size_t
+ofl_structs_meter_conf_pack(struct ofl_meter_config *src, struct ofp_meter_config *dst, uint8_t* data);
+
+size_t
+ofl_structs_meter_stats_pack(struct ofl_meter_stats *src, struct ofp_meter_stats *dst);
 
 size_t
 ofl_structs_table_properties_pack(struct ofl_table_feature_prop_header * src, struct ofp_table_feature_prop_header *dst, uint8_t *data, struct ofl_exp *exp);
@@ -531,7 +547,14 @@ ofl_structs_bucket_counter_unpack(struct ofp_bucket_counter *src, size_t *len, s
 ofl_err
 ofl_structs_match_unpack(struct ofp_match *src,uint8_t *buf, size_t *len, struct ofl_match_header **dst, struct ofl_exp *exp);
 
+ofl_err
+ofl_structs_meter_band_stats_unpack(struct ofp_meter_band_stats *src, size_t *len, struct ofl_meter_band_stats **dst);
 
+ofl_err
+ofl_structs_meter_stats_unpack(struct ofp_meter_stats *src, size_t *len, struct ofl_meter_stats **dst);
+
+ofl_err
+ofl_structs_meter_config_unpack(struct ofp_meter_config *src, size_t *len, struct ofl_meter_config **dst);
 
 /****************************************************************************
  * Functions for freeing action structures
@@ -567,7 +590,14 @@ ofl_structs_free_group_desc_stats(struct ofl_group_desc_stats *stats, struct ofl
 void
 ofl_structs_free_match(struct ofl_match_header *match, struct ofl_exp *exp);
 
+void
+ofl_structs_free_meter_band_stats(struct ofl_meter_band_stats* s);
 
+void 
+ofl_structs_free_meter_stats(struct ofl_meter_stats *stats);
+
+void 
+ofl_structs_free_meter_config(struct ofl_meter_config *conf);
 
 /****************************************************************************
  * Utility functions
@@ -581,6 +611,9 @@ ofl_utils_count_ofp_instructions(void *data, size_t data_len, size_t *count);
 
 ofl_err
 ofl_utils_count_ofp_buckets(void *data, size_t data_len, size_t *count);
+
+ofl_err
+ofl_utils_count_ofp_meter_bands(void *data, size_t data_len, size_t *count);
 
 ofl_err
 ofl_utils_count_ofp_ports(void *data, size_t data_len, size_t *count);
@@ -617,6 +650,15 @@ ofl_utils_count_ofp_table_features_properties(void *data, size_t data_len, size_
 
 ofl_err
 ofl_utils_count_ofp_table_features(void *data, size_t data_len, size_t *count);
+
+ofl_err
+ofl_utils_count_ofp_meter_stats(void *data, size_t data_len, size_t *count);
+
+ofl_err
+ofl_utils_count_ofp_meter_band_stats(void *data, size_t data_len, size_t *count);
+
+ofl_err
+ofl_utils_count_ofp_meter_config(void *data, size_t data_len, size_t *count);
 
 size_t
 ofl_structs_instructions_ofp_total_len(struct ofl_instruction_header **instructions, size_t instructions_num, struct ofl_exp *exp);
@@ -676,6 +718,22 @@ ofl_structs_packet_queue_ofp_len(struct ofl_packet_queue *queue);
 
 size_t
 ofl_structs_match_ofp_len(struct ofl_match_header *match, struct ofl_exp *exp);
+
+size_t
+ofl_structs_meter_stats_ofp_total_len(struct ofl_meter_stats **stats, size_t stats_num);
+
+size_t 
+ofl_structs_meter_stats_ofp_len(struct ofl_meter_stats * stats);
+
+size_t 
+ofl_structs_pack_band_stats(struct ofl_meter_band_stats *src, struct ofp_meter_band_stats *dst);
+
+size_t
+ofl_structs_meter_conf_ofp_total_len(struct ofl_meter_config **meter_conf, size_t stats_num);
+
+size_t 
+ofl_structs_meter_conf_ofp_len(struct ofl_meter_config * meter_conf);
+
 
 
 /****************************************************************************
@@ -780,5 +838,41 @@ ofl_structs_group_desc_stats_to_string(struct ofl_group_desc_stats *s, struct of
 
 void
 ofl_structs_group_desc_stats_print(FILE *stream, struct ofl_group_desc_stats *s, struct ofl_exp *exp);
+
+char*
+ofl_structs_meter_band_to_string(struct ofl_meter_band_header* s);
+
+void
+ofl_structs_meter_band_print(FILE *stream, struct ofl_meter_band_header* s);
+
+char* 
+ofl_structs_meter_band_stats_to_string(struct ofl_meter_band_stats* s);
+
+void
+ofl_structs_meter_band_stats_print(FILE *stream, struct ofl_meter_band_stats* s);
+
+char* 
+ofl_structs_meter_features_to_string(struct ofl_meter_features* s);
+
+void
+ofl_structs_meter_features_print(FILE *stream, struct ofl_meter_features* s);
+
+char *
+ofl_structs_meter_stats_to_string(struct ofl_meter_stats *s); 
+
+void
+ofl_structs_meter_stats_print(FILE *stream, struct ofl_meter_stats* s);
+
+char* 
+ofl_structs_meter_config_to_string(struct ofl_meter_config* s);
+
+void
+ofl_structs_meter_config_print(FILE *stream, struct ofl_meter_config* s);
+
+char *
+ofl_structs_async_config_to_string(struct ofl_async_config *s);
+
+void
+ofl_structs_async_config_print(FILE * stream, struct ofl_async_config *s);
 
 #endif /* OFL_STRUCTS_H */

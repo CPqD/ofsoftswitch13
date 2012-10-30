@@ -138,6 +138,29 @@ ofl_utils_count_ofp_buckets(void *data, size_t data_len, size_t *count) {
 
 
 ofl_err
+ofl_utils_count_ofp_meter_bands(void *data, size_t data_len, size_t *count) {
+    struct ofp_meter_band_header *mb;
+    uint8_t *d;
+
+    d = (uint8_t *)data;
+    *count = 0;
+
+    while (data_len >= sizeof(struct ofp_bucket)) {
+        mb = (struct ofp_meter_band_header *)d;
+
+        if (data_len < ntohs(mb->len) || ntohs(mb->len) < sizeof(struct ofp_meter_band_header)) {
+            OFL_LOG_WARN(LOG_MODULE, "Received bucket has invalid length.");
+            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+        }
+        data_len -= ntohs(mb->len);
+        d += ntohs(mb->len);
+        (*count)++;
+    }
+
+    return 0;
+}
+
+ofl_err
 ofl_utils_count_ofp_ports(void *data UNUSED, size_t data_len, size_t *count) {
     *count = data_len / sizeof(struct ofp_port);
     return 0;
@@ -284,6 +307,68 @@ ofl_utils_count_ofp_queue_props(void *data, size_t data_len, size_t *count) {
     return 0;
 }
 
+ofl_err
+ofl_utils_count_ofp_meter_stats(void *data, size_t data_len, size_t *count){
+    struct ofp_meter_stats *stats;
+    uint8_t *d;
+
+    d = (uint8_t *)data;
+    (*count) = 0;
+
+    while (data_len >= sizeof(struct ofp_meter_stats)) {
+        stats = (struct ofp_meter_stats *)d;
+
+        if (data_len < ntohs(stats->len) || ntohs(stats->len) < sizeof(struct ofp_meter_stats)) {
+            OFL_LOG_WARN(LOG_MODULE, "Received meter stat has invalid length.");
+            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+        }
+        data_len -= ntohs(stats->len);
+        d += ntohs(stats->len);
+        (*count)++;
+    }
+    return 0;
+}
+
+ofl_err
+ofl_utils_count_ofp_meter_band_stats(void *data, size_t data_len, size_t *count){
+    uint8_t *d;
+
+    d = (uint8_t *)data;
+    (*count) = 0;
+
+    while (data_len >= sizeof(struct ofp_meter_band_stats)) {
+
+        if (data_len < sizeof(struct ofp_meter_band_stats)) {
+            OFL_LOG_WARN(LOG_MODULE, "Received band meter stat has invalid length.");
+            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+        }
+        data_len -= sizeof(struct ofp_meter_band_stats);
+        d += sizeof(struct ofp_meter_band_stats);
+        (*count)++;
+    }
+    return 0;
+}
+
+ofl_err
+ofl_utils_count_ofp_meter_config(void *data, size_t data_len, size_t *count){
+    struct ofp_meter_config *config;
+    uint8_t *d;
+
+    d = (uint8_t *)data;
+    (*count) = 0;
+
+    while (data_len >= sizeof(struct ofp_meter_config)) {
+        config = (struct ofp_meter_config *)d;
+        if (data_len < ntohs(config->length) || ntohs(config->length) < sizeof(struct ofp_meter_config)) {
+            OFL_LOG_WARN(LOG_MODULE, "Received meter stat has invalid length.");
+            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+        }
+        data_len -= ntohs(config->length);
+        d += ntohs(config->length);
+        (*count)++;
+    }
+    return 0;
+}
 
 void
 ofl_structs_free_packet_queue(struct ofl_packet_queue *queue) {
@@ -321,13 +406,26 @@ ofl_structs_free_instruction(struct ofl_instruction_header *inst, struct ofl_exp
 }
 
 void ofl_structs_free_meter_bands(struct ofl_meter_band_header *meter_band){
-    switch (meter_band->type) {
-        case OFPMBT_DROP:
-        case OFPMBT_DSCP_REMARK:
-        case OFPMBT_EXPERIMENTER:
-            break;
-    }
     free(meter_band);            
+}
+
+void
+ofl_structs_free_meter_band_stats(struct ofl_meter_band_stats* s){
+    free(s);
+ }
+
+void 
+ofl_structs_free_meter_stats(struct ofl_meter_stats *stats){
+    OFL_UTILS_FREE_ARR_FUN(stats->band_stats, stats->meter_bands_num,
+                            ofl_structs_free_meter_band_stats);
+    free(stats);   
+}
+
+void 
+ofl_structs_free_meter_config(struct ofl_meter_config *conf){
+    OFL_UTILS_FREE_ARR_FUN(conf->bands, conf->meter_bands_num,
+                            ofl_structs_free_meter_bands);
+    free(conf);   
 }
 
 void
