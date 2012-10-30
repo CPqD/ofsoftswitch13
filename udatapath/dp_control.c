@@ -36,6 +36,7 @@
 #include "dp_buffers.h"
 #include "dp_ports.h"
 #include "group_table.h"
+#include "meter_table.h"
 #include "packets.h"
 #include "pipeline.h"
 #include "oflib/ofl.h"
@@ -68,8 +69,6 @@ handle_control_barrier_request(struct datapath *dp,
 static ofl_err
 handle_control_features_request(struct datapath *dp,
           struct ofl_msg_header *msg, const struct sender *sender) {
-    struct sw_port *p;
-    size_t i = 0;
 
     struct ofl_msg_features_reply reply =
             {{.type = OFPT_FEATURES_REPLY},
@@ -212,6 +211,21 @@ handle_control_stats_request(struct datapath *dp,
         case (OFPMP_GROUP_DESC): {
             return group_table_handle_stats_request_group_desc(dp->groups, msg, sender);
         }
+		case (OFPMP_GROUP_FEATURES):{
+            //return group_table_handle_stats_request_group_features(dp->groups, msg, sender);			
+		}		
+        case (OFPMP_METER):{
+        	return meter_table_handle_stats_request_meter(dp->meters,(struct ofl_msg_multipart_meter_request*)msg, sender);
+        }
+        case (OFPMP_METER_CONFIG):{
+            return meter_table_handle_stats_request_meter_conf(dp->meters,(struct ofl_msg_multipart_meter_request*)msg, sender);        
+        }
+        case OFPMP_METER_FEATURES:{
+            return meter_table_handle_features_request(dp->meters, msg, sender);
+        }
+        case OFPMP_PORT_DESC:{
+            return dp_ports_handle_port_desc_request(dp, msg, sender);        
+        }
         case (OFPMP_EXPERIMENTER): {
             return dp_exp_stats(dp, (struct ofl_msg_multipart_request_experimenter *)msg, sender);
         }
@@ -341,8 +355,18 @@ handle_control_msg(struct datapath *dp, struct ofl_msg_header *msg,
         case OFPT_QUEUE_GET_CONFIG_REPLY: {
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
         }
+        case OFPT_METER_MOD:{
+			return meter_table_handle_meter_mod(dp->meters, (struct ofl_msg_meter_mod *)msg, sender);
+		}
         case OFPT_EXPERIMENTER: {
             return dp_exp_message(dp, (struct ofl_msg_experimenter *)msg, sender);
+        }
+        case OFPT_GET_ASYNC_REPLY:{
+            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
+        }
+        case OFPT_GET_ASYNC_REQUEST:
+        case OFPT_SET_ASYNC:{
+            return dp_handle_async_request(dp, (struct ofl_msg_async_config*)msg, sender);
         }
         default: {
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);

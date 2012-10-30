@@ -91,6 +91,8 @@ struct datapath {
 
     struct group_table *groups; /* Group tables */
 
+    struct meter_table *meters; /* Meter tables */
+
     struct ofl_config config; /* Configuration, set from controller. */
 
     /* Switch ports. */
@@ -137,7 +139,7 @@ struct remote {
     void *cb_aux;
 
     uint32_t role; /*OpenFlow controller role.*/
-    struct ofl_async_config config_msg;  /* Asynchronous messages configuration, 
+    struct ofl_async_config config;  /* Asynchronous messages configuration, 
                                             set from controller*/
 };
 
@@ -196,9 +198,13 @@ ofl_err
 dp_handle_set_desc(struct datapath *dp, struct ofl_exp_openflow_msg_set_dp_desc *msg,
                                             const struct sender *sender);
 
-/* Handles a role request (nicira experimenter) message */
+/* Handles a role request message */
 ofl_err
 dp_handle_role_request(struct datapath *dp, struct ofl_msg_role_request *msg,
                                             const struct sender *sender);
 
+/* Handles an asynchronous configuration request message */
+ofl_err
+dp_handle_async_request(struct datapath *dp, struct ofl_msg_async_config *msg,
+                                            const struct sender *sender);
 #endif /* datapath.h */

@@ -168,17 +168,6 @@ struct ofl_msg_async_config {
     struct ofl_async_config *config; 
 };
 
-
-/* Body of reply to OFPMP_METER_CONFIG request. Meter configuration. */
-struct ofl_meter_config {
-    uint16_t length; /* Length of this entry. */
-    uint16_t flags; /* All OFPMC_* that apply. */
-    uint32_t meter_id; /* Meter instance. */
-    size_t meter_bands_num;
-    struct ofl_meter_band_header **bands; /* The bands length is
-                                              inferred from the length field. */
-};
-
 struct ofl_msg_packet_out {
     struct ofl_msg_header   header; /* OFPT_PACKET_OUT, */
 
@@ -261,7 +250,7 @@ struct ofl_msg_table_mod {
 
 /* Meter configuration. OFPT_METER_MOD. */
 struct ofl_msg_meter_mod {
-    struct ofp_header header;
+    struct ofl_msg_header header;
     uint16_t command;  /* One of OFPMC_*. */
     uint16_t flags;    /* One of OFPMF_*. */   
     uint32_t meter_id; /* Meter instance. */
@@ -328,12 +317,11 @@ struct ofl_msg_multipart_request_table_features{
     struct ofl_table_features **table_features;    
 };
 
-struct ofl_msg_meter_multipart_request {
+struct ofl_msg_multipart_meter_request {
     struct ofl_msg_multipart_request_header   header; /* OFPMP_METER */
     
-    int32_t meter_id; /* Meter instance, or OFPM_ALL. */
+    uint32_t meter_id; /* Meter instance, or OFPM_ALL. */
 };
-
 
 struct ofl_msg_multipart_request_experimenter {
     struct ofl_msg_multipart_request_header   header; /* OFPMP_EXPERIMENTER */
@@ -432,11 +420,24 @@ struct ofl_msg_multipart_reply_meter {
     struct ofl_meter_stats **stats;
 };
 
+struct ofl_msg_multipart_reply_meter_features {
+    struct ofl_msg_multipart_reply_header   header; /* OFPMP_METER_FEATURES */
+    
+    struct ofl_meter_features *features;   
+};
+
 struct ofl_msg_multipart_reply_meter_conf {
     struct ofl_msg_multipart_reply_header   header; /* OFPMP_METER_CONFIG */
 
     size_t                        stats_num;
     struct ofl_meter_config **stats;
+};
+
+struct ofl_msg_multipart_reply_port_desc {
+    struct ofl_msg_multipart_reply_header   header; /* OFPMP_PORT_DESC */
+
+    size_t                  stats_num;
+    struct ofl_port **stats;
 };
 
 struct ofl_msg_multipart_reply_experimenter {
@@ -506,7 +507,7 @@ ofl_msg_free(struct ofl_msg_header *msg, struct ofl_exp *exp);
 
 /* Calling this function frees the passed meter_mod message.*/
 int 
-ofl_msg_free_meter_mod(struct ofl_msg_meter_mod * msg);
+ofl_msg_free_meter_mod(struct ofl_msg_meter_mod * msg, bool with_bands);
 
 /* Calling this function frees the passed in packet_out message. If with_data
  * is true, the data in the packet is also freed. In case of experimenter

@@ -84,6 +84,12 @@ static struct names16 group_mod_cmd_names[] = {
         {OFPGC_DELETE, "del"}
 };
 
+static struct names16 meter_mod_cmd_names[] = {
+        {OFPMC_ADD,    "add"},
+        {OFPMC_MODIFY, "mod"},
+        {OFPMC_DELETE, "del"}
+};
+
 static struct names8 table_names[] = {
         {0xff, "all"}
 };
@@ -93,7 +99,8 @@ static struct names16 inst_names[] = {
         {OFPIT_WRITE_METADATA, "meta"},
         {OFPIT_WRITE_ACTIONS,  "write"},
         {OFPIT_APPLY_ACTIONS,  "apply"},
-        {OFPIT_CLEAR_ACTIONS,  "clear"}
+        {OFPIT_CLEAR_ACTIONS,  "clear"},
+        {OFPIT_METER,  "meter"}
 };
 
 static struct names8 flow_mod_cmd_names[] = {
@@ -130,6 +137,11 @@ static struct names16 action_names[] = {
         {OFPAT_DEC_NW_TTL,     "nw_dec"},
         {OFPAT_SET_FIELD,      "set_field"}
 };
+
+static struct names16 band_names[] = {
+    {OFPMBT_DROP, "drop"},
+    {OFPMBT_DSCP_REMARK, "dscp_remark"}
+}; 
 
 #define FLOW_MOD_COMMAND       "cmd"
 #define FLOW_MOD_COOKIE        "cookie"
@@ -191,11 +203,17 @@ static struct names16 action_names[] = {
 #define GROUP_MOD_TYPE    "type"
 #define GROUP_MOD_GROUP   "group"
 
-
 #define BUCKET_WEIGHT       "weight"
 #define BUCKET_WATCH_PORT   "port"
 #define BUCKET_WATCH_GROUP  "group"
 
+#define METER_MOD_COMMAND "cmd"
+#define METER_MOD_FLAGS   "flags"
+#define METER_MOD_METER   "meter"
+
+#define BAND_RATE "rate"
+#define BAND_BURST_SIZE "burst"
+#define BAND_PREC_LEVEL "prec_level"
 
 #define CONFIG_FLAGS "flags"
 #define CONFIG_MISS  "miss"

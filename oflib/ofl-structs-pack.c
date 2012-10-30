@@ -205,7 +205,7 @@ ofl_structs_meter_band_pack(struct ofl_meter_band_header *src, struct ofp_meter_
     switch (src->type) {
         case OFPMBT_DROP:{
             struct ofp_meter_band_drop *di = (struct ofp_meter_band_drop *)dst;
-            di->len = htons(sizeof(struct ofl_meter_band_drop));
+            di->len = htons(sizeof(struct ofp_meter_band_drop));
             memset(di->pad, 0x0, 4);
             return sizeof(struct ofp_meter_band_drop);
         }
@@ -225,7 +225,7 @@ ofl_structs_meter_band_pack(struct ofl_meter_band_header *src, struct ofp_meter_
             return sizeof(struct ofp_meter_band_experimenter);        
         }
         default:
-            OFL_LOG_WARN(LOG_MODULE, "Trying to pack unknown meter type.");
+            OFL_LOG_WARN(LOG_MODULE, "Trying to pack unknown meter band.");
             return 0;
     }
 }
@@ -403,7 +403,6 @@ ofl_structs_table_properties_pack(struct ofl_table_feature_prop_header * src, st
         case OFPTFPT_APPLY_SETFIELD:
         case OFPTFPT_APPLY_SETFIELD_MISS:{
             int i;
-            uint8_t *ptr;
             struct ofl_table_feature_prop_oxm *sp = (struct ofl_table_feature_prop_oxm*) src;
             struct ofp_table_feature_prop_oxm *dp = (struct ofp_table_feature_prop_oxm*) dst;         
 
@@ -592,6 +591,89 @@ ofl_structs_group_stats_pack(struct ofl_group_stats *src, struct ofp_group_stats
         data += len;
     }
 
+    return total_len;
+}
+
+size_t 
+ofl_structs_meter_stats_ofp_len(struct ofl_meter_stats *stats){
+    return sizeof(struct ofp_meter_stats) +
+                sizeof(struct ofp_meter_band_stats) * stats->meter_bands_num;
+}
+
+size_t 
+ofl_structs_pack_band_stats(struct ofl_meter_band_stats *src, struct ofp_meter_band_stats *dst){
+
+    dst->packet_band_count = hton64(src->packet_band_count);
+    dst->byte_band_count = hton64(src->byte_band_count);
+    
+    return sizeof(struct ofp_meter_band_stats);
+}
+
+size_t
+ofl_structs_meter_stats_ofp_total_len(struct ofl_meter_stats **stats, size_t stats_num){
+    size_t sum;
+    OFL_UTILS_SUM_ARR_FUN(sum, stats, stats_num,
+            ofl_structs_meter_stats_ofp_len);
+    return sum;
+}
+
+size_t
+ofl_structs_meter_stats_pack(struct ofl_meter_stats *src, struct ofp_meter_stats *dst){
+    size_t total_len;
+    size_t i;
+
+    total_len = sizeof(struct ofp_meter_stats) +
+                sizeof(struct ofp_meter_band_stats) * src->meter_bands_num;
+
+    dst->meter_id = htonl(src->meter_id);
+    dst->len =       htons( total_len);
+    memset(dst->pad, 0x00, 6);
+    dst->flow_count =     htonl(src->flow_count);
+    dst->packet_in_count =    hton64( src->packet_in_count);
+    dst->byte_in_count = hton64(src->byte_in_count);
+    dst->duration_sec =  htonl(src->duration_sec);
+    dst->duration_nsec =  htonl(src->duration_nsec);
+
+    for(i = 0; i < src->meter_bands_num; i++){
+        ofl_structs_pack_band_stats(src->band_stats[i], &dst->band_stats[i]);
+    }
+    return total_len;    
+
+
+}
+
+size_t 
+ofl_structs_meter_conf_ofp_len(struct ofl_meter_config * meter_conf){
+    return sizeof(struct ofp_meter_config) + 
+        ofl_structs_meter_bands_ofp_total_len(meter_conf->bands, meter_conf->meter_bands_num);
+}
+
+size_t
+ofl_structs_meter_conf_ofp_total_len(struct ofl_meter_config **meter_conf, size_t stats_num){
+    size_t sum;
+    OFL_UTILS_SUM_ARR_FUN(sum, meter_conf, stats_num,
+            ofl_structs_meter_conf_ofp_len);
+    return sum;
+}
+
+size_t
+ofl_structs_meter_conf_pack(struct ofl_meter_config *src, struct ofp_meter_config *dst, uint8_t* data){
+    size_t total_len, len;
+    int i;
+
+    total_len = sizeof(struct ofp_meter_config) + 
+        ofl_structs_meter_bands_ofp_total_len(src->bands, src->meter_bands_num);
+    
+    dst->length = ntohs(total_len);
+    dst->flags = ntohs(src->flags);
+    dst->meter_id = ntohl(src->meter_id);
+    
+    data = (uint8_t *)dst->bands;
+
+    for (i=0; i<src->meter_bands_num; i++) {
+        len = ofl_structs_meter_band_pack(src->bands[i], (struct ofp_meter_band_header *)data);
+        data += len;
+    }
     return total_len;
 }
 

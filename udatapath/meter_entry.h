@@ -63,19 +63,7 @@ struct meter_entry {
 	struct ofl_meter_stats		*stats;			/* Meter statistics */
 	struct ofl_meter_config		*config;		/* Meter configuration */
 
-	struct list					bands; 			/* List of unordered bands*/		
-
 	struct list                 flow_refs;		/* references to flows referencing the meter. */
-};
-
-struct meter_band {
-
-	struct list     	        	meter_node;			/* Refered by the meter entry */
-	
-	struct meter_entry			   *meter;
-	struct ofl_meter_band_header   *band; 
-	struct ofl_meter_band_stats    *stats;
-
 };
 
 /* Creates a meter entry. */
@@ -88,7 +76,7 @@ meter_entry_destroy(struct meter_entry *entry);
 
 /* Apply the meter entry on the packet. */
 void
-meter_entry_apply(struct meter_entry *entry, struct packet *pkt, struct flow_entry *flow_entry);
+meter_entry_apply(struct meter_entry *entry, struct packet **pkt, struct flow_entry *flow_entry);
 
 
 /* Adds a flow reference to the meter entry. */

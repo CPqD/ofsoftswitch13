@@ -1450,6 +1450,7 @@ enum ofp_flow_removed_reason {
     OFPRR_HARD_TIMEOUT = 1, /* Time exceeded hard_timeout. */
     OFPRR_DELETE = 2,       /* Evicted by a DELETE flow mod. */
     OFPRR_GROUP_DELETE = 3, /* Group was removed. */
+    OFPRR_METER_DELETE = 4, /* Meter was removed. */
 };
 
 /* A physical port has changed in the datapath */

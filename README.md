@@ -8,12 +8,8 @@ B.11.1 Refactor capabilities negotiation
 TODO
 
 - Enable ’multipart’ requests (requests spanning multiple messages).
-- Move port list description to its own multipart request/reply.
-- Move table capabilities to its own multipart request/reply.
-- Create flexible property structure to express table capabilities.
 - Enable to express experimenter capabilities.
-- Add capabilities for table-miss flow entries.
-- Add next-table (i.e. goto) capabilities
+
 
 ONGOING
 
@@ -22,19 +18,23 @@ ONGOING
 DONE
 
 - Rename ’stats’ framework into the ’multipart’ framework. 
-
+- Move port list description to its own multipart request/reply.
+- Create flexible property structure to express table capabilities.
+- Add capabilities for table-miss flow entries.
+- Add next-table (i.e. goto) capabilities
+- Move table capabilities to its own multipart request/reply.
 
 B.11.2 More flexible table miss support
 -----------------------------------------
 
 TODO
 
-- Add capabilities to describe the table-miss flow entry (EXT-123). 
 
 ONGOING
 
 DONE
 
+- Add capabilities to describe the table-miss flow entry (EXT-123). 
 - Remove table-miss config flags (EXT-108).
 - Define table-miss flow entry as the all wildcard, lowest priority flow entry (EXT-108).
 - Mandate support of the table-miss flow entry in every table to process table-miss packets (EXT-108)
@@ -66,23 +66,24 @@ TODO
 
 ONGOING
 
-- Flexible meter framework based on per-flow meters and meter bands.
-- Meter statistics, including per band statistics.
-- Enable to attach meters flexibly to flow entries.
+
 - Simple rate-limiter support (drop packets).
 
 DONE
+- Flexible meter framework based on per-flow meters and meter bands.
+- Meter statistics, including per band statistics.
+- Enable to attach meters flexibly to flow entries.
 
 B.11.5 Per connection event filtering
 --------------------------------------
 
 TODO
 
+
+ONGOING
 - Add asynchronous message filter for each controller connection.
 - Controller message to set/get the asynchronous message filter.
 - Set default filter value to match OpenFlow 1.2 behaviour.
-
-ONGOING
 
 DONE
 
@@ -119,9 +120,10 @@ B.11.8 Provider Backbone Bridging tagging
 
 TODO
 
-- Push and Pop operation to add PBB header as a tag.
+
 
 ONGOING
+- Push and Pop operation to add PBB header as a tag.
 
 DONE
 
@@ -132,12 +134,13 @@ B.11.9 Rework tag order
 
 TODO
 
+
+
+ONGOING
 - Remove defined order of tags in packet from the specification.
 - Tags are now always added in the outermost possible position.
 - Action-list can add tags in arbitrary order.
 - Tag order is predefined for tagging in the action-set.
-
-ONGOING
 
 DONE
 
@@ -157,12 +160,13 @@ Duration for stats
 
 TODO
 
-- Duration for meter stats.
+
 
 ONGOING
 
 DONE
 
+- Duration for meter stats.
 - Done for port, queue and group stats
 
 Cookies in packet-in

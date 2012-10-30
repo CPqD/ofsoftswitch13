@@ -84,6 +84,7 @@ meter_entry_create(struct datapath *dp, struct meter_table *table, struct ofl_ms
 				band->rate = mod->bands[i]->rate;
 				band->burst_size = mod->bands[i]->burst_size;
 				entry->config->bands[i] = (struct ofl_meter_band_header *) band;
+			    break;
 			}
 			case (OFPMBT_DSCP_REMARK):{
 				struct ofl_meter_band_dscp_remark *band = xmalloc(sizeof(struct ofl_meter_band_dscp_remark));
@@ -93,6 +94,7 @@ meter_entry_create(struct datapath *dp, struct meter_table *table, struct ofl_ms
 				band->burst_size = old->burst_size;
 				band->prec_level = old->prec_level;
 				entry->config->bands[i] = (struct ofl_meter_band_header *) band;
+			    break;
 			}
 			case (OFPMBT_EXPERIMENTER):{
 				struct ofl_meter_band_experimenter *band = xmalloc(sizeof(struct ofl_meter_band_experimenter));
@@ -102,6 +104,7 @@ meter_entry_create(struct datapath *dp, struct meter_table *table, struct ofl_ms
 				band->burst_size = old->burst_size;
 				band->experimenter = old->experimenter;
 				entry->config->bands[i] = (struct ofl_meter_band_header *) band;
+			    break;
 			}
     	}
     }
@@ -168,33 +171,35 @@ choose_band(struct meter_entry *entry, uint32_t current_rate)
 /// type - conversion
 // Not handle burst size
 void
-meter_entry_apply(struct meter_entry *entry, struct packet *pkt, struct flow_entry *flow_entry){
+meter_entry_apply(struct meter_entry *entry, struct packet **pkt, struct flow_entry *flow_entry){
 	
 	size_t b;
+	bool drop = false;
+	float flow_alive_time;
 	uint32_t current_rate = 0;
-	float flow_alive_time = flow_entry->stats->duration_sec * pow(10, 9) + (float)flow_entry->stats->duration_nsec;
-	if(entry->config->flags & 1){
-		current_rate = (flow_entry->stats->byte_count << 7) * pow(10, 9) / flow_alive_time; //*8/1024);
+    
+    flow_entry_update(flow_entry);
+	flow_alive_time = flow_entry->stats->duration_sec + (float)flow_entry->stats->duration_nsec * pow(10, -9);
+	if(entry->config->flags & OFPMF_KBPS){
+		current_rate = ((flow_entry->stats->byte_count  * 8)/1000) / flow_alive_time;
 	}
-	else if(entry->config->flags & 2){
-		current_rate = flow_entry->stats->packet_count * pow(10, 9) / flow_alive_time;
+	else if(entry->config->flags & OFPMF_PKTPS){
+		current_rate = flow_entry->stats->packet_count / flow_alive_time;
 	}
-
 	b = choose_band(entry, current_rate);
 	if(b != -1){
-		//struct packet *p = packet_clone(pkt);
 		struct ofl_meter_band_header *band_header = (struct ofl_meter_band_header*)  entry->config->bands[b];
 
-		switch(entry->config->bands[b]->type){
+		switch(band_header->type){
 			case OFPMBT_DROP:{
-				packet_destroy(pkt);
+                drop = true;
 				break;
 			}
 			case OFPMBT_DSCP_REMARK:{
 				struct ofl_meter_band_dscp_remark *band_header = (struct ofl_meter_band_dscp_remark *)  entry->config->bands[b];
 				// descrease dscp in ipv4 header
-				uint8_t new_dscp = (pkt->handle_std->proto->ipv4->ip_tos >> 5) - band_header->prec_level;
-				pkt->handle_std->proto->ipv4->ip_tos = (new_dscp << 5) | (pkt->handle_std->proto->ipv4->ip_tos & 0x1f);
+				uint8_t new_dscp = ((*pkt)->handle_std->proto->ipv4->ip_tos >> 5) - band_header->prec_level;
+				(*pkt)->handle_std->proto->ipv4->ip_tos = (new_dscp << 5) | ((*pkt)->handle_std->proto->ipv4->ip_tos & 0x1f);
 				break;
 			}
 			case OFPMBT_EXPERIMENTER:{
@@ -202,10 +207,14 @@ meter_entry_apply(struct meter_entry *entry, struct packet *pkt, struct flow_ent
 			}
 		}
 		entry->stats->packet_in_count++;
-		entry->stats->byte_in_count += pkt->buffer->size;
-		entry->stats->band_stats[b]->byte_band_count += pkt->buffer->size;
+		entry->stats->byte_in_count += (*pkt)->buffer->size;
+		entry->stats->band_stats[b]->byte_band_count += (*pkt)->buffer->size;
 		entry->stats->band_stats[b]->packet_band_count++;
-
+        if (drop){
+            VLOG_DBG_RL(LOG_MODULE, &rl, "Dropping packet : %d , rate %d", current_rate, band_header->rate);
+			packet_destroy(*pkt);
+			*pkt = NULL;
+        }
 	}
 }
 

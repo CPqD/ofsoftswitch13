@@ -53,7 +53,8 @@ struct sender;
 
 struct group_table {
     struct datapath  *dp;
-    size_t            entries_num;
+	struct ofl_msg_multipart_reply_group_features *features;   
+	size_t            entries_num;
     struct hmap       entries;
     size_t            buckets_num;
 };
@@ -74,6 +75,12 @@ ofl_err
 group_table_handle_stats_request_group_desc(struct group_table *table,
         struct ofl_msg_multipart_request_header *msg,
         const struct sender *sender);
+
+/* Handles a group features stats request message */
+ofl_err
+group_table_handle_stats_request_group_features(struct group_table *table,
+                                  struct ofl_msg_multipart_request_header *msg UNUSED,
+                                  const struct sender *sender);
 
 /* Returns the group entry with the given ID. */
 struct group_entry *

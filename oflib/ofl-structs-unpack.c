@@ -170,7 +170,7 @@ ofl_structs_instructions_unpack(struct ofp_instruction *src, size_t *len, struct
                 OFL_LOG_WARN(LOG_MODULE, "Received METER instruction has invalid length (%zu).", *len);
                 return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
             }
-            
+            si = (struct ofp_instruction_meter*)src;
             di = (struct ofl_instruction_meter *)malloc(sizeof(struct ofl_instruction_meter));
 
             di->meter_id = ntohl(si->meter_id);
@@ -298,7 +298,7 @@ ofl_structs_table_properties_unpack(struct ofp_table_feature_prop_header * src, 
 			    return error;
 			}
 			
-			dp->action_ids = (struct ofp_action_header*) malloc(sizeof(struct ofp_action_header) * dp->actions_num);
+			dp->action_ids = (struct ofl_action_header*) malloc(sizeof(struct ofl_action_header) * dp->actions_num);
 			
 			ptr = (uint8_t*) sp->action_ids;	
 			for(i = 0; i < dp->actions_num; i++){
@@ -318,23 +318,19 @@ ofl_structs_table_properties_unpack(struct ofp_table_feature_prop_header * src, 
         case OFPTFPT_APPLY_SETFIELD_MISS:{
 			struct ofp_table_feature_prop_oxm *sp = (struct ofp_table_feature_prop_oxm*) src;
 			struct ofl_table_feature_prop_oxm *dp;
-			size_t oxm_len, i;
+			size_t i;
 			
 			if (plen < sizeof(struct ofp_table_feature_prop_oxm)) {
                 OFL_LOG_WARN(LOG_MODULE, "Received MATCH feature has invalid length (%zu).", *len);
                 return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_LEN);
             }			
 			
-			oxm_len = plen - sizeof(struct ofp_table_feature_prop_oxm);
 			dp = (struct ofl_table_feature_prop_oxm*) malloc(sizeof(struct ofl_table_feature_prop_oxm));		
 		    
 		    dp->oxm_num = (ntohs(sp->length) - sizeof(struct ofp_table_feature_prop_oxm))/sizeof(uint32_t);
             dp->oxm_ids = (uint32_t*) malloc(sizeof(uint32_t) * dp->oxm_num);
-            printf("start %d\n", OXM_OF_METADATA);
             for(i = 0; i < dp->oxm_num; i++ ){
-                if (ntohs(src->type) == OFPTFPT_WILDCARDS)
-                    printf("TYPE %d\n",  ntohl(sp->oxm_ids[i]));
-                dp->oxm_ids[i] = ntohl(sp->oxm_ids[i]);
+                    dp->oxm_ids[i] = ntohl(sp->oxm_ids[i]);
             }
             plen -= ntohs(sp->length);  		    
 		    prop = (struct ofl_table_feature_prop_header*) dp;	
@@ -342,7 +338,6 @@ ofl_structs_table_properties_unpack(struct ofp_table_feature_prop_header * src, 
 			break;
 		}				
 	}
-
     // must set type before check, so free works correctly
     prop->type = (enum ofp_table_feature_prop_type) ntohs(src->type);
 
@@ -492,7 +487,7 @@ ofl_structs_flow_stats_unpack(struct ofp_flow_stats *src, uint8_t *buf, size_t *
     int match_pos;
     if (*len < ( (sizeof(struct ofp_flow_stats) - sizeof(struct ofp_match)) + ROUND_UP(ntohs(src->match.length),8))) {
         OFL_LOG_WARN(LOG_MODULE, "Received flow stats has invalid length (%zu).", *len);
-        return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
 
     if (*len < ntohs(src->length)) {
@@ -506,7 +501,7 @@ ofl_structs_flow_stats_unpack(struct ofp_flow_stats *src, uint8_t *buf, size_t *
             OFL_LOG_WARN(LOG_MODULE, "Received flow stats has invalid table_id (%s).", ts);
             free(ts);
         }
-        return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
     }
 
     slen = ntohs(src->length) - (sizeof(struct ofp_flow_stats) - sizeof(struct ofp_match));
@@ -573,7 +568,7 @@ ofl_structs_group_stats_unpack(struct ofp_group_stats *src, size_t *len, struct 
 
     if (*len < sizeof(struct ofp_group_stats)) {
         OFL_LOG_WARN(LOG_MODULE, "Received group desc stats reply is too short (%zu).", *len);
-        return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
 
     if (*len < ntohs(src->length)) {
@@ -629,6 +624,138 @@ ofl_structs_group_stats_unpack(struct ofp_group_stats *src, size_t *len, struct 
     return 0;
 }
 
+ofl_err
+ofl_structs_meter_band_stats_unpack(struct ofp_meter_band_stats *src, size_t *len, struct ofl_meter_band_stats **dst){
+    struct ofl_meter_band_stats *p;
+
+    if (*len < sizeof(struct ofp_meter_band_stats)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received meter band stats has invalid length (%zu).", *len);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+    *len -= sizeof(struct ofp_meter_band_stats);
+
+    p = (struct ofl_meter_band_stats *)malloc(sizeof(struct ofl_meter_band_stats));
+    p->packet_band_count = ntoh64(src->packet_band_count);
+    p->byte_band_count =   ntoh64(src->byte_band_count);
+
+    *dst = p;
+    return 0; 
+ 
+}
+
+ofl_err
+ofl_structs_meter_stats_unpack(struct ofp_meter_stats *src, size_t *len, struct ofl_meter_stats **dst) {
+    struct ofl_meter_stats *s;
+    struct ofp_meter_band_stats *c;
+    ofl_err error;
+    size_t slen;
+    size_t i;
+
+    if (*len < sizeof(struct ofp_meter_stats)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received meter stats reply is too short (%zu).", *len);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+
+    if (*len < ntohs(src->len)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received meter stats reply has invalid length (set to %u, but only %zu received).", ntohs(src->len), *len);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+
+    slen = ntohs(src->len) - sizeof(struct ofp_meter_stats);
+
+    s = (struct ofl_meter_stats *) malloc(sizeof(struct ofl_meter_stats));
+    s->meter_id = ntohl(src->meter_id);
+    s->len = ntohs(src->len);
+    
+    s->flow_count = ntohl(src->flow_count);
+    s->packet_in_count = ntoh64(src->packet_in_count);
+    s->byte_in_count = ntoh64(src->byte_in_count);
+    s->duration_sec =  htonl(src->duration_sec);
+    s->duration_nsec =  htonl(src->duration_nsec);
+
+    error = ofl_utils_count_ofp_meter_band_stats(src->band_stats, slen, &s->meter_bands_num);
+    if (error) {
+        free(s);
+        return error;
+    }
+    s->band_stats = (struct ofl_meter_band_stats **)malloc(s->meter_bands_num * sizeof(struct ofl_meter_band_stats *));
+
+    c = src->band_stats;
+    for (i = 0; i < s->meter_bands_num; i++) {
+        error = ofl_structs_meter_band_stats_unpack(c, &slen, &(s->band_stats[i]));
+        if (error) {
+            OFL_UTILS_FREE_ARR(s->band_stats, i);
+            free(s);
+            return error;
+        }
+        c = (struct ofp_meter_band_stats *)((uint8_t *)c + sizeof(struct ofp_meter_band_stats));
+    }
+
+    if (slen != 0) {
+        *len = *len - ntohs(src->len) + slen;
+        OFL_LOG_WARN(LOG_MODULE, "The received meter stats contained extra bytes (%zu).", slen);
+        ofl_structs_free_meter_stats(s);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+    *len -= ntohs(src->len);
+    *dst = s;
+    return 0;
+}
+
+ofl_err
+ofl_structs_meter_config_unpack(struct ofp_meter_config *src, size_t *len, struct ofl_meter_config **dst) {
+    struct ofl_meter_config *s;
+    struct ofp_meter_band_header *b;
+    ofl_err error;
+    size_t slen;
+    size_t i;
+
+    if (*len < sizeof(struct ofp_meter_config)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received meter config reply is too short (%zu).", *len);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+
+    if (*len < ntohs(src->length)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received meter config reply has invalid length (set to %u, but only %zu received).", ntohs(src->length), *len);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+
+    slen = ntohs(src->length) - sizeof(struct ofp_meter_config);
+
+    s = (struct ofl_meter_config *) malloc(sizeof(struct ofl_meter_config));
+    s->meter_id = ntohl(src->meter_id);
+    s->length = ntohs(src->length);
+    
+    s->flags = ntohs(src->flags);
+
+    error = ofl_utils_count_ofp_meter_bands(src->bands, slen, &s->meter_bands_num);
+    if (error) {
+        free(s);
+        return error;
+    }
+    s->bands = (struct ofl_meter_band_header **)malloc(s->meter_bands_num * sizeof(struct ofl_meter_band_header *));
+
+    b= src->bands;
+    for (i = 0; i < s->meter_bands_num; i++) {
+        error = ofl_structs_meter_band_unpack(b, &slen, &(s->bands[i]));
+        if (error) {
+            OFL_UTILS_FREE_ARR(s->bands, i);
+            free(s);
+            return error;
+        }
+        b = (struct ofp_meter_band_header *)((uint8_t *)b + ntohs(b->len));
+    }
+
+    if (slen != 0) {
+        *len = *len - ntohs(src->length) + slen;
+        OFL_LOG_WARN(LOG_MODULE, "The received meter config contained extra bytes (%zu).", slen);
+        //ofl_structs_free_meter_stats(s);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+    *len -= ntohs(src->length);
+    *dst = s;
+    return 0;
+}
 
 ofl_err
 ofl_structs_queue_prop_unpack(struct ofp_queue_prop_header *src, size_t *len, struct ofl_queue_prop_header **dst) {
@@ -753,7 +880,6 @@ ofl_structs_port_unpack(struct ofp_port *src, size_t *len, struct ofl_port **dst
         return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
     }
     *len -= sizeof(struct ofp_port);
-
     p = (struct ofl_port *)malloc(sizeof(struct ofl_port));
 
     p->port_no = ntohl(src->port_no);
@@ -959,16 +1085,14 @@ ofl_structs_bucket_counter_unpack(struct ofp_bucket_counter *src, size_t *len, s
 
 ofl_err
 ofl_structs_meter_band_unpack(struct ofp_meter_band_header *src, size_t *len, struct ofl_meter_band_header **dst){
-	/*struct ofl_meter_band_header *mb;
-	ofl_err error;
-	size_t i;
+	struct ofl_meter_band_header *mb;
 
 	if(*len < sizeof(struct ofp_meter_band_header)){
 		OFL_LOG_WARN(LOG_MODULE, "Received meter band is too short (%zu).", *len);
 		return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
 	}
-	//mb = (struct ofl_meter_band_header *) malloc(sizeof(struct ofl_meter_band_header));
-	switch (src->type){
+	mb = (struct ofl_meter_band_header *) malloc(sizeof(struct ofl_meter_band_header));
+	switch (ntohs(src->type)){
 		case OFPMBT_DROP:{
 			struct ofl_meter_band_drop *b = (struct ofl_meter_band_drop *)malloc(sizeof(struct ofl_meter_band_drop));
 			b->type = ntohs(src->type);
@@ -979,28 +1103,30 @@ ofl_structs_meter_band_unpack(struct ofp_meter_band_header *src, size_t *len, st
 			break;
 		}
 		case OFPMBT_DSCP_REMARK:{
-			struct ofl_meter_band_dscp_remark *b = (struct ofl_meter_band_dscp_remark *)malloc(sizeof(ofl_meter_band_dscp_remark));
-			b->type = ntohs(src->type);
-			b->rate = ntohl(src->rate);
-			b->burst_size = ntohl(src->burst_size);
-			b->prec_level = src->prec_level;
+			struct ofl_meter_band_dscp_remark *b = (struct ofl_meter_band_dscp_remark *)malloc(sizeof(struct ofl_meter_band_dscp_remark));
+			struct ofp_meter_band_dscp_remark *s = (struct ofp_meter_band_dscp_remark*)src;
+			b->type = ntohs(s->type);
+			b->rate = ntohl(s->rate);
+			b->burst_size = ntohl(s->burst_size);
+			b->prec_level = s->prec_level;
 			mb = (struct ofl_meter_band_header *)b;
 			*dst = mb;
 			break;
 		}
 		case OFPMBT_EXPERIMENTER:{
-			struct ofl_meter_band_experimenter *b = (struct ofl_meter_band_experimenter *)malloc(sizeof(ofl_meter_band_experimenter));
-			b->type = ntohs(src->type);
-			b->rate = ntohl(src->rate);
-			b->burst_size = ntohl(src->burst_size);
-			b->experimenter = ntohl(src->experimenter);
+			struct ofl_meter_band_experimenter *b = (struct ofl_meter_band_experimenter *)malloc(sizeof(struct ofl_meter_band_experimenter));
+			struct ofp_meter_band_experimenter *s = (struct ofp_meter_band_experimenter*) src;
+			b->type = ntohs(s->type);
+			b->rate = ntohl(s->rate);
+			b->burst_size = ntohl(s->burst_size);
+			b->experimenter = ntohl(s->experimenter);
 			mb = (struct ofl_meter_band_header *)b;
 			*dst = mb;
 			break;
 		}
 	}
 	*len -= ntohs(src->len);
-	return 0;*/
+	return 0;
 }
 
 

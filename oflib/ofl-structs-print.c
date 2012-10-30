@@ -94,8 +94,7 @@ ofl_structs_instruction_print(FILE *stream, struct ofl_instruction_header *inst,
 
     switch(inst->type) {
         case (OFPIT_GOTO_TABLE): {
-            struct ofl_instruction_goto_table *i = (struct ofl_instruction_goto_table *)inst;
-
+            struct ofl_instruction_goto_table *i = (struct ofl_instruction_goto_table*)inst;
             fprintf(stream, "{table=\"%u\"}", i->table_id);
 
             break;
@@ -123,6 +122,11 @@ ofl_structs_instruction_print(FILE *stream, struct ofl_instruction_header *inst,
             break;
         }
         case (OFPIT_CLEAR_ACTIONS): {
+            break;
+        }
+        case (OFPIT_METER):{
+            struct ofl_instruction_meter *i = (struct ofl_instruction_meter *)inst;
+            fprintf(stream, "{meter=\"%u\"}", i->meter_id);          
             break;
         }
         case (OFPIT_EXPERIMENTER): {
@@ -597,7 +601,7 @@ ofl_structs_bucket_counter_print(FILE *stream, struct ofl_bucket_counter *c) {
 
 char *
 ofl_structs_group_stats_to_string(struct ofl_group_stats *s) {
-        char *str;
+    char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
     ofl_structs_group_stats_print(stream, s);
@@ -620,6 +624,135 @@ ofl_structs_group_stats_print(FILE *stream, struct ofl_group_stats *s) {
     }
 
     fprintf(stream, "]}");
+}
+
+char*
+ofl_structs_meter_band_to_string(struct ofl_meter_band_header* s){
+    char *str;
+    size_t str_size;
+    FILE *stream = open_memstream(&str, &str_size);
+    ofl_structs_meter_band_print(stream, s);
+    fclose(stream);
+    return str;
+
+
+}
+
+void
+ofl_structs_meter_band_print(FILE *stream, struct ofl_meter_band_header* s){
+    fprintf(stream, "{type = ");
+    ofl_meter_band_type_print(stream, s->type);
+    switch(s->type){
+        case(OFPMBT_DROP):{
+            struct ofl_meter_band_drop *d = (struct ofl_meter_band_drop*)s;
+            fprintf(stream, ", rate=\"%"PRIu32"\", burst_size=\"%"PRIu32"\"}",
+                  d->rate, d->burst_size);                    
+            break;
+        }
+        case(OFPMBT_DSCP_REMARK):{
+            struct ofl_meter_band_dscp_remark *d = (struct ofl_meter_band_dscp_remark*)s;
+            fprintf(stream, ", rate=\"%"PRIu32"\", burst_size=\"%"PRIu32"\", prec_level=\"%u\"}",
+                  d->rate, d->burst_size, d->prec_level);         
+            break;
+        }
+        case(OFPMBT_EXPERIMENTER):{
+            struct ofl_meter_band_experimenter *d = (struct ofl_meter_band_experimenter*)s;
+            fprintf(stream, ", rate=\"%"PRIu32"\", burst_size=\"%"PRIu32"\", exp_id=\"%"PRIu32"\"}",
+                  d->rate, d->burst_size, d->experimenter);           
+            break;
+        }
+    }
+}
+
+char* 
+ofl_structs_meter_band_stats_to_string(struct ofl_meter_band_stats* s){
+    char *str;
+    size_t str_size;
+    FILE *stream = open_memstream(&str, &str_size);
+    ofl_structs_meter_band_stats_print(stream, s);
+    fclose(stream);
+    return str;
+}
+
+void
+ofl_structs_meter_band_stats_print(FILE *stream, struct ofl_meter_band_stats* s){
+    fprintf(stream, "{pkt_band_cnt=\"%"PRIu64"\", byte_band_cnt=\"%"PRIu64"\"}",
+                  s->packet_band_count, s->byte_band_count);
+}
+
+char* 
+ofl_structs_meter_stats_to_string(struct ofl_meter_stats* s){
+    char *str;
+    size_t str_size;
+    FILE *stream = open_memstream(&str, &str_size);
+    ofl_structs_meter_stats_print(stream, s);
+    fclose(stream);
+    return str;
+}
+
+void
+ofl_structs_meter_stats_print(FILE *stream, struct ofl_meter_stats* s){
+    size_t i;
+
+    fprintf(stream, "{meter= %x\"", s->meter_id);
+    fprintf(stream, "\", flow_cnt=\"%u\", pkt_in_cnt=\"%"PRIu64"\", byte_in_cnt=\"%"PRIu64"\"" 
+                    "duration_sec=\"%"PRIu32"\", duration_nsec=\"%"PRIu32"\", bands=[",
+                  s->flow_count, s->packet_in_count, s->byte_in_count, 
+                  s->duration_sec, s->duration_nsec);
+  
+    for (i=0; i<s->meter_bands_num; i++) {
+        ofl_structs_meter_band_stats_print(stream, s->band_stats[i]);
+        if (i < s->meter_bands_num - 1) { fprintf(stream, ", "); };
+    }
+
+    fprintf(stream, "]}");                
+}
+
+char* 
+ofl_structs_meter_config_to_string(struct ofl_meter_config* s){
+    char *str;
+    size_t str_size;
+    FILE *stream = open_memstream(&str, &str_size);
+    ofl_structs_meter_config_print(stream, s);
+    fclose(stream);
+    return str;
+}
+
+void
+ofl_structs_meter_config_print(FILE *stream, struct ofl_meter_config* s){
+    size_t i;
+    
+    fprintf(stream, "{meter= %x\"", s->meter_id);
+    fprintf(stream, "\", flags=\"%"PRIx16"\", bands=[",
+                  s->flags);    
+
+    for (i=0; i<s->meter_bands_num; i++) {
+        ofl_structs_meter_band_print(stream, s->bands[i]);
+        if (i < s->meter_bands_num - 1) { fprintf(stream, ", "); };
+    }
+
+    fprintf(stream, "]}"); 
+
+}
+
+char* 
+ofl_structs_meter_features_to_string(struct ofl_meter_features* s){
+    char *str;
+    size_t str_size;
+    FILE *stream = open_memstream(&str, &str_size);
+    ofl_structs_meter_features_print(stream, s);
+    fclose(stream);
+    return str;
+}
+
+void
+ofl_structs_meter_features_print(FILE *stream, struct ofl_meter_features* s){
+    
+    fprintf(stream, "{max_meter=\"%"PRIu32"\", band_types=\"%"PRIx32"\","
+            "capabilities =\"%"PRIx32"\", max_bands = %u , max_color = %u",  
+                s->max_meter, s->band_types, s->capabilities, s->max_bands, s->max_color);
+    fprintf(stream, "}"); 
+
 }
 
 char *
@@ -817,4 +950,29 @@ ofl_structs_group_desc_stats_print(FILE *stream, struct ofl_group_desc_stats *s,
     }
 
     fprintf(stream, "]}");
+}
+
+char *
+ofl_structs_async_config_to_string(struct ofl_async_config *s) {
+    char *str;
+    size_t str_size;
+    FILE *stream = open_memstream(&str, &str_size);
+    ofl_structs_async_config_print(stream, s);
+    fclose(stream);
+    return str;
+}
+
+
+void
+ofl_structs_async_config_print(FILE * stream, struct ofl_async_config *s){
+    fprintf(stream, "{equal=[");
+    ofl_async_packet_in(stream, s->packet_in_mask[0]);
+    ofl_async_port_status(stream, s->port_status_mask[0]);
+    ofl_async_flow_removed(stream, s->flow_removed_mask[0]);
+    fprintf(stream, "], ");    
+    fprintf(stream, "slave=[");
+    ofl_async_packet_in(stream, s->packet_in_mask[1]);
+    ofl_async_port_status(stream, s->port_status_mask[1]);
+    ofl_async_flow_removed(stream, s->flow_removed_mask[1]);
+    fprintf(stream, "]}");        
 }

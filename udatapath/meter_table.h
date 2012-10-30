@@ -53,10 +53,10 @@
 /* Meter table */
 struct meter_table {
     struct datapath		*dp;				/* The datapath */
+	struct ofl_meter_features *features;	
 	size_t				entries_num;		/* The number of meters */
-    struct list			meter_entries;			/* Meter entries */
-
-	struct ofl_meter_features *features;
+    struct hmap			meter_entries;	    /* Meter entries */
+	size_t              bands_num;
 };
 
 
@@ -74,7 +74,7 @@ meter_table_find(struct meter_table *table, uint32_t meter_id);
 
 /* Apply the given meter on the packet. */
 void
-meter_table_apply(struct meter_table *table, struct packet *packet, uint32_t meter_id, struct flow_entry *flow_entry);
+meter_table_apply(struct meter_table *table, struct packet **packet, uint32_t meter_id, struct flow_entry *flow_entry);
 
 /* Handles a meter_mod message. */
 ofl_err
@@ -84,14 +84,18 @@ meter_table_handle_meter_mod(struct meter_table *table, struct ofl_msg_meter_mod
 /* Handles a meter stats request message. */
 ofl_err
 meter_table_handle_stats_request_meter(struct meter_table *table,
-                                  struct ofl_msg_meter_multipart_request *msg,
+                                  struct ofl_msg_multipart_meter_request *msg,
                                   const struct sender *sender UNUSED);
 
 /* Handles a meter config request message. */
 ofl_err
 meter_table_handle_stats_request_meter_conf(struct meter_table *table,
-                                  struct ofl_msg_meter_multipart_request *msg UNUSED,
+                                  struct ofl_msg_multipart_meter_request *msg UNUSED,
                                   const struct sender *sender);
 
+ofl_err
+meter_table_handle_features_request(struct meter_table *table,
+                                   struct ofl_msg_multipart_request_header *msg UNUSED,
+                                  const struct sender *sender); 
 
 #endif /* METER_TABLE_H */

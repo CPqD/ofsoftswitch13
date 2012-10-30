@@ -47,10 +47,6 @@
 
 static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(60, 60);
 
-static bool
-is_in(uint32_t id, struct list *list);
-
-
 /* Creates a meter table. */
 struct meter_table *
 meter_table_create(struct datapath *dp) {
@@ -59,8 +55,7 @@ meter_table_create(struct datapath *dp) {
     table = xmalloc(sizeof(struct meter_table));
     table->dp = dp;
     table->entries_num = 0;
-    hmap_init(&table->entries);
-    table->bands_num = 0;
+    hmap_init(&table->meter_entries);
  
 	table->features = xmalloc(sizeof(struct ofl_meter_features));
 	table->features->max_meter = DEFAULT_MAX_METER;
@@ -77,7 +72,7 @@ void
 meter_table_destroy(struct meter_table *table) {
     struct meter_entry *entry, *next;
 
-    HMAP_FOR_EACH_SAFE(entry, next, struct meter_entry, node, &table->entries) {
+    HMAP_FOR_EACH_SAFE(entry, next, struct meter_entry, node, &table->meter_entries) {
         meter_entry_destroy(entry);
     }
     ///////////////////////////free features
@@ -89,7 +84,7 @@ struct meter_entry *
 meter_table_find(struct meter_table *table, uint32_t meter_id) {
     struct hmap_node *hnode;
 
-    hnode = hmap_first_with_hash(&table->entries, meter_id);
+    hnode = hmap_first_with_hash(&table->meter_entries, meter_id);
 
     if (hnode == NULL) {
         return NULL;
@@ -101,7 +96,7 @@ meter_table_find(struct meter_table *table, uint32_t meter_id) {
 
 
 void
-meter_table_apply(struct meter_table *table, struct packet *packet, uint32_t meter_id, struct flow_entry *flow_entry) {
+meter_table_apply(struct meter_table *table, struct packet **packet, uint32_t meter_id, struct flow_entry *flow_entry) {
     struct meter_entry *entry;
 
     entry = meter_table_find(table, meter_id);
@@ -121,7 +116,7 @@ meter_table_add(struct meter_table *table, struct ofl_msg_meter_mod *mod) {
 
     struct meter_entry *entry;
 
-    if (hmap_first_with_hash(&table->entries, mod->meter_id) != NULL) {
+    if (hmap_first_with_hash(&table->meter_entries, mod->meter_id) != NULL) {
         return ofl_error(OFPET_METER_MOD_FAILED, OFPMMFC_METER_EXISTS);
     }
 
@@ -135,12 +130,11 @@ meter_table_add(struct meter_table *table, struct ofl_msg_meter_mod *mod) {
 
     entry = meter_entry_create(table->dp, table, mod);
 
-    hmap_insert(&table->entries, &entry->node, entry->stats->meter_id);
+    hmap_insert(&table->meter_entries, &entry->node, entry->stats->meter_id);
 
     table->entries_num++;
     table->bands_num += entry->stats->meter_bands_num;
-
-    ofl_msg_free_meter_mod(mod);
+    ofl_msg_free_meter_mod(mod, false);
     return 0;
 }
 
@@ -154,24 +148,23 @@ meter_table_modify(struct meter_table *table, struct ofl_msg_meter_mod *mod) {
         return ofl_error(OFPET_METER_MOD_FAILED, OFPMMFC_UNKNOWN_METER);
     }
 
-    if (table->bands_num - entry->bands_num + mod->meter_bands_num > METER_TABLE_MAX_BANDS) {
+    if (table->bands_num - entry->config->meter_bands_num + mod->meter_bands_num > METER_TABLE_MAX_BANDS) {
         return ofl_error(OFPET_METER_MOD_FAILED, OFPMMFC_OUT_OF_BANDS);
     }
 
     new_entry = meter_entry_create(table->dp, table, mod);
 
-    hmap_remove(&table->entries, &entry->node);
-    hmap_insert_fast(&table->entries, &new_entry->node, mod->meter_id);
+    hmap_remove(&table->meter_entries, &entry->node);
+    hmap_insert_fast(&table->meter_entries, &new_entry->node, mod->meter_id);
 
-    table->bands_num = table->bands_num - entry->bands_num + new_entry->stats->meter_bands_num;
+    table->bands_num = table->bands_num - entry->config->meter_bands_num + new_entry->stats->meter_bands_num;
 
     /* keep flow references from old meter entry */
     list_replace(&new_entry->flow_refs, &entry->flow_refs);
     list_init(&entry->flow_refs);
 
     meter_entry_destroy(entry);
-
-    ofl_msg_free_meter_mod(mod);
+    ofl_msg_free_meter_mod(mod, false);
     return 0;
 }
 
@@ -181,20 +174,19 @@ meter_table_delete(struct meter_table *table, struct ofl_msg_meter_mod *mod) {
     if (mod->meter_id == OFPM_ALL) {
         struct meter_entry *entry, *next;
 
-        HMAP_FOR_EACH_SAFE(entry, next, struct meter_entry, node, &table->entries) {
+        HMAP_FOR_EACH_SAFE(entry, next, struct meter_entry, node, &table->meter_entries) {
             meter_entry_destroy(entry);
         }
-        hmap_destroy(&table->entries);
-        hmap_init(&table->entries);
+        hmap_destroy(&table->meter_entries);
+        hmap_init(&table->meter_entries);
 
         table->entries_num = 0;
         table->bands_num = 0;
-
-        ofl_msg_free_meter_mod(mod);
+        ofl_msg_free_meter_mod(mod, false);
         return 0;
 
     } else {
-        struct meter_entry *entry, *e;
+        struct meter_entry *entry;
 
         entry = meter_table_find(table, mod->meter_id);
 
@@ -203,11 +195,10 @@ meter_table_delete(struct meter_table *table, struct ofl_msg_meter_mod *mod) {
             table->entries_num--;
             table->bands_num -= entry->stats->meter_bands_num;
 
-            hmap_remove(&table->entries, &entry->node);
+            hmap_remove(&table->meter_entries, &entry->node);
             meter_entry_destroy(entry);
         }
-
-        ofl_msg_free_meter_mod(mod);
+        ofl_msg_free_meter_mod(mod, false);
         return 0;
     }
 }
@@ -215,18 +206,8 @@ meter_table_delete(struct meter_table *table, struct ofl_msg_meter_mod *mod) {
 ofl_err
 meter_table_handle_meter_mod(struct meter_table *table, struct ofl_msg_meter_mod *mod,
                                                           const struct sender *sender) {
-    ofl_err error;
-    size_t i;
-
     if(sender->remote->role == OFPCR_ROLE_SLAVE)
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_IS_SLAVE);
-
-    /*for (i=0; i< mod->meter_bands_num; i++) {
-        error = dp_actions_validate(table->dp, mod->buckets[i]->actions_num, mod->buckets[i]->actions);
-        if (error) {
-            return error;
-        }
-    }*/
 
     switch (mod->command) {
         case (OFPMC_ADD): {
@@ -244,11 +225,9 @@ meter_table_handle_meter_mod(struct meter_table *table, struct ofl_msg_meter_mod
     }
 }
 
-
-
 ofl_err
 meter_table_handle_stats_request_meter(struct meter_table *table,
-                                  struct ofl_msg_meter_multipart_request *msg,
+                                  struct ofl_msg_multipart_meter_request *msg,
                                   const struct sender *sender UNUSED) {
     struct meter_entry *entry;
 
@@ -263,18 +242,18 @@ meter_table_handle_stats_request_meter(struct meter_table *table,
     }
 
     {
-        struct ofl_msg_stats_reply_meter reply =
+        struct ofl_msg_multipart_reply_meter reply =
                 {{{.type = OFPT_MULTIPART_REPLY},
                   .type = OFPMP_METER, .flags = 0x0000},
-                 .stats_num = msg->meter_id == OFPG_ALL ? table->entries_num : 1,
-                 .stats     = xmalloc(sizeof(struct ofl_meter_stats *) * (msg->meter_id == OFPG_ALL ? table->entries_num : 1))
+                 .stats_num = msg->meter_id == OFPM_ALL ? table->entries_num : 1,
+                 .stats     = xmalloc(sizeof(struct ofl_meter_stats *) * (msg->meter_id == OFPM_ALL ? table->entries_num : 1))
                 };
 
-        if (msg->meter_id == OFPG_ALL) {
+        if (msg->meter_id == OFPM_ALL) {
             struct meter_entry *e;
             size_t i = 0;
 
-            HMAP_FOR_EACH(e, struct meter_entry, node, &table->entries) {
+            HMAP_FOR_EACH(e, struct meter_entry, node, &table->meter_entries) {
                  reply.stats[i] = e->stats;
                  i++;
              }
@@ -293,22 +272,40 @@ meter_table_handle_stats_request_meter(struct meter_table *table,
 
 ofl_err
 meter_table_handle_stats_request_meter_conf(struct meter_table *table,
-                                  struct ofl_msg_meter_multipart_request *msg UNUSED,
+                                  struct ofl_msg_multipart_meter_request *msg UNUSED,
                                   const struct sender *sender) {
     struct meter_entry *entry;
-    size_t i = 0;
+
+    if (msg->meter_id == OFPM_ALL) {
+        entry = NULL;
+    } else {
+        entry = meter_table_find(table, msg->meter_id);
+
+        if (entry == NULL) {
+            return ofl_error(OFPET_METER_MOD_FAILED, OFPMMFC_UNKNOWN_METER);
+        }
+    }
 
     struct ofl_msg_multipart_reply_meter_conf reply =
             {{{.type = OFPT_MULTIPART_REPLY},
               .type = OFPMP_METER_CONFIG, .flags = 0x0000},
              .stats_num = table->entries_num,
-             .stats     = xmalloc(sizeof(struct ofl_meter_config *) * table->entries_num)
+             .stats     = xmalloc(sizeof(struct ofl_meter_config *) * (msg->meter_id == OFPM_ALL ? table->entries_num : 1))
             };
 
-    HMAP_FOR_EACH(entry, struct meter_entry, node, &table->entries) {
-        reply.stats[i] = entry->config;
-        i++;
+    if (msg->meter_id == OFPM_ALL) {
+        struct meter_entry *e;
+        size_t i = 0;
+
+        HMAP_FOR_EACH(e, struct meter_entry, node, &table->meter_entries) {
+            reply.stats[i] = e->config;
+            i++;
+        }
+
+    } else {
+        reply.stats[0] = entry->config;
     }
+
     dp_send_message(table->dp, (struct ofl_msg_header *)&reply, sender);
 
     free(reply.stats);
@@ -316,3 +313,20 @@ meter_table_handle_stats_request_meter_conf(struct meter_table *table,
     return 0;
 }
 
+ofl_err
+meter_table_handle_features_request(struct meter_table *table,
+                                   struct ofl_msg_multipart_request_header *msg UNUSED,
+                                  const struct sender *sender) {
+ 
+    struct ofl_msg_multipart_reply_meter_features reply = 
+                                         {{{.type = OFPT_MULTIPART_REPLY},
+                                             .type = OFPMP_METER_FEATURES, .flags = 0x0000},
+                                             .features = table->features
+                                         };   
+    dp_send_message(table->dp, (struct ofl_msg_header *)&reply, sender);
+
+    free(reply.features);
+    ofl_msg_free((struct ofl_msg_header *)msg, table->dp->exp);
+    return 0;                                                
+                                  
+}                                  
