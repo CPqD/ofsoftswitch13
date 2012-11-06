@@ -4809,7 +4809,7 @@ Please note: it was this before
         <fields>
 			<field type="bit" name="prio" longname="Priority" mask="0xE000" size="2" showtemplate="FieldDec"/>
 			<field type="bit" name="dei" longname="Drop Eligibility" mask="0x1000" size="2" showtemplate="FieldDec"/>
-			<field type="bit" name="bvid" longname="Base vlan ID" mask="0x0FFF" size="2" showtemplate="FieldDec"/>
+			<field type="bit" name="bvid" longname="{0x8000 6}" mask="0x0FFF" size="2" showtemplate="FieldDec"/>
 			<field type="fixed" name="type" longname="{0x8000 5} Type" size="2" showtemplate="eth.typelength"/>
 		</fields>
 	</format>
@@ -4861,7 +4861,7 @@ Please note: it was this before
 			<case value="0x8864"> <nextproto proto="#pppoe"/> </case>
 			<case value="0x86DD"> <nextproto proto="#ipv6"/> </case>
 		</switch>
-        <nextproto proto="#eth"/>
+        <nextproto proto="#ethernet"/>
 	</encapsulation>
 	<visualization>
 		<showsumtemplate name="pbb">

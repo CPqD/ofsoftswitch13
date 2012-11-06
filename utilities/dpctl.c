@@ -1298,6 +1298,7 @@ parse_match(char *str, struct ofl_match_header **match) {
                 ofp_fatal(0, "Error parsing ipv6_label: %s.", token);
             }
             else ofl_structs_match_put32(m,OXM_OF_IPV6_FLABEL, ipv6_label);
+            continue;
         }  
                 
         /* ICMPv6 */
@@ -1357,6 +1358,14 @@ parse_match(char *str, struct ofl_match_header **match) {
             else ofl_structs_match_put64(m, OXM_OF_METADATA, metadata);
             continue;
         }
+        if (strncmp(token, MATCH_PBB_ISID KEY_VAL, strlen(MATCH_PBB_ISID KEY_VAL)) == 0) {
+            uint32_t pbb_isid;
+            if (parse32(token + strlen(MATCH_PBB_ISID KEY_VAL), NULL, 0, 0x1000000, &pbb_isid)) {
+                ofp_fatal(0, "Error parsing pbb_isid: %s.", token);
+            }
+            else ofl_structs_match_put32(m, OXM_OF_PBB_ISID, pbb_isid);
+            continue;
+        }          
         ofp_fatal(0, "Error parsing match arg: %s.", token);
     }
 
@@ -1380,6 +1389,17 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
     }
     if (strncmp(token, MATCH_DL_DST KEY_VAL, strlen(MATCH_DL_DST KEY_VAL)) == 0) {
         uint8_t* dl_dst = xmalloc(6);           
+        if (parse_dl_addr(token + strlen(MATCH_DL_DST KEY_VAL), dl_dst)) {
+                ofp_fatal(0, "Error parsing dl_src: %s.", token);
+        }else{ 
+                act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
+                act->field->header = OXM_OF_ETH_DST;                    
+                act->field->value = (uint8_t*) dl_dst;
+            }     
+        return 0;
+    }    
+    if (strncmp(token, MATCH_DL_DST KEY_VAL, strlen(MATCH_DL_DST KEY_VAL)) == 0) {
+        uint8_t* dl_dst = xmalloc(6);           
         if (parse_dl_addr(token + strlen(MATCH_DL_SRC KEY_VAL), dl_dst)) {
                 ofp_fatal(0, "Error parsing dl_dst: %s.", token);
         }else{ 
@@ -1400,6 +1420,18 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
             }
         return 0;
     }
+    if (strncmp(token, MATCH_PBB_ISID KEY_VAL, strlen(MATCH_PBB_ISID KEY_VAL)) == 0) {
+            uint32_t *pbb_isid = malloc(sizeof(uint32_t));
+            if (parse32(token + strlen(MATCH_PBB_ISID KEY_VAL), NULL, 0, 0x1000000, pbb_isid)) {
+                ofp_fatal(0, "Error parsing pbb service id: %s.", token);
+            }
+            else { 
+                act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
+                act->field->header = OXM_OF_PBB_ISID;                    
+                act->field->value = (uint8_t*) pbb_isid;        
+            }
+        return 0;
+    }    
     if (strncmp(token, MATCH_DL_VLAN_PCP KEY_VAL, strlen(MATCH_DL_VLAN_PCP KEY_VAL)) == 0) {
         uint8_t* vlan_pcp = malloc(sizeof(uint8_t));
         if (parse8(token + strlen(MATCH_DL_VLAN_PCP KEY_VAL), NULL, 0, 0x7, vlan_pcp)) {

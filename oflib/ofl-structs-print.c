@@ -159,13 +159,13 @@ void
 print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                 
                 if (f->header == OXM_OF_IN_PORT){
-                    fprintf(stream, "in_port=%d",*((uint32_t*) f->value));
+                    fprintf(stream, "in_port=\"%d\"",*((uint32_t*) f->value));
                     *size -= 8;   
                     if (*size > 4)                                  
                         fprintf(stream, ", ");
                 }
                 else if (f->header == OXM_OF_IN_PHY_PORT){
-                            fprintf(stream, "in_phy_port=%d",*((uint32_t*) f->value));
+                            fprintf(stream, "in_phy_port=\"%d\"",*((uint32_t*) f->value));
                             *size -= 8;   
                             if (*size > 4)                                  
                                 fprintf(stream, ", ");
@@ -175,13 +175,13 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                                 fprintf(stream, "vlan_vid= none");
                             else if ((uint16_t) *f->value == OFPVID_PRESENT)
                                 fprintf(stream, "vlan_vid= present");
-                            else fprintf(stream, "vlan_vid= %d",*((uint16_t*) f->value));
+                            else fprintf(stream, "vlan_vid=\"%d\"",*((uint16_t*) f->value));
                             *size -= 6;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
                 else if (f->header == OXM_OF_VLAN_PCP){
-                            fprintf(stream, "vlan_pcp= %d", *f->value & 0x7);
+                            fprintf(stream, "vlan_pcp=\"%d\"", *f->value & 0x7);
                             *size -= 5;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
@@ -189,43 +189,43 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                 else if (f->header == OXM_OF_ETH_TYPE){
                             uint16_t *v = (uint16_t *) f->value;
                             fprintf(stream, "eth_type=0x");
-                            fprintf(stream,"%x",  *v);
+                            fprintf(stream,"\"%x\"",  *v);
                             *size -= 6; 
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
                 else if (f->header == OXM_OF_TCP_SRC){
-                            fprintf(stream, "tcp_src=%d",*((uint16_t*) f->value));
+                            fprintf(stream, "tcp_src=\"%d\"",*((uint16_t*) f->value));
                             *size -= 6;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
                 else if (f->header == OXM_OF_TCP_DST){
-                            fprintf(stream, "tcp_dst=%d",*((uint16_t*) f->value));
+                            fprintf(stream, "tcp_dst=\"%d\"",*((uint16_t*) f->value));
                             *size -= 6;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
                 else if (f->header == OXM_OF_UDP_SRC){
-                            fprintf(stream, "udp_src=%d",*((uint16_t*) f->value));
+                            fprintf(stream, "udp_src=\"%d\"",*((uint16_t*) f->value));
                             *size -= 6;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
                 else if (f->header == OXM_OF_UDP_DST){
-                            fprintf(stream, "udp_dst=%d",*((uint16_t*) f->value));
+                            fprintf(stream, "udp_dst=\"%d\"",*((uint16_t*) f->value));
                             *size -= 6;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
                 else if (f->header == OXM_OF_SCTP_SRC){
-                            fprintf(stream, "sctp_src=%d",*((uint16_t*) f->value));
+                            fprintf(stream, "sctp_src=\"%d\"",*((uint16_t*) f->value));
                             *size -= 6;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
                 else if (f->header == OXM_OF_SCTP_DST){
-                            fprintf(stream, "sctp_dst=%d",*((uint16_t*) f->value));
+                            fprintf(stream, "sctp_dst=\"%d\"",*((uint16_t*) f->value));
                             *size -= 6;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
@@ -261,31 +261,31 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                                 fprintf(stream, ", ");
                 }
                 else if (f->header == OXM_OF_IP_PROTO){
-                            fprintf(stream, "ip_proto= %d", *f->value);
+                            fprintf(stream, "ip_proto=\"%d\"", *f->value);
                             *size -= 5;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 } 
                 else if (f->header == OXM_OF_IP_DSCP){
-                            fprintf(stream, "ip_dscp= %d", *f->value & 0x3f);
+                            fprintf(stream, "ip_dscp=\"%d\"", *f->value & 0x3f);
                             *size -= 5;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 } 
                 else if (f->header == OXM_OF_IP_ECN){
-                            fprintf(stream, "ip_ecn= %d", *f->value & 0x3);
+                            fprintf(stream, "ip_ecn=\"%d\"", *f->value & 0x3);
                             *size -= 5;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 } 
                 else if (f->header == OXM_OF_ICMPV4_TYPE){
-                            fprintf(stream, "icmpv4_type= %d", *f->value);
+                            fprintf(stream, "icmpv4_type= \"%d\"", *f->value);
                             *size -= 5;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 } 
                 else if (f->header == OXM_OF_ICMPV4_CODE){
-                            fprintf(stream, "icmpv4_code= %d", *f->value);
+                            fprintf(stream, "icmpv4_code=\"%d\"", *f->value);
                             *size -= 5;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
@@ -323,7 +323,7 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                 else if (f->header == OXM_OF_ARP_OP){
                             uint16_t *v = (uint16_t *) f->value;
                             fprintf(stream, "arp_op=0x");
-                            fprintf(stream,"%x",  *v);
+                            fprintf(stream,"\"%x\"",  *v);
                             *size -= 6;
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
@@ -376,42 +376,52 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                 }
                 else if (f->header == OXM_OF_IPV6_FLABEL){
                             uint32_t mask = 0xfffff;
-                            fprintf(stream, "ipv6_flow_label=%x",((uint32_t) *f->value) & mask );
+                            fprintf(stream, "ipv6_flow_label=\"%x\"",((uint32_t) *f->value) & mask );
                             *size -= 8;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
                 else if (f->header == OXM_OF_ICMPV6_TYPE){
-                            fprintf(stream, "icmpv6_type= %d", *f->value);
+                            fprintf(stream, "icmpv6_type=\"%d\"", *f->value);
                             *size -= 5;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 } 
                 else if (f->header == OXM_OF_ICMPV6_CODE){
-                            fprintf(stream, "icmpv6_code= %d", *f->value);
+                            fprintf(stream, "icmpv6_code=\"%d\"", *f->value);
                             *size -= 5;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
                 else if (f->header == OXM_OF_MPLS_LABEL){
                             uint32_t mask = 0xfffff;
-                            fprintf(stream, "mpls_label=%x",((uint32_t) *f->value) & mask );
+                            fprintf(stream, "mpls_label=\"%x\"",((uint32_t) *f->value) & mask );
                             *size -= 8;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
                 else if (f->header == OXM_OF_MPLS_TC){
-                            fprintf(stream, "mpls_tc= %d", *f->value & 0x3);
+                            fprintf(stream, "mpls_tc=\"%d\"", *f->value & 0x3);
                             *size -= 5;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 } 
                 else if (f->header == OXM_OF_METADATA || f->header == OXM_OF_METADATA_W){
-                            fprintf(stream, "metadata= %lld", (uint64_t) *f->value);
+                            fprintf(stream, "metadata=\"%lld\"", *((uint64_t*) f->value));
                             *size -= 12;
                             if (OXM_HASMASK(f->header)){
-                                fprintf(stream, "metadata_mask= %lld", (uint64_t) *(f->value + 8));
+                                fprintf(stream, "metadata_mask=\"%lld\"", *((uint64_t*) f->value+ 8 ));
                                 *size -= 8;
+                            }                            
+                            if (*size > 4)                                
+                                fprintf(stream, ", ");
+                }
+                else if (f->header == OXM_OF_PBB_ISID || f->header == OXM_OF_PBB_ISID_W){
+                            fprintf(stream, "pbb_isid=\"%d\"",*((uint32_t*) f->value));
+                            *size -= 8;
+                            if (OXM_HASMASK(f->header)){
+                                fprintf(stream, "pbb_isid_mask=\"%d\"", *((uint32_t*) f->value +4));
+                                *size -= 4;
                             }                            
                             if (*size > 4)                                
                                 fprintf(stream, ", ");

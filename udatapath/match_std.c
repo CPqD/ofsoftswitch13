@@ -271,11 +271,11 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
                                      return false;
                                 }
                             }
-                            
-                            else 
+                            else {
                                 if (pkt_match_32(f->value, packet_f->value) == 0){
                                     return false;
-                            }
+                                }
+                            }    
                         break;
                     }
                     case (ETH_ADDR_LEN):{ 

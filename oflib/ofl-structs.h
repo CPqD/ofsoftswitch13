@@ -599,6 +599,12 @@ ofl_structs_free_meter_stats(struct ofl_meter_stats *stats);
 void 
 ofl_structs_free_meter_config(struct ofl_meter_config *conf);
 
+void
+ofl_structs_free_table_features(struct ofl_table_features* features, struct ofl_exp *exp);
+
+void
+ofl_structs_free_table_properties(struct ofl_table_feature_prop_header *prop, struct ofl_exp *exp);
+
 /****************************************************************************
  * Utility functions
  ****************************************************************************/

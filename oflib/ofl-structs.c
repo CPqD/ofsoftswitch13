@@ -469,6 +469,51 @@ ofl_structs_free_group_desc_stats(struct ofl_group_desc_stats *stats, struct ofl
 }
 
 void
+ofl_structs_free_table_features(struct ofl_table_features* features, struct ofl_exp *exp){
+    OFL_UTILS_FREE_ARR_FUN2(features->properties, features->properties_num,
+                            ofl_structs_free_table_properties, exp);
+    free(features->name);
+    free(features);
+}
+
+void
+ofl_structs_free_table_properties(struct ofl_table_feature_prop_header *prop, struct ofl_exp *exp){
+    switch(prop->type){
+        case (OFPTFPT_INSTRUCTIONS):
+        case (OFPTFPT_INSTRUCTIONS_MISS):{
+            struct ofl_table_feature_prop_instructions *inst = (struct ofl_table_feature_prop_instructions *)prop;
+            free(inst->instruction_ids);
+            break;
+        }
+        case (OFPTFPT_NEXT_TABLES_MISS):
+        case (OFPTFPT_NEXT_TABLES):{
+            struct ofl_table_feature_prop_next_tables *tables = (struct ofl_table_feature_prop_next_tables *)prop ;
+            free(tables->next_table_ids);
+            break;
+        }
+        case (OFPTFPT_WRITE_ACTIONS):
+        case (OFPTFPT_WRITE_ACTIONS_MISS):
+        case (OFPTFPT_APPLY_ACTIONS):
+        case (OFPTFPT_APPLY_ACTIONS_MISS):{
+            struct ofl_table_feature_prop_actions *act = (struct ofl_table_feature_prop_actions *)prop;
+            free(act->action_ids);
+            break;
+        }
+        case (OFPTFPT_APPLY_SETFIELD):
+        case (OFPTFPT_APPLY_SETFIELD_MISS):        
+        case (OFPTFPT_WRITE_SETFIELD):
+        case (OFPTFPT_WRITE_SETFIELD_MISS):        
+        case (OFPTFPT_WILDCARDS):
+        case (OFPTFPT_MATCH):{
+            struct ofl_table_feature_prop_oxm *oxm = (struct ofl_table_feature_prop_oxm *)prop;
+            free(oxm->oxm_ids);
+            break;
+        }                   
+    }
+    free(prop);
+}
+
+void
 ofl_structs_free_match(struct ofl_match_header *match, struct ofl_exp *exp) {
     switch (match->type) {
         case (OFPMT_OXM): {

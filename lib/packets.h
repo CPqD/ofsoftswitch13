@@ -114,6 +114,8 @@ static inline bool eth_addr_is_reserved(const uint8_t ea[ETH_ADDR_LEN])
 #define ETH_TYPE_IPV6          0x86dd
 #define ETH_TYPE_ARP           0x0806
 #define ETH_TYPE_VLAN          0x8100
+#define ETH_TYPE_SVLAN         0x9200
+#define ETH_TYPE_VLAN_QinQ     0x9100     
 #define ETH_TYPE_VLAN_PBB_B    0x88a8
 #define ETH_TYPE_VLAN_PBB_S    0x88e7
 #define ETH_TYPE_MPLS          0x8847
@@ -359,6 +361,7 @@ struct protocols_std {
    struct vlan_header     * vlan;
    struct vlan_header     * vlan_last; /* points to the last VLAN header */
    struct mpls_header     * mpls;
+   struct pbb_header      * pbb;   
    struct ip_header       * ipv4;
    struct ipv6_header     * ipv6;
    struct arp_eth_header  * arp;
@@ -366,7 +369,6 @@ struct protocols_std {
    struct udp_header      * udp;
    struct sctp_header     * sctp;
    struct icmp_header     * icmp;
-   struct pbb_header      * pbb;
 };
 
 static inline void 
