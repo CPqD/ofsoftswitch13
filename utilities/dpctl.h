@@ -71,6 +71,18 @@ static struct names32 group_names[] = {
         {OFPG_ANY, "any"}
 };
 
+static struct names16 ext_header_names[] = {
+        {OFPIEH_NONEXT, "no_next"},
+        {OFPIEH_ESP,    "esp"},
+        {OFPIEH_AUTH,   "auth"},
+        {OFPIEH_DEST,   "dest"},
+        {OFPIEH_FRAG,   "frag"},
+        {OFPIEH_ROUTER, "router"},
+        {OFPIEH_HOP,    "hop"},
+        {OFPIEH_UNREP,  "unrep"},
+        {OFPIEH_UNSEQ,  "unseq"}
+};
+
 static struct names8 group_type_names[] = {
         {OFPGT_ALL,      "all"},
         {OFPGT_SELECT,   "sel"},
@@ -159,48 +171,49 @@ static struct names16 band_names[] = {
 #define FLOW_MOD_MATCH         "match"
 
 
-#define MATCH_IN_PORT       "in_port"
-#define MATCH_DL_SRC        "eth_src"
-#define MATCH_DL_SRC_MASK   "eth_src_mask"
-#define MATCH_DL_DST        "eth_dst"
-#define MATCH_DL_DST_MASK   "eth_dst_mask"
-#define MATCH_DL_VLAN       "vlan_vid"
-#define MATCH_IP_DSCP	    "ip_dscp"
-#define MATCH_IP_ECN	    "ip_ecn"
-#define MATCH_DL_VLAN_PCP   "vlan_pcp"
-#define MATCH_DL_TYPE       "eth_type"
-#define MATCH_NW_PROTO      "ip_proto"
-#define MATCH_NW_SRC        "ip_src"
-#define MATCH_NW_SRC_MASK   "nw_src_mask"
-#define MATCH_NW_DST        "ip_dst"
-#define MATCH_NW_DST_MASK   "ipv4_dst_mask"
-#define MATCH_TP_SRC        "tcp_src"
-#define MATCH_TP_DST        "tcp_dst"
-#define MATCH_UDP_SRC	    "udp_src"
-#define MATCH_UDP_DST       "udp_dst"
-#define MATCH_SCTP_SRC      "sctp_src"
-#define MATCH_SCTP_DST      "sctp_dst"
-#define MATCH_ICMPV4_CODE   "icmp_code"
-#define MATCH_ICMPV4_TYPE   "icmp_type"
-#define MATCH_ARP_OP            "arp_op"
-#define MATCH_ARP_SHA       "arp_sha"
-#define MATCH_ARP_THA       "arp_tha"
-#define MATCH_ARP_SPA       "arp_spa"
-#define MATCH_ARP_TPA       "arp_tpa"
-#define MATCH_NW_SRC_IPV6   "ipv6_src"
-#define MATCH_NW_DST_IPV6   "ipv6_dst"
-#define MATCH_ICMPV6_CODE   "icmpv6_code"
-#define MATCH_ICMPV6_TYPE   "icmpv6_type"
-#define MATCH_IPV6_FLABEL   "ipv6_flabel"
+#define MATCH_IN_PORT        "in_port"
+#define MATCH_DL_SRC         "eth_src"
+#define MATCH_DL_SRC_MASK    "eth_src_mask"
+#define MATCH_DL_DST         "eth_dst"
+#define MATCH_DL_DST_MASK    "eth_dst_mask"
+#define MATCH_DL_VLAN        "vlan_vid"
+#define MATCH_IP_DSCP	     "ip_dscp"
+#define MATCH_IP_ECN	     "ip_ecn"
+#define MATCH_DL_VLAN_PCP    "vlan_pcp"
+#define MATCH_DL_TYPE        "eth_type"
+#define MATCH_NW_PROTO       "ip_proto"
+#define MATCH_NW_SRC         "ip_src"
+#define MATCH_NW_SRC_MASK    "nw_src_mask"
+#define MATCH_NW_DST         "ip_dst"
+#define MATCH_NW_DST_MASK    "ipv4_dst_mask"
+#define MATCH_TP_SRC         "tcp_src"
+#define MATCH_TP_DST         "tcp_dst"
+#define MATCH_UDP_SRC	     "udp_src"
+#define MATCH_UDP_DST        "udp_dst"
+#define MATCH_SCTP_SRC       "sctp_src"
+#define MATCH_SCTP_DST       "sctp_dst"
+#define MATCH_ICMPV4_CODE    "icmp_code"
+#define MATCH_ICMPV4_TYPE    "icmp_type"
+#define MATCH_ARP_OP         "arp_op"
+#define MATCH_ARP_SHA        "arp_sha"
+#define MATCH_ARP_THA        "arp_tha"
+#define MATCH_ARP_SPA        "arp_spa"
+#define MATCH_ARP_TPA        "arp_tpa"
+#define MATCH_NW_SRC_IPV6    "ipv6_src"
+#define MATCH_NW_DST_IPV6    "ipv6_dst"
+#define MATCH_ICMPV6_CODE    "icmpv6_code"
+#define MATCH_ICMPV6_TYPE    "icmpv6_type"
+#define MATCH_IPV6_FLABEL    "ipv6_flabel"
 #define MATCH_IPV6_ND_TARGET "ipv6_nd_target"
-#define MATCH_IPV6_ND_SLL      "ipv6_nd_sll"
-#define MATCH_IPV6_ND_TLL      "ipv6_nd_tll"
-#define MATCH_MPLS_LABEL    "mpls_label"
-#define MATCH_MPLS_TC       "mpls_tc"
-#define MATCH_METADATA      "meta"
-#define MATCH_METADATA_MASK "meta_mask"
-#define MATCH_PBB_ISID      "pbb_isid"    
-
+#define MATCH_IPV6_ND_SLL    "ipv6_nd_sll"
+#define MATCH_IPV6_ND_TLL    "ipv6_nd_tll"
+#define MATCH_MPLS_LABEL     "mpls_label"
+#define MATCH_MPLS_TC        "mpls_tc"
+#define MATCH_METADATA       "meta"
+#define MATCH_METADATA_MASK  "meta_mask"
+#define MATCH_PBB_ISID       "pbb_isid"
+#define MATCH_TUNNEL_ID      "tunn_id"    
+#define MATCH_EXT_HDR        "ext_hdr"
 
 #define GROUP_MOD_COMMAND "cmd"
 #define GROUP_MOD_TYPE    "type"
@@ -236,7 +249,7 @@ static struct names16 band_names[] = {
 #define KEY_VAL2   ":"
 #define KEY_SEP    ","
 
-#define WILDCARD_ADD   '+'
+#define ADD   "+"
 #define WILDCARD_SUB   '-'
 
 

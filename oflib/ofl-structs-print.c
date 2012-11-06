@@ -425,7 +425,29 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             }                            
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
-                }                                                                 
+                }
+                else if (f->header == OXM_OF_TUNNEL_ID || f->header == OXM_OF_TUNNEL_ID_W){
+                            fprintf(stream, "tunnel_id=\"%lld\"", *((uint64_t*) f->value));
+                            *size -= 12;
+                            if (OXM_HASMASK(f->header)){
+                                fprintf(stream, "tunnel_id_mask=\"%lld\"", *((uint64_t*) f->value+ 8 ));
+                                *size -= 8;
+                            }                            
+                            if (*size > 4)
+                                fprintf(stream, ", ");                                                           
+                }
+                else if (f->header == OXM_OF_IPV6_EXTHDR || f->header == OXM_OF_IPV6_EXTHDR_W ){
+                            fprintf(stream, "ext_hdr=\\");
+                            ofl_ipv6_ext_hdr_print(stream, *((uint16_t*) f->value) );
+                            *size -= 6;                                
+                            if (OXM_HASMASK(f->header)){
+                                *size -= 2;
+                                fprintf(stream, "ext_hdr_mask=\"0x%x\"",*((uint16_t*) f->value + 4));
+                            }           
+                            if (*size > 4)                                
+                                fprintf(stream, ", ");
+                }                 
+                                
 }
 
 static void print_oxm_match(FILE *stream, struct ofl_match *m){

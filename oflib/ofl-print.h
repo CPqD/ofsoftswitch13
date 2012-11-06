@@ -51,6 +51,12 @@ void
 ofl_port_print(FILE *stream, uint32_t port);
 
 char *
+ofl_ipv6_ext_hdr_to_string(uint16_t ext_hdr);
+
+void
+ofl_ipv6_ext_hdr_print(FILE *stream, uint16_t ext_hdr);
+
+char *
 ofl_queue_to_string(uint32_t queue);
 
 void

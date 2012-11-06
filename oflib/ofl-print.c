@@ -68,6 +68,31 @@ ofl_port_print(FILE *stream, uint32_t port) {
 }
 
 char *
+ofl_ipv6_ext_hdr_to_string(uint16_t ext_hdr){
+    char *str;
+    size_t str_size;
+    FILE *stream = open_memstream(&str, &str_size);
+
+    ofl_ipv6_ext_hdr_print(stream, ext_hdr);
+    fclose(stream);
+    return str;
+}
+
+void
+ofl_ipv6_ext_hdr_print(FILE *stream, uint16_t ext_hdr) {
+        
+    if (ext_hdr & OFPIEH_NONEXT) {   fprintf(stream, "no_next\\"); }
+    if (ext_hdr & OFPIEH_ESP) {      fprintf(stream, "esp\\"); }
+    if (ext_hdr & OFPIEH_AUTH) {     fprintf(stream, "auth\\"); }
+    if (ext_hdr & OFPIEH_DEST) {     fprintf(stream, "dest\\"); }
+    if (ext_hdr & OFPIEH_FRAG) {     fprintf(stream, "frag\\"); }
+    if (ext_hdr & OFPIEH_ROUTER){    fprintf(stream, "router\\"); }
+    if (ext_hdr & OFPIEH_HOP) {      fprintf(stream, "hop\\"); }
+    if (ext_hdr & OFPIEH_UNREP) {    fprintf(stream, "unreq\\"); }
+    if (ext_hdr & OFPIEH_UNSEQ) {    fprintf(stream, "unseq\\"); }
+}
+
+char *
 ofl_queue_to_string(uint32_t queue) {
     char *str;
     size_t str_size;

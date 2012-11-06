@@ -168,6 +168,8 @@ parse_nw_addr(char *str, uint32_t *addr);
 static int
 parse_vlan_vid(char *str, uint16_t *vid);
 
+static int 
+parse_ext_hdr(char *str, uint16_t *ext_hdr);
 
 static int
 parse8(char *str, struct names8 *names, size_t names_num, uint8_t max, uint8_t *val);
@@ -1049,7 +1051,7 @@ parse_match(char *str, struct ofl_match_header **match) {
     ofl_structs_match_init(m);
 
     for (token = strtok_r(str, KEY_SEP, &saveptr); token != NULL; token = strtok_r(NULL, KEY_SEP, &saveptr)) {
-         if (strncmp(token, "apply", strlen("apply")) == 0 ) {
+         if (strncmp(token, "apply", strlen("apply")) == 0 ||  strncmp(token, "write", strlen("write")) == 0 ) {
                 break;
          }       
         /* In_port */
@@ -1358,6 +1360,7 @@ parse_match(char *str, struct ofl_match_header **match) {
             else ofl_structs_match_put64(m, OXM_OF_METADATA, metadata);
             continue;
         }
+        /*PBB ISID*/
         if (strncmp(token, MATCH_PBB_ISID KEY_VAL, strlen(MATCH_PBB_ISID KEY_VAL)) == 0) {
             uint32_t pbb_isid;
             if (parse32(token + strlen(MATCH_PBB_ISID KEY_VAL), NULL, 0, 0x1000000, &pbb_isid)) {
@@ -1365,7 +1368,25 @@ parse_match(char *str, struct ofl_match_header **match) {
             }
             else ofl_structs_match_put32(m, OXM_OF_PBB_ISID, pbb_isid);
             continue;
-        }          
+        }    
+        /* Tunnel ID */
+        if (strncmp(token, MATCH_TUNNEL_ID KEY_VAL, strlen(MATCH_TUNNEL_ID KEY_VAL)) == 0) {
+            uint64_t tunn_id;
+            if (sscanf(token, MATCH_TUNNEL_ID KEY_VAL "0x%"SCNx64"", (&tunn_id))) {
+                ofp_fatal(0, "Error parsing %s: %s.", MATCH_TUNNEL_ID, token);
+            }
+            else ofl_structs_match_put64(m, OXM_OF_TUNNEL_ID, tunn_id);
+            continue;
+        }
+        /*Extension Headers */
+        if (strncmp(token, MATCH_EXT_HDR KEY_VAL, strlen(MATCH_EXT_HDR KEY_VAL)) == 0) {
+            uint16_t ext_hdr;
+            if (parse_ext_hdr(token + strlen(MATCH_EXT_HDR KEY_VAL), &ext_hdr)) {
+                ofp_fatal(0, "Error parsing ext_hdr %s.", token);
+            }
+            else ofl_structs_match_put16(m, OXM_OF_IPV6_EXTHDR, ext_hdr);
+            continue;
+        }        
         ofp_fatal(0, "Error parsing match arg: %s.", token);
     }
 
@@ -2142,6 +2163,25 @@ parse_nw_addr(char *str, uint32_t *addr) {
 static int
 parse_vlan_vid(char *str, uint16_t *vid) {
     return parse16(str, vlan_vid_names, NUM_ELEMS(vlan_vid_names), 0xfff, vid);
+}
+
+static int 
+parse_ext_hdr(char *str, uint16_t *ext_hdr){
+    char *token, *saveptr = NULL;
+    size_t i;
+    memset(ext_hdr, 0x0, sizeof(uint16_t));
+    for (token = strtok_r(str, ADD, &saveptr); token != NULL; token = strtok_r(NULL, ADD, &saveptr)) {
+        printf("%s\n", token);
+        for (i=0; i < 9; i++) {
+            if (strcmp(token, ext_header_names[i].name) == 0) {
+                *ext_hdr = *ext_hdr ^ ext_header_names[i].code;
+                break;
+            }
+        }
+        if(i == 9)
+            return -1;
+    }
+    return 0;
 }
 
 static int
