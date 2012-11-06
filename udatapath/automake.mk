@@ -31,11 +31,15 @@ udatapath_ofdatapath_SOURCES = \
 	udatapath/group_entry.c \
 	udatapath/group_entry.h \
 	udatapath/match_std.c \
-        udatapath/match_std.h \
+    udatapath/match_std.h \
+	udatapath/meter_entry.c \
+	udatapath/meter_entry.h \
+	udatapath/meter_table.c \
+	udatapath/meter_table.h \	
 	udatapath/packet.c \
 	udatapath/packet.h \
 	udatapath/packet_handle_std.c \
-        udatapath/packet_handle_std.h \
+    udatapath/packet_handle_std.h \
 	udatapath/pipeline.c \
 	udatapath/pipeline.h \
 	udatapath/udatapath.c

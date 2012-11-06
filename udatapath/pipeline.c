@@ -351,7 +351,7 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
     if(feat->table_features == NULL){
        loop: ;
        features = (struct ofl_table_features**) xmalloc(sizeof(struct ofl_table_features) * 17);
-       for (i = 0; i < 17; i++){
+       for (i = 0; i < 8; i++){
             features[i] = pl->tables[j]->features; 
             j++;
        } 
@@ -360,7 +360,7 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
                 {{{.type = OFPT_MULTIPART_REPLY},
                   .type = OFPMP_TABLE_FEATURES, .flags = j == PIPELINE_TABLES? 0x00000000:OFPMPF_REPLY_MORE},
                  .table_features     = features,
-                 .tables_num = 17};
+                 .tables_num = 8};
             dp_send_message(pl->dp, (struct ofl_msg_header *)&reply, sender);                 
         } 
        if (j < PIPELINE_TABLES){

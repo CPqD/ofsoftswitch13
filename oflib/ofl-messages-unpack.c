@@ -753,9 +753,10 @@ ofl_msg_unpack_multipart_request_empty(struct ofp_multipart_request *os UNUSED, 
 
 static ofl_err
 ofl_msg_unpack_multipart_request_table_features(struct ofp_multipart_request *os, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp){
-    struct ofp_table_features **sm;
     struct ofl_msg_multipart_request_table_features *dm;
     ofl_err error;
+    uint8_t *features;
+    size_t i;
     
     dm = (struct ofl_msg_multipart_request_table_features*) malloc(sizeof(struct ofl_msg_multipart_request_table_features));
     if (!(*len)){
@@ -765,8 +766,20 @@ ofl_msg_unpack_multipart_request_table_features(struct ofp_multipart_request *os
         return 0;
     }
     
-    //error = ofl_utils_count_ofp_table_features(void *data, size_t data_len, size_t *count)    
-    //*len -= sizeof() 
+    error = ofl_utils_count_ofp_table_features((uint8_t*) os->body, *len, &dm->tables_num);  
+    if (error) {
+        free(dm);
+        return error;
+    }
+    dm->table_features = (struct ofl_table_features **) malloc(sizeof(struct ofl_table_features) * dm->tables_num);
+    features = (uint8_t* ) os->body;
+
+    for(i = 0; i < dm->tables_num; i++){
+        error = ofl_structs_table_features_unpack((struct ofp_table_features*) features, len, &dm->table_features[i] , exp);
+        features += ntohs(((struct ofp_table_features*) features)->length); 
+    }   
+    *msg = (struct ofl_msg_header *)dm;
+    return 0; 
     
     
     *msg = (struct ofl_msg_header*) dm;
@@ -1105,7 +1118,6 @@ ofl_msg_unpack_multipart_reply_queue(struct ofp_multipart_reply *os, size_t *len
         return error;
     }
     dm->stats = (struct ofl_queue_stats **)malloc(dm->stats_num * sizeof(struct ofl_queue_stats *));
-
     for (i = 0; i < dm->stats_num; i++) {
         error = ofl_structs_queue_stats_unpack(stat, len, &(dm->stats[i]));
         if (error) {
