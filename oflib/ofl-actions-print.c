@@ -85,6 +85,7 @@ ofl_action_print(FILE *stream, struct ofl_action_header *act, struct ofl_exp *ex
             fprintf(stream, "{field:");
             size = 4 + OXM_LENGTH(a->field->header);
             print_oxm_tlv(stream, a->field, &size);
+            fprintf(stream, "}");
             break;
         }
         case OFPAT_COPY_TTL_OUT:

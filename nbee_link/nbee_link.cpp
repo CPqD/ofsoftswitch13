@@ -86,29 +86,25 @@ int nblink_add_entry_hmap(struct ofpbuf * pktin, struct hmap * pktout ,struct pa
 */
 {
     struct packet_fields *iter;
-    bool done=0;
-    HMAP_FOR_EACH(iter,struct packet_fields, hmap_node,pktout)
-    {
-        if(OXM_TYPE(iter->header) == OXM_TYPE(pktout_field->header))
+
+    if(pktout_field->header == OXM_OF_ETH_TYPE){
+        /*If Ethertype is already present we should not insert the next*/
+        HMAP_FOR_EACH_WITH_HASH(iter, struct packet_fields, hmap_node, hash_int(OXM_OF_ETH_TYPE, 0), pktout)
         {
-            if(OXM_LENGTH(iter->header) != OXM_LENGTH(pktout_field->header))
-            {
-                printf("Wrong Length\n");
-                break;
-            }
-            /* Adding entry to existing hash entry (for now, do this only to ethertype)*/
-            memcpy(iter->value,((uint8_t*)pktin->data + pktout_field->pos),Size);
-            free(pktout_field);
-            done=1;
-            break;
+            return 0;
+        } 
+        /* Do not insert VLAN ethertypes*/
+        uint16_t *eth_type = (uint16_t*) malloc(sizeof(uint16_t));
+        memcpy(eth_type,pktout_field->value, Size);        
+        if(*eth_type == ETH_TYPE_VLAN || *eth_type == ETH_TYPE_SVLAN ||
+           *eth_type == ETH_TYPE_VLAN_QinQ || *eth_type == ETH_TYPE_VLAN_PBB_B){
+            return 0;
         }
-    }
-    if (!done)
-    {
-        /* Creating new hash map entry */
-        hmap_insert_fast(pktout, &pktout_field->hmap_node,
-        hash_int(pktout_field->header, 0));
-    }
+        free(eth_type);
+    } 
+    /* Creating new hash map entry */
+    hmap_insert_fast(pktout, &pktout_field->hmap_node,hash_int(pktout_field->header, 0));
+    
     return 0;
 }
 
@@ -157,25 +153,25 @@ int nblink_extract_proto_fields(struct ofpbuf * pktin, _nbPDMLField * field, str
     /* Copying data from the packet */
     pktout_field->header = OXM_HEADER(VENDOR_FROM_TYPE(type),FIELD_FROM_TYPE(type),size); 
     pktout_field->value = (uint8_t*) malloc(field->Size);
-            
     if (field->Mask != NULL)
     {
         uint8_t i;
         uint8_t *masked_field;
-        masked_field = (uint8_t * ) malloc(field->Size);
+        masked_field = (uint8_t *) malloc(field->Size);
         uint32_t true_value = strtol(field->ShowValue,&pEnd,10);             	
         for (i=0;i<field->Size;i++)
         {
             masked_field[i] = (uint8_t)((true_value >> (8*(field->Size-i-1)) ) & 0xFF);
-        }            	
-        memcpy(pktout_field->value,((uint8_t*)masked_field),field->Size);
+        }    
+        memcpy(pktout_field->value, masked_field,field->Size);
+        
         free(masked_field);
     }
     else
-    {
-       memcpy(pktout_field->value,((uint8_t*)pktin->data + field->Position),field->Size);
+    {        
+       memcpy(pktout_field->value, ((uint8_t*)pktin->data + field->Position), field->Size);
     }
-    nblink_add_entry_hmap(pktin,pktout,pktout_field,size);
+    nblink_add_entry_hmap(pktin, pktout,pktout_field, size);
     
     return 0;         	
 }
@@ -193,7 +189,6 @@ int nblink_initialize_EH_hmap_entry (struct hmap * pktout)
         pktout_field->value[i] = (uint8_t)((value >> (8*(sizeof(value)-i-1)) ) & 0xFF);
     }
 
-//    nblink_add_entry_hmap(pktin,pktout,pktout_field,size);
     hmap_insert_fast(pktout, &pktout_field->hmap_node,
                         hash_int(pktout_field->header, 0));    
     
@@ -218,7 +213,6 @@ int nblink_extract_exthdr_fields(struct ofpbuf * pktin, struct hmap * pktout, _n
     field_shift = strtol(pEnd,&pEnd,10);
     field_position_aux = strtol(pEnd,NULL,10);
     ipv6_exthdr = (uint16_t) (1 << (field_shift));
-    printf("VENDOR: %d FIELD: %d SHIFT: %d\n",vendor,FIELD_FROM_TYPE(type),field_shift);
 
     new_field = (struct packet_fields *) malloc(sizeof(struct packet_fields));
     new_field->header = OXM_HEADER(VENDOR_FROM_TYPE(type),FIELD_FROM_TYPE(type),field->Size); 
@@ -255,9 +249,7 @@ int nblink_extract_exthdr_fields(struct ofpbuf * pktin, struct hmap * pktout, _n
         }
         hmap_insert_fast(pktout, &new_field->hmap_node,
         hash_int(new_field->header, 0));
-        printf("<1> EH Value: %d On HMAP: %02x%02x\n",ipv6_exthdr,new_field->value[0],new_field->value[1]);
-        //cout << "<1> EH Value: " << ipv6_exthdr << " On HMAP: " << new_field->value[0] << new_field->value[1] << endl;
-//        nblink_add_entry_hmap(pktin,pktout,new_field,sizeof(uint16_t));
+
     }
     else
     {
@@ -267,7 +259,6 @@ int nblink_extract_exthdr_fields(struct ofpbuf * pktin, struct hmap * pktout, _n
         {
             old_ipv6_exthdr = old_ipv6_exthdr ^ ((uint16_t)(iter->value[i])) << (8*(field->Size-i-1));
         }
-//        memcpy((uint8_t*)&old_ipv6_exthdr, new_field->value,new_field->Size);
         /* TODO : check if the bits set on this structure are field bits and not control bits.
          * Also, check if this works at all as it should.
          */ 
@@ -305,8 +296,7 @@ int nblink_extract_exthdr_fields(struct ofpbuf * pktin, struct hmap * pktout, _n
         {
             new_field->value[i] = (uint8_t)((ipv6_exthdr >> (8*(sizeof(uint16_t)-i-1)) ) & 0xFF);
         }
-        printf("<2> EH Value: %d On HMAP: %02x%02x\n",ipv6_exthdr,new_field->value[0],new_field->value[1]);
-//        cout << "<2> EH Value: " << ipv6_exthdr << " On HMAP: " << new_field->value[0] << new_field->value[1]  << endl;
+// 
         memcpy(iter->value,new_field->value,field->Size);
 
     }
@@ -379,12 +369,12 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
                     EH_field->value[i] = (uint8_t)((bit_field >> 
                             (8*(OXM_LENGTH(OXM_OF_IPV6_EXTHDR)-i-1)) ) & 0xFF);
                 }
-                printf("<3> EH Value: %d On HMAP: %02x%02x\n",bit_field,EH_field->value[0],EH_field->value[1]);
+               // printf("<3> EH Value: %d On HMAP: %02x%02x\n",bit_field,EH_field->value[0],EH_field->value[1]);
                 //cout << "<3> EH Value: " << bit_field << " On HMAP: " << EH_field->value[0] << EH_field->value[1]  << endl;
                 hmap_insert_fast(pktout, &EH_field->hmap_node,
                             hash_int(EH_field->header, 0));
             }
-            else if (protocol_Name.compare("vlan") == 0 && pkt_proto->vlan == NULL)
+            else if ((protocol_Name.compare("vlan") == 0 || protocol_Name.compare("pbb_b") == 0) && pkt_proto->vlan == NULL)
             {
                 pkt_proto->vlan = (struct vlan_header *) ((uint8_t*)  pktin->data + proto->Position);
             }
@@ -421,13 +411,11 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
         // The '{' character identifies fields we use on matching.
             if (field->ShowValue != NULL)
             {
-                cout << "field->Name == " << field->Name << " size: " << field->Size << " Value: " <<
-            field->ShowValue << endl;
                 nblink_extract_proto_fields(pktin,field,pktout);
             }
             else
             {
-                cout << "field->Name == " << field->Name << " size: " << field->Size << " no value"<< endl;
+               // cout << "field->Name == " << field->Name << " size: " << field->Size << " no value"<< endl;
             }
             
         }
@@ -438,7 +426,7 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
             /* Protocol Done */
             if (proto->NextProto == NULL)
 		    {
-			    /* Packet Done */
+                /* Packet Done */
 			    break;
 		    }
             proto = proto->NextProto;
@@ -497,7 +485,7 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
                      */
                     if (type == OXM_TYPE(OXM_OF_IPV6_EXTHDR))
                     {
-                        printf("TYPE 39 \n");
+                        //printf("TYPE 39 \n");
                         nblink_extract_exthdr_fields(pktin,pktout, field->NextField, control_EH);
                         free(pktout_field);
                     }
@@ -564,25 +552,6 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
             break;
         }        
     }   
-    
-    for (i=0;i<9;i++)
-    {
-        printf("pos %d : %d | ",i, control_EH->position_EH[i]);    
-    }
-    printf("\n");
-    
-    HMAP_FOR_EACH(iter,struct packet_fields, hmap_node,pktout)
-    {
-        
-        printf("HMap entry vendor %d type %d value ",OXM_VENDOR(iter->header),OXM_FIELD(iter->header));
-        for (i=0;i<OXM_LENGTH(iter->header);i++)
-        {
-            printf("%02x",iter->value[i]);
-        }
-        printf("\n");
-        
-    }
-
     
 	return 1;
 }

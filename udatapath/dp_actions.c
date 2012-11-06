@@ -79,13 +79,17 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
         /* Search field on the description of the packet. */
         HMAP_FOR_EACH_WITH_HASH(iter,struct packet_fields, hmap_node, hash_int(act->field->header,0), &pkt->handle_std->match.match_fields)
         {
+            struct ip_header *ipv4;
+            uint8_t* tmp;
+            size_t i;
+            
             /* TODO: Checksum for SCTP and ICMP */
             if (iter->header == OXM_OF_IPV4_SRC || iter->header == OXM_OF_IPV4_DST)
             {
                 memcpy(((uint8_t*)pkt->buffer->data + iter->pos) , act->field->value , OXM_LENGTH(iter->header));
                 
                 // update TCP/UDP checksum
-                struct ip_header *ipv4 = pkt->handle_std->proto->ipv4;
+                ipv4 = pkt->handle_std->proto->ipv4;
                 if (pkt->handle_std->proto->tcp != NULL) {
                     struct tcp_header *tcp = pkt->handle_std->proto->tcp;
                     tcp->tcp_csum = recalc_csum32(tcp->tcp_csum, ipv4->ip_src,htonl(*((uint32_t*) act->field->value)));
@@ -133,8 +137,7 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 return;
             }
             /* Found the field, lets re-write it!! */
-    	    uint8_t* tmp = (uint8_t*) malloc(OXM_LENGTH(iter->header));
-    	    uint8_t i;
+    	    tmp = (uint8_t*) malloc(OXM_LENGTH(iter->header));
     	    for (i=0;i<OXM_LENGTH(iter->header);i++)
     	    {
         	    memcpy(((uint8_t*)tmp + i) , (act->field->value + OXM_LENGTH(iter->header) - i -1 ), 1); 
@@ -237,7 +240,6 @@ push_vlan(struct packet *pkt, struct ofl_action_push *act) {
                                         + ETH_HEADER_LEN + LLC_HEADER_LEN);
             push_vlan = (struct vlan_header *)((uint8_t *)new_eth + eth_size);
             new_vlan = vlan;
-
         } else {
             // not enough headroom, use tailroom of the packet
 
@@ -484,9 +486,9 @@ push_pbb(struct packet *pkt, struct ofl_action_push *act) {
         pbb = pkt->handle_std->proto->pbb;
         vlan = pkt->handle_std->proto->vlan;
 
-/*        eth_size = snap == NULL*/
-/*                   ? ETH_HEADER_LEN*/
-/*                   : ETH_HEADER_LEN + LLC_HEADER_LEN + SNAP_HEADER_LEN;*/
+        eth_size = snap == NULL
+                   ? ETH_HEADER_LEN
+                   : ETH_HEADER_LEN + LLC_HEADER_LEN + SNAP_HEADER_LEN;
 
         if (ofpbuf_headroom(pkt->buffer) >= PBB_HEADER_LEN) {
             // there is available space in headroom, move eth backwards
@@ -518,8 +520,8 @@ push_pbb(struct packet *pkt, struct ofl_action_push *act) {
             memmove((uint8_t *)push_pbb + PBB_HEADER_LEN, push_pbb,
                     pkt->buffer->size - ETH_HEADER_LEN);
 
-/*            new_pbb = pbb == NULL ? NULL*/
-/*              : (struct pbb_header *)((uint8_t *)push_pbb + PBB_HEADER_LEN);*/
+           new_pbb = pbb == NULL ? NULL
+              : (struct pbb_header *)((uint8_t *)push_pbb + PBB_HEADER_LEN);
         }
 
         push_pbb->id = new_pbb == NULL ? 0x0000 : new_pbb->id;
@@ -531,7 +533,7 @@ push_pbb(struct packet *pkt, struct ofl_action_push *act) {
         if (new_snap != NULL) {
             
             push_pbb->pbb_next_type = new_snap->snap_type;
-//            new_snap->snap_type = ntohs(act->ethertype);
+            new_snap->snap_type = ntohs(act->ethertype);
             new_eth->eth_type = htons(ntohs(new_eth->eth_type) + PBB_HEADER_LEN);
         } else {
             push_pbb->pbb_next_type = new_eth->eth_type;
@@ -552,8 +554,6 @@ pop_pbb(struct packet *pkt, struct ofl_action_header *act UNUSED) {
     packet_handle_std_validate(pkt->handle_std);
     if (pkt->handle_std->proto->eth != NULL && pkt->handle_std->proto->pbb != NULL) {
         struct eth_header *eth = pkt->handle_std->proto->eth;
-        struct snap_header *eth_snap = pkt->handle_std->proto->eth_snap;
-        struct vlan_header *vlan = pkt->handle_std->proto->vlan;
         struct pbb_header *pbb = pkt->handle_std->proto->pbb;
         size_t move_size;
 
@@ -687,6 +687,14 @@ dp_execute_action(struct packet *pkt,
         }
         case (OFPAT_DEC_NW_TTL): {
             dec_nw_ttl(pkt, action);
+            break;
+        }
+        case (OFPAT_PUSH_PBB):{
+            push_pbb(pkt, (struct ofl_action_push*)action);
+            break;
+        }
+        case (OFPAT_POP_PBB):{
+            pop_pbb(pkt, action);
             break;
         }
         case (OFPAT_EXPERIMENTER): {
