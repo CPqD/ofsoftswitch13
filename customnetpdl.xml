@@ -4582,6 +4582,9 @@ Please note: it was this before
 					<case value="60">
 						<includeblk name="DOH"/>
 					</case>
+					<case value="50">
+						<includeblk name="ESP"/>
+					</case>
 					<default>
 						<loopctrl type="break"/>
 					</default>
@@ -4642,6 +4645,12 @@ Please note: it was this before
 			</switch>
 		</block>
 
+		<block name="ESP" longname="{0x8000 39 2 5}">
+			<field type="fixed" name="spi" longname="Security Parameters Index" size="4" showtemplate="FieldDec"/>			
+			<field type="fixed" name="snf" longname="Sequence Number Field" size="4" showtemplate="FieldDec"/>			
+			<field type="fixed" name="nexthdr" longname="{0x8000 10} Next Header" size="1" showtemplate="ipv6.nexthdr"/>
+			<field type="fixed" name="payload len" longname="Payload Len" size="1" showtemplate="FieldDec"/>
+		</block>
 
 		<block name="DOHOption" longname="Destination Option Header Option">
 			<field type="fixed" name="opttype" longname="Option Type" size="1" showtemplate="ipv6.opttype">

@@ -6,6 +6,7 @@
  */
 
 #include <iostream>
+#include <map>
 #include <string.h>
 #include <sys/stat.h>
 #include <errno.h>
@@ -16,12 +17,15 @@
 #include "oflib/oxm-match.h"
 #include "lib/hash.h"
 
+map<uint16_t,uint16_t> ext_hdr_orders;
+
 nbPacketDecoder *Decoder;
 nbPacketDecoderVars* PacketDecoderVars;
 nbNetPDLLinkLayer_t LinkLayerType;
 nbPDMLReader *PDMLReader;
 int PacketCounter= 1;
 struct pcap_pkthdr * pkhdr;
+
 
 #define NETPDLFILE "customnetpdl.xml"
 
@@ -175,131 +179,90 @@ int nblink_extract_proto_fields(struct ofpbuf * pktin, _nbPDMLField * field, str
     
     return 0;         	
 }
-int nblink_initialize_EH_hmap_entry (struct hmap * pktout)
-{
-    struct packet_fields * pktout_field;
-    uint16_t value = OFPIEH_NONEXT;
-    uint8_t i;
-    
-    pktout_field->header = OXM_OF_IPV6_EXTHDR;
-    pktout_field->pos = 0;
-    
-    for (i=0;i<sizeof(value);i++)
-    {
-        pktout_field->value[i] = (uint8_t)((value >> (8*(sizeof(value)-i-1)) ) & 0xFF);
-    }
 
-    hmap_insert_fast(pktout, &pktout_field->hmap_node,
-                        hash_int(pktout_field->header, 0));    
-    
-    return 0;
-    
-}
-int nblink_extract_exthdr_fields(struct ofpbuf * pktin, struct hmap * pktout, _nbPDMLField * field, struct control_eh_fields * control_EH)
 /* 
 * Function used to extract an Extension Header flag from the NetBee field structure.
 */
-{
-    uint32_t type,vendor, field_shift, field_position_aux;
-    uint8_t i;
-    uint16_t ipv6_exthdr;
-    
-    struct packet_fields * new_field;
-
-    /* Decoding the field's type and Extension Header ID from the NetPDL structure */
-    char * pEnd;
-    vendor = strtol(field->LongName+1,&pEnd,0);
-    type = (uint32_t) (vendor<<7)+(strtol(pEnd,&pEnd,10));
-    field_shift = strtol(pEnd,&pEnd,10);
-    field_position_aux = strtol(pEnd,NULL,10);
-    ipv6_exthdr = (uint16_t) (1 << (field_shift));
-
-    new_field = (struct packet_fields *) malloc(sizeof(struct packet_fields));
-    new_field->header = OXM_HEADER(VENDOR_FROM_TYPE(type),FIELD_FROM_TYPE(type),field->Size); 
-    new_field->value = (uint8_t*) malloc(sizeof(uint16_t));
-    
-    if(ipv6_exthdr == OFPIEH_DEST && control_EH->count_DOEH>0)
-    {
-        control_EH->position_EH[7] = (uint32_t) field->Position;
-    }
-    else
-    {
-        control_EH->position_EH[field_position_aux] = field->Position;
-    }
+int nblink_extract_exthdr_fields(struct ofpbuf * pktin, struct hmap * pktout, _nbPDMLField * field, int *destination_num)
+{    
     struct packet_fields *iter;
-    bool found=0;
-    HMAP_FOR_EACH(iter,struct packet_fields, hmap_node,pktout)
-    {
-        if(OXM_TYPE(iter->header) == OXM_TYPE(new_field->header))
-        {
-            found = 1;
-            break;
-        }
-    }
-/*    int ret= 0;
-    ret = nblink_check_for_entry_on_hmap(pktout ,OFPXMT_OFB_IPV6_EXTHDR , iter);
-    if (ret < 0)
-    {
-*/
-    if (!found)
-    {
-        for (i=0;i<sizeof(uint16_t);i++)
-        {
-            new_field->value[i] = (uint8_t)((ipv6_exthdr >> (8*(sizeof(uint16_t)-i-1)) ) & 0xFF);
-        }
-        hmap_insert_fast(pktout, &new_field->hmap_node,
-        hash_int(new_field->header, 0));
+    uint16_t type;
+    if(!strcmp(field->Name, "HBH"))
+        type = OFPIEH_HOP;
+    else if(!strcmp(field->Name, "DOH")){
+        type = OFPIEH_DEST;        
+        (*destination_num)++;
+    }    
+    else if (!strcmp(field->Name, "RH"))
+        type = OFPIEH_ROUTER;
+    else if (!strcmp(field->Name, "FH"))
+        type = OFPIEH_FRAG;
+    else if (!strcmp(field->Name, "AH"))
+        type = OFPIEH_AUTH;
+    else if (!strcmp(field->Name, "ESP"))
+        type = OFPIEH_ESP;
 
-    }
-    else
+    HMAP_FOR_EACH_WITH_HASH(iter, struct packet_fields, hmap_node, hash_int(OXM_OF_IPV6_EXTHDR, 0), pktout)
     {
-        
-        uint16_t old_ipv6_exthdr = 0;
-        for (i=0;i<field->Size;i++)
-        {
-            old_ipv6_exthdr = old_ipv6_exthdr ^ ((uint16_t)(iter->value[i])) << (8*(field->Size-i-1));
+        /*First check if is duplicated*/
+        uint16_t *ext_hdrs = (uint16_t*) iter->value;
+        *ext_hdrs = ntohs(*ext_hdrs);
+        if(!(*ext_hdrs & OFPIEH_UNREP)){
+            if (type != OFPIEH_DEST && *ext_hdrs & type){
+                *ext_hdrs ^=  OFPIEH_UNREP;
+                return 0;
+            }
+            /*DOH can appear twice */
+            if(*ext_hdrs & type && *destination_num > 2){
+                *ext_hdrs ^=  OFPIEH_UNREP;
+                return 0;
+            }
         }
-        /* TODO : check if the bits set on this structure are field bits and not control bits.
-         * Also, check if this works at all as it should.
-         */ 
-        if (old_ipv6_exthdr & ipv6_exthdr == ipv6_exthdr)
-        {
-        // Repeated Extension Header Field
-            
-            if (ipv6_exthdr == OFPIEH_DEST)
-            {
-                control_EH->count_DOEH++ ;
-                if ( control_EH->count_DOEH >2 && old_ipv6_exthdr & OFPIEH_UNREP == 0)
-                {
-                    ipv6_exthdr = ipv6_exthdr ^ OFPIEH_UNREP ;
+
+        /*Check sequence*/
+        if(!(*ext_hdrs & OFPIEH_UNSEQ)){
+            uint16_t next_type;
+            char *pEnd;
+            uint16_t next_header = strtol(field->FirstChild->Value, &pEnd,16);
+
+            /*DOH Should have a routing header or the upper layer as the next header
+              if not, set the UNSEQ bit                                            */
+            if(type == OFPIEH_DEST){
+                if ( next_header == IPV6_TYPE_HBH 
+                    || next_header == IPV6_TYPE_FH || next_header == IPV6_TYPE_AH ||
+                    next_header == IPV6_TYPE_ESP ){
+                    *ext_hdrs ^=  OFPIEH_DEST;
+                    *ext_hdrs ^=  OFPIEH_UNSEQ;
+                    return 0;
                 }
             }
-            else if (old_ipv6_exthdr & OFPIEH_UNREP == 0 )
-            {
-                ipv6_exthdr = ipv6_exthdr ^ OFPIEH_UNREP ;
-            }
-            
-        }
-        else
-        {
-        // New Extension Header Field
-            if (ipv6_exthdr == OFPIEH_DEST)
-            {
-                control_EH->count_DOEH++ ;
-            }
-            
-            ipv6_exthdr = old_ipv6_exthdr ^ ipv6_exthdr ;
-        }
-        
-        
-        for (i=0;i<field->Size;i++)
-        {
-            new_field->value[i] = (uint8_t)((ipv6_exthdr >> (8*(sizeof(uint16_t)-i-1)) ) & 0xFF);
-        }
-// 
-        memcpy(iter->value,new_field->value,field->Size);
 
-    }
+            map<uint16_t,uint16_t>::iterator it;
+            it = ext_hdr_orders.find(type);
+
+            if(next_header == IPV6_TYPE_HBH)
+                next_type = HBH;
+            else if(next_header == IPV6_TYPE_DOH){
+                next_type = DESTINATION;
+            }
+            else if (next_header == IPV6_TYPE_RH)
+                next_type = ROUTING;
+            else if (next_header == IPV6_TYPE_FH)
+                next_type = FRAGMENT;
+            else if (next_header == IPV6_TYPE_AH)
+                next_type = AUTHENTICATION;
+            else if (next_header == IPV6_TYPE_ESP)
+                next_type = ESP;        
+            if(!(it->second & next_type))   
+                /*Set the not in order preferred bit */
+                *ext_hdrs ^=  OFPIEH_UNSEQ;
+        }
+        
+        /* Set the extension header flag*/
+        *ext_hdrs ^=  type;
+        *ext_hdrs = htons(*ext_hdrs);
+    } 
+    
     return 0;
 
 }
@@ -310,6 +273,13 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
 	pkhdr->len = pktin->size; //need this information
 
 	_nbPDMLPacket * curr_packet;
+
+    ext_hdr_orders.insert( pair<uint16_t,uint16_t>(OFPIEH_HOP,HBH_ALLOWED));
+    ext_hdr_orders.insert( pair<uint16_t,uint16_t>(OFPIEH_DEST,DESTINATION_ALLOWED));    
+    ext_hdr_orders.insert( pair<uint16_t,uint16_t>(OFPIEH_ROUTER,ROUTING_ALLOWED)); 
+    ext_hdr_orders.insert( pair<uint16_t,uint16_t>(OFPIEH_FRAG,FRAG_ALLOWED));
+    ext_hdr_orders.insert( pair<uint16_t,uint16_t>(OFPIEH_AUTH,AUTH_ALLOWED));
+    ext_hdr_orders.insert( pair<uint16_t,uint16_t>(OFPIEH_ESP,ESP_ALLOWED));
 
 	/* Decode packet */
 	if (Decoder->DecodePacket(LinkLayerType, PacketCounter, pkhdr, (const unsigned char*) (pktin->data)) == nbFAILURE)
@@ -323,16 +293,7 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
 	_nbPDMLProto * proto;
 	_nbPDMLField * field;
 
-    struct control_eh_fields * control_EH;
-    control_EH = (struct control_eh_fields *) malloc(sizeof(struct control_eh_fields));
-    
-    control_EH->count_DOEH = 0;
-    uint8_t j;
-    for (j=0;j<10;j++)
-    {
-        control_EH->position_EH[j]=0;
-    }
-
+    int destination_num = 0;
 	proto = curr_packet->FirstProto;
     bool proto_done = true;
     while (1)
@@ -356,7 +317,6 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
             else if (protocol_Name.compare("ipv6") == 0 && pkt_proto->ipv6 == NULL)
             {
                 pkt_proto->ipv6 = (struct ipv6_header *) ((uint8_t*) pktin->data + proto->Position);
-                /* TODO Initialize a hmap entry for the EH with OFPIEH_NONEXT*/
                 struct packet_fields * EH_field;
                 uint16_t bit_field = OFPIEH_NONEXT;
                 uint8_t i;
@@ -364,15 +324,11 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
                 EH_field->value = (uint8_t*) malloc(OXM_LENGTH(OXM_OF_IPV6_EXTHDR));
                 EH_field->header = OXM_OF_IPV6_EXTHDR;
                 EH_field->pos = 0; //No valid value for this field
-                for (i=0;i<field->Size;i++)
-                {
-                    EH_field->value[i] = (uint8_t)((bit_field >> 
-                            (8*(OXM_LENGTH(OXM_OF_IPV6_EXTHDR)-i-1)) ) & 0xFF);
-                }
-               // printf("<3> EH Value: %d On HMAP: %02x%02x\n",bit_field,EH_field->value[0],EH_field->value[1]);
-                //cout << "<3> EH Value: " << bit_field << " On HMAP: " << EH_field->value[0] << EH_field->value[1]  << endl;
+                /*Set everything to zero */
+                memset(EH_field->value,0x0, sizeof(uint16_t));
                 hmap_insert_fast(pktout, &EH_field->hmap_node,
                             hash_int(EH_field->header, 0));
+
             }
             else if ((protocol_Name.compare("vlan") == 0 || protocol_Name.compare("pbb_b") == 0) && pkt_proto->vlan == NULL)
             {
@@ -410,7 +366,8 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
         {
         // The '{' character identifies fields we use on matching.
             if (field->ShowValue != NULL)
-            {
+            {            
+
                 nblink_extract_proto_fields(pktin,field,pktout);
             }
             else
@@ -485,8 +442,10 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
                      */
                     if (type == OXM_TYPE(OXM_OF_IPV6_EXTHDR))
                     {
+                        //printf("Name EXT %s\n", field->NextField->FirstChild->Name);
+
                         //printf("TYPE 39 \n");
-                        nblink_extract_exthdr_fields(pktin,pktout, field->NextField, control_EH);
+                        nblink_extract_exthdr_fields(pktin,pktout, field->NextField, &destination_num);
                         free(pktout_field);
                     }
                     else
@@ -506,6 +465,7 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
             field = field->NextField;
         }
 	}
+    /*
 	struct packet_fields * iter;
 	uint8_t i = 0;
     uint8_t unseq = 0;
@@ -551,7 +511,7 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
         {
             break;
         }        
-    }   
+    } */  
     
 	return 1;
 }

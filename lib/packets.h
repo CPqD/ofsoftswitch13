@@ -119,7 +119,7 @@ static inline bool eth_addr_is_reserved(const uint8_t ea[ETH_ADDR_LEN])
 #define ETH_TYPE_VLAN_PBB_B    0x88a8
 #define ETH_TYPE_VLAN_PBB_S    0x88e7
 #define ETH_TYPE_MPLS          0x8847
-#define ETH_TYPE_MPLS_MCAST    0x8848
+#define ETH_TYPE_MPLS_MCAST    0x8848    
 
 #define ETH_HEADER_LEN 14
 #define ETH_PAYLOAD_MIN 46
@@ -213,6 +213,13 @@ BUILD_ASSERT_DECL(VLAN_ETH_HEADER_LEN == sizeof(struct vlan_eth_header));
 #define IP_TYPE_UDP   17
 #define IP_TYPE_SCTP 132
 
+#define IPV6_TYPE_HBH 0
+#define IPV6_TYPE_DOH 60
+#define IPV6_TYPE_RH  43
+#define IPV6_TYPE_FH  44
+#define IPV6_TYPE_AH  51
+#define IPV6_TYPE_ESP 50
+
 #define IP_VERSION 4
 
 #define IP_DONT_FRAGMENT  0x4000 /* Don't fragment. */
@@ -250,6 +257,16 @@ struct ipv6_header {
     struct in6_addr ipv6_dst;
 };
 BUILD_ASSERT_DECL(IPV6_HEADER_LEN == sizeof(struct ipv6_header));
+
+enum ipv6_ext_hdr_order_T1 {
+    HBH = 1 << 0,
+    DESTINATION = 1 << 1,
+    ROUTING = 1 << 2,
+    FRAGMENT = 1 << 3,
+    AUTHENTICATION = 1 << 4,
+    ESP = 1 << 5,
+};
+
 
 #define ICMP_HEADER_LEN 4
 struct icmp_header {
