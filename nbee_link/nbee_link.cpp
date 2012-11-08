@@ -224,6 +224,9 @@ int nblink_extract_exthdr_fields(struct ofpbuf * pktin, struct hmap * pktout, _n
             uint16_t next_type;
             char *pEnd;
             uint16_t next_header = strtol(field->FirstChild->Value, &pEnd,16);
+            /*Set OFPIEH_NONEXT */
+            if (next_header == IPV6_NO_NEXT_HEADER)    
+                *ext_hdrs ^=  OFPIEH_NONEXT;
 
             /*DOH Should have a routing header or the upper layer as the next header
               if not, set the UNSEQ bit                                            */
@@ -239,7 +242,6 @@ int nblink_extract_exthdr_fields(struct ofpbuf * pktin, struct hmap * pktout, _n
 
             map<uint16_t,uint16_t>::iterator it;
             it = ext_hdr_orders.find(type);
-
             if(next_header == IPV6_TYPE_HBH)
                 next_type = HBH;
             else if(next_header == IPV6_TYPE_DOH){
@@ -350,10 +352,10 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
             {
                 pkt_proto->pbb = (struct pbb_header *) ((uint8_t*) pktin->data + proto->Position);
             }
-//            else if (protocol_Name.compare("pbb_b") == 0 && pkt_proto->pbb_b == NULL)
-//            {
+//          else if (protocol_Name.compare("pbb_b") == 0 && pkt_proto->pbb_b == NULL)
+//          {
 //                pkt_proto->pbb_b = (struct pbb_b_header *) ((uint8_t*) pktin->data + proto->Position);
-//            }
+//           }
             while (!field->isField)
             {
             // This is necessary for Protocols with a Block as a first "field" on NetBee,
@@ -442,9 +444,6 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
                      */
                     if (type == OXM_TYPE(OXM_OF_IPV6_EXTHDR))
                     {
-                        //printf("Name EXT %s\n", field->NextField->FirstChild->Name);
-
-                        //printf("TYPE 39 \n");
                         nblink_extract_exthdr_fields(pktin,pktout, field->NextField, &destination_num);
                         free(pktout_field);
                     }
@@ -464,54 +463,7 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
         {
             field = field->NextField;
         }
-	}
-    /*
-	struct packet_fields * iter;
-	uint8_t i = 0;
-    uint8_t unseq = 0;
-    
-    for (i=0;i<9;i++)
-    {
-        if (control_EH->position_EH[i] != 0)
-        {
-            for(j=i+1;j<10;j++)
-            {
-                if (control_EH->position_EH[j] != 0 &&
-                    control_EH->position_EH[i] > control_EH->position_EH[j])
-                    {
-                        HMAP_FOR_EACH(iter,struct packet_fields, hmap_node,pktout)
-                        {
-                            if (OXM_TYPE(iter->header) == OXM_TYPE(OXM_OF_IPV6_EXTHDR))
-                            {
-                                uint16_t k,ipv6_exthdr = 0;
-                                unseq = 1;
-                                for (k=0;k<OXM_LENGTH(OXM_OF_IPV6_EXTHDR);k++)
-                                {
-                                    ipv6_exthdr = ipv6_exthdr ^ ((uint16_t)(iter->value[k])) << (8*(OXM_LENGTH(OXM_OF_IPV6_EXTHDR)-k-1));
-                                }
-                                if ((ipv6_exthdr & OFPIEH_UNSEQ) == 0)
-                                {
-                                    ipv6_exthdr = ipv6_exthdr ^ OFPIEH_UNSEQ;
-                                }
-                                for (k=0;k<OXM_LENGTH(OXM_OF_IPV6_EXTHDR);k++)
-                                {
-                                    iter->value[k] = (uint8_t)((ipv6_exthdr >> (8*(OXM_LENGTH(OXM_OF_IPV6_EXTHDR)-k-1)) ) & 0xFF);
-                                }
-                                
-                            }
-                        }
-                    }
-                if (unseq == 1)
-                {
-                    break;
-                }
-            }
-        }
-        if (unseq == 1)
-        {
-            break;
-        }        
-    } */  
+	} 
     
 	return 1;
 }

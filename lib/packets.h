@@ -219,6 +219,7 @@ BUILD_ASSERT_DECL(VLAN_ETH_HEADER_LEN == sizeof(struct vlan_eth_header));
 #define IPV6_TYPE_FH  44
 #define IPV6_TYPE_AH  51
 #define IPV6_TYPE_ESP 50
+#define IPV6_NO_NEXT_HEADER 59        
 
 #define IP_VERSION 4
 
