@@ -80,12 +80,28 @@ This will open TCP connections to both the switch and the controller, relaying
 OpenFlow protocol messages between the two. For a complete list of options,
 use the `--help` argument.
 
+Dpctl
+------
 You can send requests to the switch using the `dpctl` utility:
 
-    $ cd utilities
-    $ ./dpctl tcp:<switch-host>:<switch-port> stats-flow table=0
+    $ utilities/dpctl tcp:<switch-host>:<switch-port> stats-flow table=0
+
+To install a flow:
+    $ utilities/dpctl tcp:<switch-host>:<switch-port> flow-mod table=0,cmd=add in_port=1,eth_type=0x86dd,ext_hdr=hop+dest apply:output=2
+The example above install a flow to match IPv6 packets with extension headers hop by hop and destination and coming from the port 1.
+
+To add a meter:
+ $ utilities/dpctl tcp:<switch-host>:<switch-port> meter-mod cmd=add,meter=1 drop:rate=50
+
+Send flow to meter table
+$ utilities/dpctl tcp:<switch-host>:<switch-port> flow-mod table=0,cmd=add in_port=1 meter:1
 
 For a complete list of commands and arguments, use the `--help` argument.
+
+Dpctl has some limitations at the moment:
+- Do not support oxm masks.
+- Do not support multiparted messages.
+- Lack of some fields on set_field action.  
 
 Contribute
 ==========
@@ -103,6 +119,7 @@ Acknowledgments
 ===============
 We would like to thank:
 Zoltán Lajos Kis from Ericsson Traffic Lab, for his really helpful contribution on solving questions about the spec. 
+
 Khai Nguyen Dinh and Thanh Le Dinh from Applistar, for contributions on meter features.
 
 Contact
