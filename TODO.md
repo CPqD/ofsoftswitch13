@@ -9,7 +9,6 @@ TODO
 
 - Enable ’multipart’ requests (requests spanning multiple messages).
 
-
 ONGOING
 
 
@@ -137,17 +136,16 @@ TODO
 
 
 ONGOING
-- Remove defined order of tags in packet from the specification.
-- Tags are now always added in the outermost possible position.
-- Action-list can add tags in arbitrary order.
-- Tag order is predefined for tagging in the action-set.
+
 
 DONE
 
 B.11.10 Tunnel-ID metadata
 ---------------------------
-
-TODO
+- Remove defined order of tags in packet from the specification.
+- Tags are now always added in the outermost possible position.
+- Action-list can add tags in arbitrary order.
+- Tag order is predefined for tagging in the action-set.TODO
 
 ONGOING
 
