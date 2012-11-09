@@ -1,4 +1,4 @@
-OpenFlow 1.2 Software Switch
+OpenFlow 1.3 Software Switch
 ============================
 
 This is an [OpenFlow 1.3][ofp13] compatible user-space software switch
