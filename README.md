@@ -1,197 +1,110 @@
-OpenFlow 1.3 software switch
-=============================
-This is an OpenFlow switch 1.3 under development. Please take a look on the list of new features added, ongoing work and to do items.   
+OpenFlow 1.2 Software Switch
+============================
 
-B.11.1 Refactor capabilities negotiation
-----------------------------------------
+This is an [OpenFlow 1.3][ofp13] compatible user-space software switch
+implementation. The code is based on the [Ericsson TrafficLab 1.1 softswitch
+implementation][ericssonsw11], with changes in the forwarding plane to support
+OpenFlow 1.3.
 
-TODO
+The following components are available in the release:
+  - ofdatapath: the switch implementation
+  - ofprotocol: secure channel for connecting the switch to the controller
+  - oflib:      a library for converting to/from 1.3 wire format
+  - dpctl:      a tool for configuring the switch from the console
 
-- Enable ’multipart’ requests (requests spanning multiple messages).
-- Enable to express experimenter capabilities.
 
+Getting Started
+===============
 
-ONGOING
+Pre-Building
+------------
 
-- Pack and unpack of new and modified messages.
+The software switch makes use of the Netbee library to parse packets, therefore library files needed to build  
+the switch.
 
-DONE
+To compile Netbee on your system your  
+system you need to install the following packages:
 
-- Rename ’stats’ framework into the ’multipart’ framework. 
-- Move port list description to its own multipart request/reply.
-- Create flexible property structure to express table capabilities.
-- Add capabilities for table-miss flow entries.
-- Add next-table (i.e. goto) capabilities
-- Move table capabilities to its own multipart request/reply.
+    $ sudo apt-get install cmake libpcap-dev libxerces-c2-dev libpcre3-dev flex bison  
 
-B.11.2 More flexible table miss support
------------------------------------------
+Download the source code on http://www.nbee.org/download/nbeesrc-12-05-16.php
+    
+Create the build system  
+  
+    $ cd nbeesrc/src  
+    $ cmake.
 
-TODO
+Compile  
+    
+    $ make
 
+Add the shared libraries built in `/nbeesrc/bin/` to your `/usr/local/lib` directory.  
 
-ONGOING
+    $ sudo cp nbeesrc/bin/libn*.so /usr/local/lib
 
-DONE
+Run `ldconfig`:
 
-- Add capabilities to describe the table-miss flow entry (EXT-123). 
-- Remove table-miss config flags (EXT-108).
-- Define table-miss flow entry as the all wildcard, lowest priority flow entry (EXT-108).
-- Mandate support of the table-miss flow entry in every table to process table-miss packets (EXT-108)
-- Change table-miss default to drop packets (EXT-119).
+    $ sudo ldconfig
 
-B.11.3 IPv6 Extension Header handling support
-----------------------------------------------
+Put the folder `nbeesrc/include` in the `/usr/include`:
 
-TODO
+    $ sudo cp -R nbeesrc/include /usr/include
 
-ONGOING
 
-DONE
+Building
+--------
 
-- Hop-by-hop IPv6 extension header is present.
-- Router IPv6 extension header is present.
-- Fragmentation IPv6 extension header is present.
-- Destination options IPv6 extension headers is present.
-- Authentication IPv6 extension header is present.
-- Encrypted Security Payload IPv6 extension header is present.
-- No Next Header IPv6 extension header is present.
-- IPv6 extension headers out of preferred order.
-- Unexpected IPv6 extension header encountered
+To build, run the following commands in the `of12softswitch` directory:
 
-B.11.4 Per flow meters
------------------------
+    $ ./boot.sh
+    $ ./configure
+    $ make
+    $ sudo make install
+    
+Running
+-------
 
-TODO
+Start the datapath:
 
-ONGOING
+    $ sudo udatapath/ofdatapath --datapath-id=<dpid> --interfaces=<if-list> ptcp:<port>
 
+This will start the datapath, with the given datapath id, and interace list,
+opening a passive tcp connection on the given port. For a complete list of
+options, use the `--help` argument.
 
-- Simple rate-limiter support (drop packets).
+Start the secure channel:
 
-DONE
-- Flexible meter framework based on per-flow meters and meter bands.
-- Meter statistics, including per band statistics.
-- Enable to attach meters flexibly to flow entries.
+    $ secchan/ofprotocol tcp:<switch-host>:<switch-port> tcp:<ctrl-host>:<ctrl-port>
 
-B.11.5 Per connection event filtering
---------------------------------------
+This will open TCP connections to both the switch and the controller, relaying
+OpenFlow protocol messages between the two. For a complete list of options,
+use the `--help` argument.
 
-TODO
+You can send requests to the switch using the `dpctl` utility:
 
+    $ cd utilities
+    $ ./dpctl tcp:<switch-host>:<switch-port> stats-flow table=0
 
-ONGOING
-- Add asynchronous message filter for each controller connection.
-- Controller message to set/get the asynchronous message filter.
-- Set default filter value to match OpenFlow 1.2 behaviour.
+For a complete list of commands and arguments, use the `--help` argument.
 
-DONE
+Contribute
+==========
 
-- Remove OFPC_INVALID_TTL_TO_CONTROLLER config flag.
+Please submit your bug reports, fixes and suggestions as pull requests on
+github, or by contacting us directly.
 
-B.11.6 Auxiliary connections
------------------------------
+License
+=======
 
-TODO
+OpenFlow 1.3 Software Switch is released under the BSD license (BSD-like for
+code from the original Stanford switch).
 
-- Enable switch to create auxiliary connections to the controller.
-- Mandate that auxiliary connection can not exist when main connection is not alive.
-- Add auxiliary-id to the protocol to disambiguate the type of connection.
-- Enable auxiliary connection over UDP and DTLS.
+Contact
+=======
 
-ONGOING
+E-mail: Eder Leao Fernandes (ederlf@cpqd.com.br)
 
-DONE
+[ofp13]: https://www.opennetworking.org/images/stories/downloads/specification/openflow-spec-v1.3.0.pdf
+[ericssonsw11]: https://github.com/TrafficLab/of11softswitch
 
-B.11.7 MPLS BoS matching
---------------------------
 
-TODO
-
-ONGOING
-
-DONE
-
-- A new OXM field OXM_OF_MPLS_BOS has been added to match the Bottom 
-of Stack bit (BoS) from the MPLS header (EXT-85)
-
-B.11.8 Provider Backbone Bridging tagging
--------------------------------------------
-
-TODO
-
-
-
-ONGOING
-- Push and Pop operation to add PBB header as a tag.
-
-DONE
-
-- New OXM field to match I-SID for the PBB header.
-
-B.11.9 Rework tag order
-------------------------
-
-TODO
-
-
-
-ONGOING
-- Remove defined order of tags in packet from the specification.
-- Tags are now always added in the outermost possible position.
-- Action-list can add tags in arbitrary order.
-- Tag order is predefined for tagging in the action-set.
-
-DONE
-
-B.11.10 Tunnel-ID metadata
----------------------------
-
-TODO
-
-ONGOING
-
-DONE
-
-- New OXM Field to match tunnel-id.
-
-Duration for stats
--------------------
-
-TODO
-
-
-
-ONGOING
-
-DONE
-
-- Duration for meter stats.
-- Done for port, queue and group stats
-
-Cookies in packet-in
-----------------------
-
-TODO
-
-ONGOING
-
-DONE
-
-- Cookie field was added to the packet-in message (EXT-7). 
-- This field takes its value from the flow the
-sends the packet to the controller. If the packet was not sent by 
-a flow, this field is set to 0xffffffffffffffff.
-
-B.11.13 On demand flow counters
---------------------------------
-
-TODO
-
-ONGOING
-
-DONE
-
-- New flow-mod flags have been added to disable packet and byte 
-counters on a per-flow basis. Disabling such counters may improve 
-flow handling performance in the switch.
