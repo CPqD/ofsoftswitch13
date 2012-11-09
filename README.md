@@ -99,6 +99,12 @@ License
 OpenFlow 1.3 Software Switch is released under the BSD license (BSD-like for
 code from the original Stanford switch).
 
+Acknowledgments
+===============
+We would like to thank:
+Zoltán Lajos Kis from Ericsson Traffic Lab, for his really helpful contribution on solving questions about the spec. 
+Khai Nguyen Dinh and Thanh Le Dinh from Applistar, for contributions on meter features.
+
 Contact
 =======
 
