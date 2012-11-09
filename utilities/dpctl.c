@@ -1419,16 +1419,18 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
             }     
         return 0;
     }    
-    if (strncmp(token, MATCH_DL_DST KEY_VAL, strlen(MATCH_DL_DST KEY_VAL)) == 0) {
-        uint8_t* dl_dst = xmalloc(6);           
-        if (parse_dl_addr(token + strlen(MATCH_DL_SRC KEY_VAL), dl_dst)) {
-                ofp_fatal(0, "Error parsing dl_dst: %s.", token);
-        }else{ 
-                act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
-                act->field->header = OXM_OF_ETH_DST;                    
-                act->field->value = (uint8_t*) dl_dst;
-            }     
-    }
+    if (strncmp(token, MATCH_DL_TYPE KEY_VAL, strlen(MATCH_DL_TYPE KEY_VAL)) == 0) {
+        uint16_t* dl_type = xmalloc(sizeof(uint16_t));
+        if (parse16(token + strlen(MATCH_DL_TYPE KEY_VAL), NULL, 0, 0xffff, dl_type)) {
+            ofp_fatal(0, "Error parsing dl_type: %s.", token);
+        }
+        else { 
+            act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
+            act->field->header = OXM_OF_ETH_TYPE;
+            act->field->value = (uint8_t*) dl_type;
+        }  
+        return 0;        
+    }    
     if (strncmp(token, MATCH_DL_VLAN KEY_VAL, strlen(MATCH_DL_VLAN KEY_VAL)) == 0) {
             uint16_t *dl_vlan = malloc(sizeof(uint16_t));
             if (parse_vlan_vid(token + strlen(MATCH_DL_VLAN KEY_VAL), dl_vlan)) {
@@ -1452,7 +1454,19 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
                 act->field->value = (uint8_t*) pbb_isid;        
             }
         return 0;
-    }    
+    }
+    if (strncmp(token, MATCH_MPLS_LABEL KEY_VAL, strlen(MATCH_MPLS_LABEL KEY_VAL)) == 0) {
+            uint32_t *mpls_label = malloc(sizeof(uint32_t));
+            if (parse32(token + strlen(MATCH_MPLS_LABEL KEY_VAL), NULL, 0, 0x1000000, mpls_label)) {
+                ofp_fatal(0, "Error parsing mpls label id: %s.", token);
+            }
+            else { 
+                act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
+                act->field->header = OXM_OF_MPLS_LABEL;                    
+                act->field->value = (uint8_t*) mpls_label;        
+            }
+        return 0;
+    }            
     if (strncmp(token, MATCH_DL_VLAN_PCP KEY_VAL, strlen(MATCH_DL_VLAN_PCP KEY_VAL)) == 0) {
         uint8_t* vlan_pcp = malloc(sizeof(uint8_t));
         if (parse8(token + strlen(MATCH_DL_VLAN_PCP KEY_VAL), NULL, 0, 0x7, vlan_pcp)) {
@@ -1464,18 +1478,6 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
                 act->field->value =  (uint8_t*) vlan_pcp;           
         }
         return 0;
-    }
-    if (strncmp(token, MATCH_DL_TYPE KEY_VAL, strlen(MATCH_DL_TYPE KEY_VAL)) == 0) {
-        uint16_t* dl_type = xmalloc(sizeof(uint16_t));
-        if (parse16(token + strlen(MATCH_DL_TYPE KEY_VAL), NULL, 0, 0xffff, dl_type)) {
-            ofp_fatal(0, "Error parsing dl_type: %s.", token);
-        }
-        else { 
-            act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
-            act->field->header = OXM_OF_ETH_TYPE;
-            act->field->value = (uint8_t*) dl_type;
-        }  
-        return 0;        
     }
     if (strncmp(token, MATCH_NW_SRC KEY_VAL, strlen(MATCH_NW_SRC KEY_VAL)) == 0) {
         uint32_t* nw_src = malloc(sizeof(uint32_t));
@@ -2171,7 +2173,6 @@ parse_ext_hdr(char *str, uint16_t *ext_hdr){
     size_t i;
     memset(ext_hdr, 0x0, sizeof(uint16_t));
     for (token = strtok_r(str, ADD, &saveptr); token != NULL; token = strtok_r(NULL, ADD, &saveptr)) {
-        printf("%s\n", token);
         for (i=0; i < 9; i++) {
             if (strcmp(token, ext_header_names[i].name) == 0) {
                 *ext_hdr = *ext_hdr ^ ext_header_names[i].code;
