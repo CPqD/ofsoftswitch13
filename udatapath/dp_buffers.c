@@ -149,7 +149,11 @@ dp_buffers_retrieve(struct dp_buffers *dpb, uint32_t id) {
     struct packet_buffer *p;
 
     p = &dpb->buffers[id & PKT_BUFFER_MASK];
-    if (p->cookie == id >> PKT_BUFFER_BITS) {
+    
+    if (p->pkt == NULL)
+        return NULL;
+        
+    if ((p->cookie == id >> PKT_BUFFER_BITS)) {
         pkt = p->pkt;
         pkt->buffer_id = NO_BUFFER;
         pkt->packet_out = false;

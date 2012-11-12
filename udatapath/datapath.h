@@ -82,7 +82,9 @@ struct datapath {
     /* Listeners. */
     struct pvconn **listeners;
     size_t n_listeners;
-
+    struct pvconn **listeners_aux;
+    size_t n_listeners_aux;
+    
     time_t last_timeout;
 
     struct dp_buffers *buffers;
@@ -119,6 +121,7 @@ struct datapath {
 /* The origin of a received OpenFlow message, to enable sending a reply. */
 struct sender {
     struct remote *remote;      /* The device that sent the message. */
+    uint8_t conn_id;            /* The connection that sent the message */
     uint32_t xid;               /* The OpenFlow transaction ID. */
 };
 
@@ -126,6 +129,8 @@ struct sender {
 struct remote {
     struct list node;
     struct rconn *rconn;
+    struct rconn *rconn_aux;
+    
 #define TXQ_LIMIT 128           /* Max number of packets to queue for tx. */
     int n_txq;                  /* Number of packets queued for tx on rconn. */
 
@@ -148,7 +153,7 @@ struct datapath *
 dp_new(void);
 
 void
-dp_add_pvconn(struct datapath *dp, struct pvconn *pvconn);
+dp_add_pvconn(struct datapath *dp, struct pvconn *pvconn, struct pvconn *pvconn_aux);
 
 /* Executes the datapath. The datapath works if this function is run
  * repeatedly. */

@@ -659,7 +659,10 @@ vconn_recv_xid(struct vconn *vconn, uint32_t xid, struct ofpbuf **replyp)
             *replyp = NULL;
             return error;
         }
-        /* Only multipart messages */
+        /* Multipart messages 
+           TODO: It's only getting the last message.
+           Should return an array of multiparted
+           messages*/
         type = ((struct ofp_header*) reply->data)->type;
         if (type == OFPT_MULTIPART_REPLY || type == OFPT_MULTIPART_REQUEST){
             reply_flag = ((struct ofp_multipart_reply *) reply->data)->flags;
