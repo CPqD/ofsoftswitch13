@@ -236,17 +236,16 @@ update_netdev_monitor_devices(struct port_watcher *pw)
 static bool
 port_watcher_local_packet_cb(struct relay *r, void *pw_)
 {
-    /*struct port_watcher *pw = pw_;
+    struct port_watcher *pw = pw_;
     struct ofpbuf *msg = r->halves[HALF_LOCAL].rxbuf;
     struct ofp_header *oh = msg->data;
 
-    if (oh->type == OFPT_FEATURES_REPLY
-        && msg->size >= offsetof(struct ofp_switch_features, ports)) {
+    if (oh->type == OFPT_FEATURES_REPLY) {
         struct ofp_switch_features *osf = msg->data;
-        bool seen[PORT_ARRAY_SIZE];
-        struct ofp_port *p;
-        unsigned int port_no;
-        size_t n_ports;
+       // bool seen[PORT_ARRAY_SIZE];
+       //struct ofp_port *p;
+       //unsigned int port_no;
+       //size_t n_ports;
         size_t i;
 
         pw->got_feature_reply = true;
@@ -281,8 +280,8 @@ port_watcher_local_packet_cb(struct relay *r, void *pw_)
 
         update_netdev_monitor_devices(pw);
 
-        call_local_port_changed_callbacks(pw);
-    } else if (oh->type == OFPT_PORT_STATUS
+        call_local_port_changed_callbacks(pw);*/
+    } else if (oh->type == OFPMP_PORT_STATS
                && msg->size >= sizeof(struct ofp_port_status)) {
         struct ofp_port_status *ops = msg->data;
         update_phy_port(pw, &ops->desc, ops->reason);
@@ -293,7 +292,7 @@ port_watcher_local_packet_cb(struct relay *r, void *pw_)
             update_netdev_monitor_devices(pw);
         }
     }
-    return false;*/
+    return false;
 } 
 
 static void
