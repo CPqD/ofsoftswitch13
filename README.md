@@ -27,7 +27,7 @@ system you need to install the following packages:
 
     $ sudo apt-get install cmake libpcap-dev libxerces-c2-dev libpcre3-dev flex bison  
 
-Download the source code on http://www.nbee.org/download/nbeesrc-12-05-16.php
+Download the source code on http://www.nbee.org/download/nbeesrc-12-11-12.php
     
 Create the build system  
   
