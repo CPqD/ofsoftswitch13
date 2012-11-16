@@ -177,8 +177,8 @@ static struct names16 band_names[] = {
 #define MATCH_DL_DST         "eth_dst"
 #define MATCH_DL_DST_MASK    "eth_dst_mask"
 #define MATCH_DL_VLAN        "vlan_vid"
-#define MATCH_IP_DSCP	     "ip_dscp"
-#define MATCH_IP_ECN	     "ip_ecn"
+#define MATCH_IP_DSCP        "ip_dscp"
+#define MATCH_IP_ECN         "ip_ecn"
 #define MATCH_DL_VLAN_PCP    "vlan_pcp"
 #define MATCH_DL_TYPE        "eth_type"
 #define MATCH_NW_PROTO       "ip_proto"
@@ -188,7 +188,7 @@ static struct names16 band_names[] = {
 #define MATCH_NW_DST_MASK    "ipv4_dst_mask"
 #define MATCH_TP_SRC         "tcp_src"
 #define MATCH_TP_DST         "tcp_dst"
-#define MATCH_UDP_SRC	     "udp_src"
+#define MATCH_UDP_SRC        "udp_src"
 #define MATCH_UDP_DST        "udp_dst"
 #define MATCH_SCTP_SRC       "sctp_src"
 #define MATCH_SCTP_DST       "sctp_dst"
@@ -248,6 +248,7 @@ static struct names16 band_names[] = {
 #define KEY_VAL    "="
 #define KEY_VAL2   ":"
 #define KEY_SEP    ","
+#define MASK_SEP   "/"
 
 #define ADD   "+"
 #define WILDCARD_SUB   '-'

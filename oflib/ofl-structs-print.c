@@ -235,7 +235,7 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             *size -= 10;                                
                             if (OXM_HASMASK(f->header)){
                                 *size -= 6;
-                                fprintf(stream, "eth_src_mask=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value + 6));
+                                fprintf(stream, ", eth_src_mask=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value + 6));
                             }
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
@@ -245,7 +245,7 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             *size -= 10;                                
                             if (OXM_HASMASK(f->header)){
                                 *size -= 6;
-                                fprintf(stream, "eth_dst_mask=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value + 6));
+                                fprintf(stream, ", eth_dst_mask=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value + 6));
                             }
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
@@ -255,7 +255,7 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             *size -= 8;                                
                             if (OXM_HASMASK(f->header)){
                                 *size -= 4;
-                                fprintf(stream, "ipv4_src_mask=\""IP_FMT"\"",IP_ARGS(f->value + 4));
+                                fprintf(stream, ", ipv4_src_mask=\""IP_FMT"\"",IP_ARGS(f->value + 4));
                             }
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
@@ -295,7 +295,7 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             *size -= 8;
                             if (OXM_HASMASK(f->header)){
                                 *size -= 4;
-                                fprintf(stream, "ipv4_dst_mask=\""IP_FMT"\"",IP_ARGS(f->value + 4));
+                                fprintf(stream, ", ipv4_dst_mask=\""IP_FMT"\"",IP_ARGS(f->value + 4));
                             }                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
@@ -305,7 +305,7 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             *size -= 8;                                
                             if (OXM_HASMASK(f->header)){
                                 *size -= 4;
-                                fprintf(stream, "arp_sha_mask=\""IP_FMT"\"",IP_ARGS(f->value + 4));
+                                fprintf(stream, ", arp_sha_mask=\""IP_FMT"\"",IP_ARGS(f->value + 4));
                             }           
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
@@ -315,7 +315,7 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             *size -= 8;                                
                             if (OXM_HASMASK(f->header)){
                                 *size -= 4;
-                                fprintf(stream, "arp_tpa_mask=\""IP_FMT"\"",IP_ARGS(f->value + 4));
+                                fprintf(stream, ", arp_tpa_mask=\""IP_FMT"\"",IP_ARGS(f->value + 4));
                             }
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
@@ -336,7 +336,7 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                         if (OXM_HASMASK(f->header)){
                                 *size -= 16;
                                 inet_ntop(AF_INET6, f->value + 16, addr_str, INET6_ADDRSTRLEN);
-                                fprintf(stream, "nw_src_ipv6_mask=\"%s\"", addr_str);
+                                fprintf(stream, ", nw_src_ipv6_mask=\"%s\"", addr_str);
                         }
                         if (*size > 4)                                
                                 fprintf(stream, ", ");        
@@ -349,7 +349,7 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                         if (OXM_HASMASK(f->header)){
                                 *size -= 16;
                                 inet_ntop(AF_INET6, f->value + 16, addr_str, INET6_ADDRSTRLEN);
-                                fprintf(stream, "nw_dst_ipv6_mask=\"%s\"", addr_str);
+                                fprintf(stream, ", nw_dst_ipv6_mask=\"%s\"", addr_str);
                         }
                         if (*size > 4)                                
                                 fprintf(stream, ", ");        
@@ -410,7 +410,7 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             fprintf(stream, "metadata=\"%lld\"", *((uint64_t*) f->value));
                             *size -= 12;
                             if (OXM_HASMASK(f->header)){
-                                fprintf(stream, "metadata_mask=\"%lld\"", *((uint64_t*) f->value+ 8 ));
+                                fprintf(stream, ", metadata_mask=\"%lld\"", *((uint64_t*) f->value+ 8 ));
                                 *size -= 8;
                             }                            
                             if (*size > 4)                                
@@ -420,7 +420,7 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             fprintf(stream, "pbb_isid=\"%d\"",*((uint32_t*) f->value));
                             *size -= 8;
                             if (OXM_HASMASK(f->header)){
-                                fprintf(stream, "pbb_isid_mask=\"%d\"", *((uint32_t*) f->value +4));
+                                fprintf(stream, ", pbb_isid_mask=\"%d\"", *((uint32_t*) f->value +4));
                                 *size -= 4;
                             }                            
                             if (*size > 4)                                
@@ -430,7 +430,7 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             fprintf(stream, "tunnel_id=\"%lld\"", *((uint64_t*) f->value));
                             *size -= 12;
                             if (OXM_HASMASK(f->header)){
-                                fprintf(stream, "tunnel_id_mask=\"%lld\"", *((uint64_t*) f->value+ 8 ));
+                                fprintf(stream, ", tunnel_id_mask=\"%lld\"", *((uint64_t*) f->value+ 8 ));
                                 *size -= 8;
                             }                            
                             if (*size > 4)
@@ -442,7 +442,7 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             *size -= 6;                                
                             if (OXM_HASMASK(f->header)){
                                 *size -= 2;
-                                fprintf(stream, "ext_hdr_mask=\"0x%x\"",*((uint16_t*) f->value + 4));
+                                fprintf(stream, ", ext_hdr_mask=\"0x%x\"",*((uint16_t*) f->value + 4));
                             }           
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
