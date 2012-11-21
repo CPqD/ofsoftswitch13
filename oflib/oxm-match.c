@@ -748,11 +748,11 @@ int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt){
                     else {
                          uint32_t mask;
                          memcpy(&mask,oft->value + length ,sizeof(uint32_t));
-						 if (oft->header == OXM_OF_IPV4_DST || oft->header == OXM_OF_IPV4_SRC
-							||oft->header == OXM_OF_ARP_SPA || oft->header == OXM_OF_ARP_TPA)
+						 if (oft->header == OXM_OF_IPV4_DST_W|| oft->header == OXM_OF_IPV4_SRC_W
+							||oft->header == OXM_OF_ARP_SPA_W || oft->header == OXM_OF_ARP_TPA)_W
                             oxm_put_32w(buf, oft->header, value, mask); 
 						 else
-							oxm_put_32w(buf, oft->header,htonl(value),htonl(mask));
+							oxm_put_32w(buf, oft->header, htonl(value),htonl(mask));
                     } 
                       break;     
                             

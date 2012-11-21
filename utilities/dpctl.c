@@ -1097,8 +1097,7 @@ parse_match(char *str, struct ofl_match_header **match) {
                     ofl_structs_match_put_eth_m(m,OXM_OF_ETH_DST_W,eth_dst, mask); 
             }     
             continue;
-        }
-        
+        }   
         /* ARP */
         if (strncmp(token, MATCH_ARP_SHA KEY_VAL, strlen(MATCH_ARP_SHA KEY_VAL)) == 0) {
             uint8_t arp_sha[6];
@@ -1218,7 +1217,7 @@ parse_match(char *str, struct ofl_match_header **match) {
                 if (mask == NULL) 
                     ofl_structs_match_put32(m, OXM_OF_IPV4_DST,nw_dst);
                 else 
-                    ofl_structs_match_put32m(m, OXM_OF_IPV4_DST,nw_dst, *mask);
+                    ofl_structs_match_put32m(m, OXM_OF_IPV4_DST_W,nw_dst, *mask);
             }
             continue;
         }
