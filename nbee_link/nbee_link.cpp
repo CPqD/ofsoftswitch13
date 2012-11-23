@@ -12,6 +12,7 @@
 #include <errno.h>
 #include <nbee.h>
 #include <netinet/in.h>
+#include <sys/time.h>
 
 #include "nbee_link.h"
 #include "oflib/oxm-match.h"
@@ -175,6 +176,7 @@ int nblink_extract_proto_fields(struct ofpbuf * pktin, _nbPDMLField * field, str
     {        
        memcpy(pktout_field->value, ((uint8_t*)pktin->data + field->Position), field->Size);
     }
+
     nblink_add_entry_hmap(pktin, pktout,pktout_field, size);
     
     return 0;         	
@@ -187,6 +189,7 @@ int nblink_extract_exthdr_fields(struct ofpbuf * pktin, struct hmap * pktout, _n
 {    
     struct packet_fields *iter;
     uint16_t type;
+    uint16_t *ext_hdrs; 
     if(!strcmp(field->Name, "HBH"))
         type = OFPIEH_HOP;
     else if(!strcmp(field->Name, "DOH")){
@@ -205,7 +208,7 @@ int nblink_extract_exthdr_fields(struct ofpbuf * pktin, struct hmap * pktout, _n
     HMAP_FOR_EACH_WITH_HASH(iter, struct packet_fields, hmap_node, hash_int(OXM_OF_IPV6_EXTHDR, 0), pktout)
     {
         /*First check if is duplicated*/
-        uint16_t *ext_hdrs = (uint16_t*) iter->value;
+        ext_hdrs = (uint16_t*) iter->value;
         *ext_hdrs = ntohs(*ext_hdrs);
         if(!(*ext_hdrs & OFPIEH_UNREP)){
             if (type != OFPIEH_DEST && *ext_hdrs & type){
@@ -233,13 +236,13 @@ int nblink_extract_exthdr_fields(struct ofpbuf * pktin, struct hmap * pktout, _n
             if(type == OFPIEH_DEST){
                 if ( next_header == IPV6_TYPE_HBH 
                     || next_header == IPV6_TYPE_FH || next_header == IPV6_TYPE_AH ||
-                    next_header == IPV6_TYPE_ESP ){
+                    next_header == IPV6_TYPE_ESP ){                 
                     *ext_hdrs ^=  OFPIEH_DEST;
                     *ext_hdrs ^=  OFPIEH_UNSEQ;
+                    *ext_hdrs = htons(*ext_hdrs);
                     return 0;
                 }
             }
-
             map<uint16_t,uint16_t>::iterator it;
             it = ext_hdr_orders.find(type);
             if(next_header == IPV6_TYPE_HBH)
@@ -259,7 +262,7 @@ int nblink_extract_exthdr_fields(struct ofpbuf * pktin, struct hmap * pktout, _n
                 /*Set the not in order preferred bit */
                 *ext_hdrs ^=  OFPIEH_UNSEQ;
         }
-        
+
         /* Set the extension header flag*/
         *ext_hdrs ^=  type;
         *ext_hdrs = htons(*ext_hdrs);
@@ -282,7 +285,10 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
     ext_hdr_orders.insert( pair<uint16_t,uint16_t>(OFPIEH_FRAG,FRAG_ALLOWED));
     ext_hdr_orders.insert( pair<uint16_t,uint16_t>(OFPIEH_AUTH,AUTH_ALLOWED));
     ext_hdr_orders.insert( pair<uint16_t,uint16_t>(OFPIEH_ESP,ESP_ALLOWED));
+    
+    //struct timeval start, end;
 
+    //gettimeofday(&start, NULL);
 	/* Decode packet */
 	if (Decoder->DecodePacket(LinkLayerType, PacketCounter, pkhdr, (const unsigned char*) (pktin->data)) == nbFAILURE)
 	{
@@ -290,6 +296,11 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
 		// Something went wrong
 		return -1;
 	}
+    /*gettimeofday(&end, NULL);        
+
+    printf("Elapsed time %ld\n", ((end.tv_sec * 1000000 + end.tv_usec)
+                  - (start.tv_sec * 1000000 + start.tv_usec)));*/
+
 	PDMLReader->GetCurrentPacket(&curr_packet);
 
 	_nbPDMLProto * proto;
@@ -301,7 +312,6 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
     while (1)
     {
         /* Getting first field of the protocol  */
-        
         if(proto_done)
         {
             field = proto->FirstField;
@@ -369,7 +379,6 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
         // The '{' character identifies fields we use on matching.
             if (field->ShowValue != NULL)
             {            
-
                 nblink_extract_proto_fields(pktin,field,pktout);
             }
             else
@@ -379,6 +388,7 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
             
         }
         
+
         // From here on, we check what's ahead, if the packet is done, continue.
         if(field->NextField == NULL && field->ParentField == NULL)
         {
