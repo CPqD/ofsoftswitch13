@@ -241,7 +241,7 @@ pipeline_handle_flow_mod(struct pipeline *pl, struct ofl_msg_flow_mod *msg,
 
             pkt = dp_buffers_retrieve(pl->dp->buffers, msg->buffer_id);
             if (pkt != NULL) {
-		pipeline_process_packet(pl, pkt);
+		      pipeline_process_packet(pl, pkt);
             } else {
                 VLOG_WARN_RL(LOG_MODULE, &rl, "The buffer flow_mod referred to was empty (%u).", msg->buffer_id);
             }
@@ -450,10 +450,12 @@ static void
 execute_entry(struct pipeline *pl, struct flow_entry *entry,
               struct flow_table **next_table, struct packet **pkt) {
     /* NOTE: CLEAR instruction must be executed before WRITE_ACTIONS;
-     *       GOTO instruction must be executed last according to spec. */
+     *       GOTO instruction must be executed last according to spec. 
+     *       METER instruction should executed before APPLY ACTIONS*/
     struct ofl_instruction_header *inst, *cinst;
     size_t i;
     bool clear_execd = false;
+    bool meter_execd = false;
 
     for (i=0; i < entry->stats->instructions_num; i++) {
         inst = entry->stats->instructions[i];
@@ -497,6 +499,16 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
             }
             case OFPIT_APPLY_ACTIONS: {
                 struct ofl_instruction_actions *ia = (struct ofl_instruction_actions *)inst;
+                if(!meter_execd){
+                    cinst = get_instruction(entry->stats->instructions_num, entry->stats->instructions, OFPIT_METER);
+                    if (cinst != NULL) {
+                        struct ofl_instruction_meter *im = (struct ofl_instruction_meter *)cinst;
+                        meter_table_apply(pl->dp->meters, pkt , im->meter_id, entry);
+                        meter_execd = true;
+                        if(!(*pkt))
+                            break;
+                    }
+                }
                 dp_execute_action_list((*pkt), ia->actions_num, ia->actions, entry->stats->cookie);
                 break;
             }
@@ -510,8 +522,11 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
             }
             case OFPIT_METER: {
             	struct ofl_instruction_meter *im = (struct ofl_instruction_meter *)inst;
-            	meter_table_apply(pl->dp->meters, pkt ,im->meter_id, entry);
-            	break;
+            	if(!meter_execd){
+                    meter_table_apply(pl->dp->meters, pkt ,im->meter_id, entry);
+            	    meter_execd = true;
+                }   
+                break;
             }            
             case OFPIT_EXPERIMENTER: {
                 dp_exp_inst((*pkt), (struct ofl_instruction_experimenter *)inst);
