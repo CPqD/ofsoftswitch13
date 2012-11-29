@@ -1016,6 +1016,7 @@ usage(void)
             "\n"
             "  SWITCH features                        show basic information\n"
             "  SWITCH get-config                      get switch configuration\n"
+            "  SWITCH meter-config [METER]            get meter configuration\n"            
             "  SWITCH stats-desc                      print switch description\n"
             "  SWITCH stats-flow [ARG [MATCH]]        print flow stats\n"
             "  SWITCH stats-aggr [ARG [MATCH]]        print flow aggregate stats\n"
@@ -1023,11 +1024,13 @@ usage(void)
             "  SWITCH stats-port [PORT]               print port statistics\n"
             "  SWITCH stats-queue [PORT [QUEUE]]      print queue statistics\n"
             "  SWITCH stats-group [GROUP]             print group statistics\n"
+            "  SWITCH stats-meter [METER]             print meter statistics\n"
             "  SWITCH stats-group-desc [GROUP]        print group desc statistics\n"
             "\n"
             "  SWITCH set-config ARG                  set switch configuration\n"
             "  SWITCH flow-mod ARG [MATCH [INST...]]  send flow_mod message\n"
             "  SWITCH group-mod ARG [BUCARG ACT...]   send group_mod message\n"
+            "  SWITCH meter-mod ARG [BANDARG ...]     send meter_mod message\n"            
             "  SWITCH port-mod ARG                    send port_mod message\n"
             "  SWITCH table-mod ARG                   send table_mod message\n"
             "  SWITCH queue-get-config PORT           send queue_get_config message\n"
@@ -1317,21 +1320,33 @@ parse_match(char *str, struct ofl_match_header **match) {
         /* IPv6 */
         if (strncmp(token, MATCH_NW_SRC_IPV6 KEY_VAL , strlen(MATCH_NW_SRC_IPV6 KEY_VAL)) == 0) {
             struct in6_addr addr, mask;
+            struct in6_addr in6addr_zero = IN6ADDR_ZERO_INIT;
             if (str_to_ipv6(token + strlen(MATCH_NW_DST_IPV6)+1, &addr, &mask) < 0) {
                 ofp_fatal(0, "Error parsing nw_src_ipv6: %s.", token);
             }
             else {
-                ofl_structs_match_put_ipv6(m, OXM_OF_IPV6_SRC, addr.s6_addr);    
+                if(ipv6_addr_equals(&mask, &in6addr_zero)){
+                    ofl_structs_match_put_ipv6(m, OXM_OF_IPV6_SRC, addr.s6_addr);    
+                }
+                else {
+                    ofl_structs_match_put_ipv6m(m, OXM_OF_IPV6_SRC_W,addr.s6_addr, mask.s6_addr); 
+                }
             }
             continue;
         }
         if (strncmp(token, MATCH_NW_DST_IPV6 KEY_VAL , strlen(MATCH_NW_DST_IPV6 KEY_VAL)) == 0) {
             struct in6_addr addr, mask;
+            struct in6_addr in6addr_zero = IN6ADDR_ZERO_INIT;
             if (str_to_ipv6(token + strlen(MATCH_NW_DST_IPV6)+1, &addr, &mask) < 0) {
                 ofp_fatal(0, "Error parsing nw_src_ipv6: %s.", token);
             }
             else {
-                ofl_structs_match_put_ipv6(m, OXM_OF_IPV6_DST, addr.s6_addr);    
+                if(ipv6_addr_equals(&mask, &in6addr_zero)){
+                    ofl_structs_match_put_ipv6(m, OXM_OF_IPV6_DST, addr.s6_addr);    
+                }
+                else {
+                    ofl_structs_match_put_ipv6m(m, OXM_OF_IPV6_DST_W, addr.s6_addr, mask.s6_addr); 
+                }
             }
             continue;
         }

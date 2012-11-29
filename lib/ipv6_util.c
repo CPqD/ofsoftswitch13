@@ -68,7 +68,7 @@ str_to_ipv6(const char *str_, struct in6_addr *addrp, struct in6_addr *maskp)
     char *str = xstrdup(str_);
     char *save_ptr = NULL;
     const char *name, *netmask;
-    struct in6_addr addr, mask;
+    struct in6_addr addr;
     int retval;
 
     name = strtok_r(str, "/", &save_ptr);
@@ -86,24 +86,13 @@ str_to_ipv6(const char *str_, struct in6_addr *addrp, struct in6_addr *maskp)
                       str);
             return -1;
         } else {
-            mask = ipv6_create_mask(prefix);
-        }
-    } else {
-        mask = in6addr_zero ;
-        *maskp = mask;
-        *addrp = ipv6_addr_bitand(&addr, &in6addr_exact);
-        return 1;
-    }
-    mask = in6addr_exact ;
-    *addrp = ipv6_addr_bitand(&addr, &mask);
+            *maskp = ipv6_create_mask(prefix);
+            *addrp = ipv6_addr_bitand(&addr, &in6addr_exact);
 
-    if (maskp) {
-        *maskp = mask;
-    } else {
-        if (!ipv6_mask_is_exact(&mask)) {
-            printf("%s: netmask not allowed here", str_);
-            return -1;
         }
+    } else {
+        *maskp = in6addr_zero ;
+        *addrp = ipv6_addr_bitand(&addr, &in6addr_exact);
     }
 
     free(str);
