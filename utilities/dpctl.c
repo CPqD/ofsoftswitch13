@@ -1571,6 +1571,31 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
         }
         return 0;
     }
+    if (strncmp(token, MATCH_IP_ECN KEY_VAL, strlen(MATCH_NW_DST KEY_VAL)) == 0) {
+        uint8_t *ip_ecn = malloc(sizeof(uint8_t));
+            if (parse8(token + strlen(MATCH_IP_ECN KEY_VAL), NULL, 0, 0x3, ip_ecn)) {
+                ofp_fatal(0, "Error parsing nw_tos: %s.", token);
+            }
+        else {
+            act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
+            act->field->header = OXM_OF_IP_ECN;                    
+            act->field->value =  (uint8_t*) ip_ecn; 
+        }
+        return 0;
+    }
+    if (strncmp(token, MATCH_IP_DSCP KEY_VAL, strlen(MATCH_NW_DST KEY_VAL)) == 0) {
+        uint8_t * dscp =   malloc(sizeof(uint8_t));
+
+        if (parse8(token + strlen(MATCH_IP_DSCP KEY_VAL), NULL, 0, 0x40, dscp)) {
+                ofp_fatal(0, "Error parsing nw_tos: %s.", token);
+		}
+        else {
+            act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
+            act->field->header = OXM_OF_IP_DSCP;                    
+            act->field->value =  (uint8_t*) dscp; 
+        }
+        return 0;
+    }
     if (strncmp(token, MATCH_TP_SRC KEY_VAL, strlen(MATCH_TP_SRC KEY_VAL)) == 0) {
         uint16_t* tp_src = xmalloc(2);
         if (parse16(token+ strlen(MATCH_TP_SRC KEY_VAL), NULL, 0, 0xffff, tp_src)) {
@@ -2015,7 +2040,7 @@ parse_meter_mod_args(char *str, struct ofl_msg_meter_mod *req){
     for (token = strtok_r(str, KEY_SEP, &saveptr); token != NULL; token = strtok_r(NULL, KEY_SEP, &saveptr)) {
         if (strncmp(token, METER_MOD_COMMAND KEY_VAL, strlen(METER_MOD_COMMAND KEY_VAL)) == 0) {
             uint16_t command;
-            if (parse16(token + strlen(GROUP_MOD_COMMAND KEY_VAL), meter_mod_cmd_names, NUM_ELEMS(meter_mod_cmd_names),0,  &command)) {
+            if (parse16(token + strlen(METER_MOD_COMMAND KEY_VAL), meter_mod_cmd_names, NUM_ELEMS(meter_mod_cmd_names),0,  &command)) {
                 ofp_fatal(0, "Error parsing meter_mod command: %s.", token);
             }
             req->command = command;
@@ -2050,15 +2075,16 @@ parse_band_args(char *str, struct ofl_msg_meter_mod *m, struct ofl_meter_band_he
             }
             continue;
         }
-        if (strncmp(token, BAND_BURST_SIZE, strlen(BAND_BURST_SIZE KEY_VAL)) == 0) {
+        if (strncmp(token, BAND_BURST_SIZE KEY_VAL, strlen(BAND_BURST_SIZE KEY_VAL)) == 0) {
             if(m->flags & OFPMF_BURST){
-                if (parse32(token + strlen(BAND_RATE KEY_VAL), NULL, 0, UINT32_MAX, &b->burst_size)) {
-                    ofp_fatal(0, "Error parsing band rate: %s.", token);
+                if (parse32(token + strlen(BAND_BURST_SIZE KEY_VAL), NULL, 0, UINT32_MAX, &b->burst_size)) {
+                    ofp_fatal(0, "Error parsing band burst_size: %s.", token);
                 }
                 continue;
             }
             else ofp_fatal(0, "Error parsing burst size. Meter flags should contain %x.", OFPMF_BURST);
         }
+         ofp_fatal(0, "Error parsing band arg: %s.", token);
     }
 }
 
