@@ -374,10 +374,15 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
-                else if (f->header == OXM_OF_IPV6_FLABEL){
-                            uint32_t mask = 0xfffff;
-                            fprintf(stream, "ipv6_flow_label=\"%x\"",((uint32_t) *f->value) & mask );
-                            *size -= 8;                                
+                else if (f->header == OXM_OF_IPV6_FLABEL || f->header == OXM_OF_IPV6_FLABEL_W){
+                            uint32_t mask = 0x000fffff;
+                            *size -= 8;
+                            fprintf(stream, "ipv6_flow_label=\"%d\"",*((uint32_t*) f->value) & mask );                              
+                            if (OXM_HASMASK(f->header)){
+                                 *size -= 4;
+                                uint8_t *flabel_mask = (uint8_t*) f->value + 4;
+                                fprintf(stream, ", ipv6_flow_label_mask=\"%d\"",*((uint32_t*)flabel_mask)); 
+                            }                         
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
