@@ -1,4 +1,5 @@
 /* Copyright (c) 2012, Applistar, Vietnam
+ * Copyright (c) 2012, CPqD, Brazil
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,8 +26,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- *
- * Author: Thanh Le Dinh, Khai Nguyen Dinh <thanhld, khaind@applistar.com>
+ * 
  */
 
 #include <stdbool.h>
@@ -40,6 +40,7 @@
 #include "oflib/ofl-structs.h"
 #include "oflib/ofl-utils.h"
 #include "oflib/ofl-messages.h"
+#include "timeval.h" 
 #include <math.h>
 #include "vlog.h"
 #define LOG_MODULE VLM_meter_e
@@ -74,6 +75,7 @@ meter_entry_create(struct datapath *dp, struct meter_table *table, struct ofl_ms
     entry->config->meter_id =  mod->meter_id;
     entry->config->flags =    mod->flags;
     entry->config->meter_bands_num = mod->meter_bands_num;
+
     //entry->config->bands = mod->bands; //allocate and copy from mod
     entry->config->bands = xmalloc(sizeof(struct ofl_meter_band_header *) * entry->config->meter_bands_num);
     for(i = 0; i < entry->config->meter_bands_num; i++){
@@ -119,10 +121,13 @@ meter_entry_create(struct datapath *dp, struct meter_table *table, struct ofl_ms
     entry->stats->duration_sec = 0;
     entry->stats->band_stats      = xmalloc(sizeof(struct ofl_meter_band_stats *) * entry->stats->meter_bands_num);
 
+
     for (i=0; i<entry->stats->meter_bands_num; i++) {
         entry->stats->band_stats[i] = xmalloc(sizeof(struct ofl_meter_band_stats));
         entry->stats->band_stats[i]->byte_band_count = 0;
         entry->stats->band_stats[i]->packet_band_count = 0;
+	    entry->stats->band_stats[i]->last_fill = time_msec();
+	    entry->stats->band_stats[i]->tokens = entry->config->bands[i]->rate;
     }
 
     list_init(&entry->flow_refs);
@@ -149,9 +154,32 @@ meter_entry_destroy(struct meter_entry *entry) {
     free(entry);
 }
 
+static bool
+consume_tokens(struct ofl_meter_band_stats *band, uint16_t meter_flag, struct packet *pkt){
+
+    if(meter_flag & OFPMF_KBPS){
+        uint32_t pkt_size = (pkt->buffer->size*8)/1024;
+        if (band->tokens >= pkt_size) {
+            band->tokens -= pkt_size;
+            return true;
+        } else {
+            return false;
+        }
+
+    }
+    else if(meter_flag & OFPMF_PKTPS) {       
+        if (band->tokens >= 1000) {
+            band->tokens -= 1000;
+            return true;
+        } else {
+            return false;
+        }
+    }
+    return false;
+}
 
 static size_t
-choose_band(struct meter_entry *entry, uint32_t current_rate)
+choose_band(struct meter_entry *entry, struct packet *pkt)
 {
 	size_t i;
 	size_t band_index = -1;
@@ -159,7 +187,8 @@ choose_band(struct meter_entry *entry, uint32_t current_rate)
 	for(i = 0; i < entry->stats->meter_bands_num; i++)
 	{
 		struct ofl_meter_band_header *band_header = entry->config->bands[i];
-		if(current_rate > band_header->rate && band_header->rate > tmp_rate)
+	
+		if(!consume_tokens(entry->stats->band_stats[i], entry->config->flags, pkt) && band_header->rate > tmp_rate)
 		{
 			tmp_rate = band_header->rate;
 			band_index = i;
@@ -175,21 +204,13 @@ meter_entry_apply(struct meter_entry *entry, struct packet **pkt, struct flow_en
 	
 	size_t b;
 	bool drop = false;
-	float flow_alive_time;
-	uint32_t current_rate = 0;
-    
-    flow_entry_update(flow_entry);
-	flow_alive_time = flow_entry->stats->duration_sec + (float)flow_entry->stats->duration_nsec * pow(10, -9);
-	if(entry->config->flags & OFPMF_KBPS){
-		current_rate = ((flow_entry->stats->byte_count  * 8)/1000) / flow_alive_time;
-	}
-	else if(entry->config->flags & OFPMF_PKTPS){
-		current_rate = flow_entry->stats->packet_count / flow_alive_time;
-	}
-	b = choose_band(entry, current_rate);
+
+    entry->stats->packet_in_count++;
+    entry->stats->byte_in_count += (*pkt)->buffer->size;
+
+	b = choose_band(entry, *pkt);
 	if(b != -1){
 		struct ofl_meter_band_header *band_header = (struct ofl_meter_band_header*)  entry->config->bands[b];
-
 		switch(band_header->type){
 			case OFPMBT_DROP:{
                 drop = true;
@@ -206,18 +227,16 @@ meter_entry_apply(struct meter_entry *entry, struct packet **pkt, struct flow_en
 				break;
 			}
 		}
-		entry->stats->packet_in_count++;
-		entry->stats->byte_in_count += (*pkt)->buffer->size;
 		entry->stats->band_stats[b]->byte_band_count += (*pkt)->buffer->size;
 		entry->stats->band_stats[b]->packet_band_count++;
         if (drop){
-            VLOG_DBG_RL(LOG_MODULE, &rl, "Dropping packet : %d , rate %d", current_rate, band_header->rate);
+            VLOG_ERR_RL(LOG_MODULE, &rl, "Dropping packet: rate %d", band_header->rate);
 			packet_destroy(*pkt);
 			*pkt = NULL;
         }
 	}
-}
 
+}
 
 
 /* Returns true if the meter entry has  reference to the flow entry. */
@@ -256,3 +275,36 @@ meter_entry_del_flow_ref(struct meter_entry *entry, struct flow_entry *fe) {
         }
     }
 }
+
+/* Add tokens to the bucket based on elapsed time. */
+void
+refill_bucket(struct meter_entry *entry)
+{
+	size_t i;
+
+    for(i = 0; i < entry->config->meter_bands_num; i++) {
+    	long long int now = time_msec();
+        long long int tokens = (now - entry->stats->band_stats[i]->last_fill) * 
+    						entry->config->bands[i]->rate + entry->stats->band_stats[i]->tokens;
+
+        if (!entry->config->bands[i]->burst_size){
+            if(tokens >= 1){
+                if(entry->config->flags & OFPMF_KBPS && tokens >= 1)
+        		  entry->stats->band_stats[i]->tokens = MIN(tokens, entry->config->bands[i]->rate);
+       	 		else 
+                    entry->stats->band_stats[i]->tokens = MIN(tokens, entry->config->bands[i]->rate * 1000);
+            }
+        }
+        else {
+            if(tokens >= 1000){
+                entry->stats->band_stats[i]->last_fill = now;
+                if(entry->config->flags & OFPMF_KBPS)
+                    entry->stats->band_stats[i]->tokens = MIN(tokens, entry->config->bands[i]->burst_size);  
+                else 
+                    entry->stats->band_stats[i]->tokens = MIN(tokens, entry->config->bands[i]->burst_size * 1000);
+            }
+        }
+        
+   	}
+}
+

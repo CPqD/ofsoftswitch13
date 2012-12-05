@@ -1,4 +1,5 @@
 /* Copyright (c) 2012, Applistar, Vietnam
+ * Copyright (c) 2012, CPqD, Brazil
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,7 +27,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  *
- * Author: Thanh Le Dinh, Khai Nguyen Dinh <thanhld, khaind@applistar.com>
  */
 
 #ifndef METER_ENTRY_H
@@ -64,6 +64,7 @@ struct meter_entry {
 	struct ofl_meter_config		*config;		/* Meter configuration */
 
 	struct list                 flow_refs;		/* references to flows referencing the meter. */
+
 };
 
 /* Creates a meter entry. */
@@ -87,5 +88,7 @@ meter_entry_add_flow_ref(struct meter_entry *entry, struct flow_entry *fe);
 void
 meter_entry_del_flow_ref(struct meter_entry *entry, struct flow_entry *fe);
 
+void
+refill_bucket(struct meter_entry *entry);
 
 #endif /* METER_ENTRY_H */

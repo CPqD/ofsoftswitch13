@@ -1,4 +1,5 @@
 /* Copyright (c) 2012, Applistar, Vietnam
+ * Copyright (c) 2012, CPqD, Brazil
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,7 +27,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  *
- * Author: Thanh Le Dinh, Khai Nguyen Dinh <thanhld, khaind@applistar.com>
  */
 
 #include <sys/types.h>
@@ -330,3 +330,14 @@ meter_table_handle_features_request(struct meter_table *table,
     return 0;                                                
                                   
 }                                  
+
+void 
+meter_table_add_tokens(struct meter_table *table){
+
+    struct meter_entry *entry;
+    HMAP_FOR_EACH(entry, struct meter_entry, node, &table->meter_entries){
+        refill_bucket(entry);
+    }
+
+}
+

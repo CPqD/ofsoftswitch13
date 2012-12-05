@@ -524,7 +524,10 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
             	struct ofl_instruction_meter *im = (struct ofl_instruction_meter *)inst;
             	if(!meter_execd){
                     meter_table_apply(pl->dp->meters, pkt ,im->meter_id, entry);
-            	    meter_execd = true;
+            	    /*packet was dropped*/
+                    if(!(*pkt))
+                        return;
+                    meter_execd = true;
                 }   
                 break;
             }            

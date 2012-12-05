@@ -1,4 +1,5 @@
 /* Copyright (c) 2012, Applistar, Vietnam
+ * Copyright (c) 2012, CPqD, Brazil
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,7 +27,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  *
- * Author: Thanh Le Dinh, Khai Nguyen Dinh <thanhld, khaind@applistar.com>
  */
 
 #ifndef METER_TABLE_H
@@ -52,11 +52,12 @@
 
 /* Meter table */
 struct meter_table {
-    struct datapath		*dp;				/* The datapath */
+  struct datapath		*dp;				/* The datapath */
 	struct ofl_meter_features *features;	
-	size_t				entries_num;		/* The number of meters */
-    struct hmap			meter_entries;	    /* Meter entries */
+	size_t				 entries_num;		/* The number of meters */
+  struct hmap			meter_entries;	    /* Meter entries */
 	size_t              bands_num;
+
 };
 
 
@@ -97,5 +98,9 @@ ofl_err
 meter_table_handle_features_request(struct meter_table *table,
                                    struct ofl_msg_multipart_request_header *msg UNUSED,
                                   const struct sender *sender); 
+
+void 
+meter_table_add_tokens(struct meter_table *table);
+
 
 #endif /* METER_TABLE_H */

@@ -33,7 +33,7 @@
 
 
 /* The original Stanford code has been modified during the implementation of
- * the OpenFlow 1.2 userspace switch.
+ * the OpenFlow 1.3 userspace switch.
  *
  */
 
@@ -166,7 +166,6 @@ dp_new(void) {
 }
 
 
-
 void
 dp_add_pvconn(struct datapath *dp, struct pvconn *pvconn) {
     dp->listeners = xrealloc(dp->listeners,
@@ -179,12 +178,14 @@ dp_run(struct datapath *dp) {
     time_t now = time_now();
     struct remote *r, *rn;
     size_t i;
-
+    
     if (now != dp->last_timeout) {
         dp->last_timeout = now;
+        meter_table_add_tokens(dp->meters);
         pipeline_timeout(dp->pipeline);
     }
-    poll_timer_wait(1000);
+
+    poll_timer_wait(100);
     dp_ports_run(dp);
     
     /* Talk to remotes. */
