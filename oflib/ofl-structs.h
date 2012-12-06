@@ -359,7 +359,11 @@ struct ofl_group_desc_stats {
 /* Statistics for each meter band */
 struct ofl_meter_band_stats {
     uint64_t packet_band_count; /* Number of packets in band. */
-    uint64_t byte_band_count; /* Number of bytes in band. */
+    uint64_t byte_band_count;  /* Number of bytes in band. */
+
+    /* Token bucket */
+    uint64_t last_fill;       
+    uint64_t tokens;
 };
 
 /* Body of reply to OFPMP_METER request. Meter statistics. */

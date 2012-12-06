@@ -64,10 +64,8 @@ TODO
 
 ONGOING
 
-
-- Simple rate-limiter support (drop packets).
-
 DONE
+- Simple rate-limiter support (drop packets).
 - Flexible meter framework based on per-flow meters and meter bands.
 - Meter statistics, including per band statistics.
 - Enable to attach meters flexibly to flow entries.
