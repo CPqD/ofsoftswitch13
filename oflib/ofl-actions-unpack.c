@@ -256,7 +256,7 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             sa = (struct ofp_action_nw_ttl *)src;
 
             da = (struct ofl_action_set_nw_ttl *)malloc(sizeof(struct ofl_action_set_nw_ttl));
-            da->nw_ttl = ntohs(sa->nw_ttl);
+            da->nw_ttl = sa->nw_ttl;
 
             *len -= sizeof(struct ofp_action_nw_ttl);
             *dst = (struct ofl_action_header *)da;

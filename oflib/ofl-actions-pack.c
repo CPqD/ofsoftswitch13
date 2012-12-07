@@ -186,7 +186,7 @@ ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, u
             struct ofp_action_nw_ttl *da = (struct ofp_action_nw_ttl *)dst;
 
             da->len =    htons(sizeof(struct ofp_action_nw_ttl));
-            da->nw_ttl = htons(sa->nw_ttl);
+            da->nw_ttl = sa->nw_ttl;
             memset(da->pad, 0x00, 3);
             return sizeof(struct ofp_action_nw_ttl);
         }
