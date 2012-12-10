@@ -1,4 +1,5 @@
 /* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary
+ * Copyright (c) 2012, CPqD, Brazil
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,7 +27,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  *
- * Author: Zoltán Lajos Kis <zoltan.lajos.kis@ericsson.com>
  */
 
 #include <config.h>
@@ -1298,14 +1298,14 @@ parse_match(char *str, struct ofl_match_header **match) {
             else ofl_structs_match_put16(m, OXM_OF_SCTP_DST,sctp_dst);
             continue;
         }
-        
-        /* MPLS */
+        /* MPLS  */
         if (strncmp(token, MATCH_MPLS_LABEL KEY_VAL, strlen(MATCH_MPLS_LABEL KEY_VAL)) == 0) {
             uint32_t mpls_label;
             if (parse32(token + strlen(MATCH_MPLS_LABEL KEY_VAL), NULL, 0, 0xfffff, &mpls_label)) {
                 ofp_fatal(0, "Error parsing mpls_label: %s.", token);
             }
             else ofl_structs_match_put32(m,OXM_OF_MPLS_LABEL,mpls_label);
+            continue;
         }
         if (strncmp(token, MATCH_MPLS_TC KEY_VAL, strlen(MATCH_MPLS_TC KEY_VAL)) == 0) {
             uint8_t mpls_tc;
@@ -1512,6 +1512,16 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
             }
         return 0;
     }
+    if (strncmp(token, MATCH_DL_VLAN_PCP KEY_VAL, strlen(MATCH_DL_VLAN_PCP KEY_VAL)) == 0) {
+            uint8_t *pcp = malloc(sizeof(uint8_t));
+            if (parse8(token + strlen(MATCH_DL_VLAN_PCP KEY_VAL), NULL, 0, 0x7, pcp)) {
+                ofp_fatal(0, "Error parsing vlan pcp: %s.", token);
+            } else { 
+                act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
+                act->field->header = OXM_OF_VLAN_PCP;                    
+                act->field->value = (uint8_t*) pcp;  
+            }
+    }
     if (strncmp(token, MATCH_PBB_ISID KEY_VAL, strlen(MATCH_PBB_ISID KEY_VAL)) == 0) {
             uint32_t *pbb_isid = malloc(sizeof(uint32_t));
             if (parse32(token + strlen(MATCH_PBB_ISID KEY_VAL), NULL, 0, 0x1000000, pbb_isid)) {
@@ -1601,6 +1611,18 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
         }
         return 0;
     }
+    if (strncmp(token, MATCH_NW_PROTO KEY_VAL, strlen(MATCH_NW_PROTO KEY_VAL)) == 0) {
+        uint8_t *nw_proto = malloc(sizeof(uint8_t));
+        if (parse8(token + strlen(MATCH_NW_PROTO KEY_VAL), NULL, 0, 0xff, nw_proto)) {
+            ofp_fatal(0, "Error parsing ip_proto: %s.", token);
+        }
+        else {
+            act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
+            act->field->header = OXM_OF_IP_PROTO;                    
+            act->field->value =  (uint8_t*) nw_proto; 
+        }
+        return 0;
+    }       
     if (strncmp(token, MATCH_TP_SRC KEY_VAL, strlen(MATCH_TP_SRC KEY_VAL)) == 0) {
         uint16_t* tp_src = xmalloc(2);
         if (parse16(token+ strlen(MATCH_TP_SRC KEY_VAL), NULL, 0, 0xffff, tp_src)) {
