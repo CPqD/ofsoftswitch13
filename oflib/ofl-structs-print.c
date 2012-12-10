@@ -400,7 +400,7 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                 }
                 else if (f->header == OXM_OF_MPLS_LABEL){
                             uint32_t mask = 0xfffff;
-                            fprintf(stream, "mpls_label=\"%x\"",((uint32_t) *f->value) & mask );
+                            fprintf(stream, "mpls_label=\"%d\"",((uint32_t) *f->value) & mask );
                             *size -= 8;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
