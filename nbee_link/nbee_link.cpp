@@ -366,12 +366,16 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
                 nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_IPV4_SRC);
                 PDMLReader->GetPDMLField(proto->Name, (char*) "dst", proto->FirstField, &field);
                 nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_IPV4_DST);
+                PDMLReader->GetPDMLField(proto->Name, (char*) "nextp", proto->FirstField, &field);
+                nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_IP_PROTO);
             }
             else if (protocol_Name.compare("ipv6") == 0 && pkt_proto->ipv6 == NULL)
             {
                 pkt_proto->ipv6 = (struct ipv6_header *) ((uint8_t*) pktin->data + proto->Position);
                 PDMLReader->GetPDMLField(proto->Name, (char*) "flabel", proto->FirstField, &field);
                 nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_IPV6_FLABEL);
+                PDMLReader->GetPDMLField(proto->Name, (char*) "nexthdr", proto->FirstField, &field);
+                nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_IP_PROTO);
                 PDMLReader->GetPDMLField(proto->Name, (char*) "src", proto->FirstField, &field);
                 nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_IPV6_SRC);
                 PDMLReader->GetPDMLField(proto->Name, (char*) "dst", proto->FirstField, &field);
