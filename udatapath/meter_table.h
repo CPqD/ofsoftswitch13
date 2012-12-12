@@ -75,7 +75,7 @@ meter_table_find(struct meter_table *table, uint32_t meter_id);
 
 /* Apply the given meter on the packet. */
 void
-meter_table_apply(struct meter_table *table, struct packet **packet, uint32_t meter_id, struct flow_entry *flow_entry);
+meter_table_apply(struct meter_table *table, struct packet **packet, uint32_t meter_id);
 
 /* Handles a meter_mod message. */
 ofl_err

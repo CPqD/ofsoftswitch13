@@ -96,7 +96,7 @@ meter_table_find(struct meter_table *table, uint32_t meter_id) {
 
 
 void
-meter_table_apply(struct meter_table *table, struct packet **packet, uint32_t meter_id, struct flow_entry *flow_entry) {
+meter_table_apply(struct meter_table *table, struct packet **packet, uint32_t meter_id) {
     struct meter_entry *entry;
 
     entry = meter_table_find(table, meter_id);
@@ -106,7 +106,7 @@ meter_table_apply(struct meter_table *table, struct packet **packet, uint32_t me
         return;
     }
 
-   meter_entry_apply(entry, packet, flow_entry);
+   meter_entry_apply(entry, packet);
 }
 
 

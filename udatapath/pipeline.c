@@ -503,7 +503,7 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
                     cinst = get_instruction(entry->stats->instructions_num, entry->stats->instructions, OFPIT_METER);
                     if (cinst != NULL) {
                         struct ofl_instruction_meter *im = (struct ofl_instruction_meter *)cinst;
-                        meter_table_apply(pl->dp->meters, pkt , im->meter_id, entry);
+                        meter_table_apply(pl->dp->meters, pkt , im->meter_id);
                         meter_execd = true;
                         if(!(*pkt))
                             break;
@@ -523,7 +523,7 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
             case OFPIT_METER: {
             	struct ofl_instruction_meter *im = (struct ofl_instruction_meter *)inst;
             	if(!meter_execd){
-                    meter_table_apply(pl->dp->meters, pkt ,im->meter_id, entry);
+                    meter_table_apply(pl->dp->meters, pkt ,im->meter_id);
             	    /*packet was dropped*/
                     if(!(*pkt))
                         return;

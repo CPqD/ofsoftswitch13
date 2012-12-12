@@ -77,7 +77,7 @@ meter_entry_destroy(struct meter_entry *entry);
 
 /* Apply the meter entry on the packet. */
 void
-meter_entry_apply(struct meter_entry *entry, struct packet **pkt, struct flow_entry *flow_entry);
+meter_entry_apply(struct meter_entry *entry, struct packet **pkt);
 
 
 /* Adds a flow reference to the meter entry. */
