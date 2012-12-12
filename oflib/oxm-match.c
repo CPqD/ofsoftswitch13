@@ -314,7 +314,7 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
         case OFI_OXM_OF_IPV4_SRC_W:
         case OFI_OXM_OF_ARP_SPA_W:
         case OFI_OXM_OF_ARP_TPA_W:
-             ofl_structs_match_put32m(match, f->header, ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)));
+             ofl_structs_match_put32m(match, f->header, *((uint32_t*) value), *((uint32_t*) mask));
              return 0;              
         case OFI_OXM_OF_ARP_SHA:
         case OFI_OXM_OF_ARP_THA:
@@ -749,10 +749,12 @@ int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt){
                          uint32_t mask;
                          memcpy(&mask,oft->value + length ,sizeof(uint32_t));
 						 if (oft->header == OXM_OF_IPV4_DST_W|| oft->header == OXM_OF_IPV4_SRC_W
-							||oft->header == OXM_OF_ARP_SPA_W || oft->header == OXM_OF_ARP_TPA_W)
-                            oxm_put_32w(buf, oft->header, value, mask); 
-						 else
+							||oft->header == OXM_OF_ARP_SPA_W || oft->header == OXM_OF_ARP_TPA_W){
+                            oxm_put_32w(buf, oft->header, value, mask);
+                            } 
+						 else {
 							oxm_put_32w(buf, oft->header, htonl(value),htonl(mask));
+                         }   
                     } 
                       break;     
                             
