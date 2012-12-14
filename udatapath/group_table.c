@@ -336,7 +336,7 @@ group_table_create(struct datapath *dp) {
 	table->features->types = DP_SUPPORTED_GROUPS;
 	table->features->capabilities = DP_SUPPORTED_GROUP_CAPABILITIES;    
 	for(i = 0; i < 4; i++){
-		table->features->max_groups[i] = OFPG_MAX;
+		table->features->max_groups[i] = 255;
 		table->features->actions[i] = DP_SUPPORTED_ACTIONS;
 	}	
     table->entries_num = 0;

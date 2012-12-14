@@ -51,18 +51,18 @@
                                /*| OFPC_PORT_BLOCKED */   
     
 #define DP_SUPPORTED_ACTIONS ( (1 << OFPAT_OUTPUT)          \
-                             | (1 << OFPAT_COPY_TTL_OUT)    \
-                             | (1 << OFPAT_COPY_TTL_IN)     \
-                             | (1 << OFPAT_SET_MPLS_TTL)    \
-                             | (1 << OFPAT_DEC_MPLS_TTL)    \
-                             | (1 << OFPAT_PUSH_VLAN)       \
-                             | (1 << OFPAT_POP_VLAN)        \
-                             | (1 << OFPAT_PUSH_MPLS)       \
-                             | (1 << OFPAT_POP_MPLS)        \
-                             | (1 << OFPAT_SET_QUEUE)       \
-                             | (1 << OFPAT_GROUP)           \
-                             | (1 << OFPAT_SET_NW_TTL)      \
-                             | (1 << OFPAT_DEC_NW_TTL) )
+                             | (2 << OFPAT_COPY_TTL_OUT)    \
+                             | (3 << OFPAT_COPY_TTL_IN)     \
+                             | (4 << OFPAT_SET_MPLS_TTL)    \
+                             | (5 << OFPAT_DEC_MPLS_TTL)    \
+                             | (6 << OFPAT_PUSH_VLAN)       \
+                             | (7 << OFPAT_POP_VLAN)        \
+                             | (8 << OFPAT_PUSH_MPLS)       \
+                             | (9 << OFPAT_POP_MPLS)        \
+                             | (10 << OFPAT_SET_QUEUE)       \
+                             | (11 << OFPAT_GROUP)           \
+                             | (12 << OFPAT_SET_NW_TTL)      \
+                             | (13 << OFPAT_DEC_NW_TTL) )
                            
 #define DP_SUPPORTED_MATCH_FIELDS ( OFPXMT_OFB_IN_PORT        \
                                   | OFPXMT_OFB_IN_PHY_PORT    \

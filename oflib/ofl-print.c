@@ -755,6 +755,7 @@ ofl_stats_type_print(FILE *stream, uint16_t type) {
         case (OFPMP_PORT_STATS):    { fprintf(stream, "port"); return; }
         case (OFPMP_QUEUE):         { fprintf(stream, "queue"); return; }
         case (OFPMP_GROUP):         { fprintf(stream, "grp"); return; }
+        case (OFPMP_GROUP_FEATURES):{ fprintf(stream, "grp_features"); return; }
         case (OFPMP_GROUP_DESC):    { fprintf(stream, "gdesc"); return; }
         case (OFPMP_METER):         { fprintf(stream, "mstats"); return; }
         case (OFPMP_METER_CONFIG):  { fprintf(stream, "mconf"); return; }

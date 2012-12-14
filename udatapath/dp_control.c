@@ -212,7 +212,7 @@ handle_control_stats_request(struct datapath *dp,
             return group_table_handle_stats_request_group_desc(dp->groups, msg, sender);
         }
 		case (OFPMP_GROUP_FEATURES):{
-            //return group_table_handle_stats_request_group_features(dp->groups, msg, sender);			
+            return group_table_handle_stats_request_group_features(dp->groups, msg, sender);			
 		}		
         case (OFPMP_METER):{
         	return meter_table_handle_stats_request_meter(dp->meters,(struct ofl_msg_multipart_meter_request*)msg, sender);

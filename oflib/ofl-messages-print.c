@@ -80,9 +80,9 @@ static void
 ofl_msg_print_features_reply(struct ofl_msg_features_reply *msg, FILE *stream) {
 
     fprintf(stream, "{dpid=\"0x%016"PRIx64"\", buffs=\"%u\", tabs=\"%u\", "
-                          "caps=\"0x%"PRIx32"\"",
+                          "aux_id=\"%u\", caps=\"0x%"PRIx32"\"",
                   msg->datapath_id, msg->n_buffers, msg->n_tables,
-                  msg->capabilities);
+                  msg->auxiliary_id, msg->capabilities);
 
     fprintf(stream, "]}");
 }
@@ -499,10 +499,38 @@ ofl_msg_print_stats_reply_group_desc(struct ofl_msg_multipart_reply_group_desc *
 }
 
 static void ofl_msg_print_stats_reply_group_features(struct ofl_msg_multipart_reply_group_features *msg, FILE *stream){
+    size_t i;
+    enum ofp_action_type j;
 
-    fprintf(stream, ", types=\"%d\", capabilities=\"%d",
+    fprintf(stream, ", types=\"%d\", capabilities=\"%d [",
                   msg->types, msg->capabilities);
 
+    for(i = 0; i < 4; i++){
+        ofl_group_type_print(stream, i);
+        fprintf(stream, ": max_groups=%d, actions= ", msg->max_groups[i]);
+        if(msg->actions[i] & 1){
+            ofl_action_type_print(stream, OFPAT_OUTPUT);
+            fprintf(stream, "/");    
+
+        }
+        if(msg->actions[i] & OFPAT_COPY_TTL_OUT){
+            ofl_action_type_print(stream, OFPAT_COPY_TTL_OUT);
+            fprintf(stream, "/");    
+
+        }
+        if(msg->actions[i] & OFPAT_COPY_TTL_IN){    
+            ofl_action_type_print(stream, OFPAT_COPY_TTL_IN);
+            fprintf(stream, "/");      
+        }
+        for(j = OFPAT_SET_MPLS_TTL; j < OFPAT_POP_PBB; j++){
+            if (msg->actions[i] & j){
+                ofl_action_type_print(stream, j);
+                fprintf(stream, "/");
+            }
+        }
+        if (i < 3)
+            fprintf(stream, ", ");
+    }
 }
 
 static void

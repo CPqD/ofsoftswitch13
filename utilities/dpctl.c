@@ -662,6 +662,16 @@ group_mod(struct vconn *vconn, int argc, char *argv[]) {
     dpctl_send_and_print(vconn, (struct ofl_msg_header *)&msg);
 }
 
+static void
+group_features(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED){
+
+    struct ofl_msg_multipart_request_header req =
+            {{.type = OFPT_MULTIPART_REQUEST},
+             .type = OFPMP_GROUP_FEATURES, .flags = 0x0000};
+
+    dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&req, NULL);
+}
+
 static void meter_mod(struct vconn *vconn, int argc, char *argv[]){
 
     struct ofl_msg_meter_mod msg = 
@@ -861,6 +871,7 @@ static struct command all_commands[] = {
     {"features", 0, 0, features },
     {"get-config", 0, 0, get_config},
     {"table-features", 0, 0, table_features},
+    {"group-features", 0, 0, group_features},
     {"stats-desc", 0, 0, stats_desc },
     {"stats-flow", 0, 2, stats_flow},
     {"stats-aggr", 0, 2, stats_aggr},
