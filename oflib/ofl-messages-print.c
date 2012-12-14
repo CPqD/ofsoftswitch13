@@ -634,6 +634,7 @@ ofl_msg_print_multipart_reply(struct ofl_msg_multipart_reply_header *msg, FILE *
         }
         case OFPMP_METER_FEATURES:{
             ofl_msg_print_reply_meter_features((struct ofl_msg_multipart_reply_meter_features*)msg, stream);
+            break;
         }
         case OFPMP_PORT_DESC:{
             ofl_msg_print_port_desc_reply((struct ofl_msg_multipart_reply_port_desc*)msg, stream);

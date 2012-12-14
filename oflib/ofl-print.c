@@ -375,7 +375,7 @@ ofl_error_code_print(FILE *stream, uint16_t type, uint16_t code) {
             switch (code) {
                 case (OFPBRC_BAD_VERSION) :      { fprintf(stream, "BAD_VERSION"); return; }
                 case (OFPBRC_BAD_TYPE) :         { fprintf(stream, "BAD_TYPE"); return; }
-                case (OFPBRC_BAD_MULTIPART) :         { fprintf(stream, "BAD_STAT"); return; }
+                case (OFPBRC_BAD_MULTIPART) :    { fprintf(stream, "OFPBRC_BAD_MULTIPART"); return; }
                 case (OFPBRC_BAD_EXPERIMENTER) : { fprintf(stream, "BAD_EXPERIMENTER"); return; }
                 case (OFPBRC_EPERM) :            { fprintf(stream, "EPERM"); return; }
                 case (OFPBRC_BAD_LEN) :          { fprintf(stream, "BAD_LEN"); return; }

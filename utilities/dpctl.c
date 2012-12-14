@@ -729,6 +729,16 @@ meter_config(struct vconn *vconn, int argc UNUSED, char *argv[]){
 }
 
 static void
+meter_features(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED){
+   
+    struct ofl_msg_multipart_request_header req =
+            {{.type = OFPT_MULTIPART_REQUEST},
+             .type = OFPMP_METER_FEATURES, .flags = 0x0000};
+
+    dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&req, NULL);
+}    
+
+static void
 port_mod(struct vconn *vconn, int argc UNUSED, char *argv[]) {
     struct ofl_msg_port_mod msg =
             {{.type = OFPT_PORT_MOD},
@@ -872,6 +882,7 @@ static struct command all_commands[] = {
     {"get-config", 0, 0, get_config},
     {"table-features", 0, 0, table_features},
     {"group-features", 0, 0, group_features},
+    {"meter-features", 0, 0, meter_features},
     {"stats-desc", 0, 0, stats_desc },
     {"stats-flow", 0, 2, stats_flow},
     {"stats-aggr", 0, 2, stats_aggr},

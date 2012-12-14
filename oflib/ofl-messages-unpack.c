@@ -917,6 +917,10 @@ ofl_msg_unpack_multipart_request(struct ofp_header *src,uint8_t *buf, size_t *le
             error = ofl_msg_unpack_meter_multipart_request(os, len, msg);
             break;
         }
+        case OFPMP_METER_FEATURES:{
+            error = ofl_msg_unpack_multipart_request_empty(os, len, msg);
+            break;
+        }
         case OFPMP_PORT_DESC: {
             error = ofl_msg_unpack_multipart_request_empty(os, len, msg);
             break;
@@ -1349,6 +1353,31 @@ ofl_msg_unpack_multipart_reply_port_desc(struct ofp_multipart_reply *src, size_t
 }
 
 static ofl_err
+ofl_msg_unpack_multipart_reply_meter_features(struct ofp_multipart_reply *os, size_t *len, struct ofl_msg_header **msg) {
+    struct ofp_meter_features *src;
+    struct ofl_msg_multipart_reply_meter_features *dst;
+
+    if(*len < sizeof(struct ofp_meter_features)){
+        OFL_LOG_WARN(LOG_MODULE, "Received MULTIPART REPLY message has invalid length (%zu).", *len);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+
+    *len -= sizeof(struct ofp_meter_features);
+    src = (struct ofp_meter_features*) os->body;
+    dst = (struct ofl_msg_multipart_reply_meter_features*) malloc(sizeof(struct ofl_msg_multipart_reply_meter_features));
+    dst->features = (struct ofl_meter_features*) malloc(sizeof(struct ofl_meter_features));
+
+    dst->features->max_meter = ntohl(src->max_meter);
+    dst->features->band_types = ntohl(src->band_types);
+    dst->features->capabilities = ntohl(src->capabilities);
+    dst->features->max_bands = src->max_bands;
+    dst->features->max_color =  src->max_color;
+
+    *msg = (struct ofl_msg_header*) dst;
+    return 0;
+}    
+
+static ofl_err
 ofl_msg_unpack_multipart_reply(struct ofp_header *src, uint8_t *buf, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp) {
     struct ofl_msg_multipart_reply_header *ofls;
     struct ofp_multipart_reply *os;
@@ -1407,6 +1436,10 @@ ofl_msg_unpack_multipart_reply(struct ofp_header *src, uint8_t *buf, size_t *len
         }    
         case OFPMP_METER_CONFIG:{
             error = ofl_msg_unpack_multipart_reply_meter_config(os, len, msg);
+            break;
+        }
+        case OFPMP_METER_FEATURES:{
+            error = ofl_msg_unpack_multipart_reply_meter_features(os, len, msg);
             break;
         }
 		case OFPMP_PORT_DESC:{

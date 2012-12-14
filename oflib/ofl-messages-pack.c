@@ -828,7 +828,6 @@ ofl_msg_pack_multipart_reply_meter_features(struct ofl_msg_multipart_reply_meter
     
     *buf_len = sizeof(struct ofp_multipart_reply) + sizeof(struct ofp_meter_features);
     *buf     = (uint8_t *)malloc(*buf_len);
-
     resp = (struct ofp_multipart_reply *)(*buf);
     feat = (struct ofp_meter_features *)resp->body;
     feat->max_meter = htonl(msg->features->max_meter);
@@ -837,7 +836,6 @@ ofl_msg_pack_multipart_reply_meter_features(struct ofl_msg_multipart_reply_meter
     feat->max_bands = msg->features->max_bands;
     feat->max_color = msg->features->max_color;
     memset(feat->pad, 0x0, 2);
-    
     return 0;
 }
 
