@@ -239,59 +239,64 @@ port_watcher_local_packet_cb(struct relay *r, void *pw_)
     struct port_watcher *pw = pw_;
     struct ofpbuf *msg = r->halves[HALF_LOCAL].rxbuf;
     struct ofp_header *oh = msg->data;
-
     if (oh->type == OFPT_FEATURES_REPLY) {
         struct ofp_switch_features *osf = msg->data;
-       // bool seen[PORT_ARRAY_SIZE];
-       //struct ofp_port *p;
-       //unsigned int port_no;
-       //size_t n_ports;
-        size_t i;
 
         pw->got_feature_reply = true;
         if (pw->datapath_id != osf->datapath_id) {
             pw->datapath_id = osf->datapath_id;
             VLOG_INFO(LOG_MODULE, "Datapath id is %012"PRIx64, ntohll(pw->datapath_id));
         }
-
-        /* Update each port included in the message. 
-        memset(seen, false, sizeof seen);
-        n_ports = ((msg->size - offsetof(struct ofp_switch_features, ports))
-                   / sizeof *osf->ports);
-        for (i = 0; i < n_ports; i++) {
-            struct ofp_port *opp = &osf->ports[i];
-            if (ntohl(opp->port_no) > PORT_ARRAY_SIZE - 1) {
-                if (ntohl(opp->port_no) <= OFPP_MAX) {
-                    VLOG_WARN(LOG_MODULE, "Port ID %u over limit", ntohl(opp->port_no));
+    } 
+    else if (oh->type == OFPT_MULTIPART_REPLY) {
+        struct ofp_multipart_reply *repl =  msg->data;
+        if(ntohs(repl->type) == OFPMP_PORT_DESC){
+            bool seen[PORT_ARRAY_SIZE];
+            struct ofp_port *p;
+            unsigned int port_no;
+            size_t n_ports, i;
+            p = (struct ofp_port*) repl->body; 
+            /* Update each port included in the message.*/
+            memset(seen, false, sizeof seen);
+            n_ports = ((msg->size - offsetof(struct ofp_multipart_reply, body))
+                       / sizeof *p);
+            for (i = 0; i < n_ports; i++) {
+                struct ofp_port *opp = &p[i];
+                if (ntohl(opp->port_no) > PORT_ARRAY_SIZE - 1) {
+                    if (ntohl(opp->port_no) <= OFPP_MAX) {
+                        VLOG_WARN(LOG_MODULE, "Port ID %u over limit", ntohl(opp->port_no));
+                    }
+                    continue;
                 }
-                continue;
+                update_phy_port(pw, opp, OFPPR_MODIFY);
+                seen[ntohl(opp->port_no)] = true;
             }
-            update_phy_port(pw, opp, OFPPR_MODIFY);
-            seen[ntohl(opp->port_no)] = true;
-        }
 
-        /* Delete all the ports not included in the message.
-        for (p = port_array_first(&pw->ports, &port_no); p;
-             p = port_array_next(&pw->ports, &port_no)) {
-            if (!seen[port_no]) {
-                update_phy_port(pw, p, OFPPR_DELETE);
+            /* Delete all the ports not included in the message.*/
+            for (p = port_array_first(&pw->ports, &port_no); p;
+                 p = port_array_next(&pw->ports, &port_no)) {
+                if (!seen[port_no]) {
+                    update_phy_port(pw, p, OFPPR_DELETE);
+                }
             }
-        }
 
-        update_netdev_monitor_devices(pw);
+            update_netdev_monitor_devices(pw);
 
-        call_local_port_changed_callbacks(pw);*/
-    } else if (oh->type == OFPMP_PORT_STATS
-               && msg->size >= sizeof(struct ofp_port_status)) {
-        struct ofp_port_status *ops = msg->data;
-        update_phy_port(pw, &ops->desc, ops->reason);
-        if (ops->desc.port_no == htonl(OFPP_LOCAL)) {
             call_local_port_changed_callbacks(pw);
         }
-        if (ops->reason == OFPPR_ADD || OFPPR_DELETE) {
-            update_netdev_monitor_devices(pw);
+        else if (ntohs(oh->type) == OFPMP_PORT_STATS
+               && msg->size >= sizeof(struct ofp_port_status)) {
+            struct ofp_port_status *ops = msg->data;
+            update_phy_port(pw, &ops->desc, ops->reason);
+            if (ops->desc.port_no == htonl(OFPP_LOCAL)) {
+                call_local_port_changed_callbacks(pw);
+            }
+            if (ops->reason == OFPPR_ADD || OFPPR_DELETE) {
+                update_netdev_monitor_devices(pw);
+            }
         }
     }
+    
     return false;
 } 
 
@@ -373,6 +378,9 @@ port_watcher_periodic_cb(void *pw_)
         struct ofpbuf *b;
         make_openflow(sizeof(struct ofp_header), OFPT_FEATURES_REQUEST, &b);
         rconn_send_with_limit(pw->local_rconn, b, &pw->n_txq, 1);
+       /* TODO: Send port desc request?
+        b =  make_empty_multipart_request(OFPMP_PORT_DESC, 0x0000);
+        rconn_send_with_limit(pw->local_rconn, b, &pw->n_txq, 1);*/      
         pw->last_feature_request = time_now();
     }
 
