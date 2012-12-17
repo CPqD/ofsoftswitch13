@@ -154,8 +154,6 @@ int nblink_extract_proto_fields(struct ofpbuf * pktin, _nbPDMLField * field, str
     pktout_field->value = (uint8_t*) malloc(field->Size);
     if (field->Mask != NULL)
     {
-        printf ("\n\n\n============== SUP =============\n");
-        printf ("field->Show = %d  \n\n\n\n\n\n\n\n", field->Value[0]);
         uint8_t i;
         uint8_t *masked_field;
         masked_field = (uint8_t *) malloc(field->Size);
