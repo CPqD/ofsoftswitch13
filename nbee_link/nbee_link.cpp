@@ -358,9 +358,9 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
             if (protocol_Name.compare("ip") == 0 && pkt_proto->ipv4 == NULL)
             {
                 pkt_proto->ipv4 = (struct ip_header *) ((uint8_t*) pktin->data + proto->Position);
-                PDMLReader->GetPDMLField(proto->Name, (char*) "dscp", proto->FirstField, &field);
+                PDMLReader->GetPDMLField(proto->Name, (char*) "ip dscp", proto->FirstField, &field);
                 nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_IP_DSCP);
-                PDMLReader->GetPDMLField(proto->Name, (char*) "ecn", proto->FirstField, &field);
+                PDMLReader->GetPDMLField(proto->Name, (char*) "ip ecn", proto->FirstField, &field);
                 nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_IP_ECN);
                 PDMLReader->GetPDMLField(proto->Name, (char*) "src", proto->FirstField, &field);
                 nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_IPV4_SRC);
