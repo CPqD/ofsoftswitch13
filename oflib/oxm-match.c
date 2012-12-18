@@ -258,17 +258,22 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
         }   
         /* 802.1Q header. */
         case OFI_OXM_OF_VLAN_VID:{
-            if (get_unaligned_u16(value)> 4095)
+            uint16_t* vlan_id = (uint16_t*) value;
+            if (ntohs(*vlan_id)> 4095){
                 return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_VALUE);
-            else 
-                ofl_structs_match_put16(match, f->header, get_unaligned_u16(value));
+            }
+            else
+                ofl_structs_match_put16(match, f->header, ntohs(*vlan_id));
             return 0;
         }
+
         case OFI_OXM_OF_VLAN_VID_W:{
-            if (get_unaligned_u16(value)> 4095)
+            uint16_t* vlan_id = (uint16_t*) value;
+            uint16_t* vlan_mask = (uint16_t*) value;
+            if (ntohs(*vlan_id) > 4095)
                 return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_VALUE);
             else 
-                ofl_structs_match_put16m(match, f->header, get_unaligned_u16(value),get_unaligned_u16(mask));
+                ofl_structs_match_put16m(match, f->header, ntohs(*vlan_id), ntohs(*vlan_mask));
             return 0;
         }
        
@@ -459,6 +464,7 @@ oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len)
             error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_MASK);
         }      
         else if (!oxm_prereqs_ok(f, match_dst)) {
+            printf("Here\n");
             error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_PREREQ);
         }
         else if (check_oxm_dup(match_dst,f)){
