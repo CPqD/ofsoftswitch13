@@ -188,11 +188,11 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                 } 
                 else if (f->header == OXM_OF_ETH_TYPE){
                             uint16_t *v = (uint16_t *) f->value;
-                            fprintf(stream, "eth_type=0x");
-                            fprintf(stream,"\"%x\"",  *v);
+                            fprintf(stream, "eth_type=");
+                            fprintf(stream,"\"0x%x\"",  *v);
                             *size -= 6; 
                             if (*size > 4)                                
-                                fprintf(stream, ", ");
+                                fprintf(stream, ", ");                            
                 }
                 else if (f->header == OXM_OF_TCP_SRC){
                             fprintf(stream, "tcp_src=\"%d\"",*((uint16_t*) f->value));
@@ -299,9 +299,30 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             }                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
-                }   
+                }
+                else if (f->header == OXM_OF_ARP_SHA || f->header == OXM_OF_ARP_SHA_W){
+                            fprintf(stream, "arp_sha=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value));
+                            *size -= 10;                                
+                            if (OXM_HASMASK(f->header)){
+                                *size -= 6;
+                                fprintf(stream, ", arp_sha_mask=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value + 6));
+                            }
+                            if (*size > 4)                                
+                                fprintf(stream, ", ");
+                }
+                else if (f->header == OXM_OF_ARP_THA || f->header == OXM_OF_ARP_THA_W){
+                            fprintf(stream, "arp_tha=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value));
+                            *size -= 10;
+
+                            if (OXM_HASMASK(f->header)){
+                                *size -= 6;
+                                fprintf(stream, ", arp_tha_mask=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value + 6));
+                            }
+                            if (*size > 4)                                
+                                fprintf(stream, ", ");
+                }                      
                 else if (f->header == OXM_OF_ARP_SPA || f->header == OXM_OF_ARP_SPA_W ){
-                            fprintf(stream, "arp_sha=\""IP_FMT"\"",IP_ARGS(f->value));
+                            fprintf(stream, "arp_spa=\""IP_FMT"\"",IP_ARGS(f->value));
                             *size -= 8;                                
                             if (OXM_HASMASK(f->header)){
                                 *size -= 4;
@@ -322,9 +343,9 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                 } 
                 else if (f->header == OXM_OF_ARP_OP){
                             uint16_t *v = (uint16_t *) f->value;
-                            fprintf(stream, "arp_op=0x");
-                            fprintf(stream,"\"%x\"",  *v);
-                            *size -= 6;
+                            fprintf(stream, "arp_op=\"0x");
+                            fprintf(stream,"%x\"",  *v);
+                            *size -= 6;                            
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
@@ -379,8 +400,8 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             *size -= 8;
                             fprintf(stream, "ipv6_flow_label=\"%d\"",*((uint32_t*) f->value) & mask );                              
                             if (OXM_HASMASK(f->header)){
-                                 *size -= 4;
                                 uint8_t *flabel_mask = (uint8_t*) f->value + 4;
+                                *size -= 4;
                                 fprintf(stream, ", ipv6_flow_label_mask=\"%d\"",*((uint32_t*)flabel_mask)); 
                             }                         
                             if (*size > 4)                                

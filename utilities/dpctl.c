@@ -1160,12 +1160,40 @@ parse_match(char *str, struct ofl_match_header **match) {
             }
             continue;
         }
+        if (strncmp(token, MATCH_ARP_SPA KEY_VAL, strlen(MATCH_ARP_SPA KEY_VAL)) == 0) {
+            uint32_t arp_src;
+            uint32_t *mask;
+            if (parse_nw_addr(token + strlen(MATCH_ARP_SPA KEY_VAL), &(arp_src), &mask)) {
+                ofp_fatal(0, "Error parsing arp_src: %s.", token);
+            }
+            else { 
+                if (mask == NULL)
+                    ofl_structs_match_put32(m, OXM_OF_ARP_SPA,arp_src);
+                else
+                    ofl_structs_match_put32m(m, OXM_OF_ARP_SPA_W, arp_src, *mask);
+            }        
+            continue;
+        }
+        if (strncmp(token, MATCH_ARP_TPA KEY_VAL, strlen(MATCH_ARP_TPA KEY_VAL)) == 0) {
+            uint32_t arp_target;
+            uint32_t *mask;
+            if (parse_nw_addr(token + strlen(MATCH_ARP_TPA KEY_VAL), &(arp_target), &mask)) {
+                ofp_fatal(0, "Error parsing arp_target: %s.", token);
+            }
+            else { 
+                if (mask == NULL)
+                    ofl_structs_match_put32(m, OXM_OF_ARP_TPA, arp_target);
+                else
+                    ofl_structs_match_put32m(m, OXM_OF_ARP_TPA_W, arp_target, *mask);
+            }        
+            continue;
+        }                
         if (strncmp(token, MATCH_ARP_OP KEY_VAL, strlen(MATCH_ARP_OP KEY_VAL)) == 0) {
-            uint8_t arp_op;
-            if (parse8(token + strlen(MATCH_DL_VLAN_PCP KEY_VAL), NULL, 0, 0x7, &arp_op)){
+            uint16_t arp_op;
+            if (parse16(token + strlen(MATCH_ARP_OP KEY_VAL), NULL, 0, 0x7, &arp_op)){
                 ofp_fatal(0, "Error parsing arp_op: %s.", token);
             } else {
-                ofl_structs_match_put8(m, OXM_OF_ARP_OP, arp_op);
+                ofl_structs_match_put16(m, OXM_OF_ARP_OP, arp_op);
             }
             continue;
         }
