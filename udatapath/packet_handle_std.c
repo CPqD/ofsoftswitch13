@@ -127,7 +127,7 @@ packet_handle_std_is_ttl_valid(struct packet_handle_std *handle) {
         }
     }
     if (handle->proto->ipv4 != NULL) {
-        if (handle->proto->ipv4->ip_ttl <= 1) {
+        if (handle->proto->ipv4->ip_ttl < 1) {
             return false;
         }
     }
