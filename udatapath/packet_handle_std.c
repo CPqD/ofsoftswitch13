@@ -112,6 +112,12 @@ packet_handle_std_clone(struct packet *pkt, struct packet_handle_std *handle UNU
 void
 packet_handle_std_destroy(struct packet_handle_std *handle) {
 
+    struct packet_fields * iter, *next;
+    HMAP_FOR_EACH_SAFE(iter, next, struct packet_fields, hmap_node, &handle->match.match_fields){
+        free(iter->value);
+        free(iter);
+    }
+    free(handle->proto);   
     hmap_destroy(&handle->match.match_fields);
     free(handle);
 }

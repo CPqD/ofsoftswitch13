@@ -13,10 +13,13 @@
 #include <nbee.h>
 #include <netinet/in.h>
 #include <sys/time.h>
+#include <signal.h>
+
 
 #include "nbee_link.h"
 #include "oflib/oxm-match.h"
 #include "lib/hash.h"
+#include "lib/fatal-signal.h"
 
 map<uint16_t,uint16_t> ext_hdr_orders;
 
@@ -30,6 +33,17 @@ struct pcap_pkthdr * pkhdr;
 
 #define NETPDLFILE "customnetpdl.xml"
 
+
+static void
+sigint_handler(int sig_nr)
+{
+
+    nbDeallocatePacketDecoder(Decoder);
+    nbCleanup();
+
+    exit(0);
+}
+
 extern "C" int nblink_initialize(void)
 {
 
@@ -40,6 +54,17 @@ extern "C" int nblink_initialize(void)
 
     char* NetPDLFileName = (char*) NETPDLDIR"/"NETPDLFILE;
     struct stat netpdlstat;
+
+    struct sigaction sa;
+
+   /* Set up signal handler. */
+    memset(&sa, 0, sizeof sa);
+    sa.sa_handler = sigint_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART;
+    if (sigaction(SIGINT, &sa, NULL)) {
+        ofp_fatal(errno, "sigterm(SIGINT) failed");
+    }
 
     pkhdr = new struct pcap_pkthdr;
 

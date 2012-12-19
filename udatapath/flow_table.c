@@ -335,7 +335,7 @@ flow_table_features(struct ofl_table_features *features){
     features->properties = xmalloc(sizeof(struct ofl_table_feature_prop_header) * features->properties_num);
     j = 0;
     for(type = OFPTFPT_INSTRUCTIONS; type <= OFPTFPT_APPLY_SETFIELD_MISS; type++){ 
-        features->properties[j] = xmalloc(sizeof(struct ofl_table_feature_prop_header));
+        //features->properties[j] = xmalloc(sizeof(struct ofl_table_feature_prop_header));
         flow_table_create_property(&features->properties[j], type);
         if(type == OFPTFPT_MATCH|| type == OFPTFPT_WILDCARDS){
             type++;

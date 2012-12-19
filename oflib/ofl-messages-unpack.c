@@ -780,10 +780,6 @@ ofl_msg_unpack_multipart_request_table_features(struct ofp_multipart_request *os
     }   
     *msg = (struct ofl_msg_header *)dm;
     return 0; 
-    
-    
-    *msg = (struct ofl_msg_header*) dm;
-    return 0;
 }
 
 static ofl_err
