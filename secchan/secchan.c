@@ -697,6 +697,9 @@ parse_options(int argc, char *argv[], struct settings *s)
             s->in_band = false;
             break;
 
+        case 'F':
+            break;   
+
         case OPT_IN_BAND:
             s->in_band = true;
             break;
