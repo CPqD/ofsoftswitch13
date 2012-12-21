@@ -189,6 +189,13 @@ ipv6_mask(uint8_t *a, uint8_t *am, uint8_t *b) {
     return (matches_mask64(a,am,b) && matches_mask64(a+8,am+8,b+8));
 }
 
+static int
+ipv6_eh_match(uint8_t *a, uint8_t *b) {
+    uint16_t *a1 = (uint16_t *) a;
+    uint16_t *b1 = (uint16_t *) b;
+    return ((*a1 & ntohs(*b1)) == *a1);
+}
+
 bool 
 packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
 
@@ -239,7 +246,13 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
                         break;   
                     }
                     case (sizeof(uint16_t)):{
-                        if (has_mask){
+                        if (OXM_TYPE(f->header) == OXM_TYPE(OXM_OF_IPV6_EXTHDR)){
+                            //printf("Temos um \n" );
+                            if (ipv6_eh_match(f->value, packet_f->value) == 0) {
+                                return false;
+                            }
+                        }
+                        else if (has_mask){
                             if (pkt_mask16(f->value,f->value+ field_len, packet_f->value) == 0){
                               return false;
                             }
