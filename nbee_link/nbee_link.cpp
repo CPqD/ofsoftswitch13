@@ -400,12 +400,6 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
                 PDMLReader->GetPDMLField(proto->Name, (char*) "flabel", proto->FirstField, &field);
                 nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_IPV6_FLABEL);
                 PDMLReader->GetPDMLField(proto->Name, (char*) "nexthdr", proto->FirstField, &field);
-                nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_IP_PROTO);
-                PDMLReader->GetPDMLField(proto->Name, (char*) "src", proto->FirstField, &field);
-                nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_IPV6_SRC);
-                PDMLReader->GetPDMLField(proto->Name, (char*) "dst", proto->FirstField, &field);
-                nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_IPV6_DST);                                
-
                 /*Initialize extension header OXM */
                 struct packet_fields * EH_field;
                 uint16_t bit_field = OFPIEH_NONEXT;
@@ -416,8 +410,29 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
                 EH_field->pos = 0; //No valid value for this field
                 /*Set everything to zero */
                 memset(EH_field->value,0x0, sizeof(uint16_t));
+
+                char *pEnd;
+                uint16_t next_header = strtol(field->Value, &pEnd,16);
+                /*Set OFPIEH_NONEXT */
+                if (next_header == IPV6_NO_NEXT_HEADER)
+                {
+                    uint16_t *ext_hdrs; 
+                    
+                    ext_hdrs = (uint16_t*) EH_field->value;
+                    *ext_hdrs ^=  OFPIEH_NONEXT;
+                    *ext_hdrs = htons(*ext_hdrs);
+                }
+                    
                 hmap_insert_fast(pktout, &EH_field->hmap_node,
                             hash_int(EH_field->header, 0));
+
+                nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_IP_PROTO);
+                PDMLReader->GetPDMLField(proto->Name, (char*) "src", proto->FirstField, &field);
+                nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_IPV6_SRC);
+                PDMLReader->GetPDMLField(proto->Name, (char*) "dst", proto->FirstField, &field);
+                nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_IPV6_DST);                                
+
+            
                 if (PDMLReader->GetPDMLField(proto->Name, (char*) "HBH", proto->FirstField, &field) == nbSUCCESS)
                     nblink_extract_exthdr_fields(pktin, pktout, OFPIEH_HOP, field, &destination_num);
                 if(PDMLReader->GetPDMLField(proto->Name, (char*) "FH", proto->FirstField, &field) == nbSUCCESS)
