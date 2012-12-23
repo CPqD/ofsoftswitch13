@@ -89,7 +89,7 @@ matches_mask16(uint8_t *a, uint8_t *am, uint8_t *b) {
     uint16_t *b1 = (uint16_t *) b;
     uint16_t *mask = (uint16_t *) am;
 
-    return (((~*mask) & (*a1 ^ *b1)) == 0);
+    return (((*mask & *a1) ^ (*mask & *b1)) == 0);
 }
 
 
@@ -116,7 +116,7 @@ pkt_mask32(uint8_t *a, uint8_t *am, uint8_t *b) {
     uint32_t *b1 = (uint32_t *) b;
     uint32_t *mask = (uint32_t *) am;
     
-    return (((~*mask) & (*a1 ^ ntohl(*b1))) == 0);
+    return (((*mask & *a1) ^ (*mask & ntohll(*b1))) == 0);
 }
 
 /*Returns true if two values of 32 bit size match, considering their masks. */
@@ -126,7 +126,7 @@ matches_mask32(uint8_t *a, uint8_t *am, uint8_t *b) {
     uint32_t *b1 = (uint32_t *) b;
     uint32_t *mask = (uint32_t *) am;
 
-    return (((~*mask) & (*a1 ^ *b1)) == 0);
+    return (((*mask & *a1) ^ (*mask & *b1)) == 0);
 }
 
 /* Returns true if two values of 64 bits size match*/
@@ -154,7 +154,7 @@ pkt_mask64(uint8_t *a,uint8_t *am, uint8_t *b) {
     uint64_t *b1 = (uint64_t *) b;
     uint64_t *mask = (uint64_t *) am;
     
-    return (((~*mask) & (*a1 ^ ntohll(*b1))) == 0);
+    return (((*mask & *a1) ^ (*mask & ntohll(*b1))) == 0);
 } 
 
 /* Returns true if two values of 64 bits size match, considering their masks.*/
@@ -164,7 +164,7 @@ matches_mask64(uint8_t *a,uint8_t *am, uint8_t *b) {
     uint64_t *b1 = (uint64_t *) b;
     uint64_t *mask = (uint64_t *) am;
 
-    return (((~*mask) & (*a1 ^ *b1)) == 0);
+    return (((*mask & *a1) ^ (*mask & *b1)) == 0);
 } 
 
 /* Returns true if the two ethernet addresses match */
@@ -228,10 +228,16 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
     /* Loop through the match fields */
     HMAP_FOR_EACH(f, struct ofl_match_tlv, hmap_node, &flow_match->match_fields){
         /* Check if the field is present in the packet */
-        HMAP_FOR_EACH_WITH_HASH(packet_f, struct packet_fields, hmap_node, hash_int(f->header, 0), &packet->match_fields){ 
+        // HMAP_FOR_EACH_WITH_HASH(packet_f, struct packet_fields, hmap_node, hash_int(f->header, 0), &packet->match_fields){ 
+        HMAP_FOR_EACH(packet_f, struct packet_fields, hmap_node, &packet->match_fields){ 
+            if (OXM_TYPE(f->header) == OXM_TYPE(packet_f->header)) {
                 int field_len =  OXM_LENGTH(f->header);
                 bool has_mask = OXM_HASMASK(f->header);
                 ret = true;
+                if (has_mask)
+                {
+                    field_len = field_len/2;
+                }
                 switch (field_len){
                     case (sizeof(uint8_t)):{
                         if (has_mask){
@@ -247,7 +253,6 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
                     }
                     case (sizeof(uint16_t)):{
                         if (OXM_TYPE(f->header) == OXM_TYPE(OXM_OF_IPV6_EXTHDR)){
-                            //printf("Temos um \n" );
                             if (ipv6_eh_match(f->value, packet_f->value) == 0) {
                                 return false;
                             }
@@ -318,6 +323,7 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
    		            case (16):{
                         if (has_mask){
                             if (ipv6_mask(f->value,f->value + field_len, packet_f->value) == 0){
+                              
                               return false;
                             }
                         }
@@ -327,7 +333,7 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
                             }
                         break;
                     }
-               
+            }
             }
         }
          if (!ret)
