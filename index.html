@@ -33,12 +33,24 @@
       
 </ul><h1>The Project</h1>
 
-<p>Text here and here and there...:</p>
+<p><a href=" https://www.opennetworking.org/standards/intro-to-openflow ">OpenFlow</a> has brought the opportunity to perform a wide range of new experiments in a network. Currently there is a good number of hardware switches to try OpenFlow, but most of them still implements only the version 1.0 of the protocol, lacking the new features from the most recent versions. So, in order to not have innovation dependent of hardware software switches are being deployed since the most primitive OpenFlow versions.
+The OpenFlow 1.3 software switch is built upon the <a href=" http://yuba.stanford.edu/git/gitweb.cgi?p=openflow.git;a=tree;h=7f09f6a88d86883b516c99eb4058402eb07e5fd0;hb=d90824f0e8c3b6606d04e5a8813f03e89a6d0894 ">Stanford OpenFlow 1.0 reference switch</a>  and <a href=" https://github.com/TrafficLab/of11softswitch">Ericsson's Traffic Lab OpenFlow 1.1 switch </a> and is intended for fast experimentation purposes.
+</p>
+
+</p>The following components are available in the release:</p>
+
+<ul>
+<li><b>Ofdatapath</b>: the switch implementation</li>
+<li><b>Ofprotocol</b>: secure channel for connecting the switch to the controller</li>
+<li><b>Oflib</b>: a library for converting to/from 1.3 wire format</li>
+<li><b>Dpctl</b>: a tool for configuring the switch from the console</li> 
+</ul> 
 
 
 </ul><h1>How do I get started?</h1>
 <p> Instructions for installing and downloading the software switch can be found in the <a href="https://github.com/CPqD/ofsoftswitch13/blob/master/README.md">README</a> file.</p>
 
+<p> If you want to get a fast hands on, try the  <a href=" ftp://paperboy.nysernet.org/OpenFlow13.tar.gz ">pre-configured VM</a>, which includes the OpenFlow 1.3 Software Switch, a NOX compatible version, the plugin to the Wireshark dissector and OF-Test test suite.</p>
 
 </ul><h1>Tutorials</h1>
 
