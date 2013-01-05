@@ -1,0 +1,582 @@
+.ds PN dpctl
+
+.TH dpctl 8 "May 2008" "OpenFlow" "OpenFlow Manual"
+
+.SH NAME
+dpctl \- administer OpenFlow datapaths
+
+.SH SYNOPSIS
+.B dpctl
+[\fIoptions\fR] \fIcommand \fR[\fIswitch\fR] [\fIargs\fR&...]
+
+.SH DESCRIPTION
+The
+.B dpctl
+program is a command line tool for monitoring and administering OpenFlow 
+datapaths.  It is able to show the current state of a datapath,
+including features, configuration, and tables entries.  When using the
+OpenFlow kernel module,
+.B dpctl
+is used to add, delete, modify, and monitor datapaths.  
+
+Most \fBdpctl\fR commands take an argument that specifies the
+method for connecting to an OpenFlow switch.  The following connection
+methods are supported:
+
+.TP
+\fBnl:\fIdp_idx\fR
+The local Netlink datapath numbered \fIdp_idx\fR.  This form requires
+that the local host has the OpenFlow kernel module for Linux loaded.
+
+.TP
+\fBssl:\fIhost\fR[\fB:\fIport\fR]
+The specified SSL \fIport\fR (default: 6633) on the given remote
+\fIhost\fR.  The \fB--private-key\fR, \fB--certificate\fR, and
+\fB--ca-cert\fR options are mandatory when this form is used.
+
+.TP
+\fBtcp:\fIhost\fR[\fB:\fIport\fR]
+The specified TCP \fIport\fR (default: 6633) on the given remote
+\fIhost\fR.
+
+.TP
+\fBunix:\fIfile\fR
+The Unix domain server socket named \fIfile\fR.
+
+.SH COMMANDS
+
+With the \fBdpctl\fR program, datapaths running in the kernel can be 
+created, deleted, and modified.  A single machine may 
+host up to 32 datapaths (numbered 0 to 31).  In most situations, 
+a machine hosts only one datapath.
+
+A newly created datapath is not associated with any of the
+host's network devices thus does not process any incoming
+traffic.  To intercept and process traffic on a given network device, the
+network device must be explicitly added to a datapath through the
+\fBaddif\fR command.
+
+The following commands manage local datapaths.
+
+.TP
+\fBadddp nl:\fIdp_idx\fR
+Creates datapath numbered \fIdp_idx\fR on the local host.  This will 
+fail if \fIdp_idx\fR is not in the range 0 to 31, or if the datapath 
+with that number already exists on the host.
+
+.TP
+\fBdeldp nl:\fIdp_idx\fR
+Deletes datapath \fIdp_idx\fR on the local host.  \fIdp_idx\fR must be
+an existing datapath.  All of a datapath's network devices must be
+explicitly removed before the datapath can be deleted (see \fBdelif\fR
+command).
+
+.TP
+\fBaddif nl:\fIdp_idx netdev\fR...
+Adds each \fInetdev\fR to the list of network devices datapath
+\fIdp_idx\fR monitors, where \fIdp_idx\fR is the ID of an existing
+datapath, and \fInetdev\fR is the name of one of the host's
+network devices, e.g. \fBeth0\fR.  Once a network device has been added
+to a datapath, the datapath has complete ownership of the network device's
+traffic and the network device appears silent to the rest of the system.
+
+.TP
+\fBdelif nl:\fIdp_idx netdev\fR...
+Removes each \fInetdev\fR from the list of network devices datapath
+\fIdp_idx\fR monitors.
+
+.TP
+\fBget-idx \fIof_dev\fR
+Prints the datapath index for OpenFlow device \fIof_dev\fR.  
+
+.PP
+The following commands can be apply to OpenFlow switches regardless of
+the connection method.
+
+.TP
+\fBshow \fIswitch\fR
+Prints to the console information on datapath \fIswitch\fR including
+information on its flow tables and ports.
+
+.TP
+\fBstatus \fIswitch\fR [\fIkey\fR]
+Prints to the console a series of key-value pairs that report the
+status of \fIswitch\fR.  If \fIkey\fR is specified, only the key-value
+pairs whose key names begin with \fIkey\fR are printed.  If \fIkey\fR is
+omitted, all key-value pairs are printed.
+
+(In the OpenFlow reference implementation, the \fBstatus\fR command is
+implemented in \fBofprotocol\fR(8), not in the kernel module, so the
+\fBnl:\fIdp_idx\fR connection method should not be used with this
+command.  Instead, specify \fB-l\fR or \fB--listen\fR on the
+\fBofprotocol\fR command line and tell \fBdpctl\fR to use the connection
+method specified there.)
+
+.TP
+\fBshow-protostat \fIswitch\fR
+Prints to the OpenFlow protocol statiscal information of \fIswitch\fR.
+
+(In the OpenFlow reference implementation, the \fBshow-protostat\fR command
+is implemented in \fBofprotocol\fR(8), not in the kernel module, so the
+\fBnl:\fIdp_idx\fR connection method should not be used with this
+command.  Instead, specify \fB-l\fR or \fB--listen\fR on the
+\fBofprotocol\fR command line and tell \fBdpctl\fR to use the connection
+method specified there.)
+
+.TP
+\fBdump-tables \fIswitch\fR
+Prints to the console statistics for each of the flow tables used by
+datapath \fIswitch\fR.
+
+.TP
+\fBdump-ports \fIswitch\fR \fR[\fIport number\fR]
+Prints to the console statistics for each interface monitored by
+\fIswitch\fR. If port number is specified, print statistics only for
+the interface corresponding to port number.
+
+.TP
+\fBmod-port \fIswitch\fR \fInetdev\fR \fIaction\fR
+Modify characteristics of an interface monitored by \fIswitch\fR.  
+\fInetdev\fR can be referred to by its OpenFlow assigned port number or 
+the device name, e.g. \fBeth0\fR.  The \fIaction\fR may be any one of the
+following:
+
+.RS
+.IP \fBup\fR
+Enables the interface.  This is equivalent to ``ifconfig up'' on a Unix
+system.
+
+.IP \fBdown\fR
+Disables the interface.  This is equivalent to ``ifconfig down'' on a Unix
+system.
+
+.IP \fBflood\fR
+When a \fIflood\fR action is specified, traffic will be sent out this
+interface.  This is the default posture for monitored ports.
+
+.IP \fBnoflood\fR
+When a \fIflood\fR action is specified, traffic will not be sent out 
+this interface.  This is primarily useful to prevent loops when a
+spanning tree protocol is not in use.
+
+.RE
+
+.TP
+\fBdump-flows \fIswitch \fR[\fIflows\fR]
+Prints to the console all flow entries in datapath \fIswitch\fR's
+tables that match \fIflows\fR.  If \fIflows\fR is omitted, all flows
+except emergency flows in the datapath flows are retrieved.
+See \fBFLOW SYNTAX\fR, below, for the syntax of \fIflows\fR.
+
+.TP
+\fBdesc \fIswitch \fIstring
+Sets the switch description (as returned in ofp_desc_stats) to
+\fIstring (max length is DESC_STR_LEN).
+
+.TP
+\fBdump-aggregate \fIswitch \fR[\fIflows\fR]
+Prints to the console aggregate statistics for flows in datapath
+\fSWITCH\fR's tables that match \fIflows\fR.  If \fIflows\fR is omitted, 
+the statistics are aggregated across all flows in the datapath's flow
+tables.  See \fBFLOW SYNTAX\fR, below, for the syntax of \fIflows\fR.
+
+.TP
+\fBadd-flow \fIswitch flow\fR
+Add the flow entry as described by \fIflow\fR to the datapath \fIswitch\fR's 
+tables.  The flow entry is in the format described in \fBFLOW SYNTAX\fR, 
+below.
+
+.TP
+\fBadd-flows \fIswitch file\fR
+Add flow entries as described in \fIfile\fR to the datapath \fIswitch\fR's 
+tables.  Each line in \fIfile\fR is a flow entry in the format
+described in \fBFLOW SYNTAX\fR, below.
+
+.TP
+\fBmod-flows \fIswitch flow\fR
+Modify the actions in entries from the datapath \fIswitch\fR's tables 
+that match \fIflow\fR.  When invoked with the \fB--strict\fR option,
+wildcards are not treated as active for matching purposes.  See 
+\fBFLOW SYNTAX\fR, below, for the syntax of \fIflows\fR.
+
+.TP
+\fBdel-flows \fIswitch \fR[\fIflow\fR]
+Deletes entries from the datapath \fIswitch\fR's tables that match
+\fIflow\fR.  When invoked with the \fB--strict\fR option, wildcards are 
+not treated as active for matching purposes.  If \fIflow\fR is 
+omitted and the \fB--strict\fR option is not used, all flows in the 
+datapath's tables are removed.  See \fBFLOW SYNTAX\fR, below, for the 
+syntax of \fIflows\fR.
+
+.TP
+\fBmonitor \fIswitch\fR
+Connects to \fIswitch\fR and prints to the console all OpenFlow
+messages received.  Usually, \fIswitch\fR should specify a connection
+named on \fBofprotocol\fR(8)'s \fB-m\fR or \fB--monitor\fR command line
+option, in which the messages printed will be all those sent or
+received by \fBofprotocol\fR to or from the kernel datapath module.  A
+\fIswitch\fR of the form \fBnl:\fIdp_idx\fR will print all
+asynchronously generated OpenFlow messages (such as packet-in
+messages), but it will not print any messages sent to the kernel by
+\fBofprotocol\fR and other processes, nor will it print replies sent by
+the kernel in response to those messages.
+
+.PP
+The following commands monitor and control the egress queue
+configuration for an OpenFlow switch if the switch supports such
+operations.  After a queue is created with the add or modify
+operation, the OpenFlow enqueue action may be specified to
+direct packets to a particular queue.  Queues are associated with
+specific ports (so the same queue-id may be used on different
+ports and this will refer to different queues).  The only
+characteristic that may be configured for queues is the minimum
+bandwidth guarantee.  This parameter is specified in tenths of
+a percent (so full link bandwidth is 1000).
+
+.TP
+\fBadd-queue \fIswitch\fR \fIport\fR \fIq-id\fR [\fIbandwidth\fR]
+Connect to \fIswitch\fR and add an egress queue identified as \fIq-id\fR
+for \fIport\fR.  If
+specified, \fIbandwidth\fR indicates the minimum bandwidth guarantee
+for the queue and is specified in tenths of a
+percent.  This is the only characteristic of the queue that
+may be configured.
+
+.TP
+\fBmod-queue \fIswitch\fR \fIport\fR \fIq-id\fR \fIbandwidth\fR
+Connect to \fIswitch\fR and modify the bandwidth setting for an egress
+queue identified as \fIq-id\fR
+for \fIport\fR.  The queue need not have been created with \fBadd-queue\fR
+previously.  The parameter \fIbandwidth\fR indicates the minimum
+bandwidth guarantee for the queue and is specified in tenths of a
+percent.  This is the only characteristic
+of the queue that may be configured.
+
+.TP
+\fBdel-queue \fIswitch\fR \fIport\fR \fIq-id\fR
+Delete an egress queue identified as \fIq-id\fR for \fIport\fR which
+had been created by \fBadd-queue\fR or \fBmod-queue\fR.
+
+.TP
+\fBdump-queue \fIswitch\fR [\fIport\fR [\fIq-id\fR]]
+Dump that current queue configuration.  A port may be specified.
+If it is, a queue-id may also be specified.
+
+.PP
+The following commands can be used regardless of the connection
+method.  They apply to OpenFlow switches and controllers.
+
+.TP
+\fBprobe \fIvconn\fR
+Connects to \fIvconn\fR and sends a single OpenFlow echo-request
+packet and waits for the response.  With the \fB-t\fR or
+\fB--timeout\fR option, this command can test whether an OpenFlow
+switch or controller is up and running.
+
+.TP
+\fBping \fIvconn \fR[\fIn\fR]
+Sends a series of 10 echo request packets to \fIvconn\fR and times
+each reply.  The echo request packets consist of an OpenFlow header
+plus \fIn\fR bytes (default: 64) of randomly generated payload.  This
+measures the latency of individual requests.
+
+.TP
+\fBbenchmark \fIvconn n count\fR
+Sends \fIcount\fR echo request packets that each consist of an
+OpenFlow header plus \fIn\fR bytes of payload and waits for each
+response.  Reports the total time required.  This is a measure of the
+maximum bandwidth to \fIvconn\fR for round-trips of \fIn\fR-byte
+messages.
+
+.SH "FLOW SYNTAX"
+
+Some \fBdpctl\fR commands accept an argument that describes a flow or
+flows.  Such flow descriptions comprise a series
+\fIfield\fB=\fIvalue\fR assignments, separated by commas or white
+space.
+
+The following field assignments describe how a flow matches a packet.
+If any of these assignments is omitted from the flow syntax, the field
+is treated as a wildcard; thus, if all of them are omitted, the
+resulting flow matches all packets.  The string \fB*\fR or \fBANY\fR
+may be specified a value to explicitly mark any of these fields as a
+wildcard.
+
+.IP \fBin_port=\fIport_no\fR
+Matches physical port \fIport_no\fR.  Switch ports are numbered as
+displayed by \fBdpctl show\fR.
+
+.IP \fBdl_vlan=\fIvlan\fR
+Matches IEEE 802.1q virtual LAN tag \fIvlan\fR.  Specify \fB0xffff\fR
+as \fIvlan\fR to match packets that are not tagged with a virtual LAN;
+otherwise, specify a number between 0 and 4095, inclusive, as the
+12-bit VLAN ID to match.
+
+.IP \fBdl_src=\fImac\fR
+Matches Ethernet source address \fImac\fR, which should be specified
+as 6 pairs of hexadecimal digits delimited by colons,
+e.g. \fB00:0A:E4:25:6B:B0\fR.
+
+.IP \fBdl_dst=\fImac\fR
+Matches Ethernet destination address \fImac\fR.
+
+.IP \fBdl_type=\fIethertype\fR
+Matches Ethernet protocol type \fIethertype\fR, which should be
+specified as a integer between 0 and 65535, inclusive, either in
+decimal or as a hexadecimal number prefixed by \fB0x\fR,
+e.g. \fB0x0806\fR to match ARP packets.
+
+.IP \fBnw_src=\fIip\fR[\fB/\fInetmask\fR]
+Matches IPv4 source address \fIip\fR, which should be specified as an
+IP address or host name, e.g. \fB192.168.1.1\fR or
+\fBwww.example.com\fR.  The optional \fInetmask\fR allows matching
+only on an IPv4 address prefix.  It may be specified as a dotted quad
+(e.g. \fB192.168.1.0/255.255.255.0\fR) or as a count of bits
+(e.g. \fB192.168.1.0/24\fR).
+
+.IP \fBnw_dst=\fIip\fR[\fB/\fInetmask\fR]
+Matches IPv4 destination address \fIip\fR.
+
+.IP \fBnw_proto=\fIproto\fR
+Matches IP protocol type \fIproto\fR, which should be specified as a
+decimal number between 0 and 255, inclusive, e.g. 6 to match TCP
+packets.
+
+.IP \fBnw_tos=\fItos/dscp\fR
+Matches ToS/DSCP (only 6-bits, not modify reserved 2-bits for future
+use) field of IPv4 header \fItos/dscp\fR, which should be specified as
+a decimal number between 0 and 255, inclusive.
+
+.IP \fBtp_src=\fIport\fR
+Matches UDP or TCP source port \fIport\fR, which should be specified
+as a decimal number between 0 and 65535, inclusive, e.g. 80 to match
+packets originating from a HTTP server.
+
+.IP \fBtp_dst=\fIport\fR
+Matches UDP or TCP destination port \fIport\fR.
+
+.IP \fBicmp_type=\fItype\fR
+Matches ICMP message with \fItype\fR, which should be specified as a decimal 
+number between 0 and 255, inclusive.
+
+.IP \fBicmp_code=\fIcode\fR
+Matches ICMP messages with \fIcode\fR.
+
+.PP
+The following shorthand notations are also available:
+
+.IP \fBip\fR
+Same as \fBdl_type=0x0800\fR.
+
+.IP \fBicmp\fR
+Same as \fBdl_type=0x0800,nw_proto=1\fR.
+
+.IP \fBtcp\fR
+Same as \fBdl_type=0x0800,nw_proto=6\fR.
+
+.IP \fBudp\fR
+Same as \fBdl_type=0x0800,nw_proto=17\fR.
+
+.IP \fBarp\fR
+Same as \fBdl_type=0x0806\fR.
+
+.PP
+The \fBadd-flow\fR and \fBadd-flows\fR commands require an additional field:
+
+.IP \fIactions\fB=\fItarget\fR[\fB,\fItarget\fR...]\fR
+Specifies a comma-separated list of actions to take on a packet when the 
+flow entry matches.  The \fItarget\fR may be a decimal port number 
+designating the physical port on which to output the packet, or one of 
+the following keywords:
+
+.RS
+.IP \fBoutput\fR:\fIport\fR
+Outputs the packet on the port specified by \fIport\fR.
+
+.IP \fBenqueue\fR:\fIport\fR:\fIq-id\fR
+Enqueue the packet to the queue specified by \fIq-id\fR on the port
+specified by \fIport\fR.  See \fBadd-queue\fR and related commands
+in this manpage above.
+
+.IP \fBnormal\fR
+Subjects the packet to the device's normal L2/L3 processing.  (This
+action is not implemented by all OpenFlow switches.)
+
+.IP \fBflood\fR
+Outputs the packet on all switch physical ports other than the port on
+which it was received and any ports on which flooding is disabled
+(typically, these would be ports disabled by the IEEE 802.1D spanning
+tree protocol).
+
+.IP \fBall\fR
+Outputs the packet on all switch physical ports other than the port on
+which it was received.
+
+.IP \fBcontroller\fR:\fImax_len\fR
+Sends the packet to the OpenFlow controller as a ``packet in''
+message.  If \fImax_len\fR is a number, then it specifies the maximum
+number of bytes that should be sent.  If \fImax_len\fR is \fBALL\fR or
+omitted, then the entire packet is sent.
+
+.IP \fBlocal\fR
+Outputs the packet on the ``local port,'' which corresponds to the
+\fBof\fIn\fR network device (see \fBCONTACTING THE CONTROLLER\fR in
+\fBofprotocol\fR(8) for information on the \fBof\fIn\fR network device).
+
+.IP \fBmod_vlan_vid\fR:\fIvlan_vid\fR
+Modifies the VLAN id on a packet.  The VLAN tag is added or modified 
+as necessary to match the value specified.  If the VLAN tag is added,
+a priority of zero is used (see the \fBmod_vlan_pcp\fR action to set
+this).
+
+.IP \fBmod_vlan_pcp\fR:\fIvlan_pcp\fR
+Modifies the VLAN priority on a packet.  The VLAN tag is added or modified 
+as necessary to match the value specified.  Valid values are between 0
+(lowest) and 7 (highest).  If the VLAN tag is added, a vid of zero is used 
+(see the \fBmod_vlan_vid\fR action to set this).
+
+.IP \fBmod_dl_dst\fR:\fIdst_mac\fR
+Modifies the destination mac address on a packet, e.g., actions=mod_dl_dst:12:34:56:78:9a:bc
+
+.IP \fBmod_dl_src\fR:\fIsrc_mac\fR
+Modifies the source mac address on a packet, e.g., actions=mod_dl_src:12:34:56:78:9a:bc
+
+.IP \fBmod_nw_tos\fR:\fItos/dscp\fR
+Modifies the ToS/DSCP (only 6-bits, not modify reserved 2-bits for future use) field of IPv4 header on a packet.
+
+.IP \fBstrip_vlan\fR
+Strips the VLAN tag from a packet if it is present.
+.RE
+
+.IP
+(The OpenFlow protocol supports other actions that \fBdpctl\fR does
+not yet expose to the user.)
+
+.PP
+The \fBadd-flow\fR, \fBadd-flows\fR, \fBdel-flows\fR, 
+and \fBdel-emerg-flows\fR commands support an additional optional field:
+
+.IP \fBpriority=\fIvalue\fR
+Sets the priority of the flow to be added or deleted to \fIvalue\fR,
+which should be a number between 0 and 65535, inclusive.  If this
+field is not specified, it defaults to 32768.
+
+.PP
+The \fBadd-flow\fR and \fBadd-flows\fR commands support 
+additional optional fields:
+
+.TP
+\fBidle_timeout=\fIseconds\fR
+Causes the flow to expire after the given number of seconds of
+inactivity.  A value of 0 prevents a flow from expiring due to
+inactivity.  The default is 60 seconds.
+
+.IP \fBhard_timeout=\fIseconds\fR
+Causes the flow to expire after the given number of seconds,
+regardless of activity.  A value of 0 (the default) gives the flow no
+hard expiration deadline.
+
+.PP
+The \fBdump-flows\fR, \fBdump-aggregate\fR and \fBdel-flows\fR 
+commands support the additional optional field:
+
+.TP
+\fBout_port=\fIport\fR
+If set, a matching flow must include an output action to \fIport\fR.
+
+.PP
+\fBadd-flow\fR, \fBadd-flows\fR, \fBdel-flows\fR, \fBdump-flows\fR, 
+and \fBdump-aggregate\fR commands support the additional 
+optional field:
+
+.IP \fBtable=\fInumber\fR
+If specified, limits the flows about which statistics are gathered to
+those in the table with the given \fInumber\fR.  Normal (non emergency)
+tables are numbered as shown by the \fBdump-tables\fR command.
+
+If this field is not specified, or if \fInumber\fR is given as
+\fB255\fR, statistics are gathered about flows from all normal (non
+emergency) tables and flow manipulations are applied to notmal tables.
+
+If this field is given as \fB254\fR, statistics are gathered about
+flows from emergency table and flow manipulations are applied to
+emergency table.
+
+.SH OPTIONS
+.TP
+\fB--strict\fR
+Uses strict matching when running flow modification commands.
+
+.TP
+\fB-t\fR, \fB--timeout=\fIsecs\fR
+Limits \fBdpctl\fR runtime to approximately \fIsecs\fR seconds.  If
+the timeout expires, \fBdpctl\fR will exit with a \fBSIGALRM\fR
+signal.
+
+.TP
+\fB-p\fR, \fB--private-key=\fIprivkey.pem\fR
+Specifies a PEM file containing the private key used as the
+identity for SSL connections to a switch.
+
+.TP
+\fB-c\fR, \fB--certificate=\fIcert.pem\fR
+Specifies a PEM file containing a certificate, signed by the
+controller's certificate authority (CA), that certifies the
+private key to identify a trustworthy controller.
+
+.TP
+\fB-C\fR, \fB--ca-cert=\fIcacert.pem\fR
+Specifies a PEM file containing the CA certificate used to verify that
+a switch is trustworthy.
+
+.so lib/vlog.man
+.so lib/common.man
+
+.SH EXAMPLES
+
+A typical dpctl command sequence for controlling an OpenFlow kernel module:
+.nf
+.TP
+Create datapath numbered 0:
+
+.B % dpctl adddp nl:0
+
+.TP
+Add two network devices to the new datapath:
+
+.B % dpctl addif nl:0 eth0
+.B % dpctl addif nl:0 eth1
+
+.TP
+Monitor traffic received by the datapath (exit with control-C):
+
+.B % dpctl monitor nl:0
+
+
+.TP
+View the datapath's table stats after some traffic has passed through:
+
+.B % dpctl dump-tables nl:0
+
+.TP
+View the flow entries in the datapath:
+
+.B % dpctl dump-flows nl:0 
+
+.TP
+Remove network devices from the datapath when finished:
+
+.B % dpctl delif nl:0 eth0
+.B % dpctl delif nl:0 eth1
+
+.TP
+Delete the datapath:
+
+.B % dpctl deldp nl:0
+.fi
+.SH "SEE ALSO"
+
+.BR ofprotocol (8),
+.BR controller (8),
+.BR ofdatapath (8),
+.BR vlogconf (8)

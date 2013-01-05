@@ -1,0 +1,2 @@
+VLOG_MODULE(dpctl)
+VLOG_MODULE(ofp_discover)

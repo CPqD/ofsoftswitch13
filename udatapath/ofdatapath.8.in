@@ -1,0 +1,148 @@
+.ds PN ofdatapath
+
+.TH ofdatapath 8 "May 2008" "OpenFlow" "OpenFlow Manual"
+
+.SH NAME
+ofdatapath \- userspace implementation of datapath for OpenFlow switch
+
+.SH SYNOPSIS
+.B ofdatapath
+[\fIoptions\fR]
+\fB-i\fR \fInetdev\fR[\fB,\fInetdev\fR].\|.\|.
+\fImethod\fR [\fImethod\fR].\|.\|.
+
+.SH DESCRIPTION
+The \fBofdatapath\fR is a userspace implementation of an OpenFlow
+datapath.  It monitors one or more network device interfaces,
+forwarding packets between them according to the entries in the flow
+table that it maintains.  When it is used with \fBofprotocol\fR(8), to
+connect the datapath to an OpenFlow controller, the combination is an
+OpenFlow switch.
+
+For access to network devices, the ofdatapath program must normally run as
+root.
+
+The mandatory \fImethod\fR argument specifies how \fBofprotocol\fR(8)
+communicates with \fBofdatapath\fR, as a passive OpenFlow connection
+method.  Ordinarily \fImethod\fR takes the following form:
+
+.TP
+\fBpunix:\fIfile\fR
+Listens for connections on the Unix domain server socket named
+\fIfile\fR.
+
+.PP
+The following connection methods are also supported, but their use
+would be unusual because \fBofdatapath\fR and \fBofprotocol\fR should run
+on the same machine:
+
+.TP
+\fBpssl:\fR[\fIport\fR]
+Listens for SSL connections \fIport\fR (default: 976).  The
+\fB--private-key\fR, \fB--certificate\fR, and \fB--ca-cert\fR options
+are mandatory when this form is used.  (\fBofp\-pki\fR(8) does not set
+up a suitable PKI for use with this option.)
+
+.TP
+\fBptcp:\fR[\fIport\fR]
+Listens for TCP connections from remote OpenFlow switches on
+\fIport\fR (default: 975).
+
+.SH OPTIONS
+.TP
+\fB-i\fR, \fB--interfaces=\fR\fInetdev\fR[\fB,\fInetdev\fR].\|.\|.
+Specifies each \fInetdev\fR (e.g., \fBeth0\fR) as a switch port.  The
+specified network devices should not have any configured IP addresses.
+This option may be given any number of times to specify additional
+network devices.
+
+.TP
+\fB-L\fR, \fB--local-port=\fInetdev\fR
+Specifies the network device to use as the userspace datapath's
+``local port,'' which is a network device that \fBofprotocol\fR(8)
+bridges to the physical switch ports for use in in-band control.  When
+this option is not specified, the default is \fBtap:\fR, which causes
+a new TAP virtual network device to be allocated with a default name
+assigned by the kernel.  To do the same, but assign a specific name
+\fBname\fR to the TAP network device, specify the option as
+\fB--local-port=tap:\fIname\fR.
+
+Either way, the existence of TAP devices created by \fBofdatapath\fR is
+temporary: they are destroyed when \fBofdatapath\fR exits.  If this is
+undesirable, you may use \fBtunctl\fR(8) to create a persistent TAP
+network device and then pass it to \fBofdatapath\fR, like so:
+
+.RS
+.IP 1.
+Create a persistent TAP network device: \fBtunctl -t mytap\fR.  (The
+\fBtunctl\fR(8) utility is part of User Mode Linux.  It is not
+included with the OpenFlow reference implementation.)
+.IP 2.
+Invoke \fBofdatapath\fR(8) using \fBmytap\fR, e.g. \fBofdatapath
+--local-port=mytap\fR .\|.\|.  (Note the lack of \fBtap:\fR prefix on
+the \fB--local-port\fR argument.)
+.IP 3.
+Invoke \fBofprotocol\fR(8), etc., and use the switch as desired.
+.IP 4.
+When \fBofprotocol\fR and \fBofdatapath\fR have terminated and the TAP
+network device is no longer needed, you may destroy it with: \fBtunctl
+-d mytap\fR
+.RE
+
+.IP
+It does not ordinarily make sense to specify the name of a physical
+network device on \fB-L\fR or \fB--local-port\fR.
+
+.TP
+\fB--no-local-port\fR
+Do not provide a local port as part of the datapath.  When this option
+is used, the switch will not support in-band control.
+
+.TP
+\fB--no-slicing\fR
+Disable slicing (no queue configuration to ports). When this option
+is used, the switch will have 0 queues, and therefore no
+slicing-related functionality is supported. This option is useful when
+run-time dependencies for slicing (tc and related kernel
+configuration) are not met.
+
+.TP
+\fB-d\fR, \fB--datapath-id=\fIdpid\fR
+Specifies the OpenFlow datapath ID (a 48-bit number that uniquely
+identifies a controller) as \fIdpid\fR, which consists of exactly 12
+hex digits.  Without this option, \fBofdatapath\fR picks an ID randomly.
+
+.TP
+\fB-p\fR, \fB--private-key=\fIprivkey.pem\fR
+Specifies a PEM file containing the private key used as the datapath's
+identity for SSL connections to \fBofprotocol\fR(8).
+
+.TP
+\fB-c\fR, \fB--certificate=\fIcert.pem\fR
+Specifies a PEM file containing a certificate, signed by the
+datapath's certificate authority (CA), that certifies the datapath's
+private key to identify a trustworthy datapath.
+
+.TP
+\fB-C\fR, \fB--ca-cert=\fIcacert.pem\fR
+Specifies a PEM file containing the CA certificate used to verify that
+the datapath is connected to a trustworthy secure channel.
+
+.so lib/daemon.man
+.so lib/vlog.man
+.so lib/common.man
+
+.SH BUGS
+The userspace datapath's performance lags significantly behind that of
+the kernel-based switch.  It should only be used when the kernel-based
+switch cannot be.
+
+On Linux, general-purpose support for VLAN tag rewriting is precluded
+by the Linux kernel AF_PACKET implementation.
+
+.SH "SEE ALSO"
+
+.BR ofprotocol (8),
+.BR dpctl (8),
+.BR controller (8),
+.BR vlogconf (8).

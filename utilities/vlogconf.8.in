@@ -1,0 +1,183 @@
+.ds PN vlogconf
+
+.TH vlogconf 8 "June 2008" "OpenFlow" "OpenFlow Manual"
+
+.SH NAME
+vlogconf \- configuration utility for OpenFlow logging in userspace
+
+.SH SYNOPSIS
+\fBvlogconf\fR [\fB-h\fR | \fB--help\fR] [\fItarget\fR...] [\fIaction\fR...]
+.sp 1
+The available \fItarget\fR options are:
+.br
+[\fB-a\fR | \fB--all\fR] [\fB-t\fR \fIpid\fR | \fB--target=\fIpid\fR]
+.sp 1
+The available \fIaction\fR options are:
+.br
+[\fB-l\fR | \fB--list\fR] [\fB-s\fR
+\fImodule\fR[\fB:\fIfacility\fR[\fB:\fIlevel\fR]] |
+\fB--set=\fImodule\fR[\fB:\fIfacility\fR[\fB:\fIlevel\fR]]]
+[\fB-r\fR | \fB--reopen\fR]
+
+.SH DESCRIPTION
+The \fBvlogconf\fR program configures the logging system used by 
+OpenFlow userspace programs.  The logging configuration may be modified 
+while OpenFlow programs are running.
+
+\fBvlogconf\fR applies one or more actions to each of one or more
+target processes.  Targets may be specified as:
+
+.TP
+\fB-a\fR, \fB--all\fR
+All running processes that \fBvlogconf\fR can control.
+
+.TP
+\fB-t \fItarget\fR, \fB--target=\fItarget\fR
+The specified \fItarget\fR, which must take one of the following forms:
+
+.RS
+.IP \(bu
+A PID (process ID).
+
+.IP \(bu
+An absolute path (beginning with `/') to the Unix domain socket for a
+\fBvlogconf\fR-controllable process.
+
+.IP \(bu
+An absolute path (beginning with `/') to a pidfile (created by, e.g.,
+passing the \fB-P\fR or \fB--pidfile\fR option to one of the OpenFlow
+programs).  
+
+.IP \(bu
+None of the above, in which case \fItarget\fR prefixed by
+\fB@RUNDIR@/\fR must match one of the cases for absolute paths listed
+above.  (The default name for a program's pidfile is
+\fB@RUNDIR@/\fIprogram\fB.pid\fR, so this means that, say,
+\fBofprotocol\fR's default pidfile may be referred to simply as
+\fBofprotocol.pid\fR.)
+.RE
+
+.PP
+The available actions are:
+
+.TP
+\fB-l\fR, \fB--list\fR
+Print the list of known modules and their current logging levels to
+stdout.
+
+.TP
+\fB-s\fR \fImodule\fR[\fB:\fIfacility\fR[\fB:\fIlevel\fR]], \fB--set=\fImodule\fR[\fB:\fIfacility\fR[\fB:\fIlevel\fR]]
+
+Sets the logging level for \fImodule\fR in \fIfacility\fR to
+\fIlevel\fR.  The \fImodule\fR may be any valid module name (as
+displayed by the \fB--list\fR option) or the special name \fBANY\fR to
+set the logging levels for all modules.  The \fIfacility\fR may be
+\fBsyslog\fR or \fBconsole\fR to set the levels for logging to the
+system log or to the console, respectively, or \fBANY\fR to set the
+logging levels for both facilities.  If it is omitted,
+\fIfacility\fR defaults to \fBANY\fR.  The \fIlevel\fR must be one of
+\fBemer\fR, \fBerr\fR, \fBwarn\fR, \fBinfo\fR, or \fBdbg\fR, designating the
+minimum severity of a message for it to be logged.  If it is omitted,
+\fIlevel\fR defaults to \fBdbg\fR.
+
+.TP
+\fB-s PATTERN:\fIfacility\fB:\fIpattern\fR, \fB--set=PATTERN:\fIfacility\fB:\fIpattern\fR
+
+Sets the log pattern for \fIfacility\fR to \fIpattern\fR.  Each time a
+message is logged to \fIfacility\fR, \fIpattern\fR determines the
+message's formatting.  Most characters in \fIpattern\fR are copied
+literally to the log, but special escapes beginning with \fB%\fR are
+expanded as follows:
+
+.RS
+.TP
+\fB%A\fR
+The name of the application logging the message, e.g. \fBofprotocol\fR.
+
+.TP
+\fB%c\fR
+The name of the module (as shown by \fBvlogconf --list\fR) logging
+the message.
+
+.TP
+\fB%d\fR
+The current date and time in ISO 8601 format (YYYY-MM-DD HH:MM:SS).
+
+.TP
+\fB%d{\fIformat\fB}\fR
+The current date and time in the specified \fIformat\fR, which takes
+the same format as the \fItemplate\fR argument to \fBstrftime\fR(3).
+
+.TP
+\fB%m\fR
+The message being logged.
+
+.TP
+\fB%N\fR
+A serial number for this message within this run of the program, as a
+decimal number.  The first message a program logs has serial number 1,
+the second one has serial number 2, and so on.
+
+.TP
+\fB%n\fR
+A new-line.
+
+.TP
+\fB%p\fR
+The level at which the message is logged, e.g. \fBDBG\fR.
+
+.TP
+\fB%P\fR
+The program's process ID (pid), as a decimal number.
+
+.TP
+\fB%r\fR
+The number of milliseconds elapsed from the start of the application
+to the time the message was logged.
+
+.TP
+\fB%%\fR
+A literal \fB%\fR.
+.RE
+
+.IP
+A few options may appear between the \fB%\fR and the format specifier
+character, in this order:
+
+.RS
+.TP
+\fB-\fR
+Left justify the escape's expansion within its field width.  Right
+justification is the default.
+
+.TP
+\fB0\fR
+Pad the field to the field width with \fB0\fRs.  Padding with spaces
+is the default.
+
+.TP
+\fIwidth\fR
+A number specifies the minimum field width.  If the escape expands to
+fewer characters than \fIwidth\fR then it is padded to fill the field
+width.  (A field wider than \fIwidth\fR is not truncated to fit.)
+.RE
+
+.IP
+The default pattern for console output is \fB%d{%b %d
+%H:%M:%S}|%05N|%c|%p|%m\fR; for syslog output, \fB%05N|%c|%p|%m\fR.
+
+.TP
+\fB-r\fR, \fB--reopen\fR
+Causes the target application to close and reopen its log file.  (This
+is useful after rotating log files, to cause a new log file to be
+used.)
+
+.SH OPTIONS
+
+.so lib/common.man
+
+.SH "SEE ALSO"
+
+.BR dpctl (8),
+.BR ofprotocol (8),
+.BR controller (8)

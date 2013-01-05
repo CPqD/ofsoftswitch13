@@ -1,0 +1,93 @@
+Source: openflow
+Section: net
+Priority: extra
+Maintainer: OpenFlow Team <openflow-dev@lists.stanford.edu>
+Build-Depends: debhelper (>= 5), autoconf (>= 2.60), automake1.10 | automake1.11 | automake (>= 1.10), libssl-dev, pkg-config (>= 0.21), po-debconf, bzip2, openssl, libncurses5-dev, libpcre3-dev
+Standards-Version: 3.7.3
+
+Package: openflow-datapath-source
+Architecture: all
+Depends: module-assistant, bzip2, debhelper (>= 5.0.37)
+Suggests: openflow-switch
+Description: Source code for OpenFlow datapath Linux module
+ This package provides the OpenFlow datapath module source code that
+ is needed by the kernel-based OpenFlow switch.  The kernel module can
+ be built from it using module-assistant or make-kpkg.  README.Debian
+ in this package provides further instructions.
+ .
+ OpenFlow is a protocol for flow-based control over network switching.
+
+Package: openflow-common
+Architecture: any
+Depends: ${shlibs:Depends}, openssl
+Description: OpenFlow common components
+ openflow-common provides components required by both openflow-switch
+ and openflow-controller.
+ .
+ OpenFlow is a protocol for flow-based control over network switching.
+
+Package: openflow-switch
+Architecture: any
+Suggests: openflow-datapath-module
+Depends: ${shlibs:Depends}, ${misc:Depends}, openflow-common, dhcp3-client, module-init-tools, dmidecode, procps, debianutils
+Description: OpenFlow switch implementations
+ openflow-switch provides the userspace components and utilities for
+ the OpenFlow kernel-based switch.  
+ .
+ OpenFlow is a protocol for flow-based control over network switching.
+
+Package: openflow-switch-config
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, openflow-switch, libwww-perl, libdigest-sha1-perl
+Description: OpenFlow switch implementations
+ openflow-switch-config provides a utility for interactively configuring
+ the OpenFlow switch provided in the openflow-switch package.
+ .
+ OpenFlow is a protocol for flow-based control over network switching.
+
+Package: openflow-pki
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}, openflow-common
+Description: OpenFlow public key infrastructure
+ openflow-pki provides PKI (public key infrastructure) support for
+ OpenFlow switches and controllers, reducing the risk of
+ man-in-the-middle attacks on the OpenFlow network infrastructure.
+ .
+ OpenFlow is a protocol for flow-based control over network switching.
+
+Package: openflow-pki-server
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}, openflow-pki, apache2
+Description: OpenFlow public key infrastructure (HTTP server support)
+ openflow-pki-server provides HTTP access to the OpenFlow PKI (public
+ key infrastructure) maintained on the local machine by the
+ openflow-pki package.  This HTTP access is needed for secure and
+ convenient OpenFlow switch setup using the ofp-switch-setup program
+ in the openflow-switch package.
+ .
+ OpenFlow is a protocol for flow-based control over network switching.
+
+Package: openflow-controller
+Architecture: any
+Depends: ${shlibs:Depends}, openflow-common, openflow-pki
+Description: OpenFlow controller implementation
+ The OpenFlow controller enables OpenFlow switches that connect to it
+ to act as MAC-learning Ethernet switches.
+ .
+ OpenFlow is a protocol for flow-based control over network switching.
+
+Package: corekeeper
+Architecture: all
+Depends: tmpreaper
+Description: Core file centralizer and reaper
+ The corekeeper package configures the system to dump all core files to
+ /var/log/core.  It also deletes core files older than 7 days.
+
+Package: openflow-dbg
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: Debug symbols for OpenFlow packages
+ This package contains the debug symbols for all the other openflow-*
+ packages.  Install it to debug one of them or to examine a core dump
+ produced by one of them.
+

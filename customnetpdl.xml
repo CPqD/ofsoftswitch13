@@ -1,0 +1,2233 @@
+<?xml version="1.0" encoding="utf-8"?>
+<netpdl name="nbee.org NetPDL Database" version="0.9" creator="nbee.org" date="09-04-2007">
+<protocol name="startproto" longname="Starting Protocol (used for beginning the parsing)" showsumtemplate="startproto">
+		<execute-code>
+		<init>
+			<!-- Alias list -->
+			<!-- Please do not change these values, since these are used inside the NetBee code -->
+			<alias name="%NOTFOUND" replacewith="0"/>
+			<alias name="%FOUND" replacewith="1"/>
+			<alias name="%CANDIDATE" replacewith="2"/>
+			<alias name="%DEFERRED" replacewith="3"/>
+
+			<!-- NetPDL default variables -->
+			<variable name="$linklayer" type="number" validity="static"/>
+			<variable name="$framelength" type="number" validity="thispacket"/>
+			<variable name="$packetlength" type="number" validity="thispacket"/>
+			<variable name="$currentoffset" type="number" validity="thispacket"/>
+			<variable name="$currentprotooffset" type="number" validity="thispacket"/>
+			<variable name="$timestamp_sec" type="number" validity="thispacket"/>
+			<variable name="$timestamp_usec" type="number" validity="thispacket"/>
+			<variable name="$packet" type="refbuffer" validity="thispacket"/>
+			<variable name="$prevproto" type="protocol" validity="thispacket"/>
+			<variable name="$nextproto" type="protocol" validity="thispacket"/>
+			<variable name="$protoverify_result" type="number" validity="thispacket"/>
+
+			<!-- Variables for tokenXXX fields; these are updated after each field (of the proper type), so we do not have to reset them at each packet -->
+			<variable name="$token_begintlen" type="number" validity="static"/>
+			<variable name="$token_fieldlen" type="number" validity="static"/>
+			<variable name="$token_endtlen" type="number" validity="static"/>
+
+			<!-- Required configuration variables (usually used for selecting some optional functions in the code) -->
+			<variable name="$show_networknames" type="number" validity="static"/>
+			<variable name="$enable_servertable" type="number" validity="static" value="0"/>
+
+			<!-- Variables required for L4-L7 processing -->
+			<variable name="$ipsrc" type="refbuffer" validity="thispacket"/>
+			<variable name="$ipdst" type="refbuffer" validity="thispacket"/>
+			<variable name="$L4proto" type="protocol" validity="thispacket"/>
+			<variable name="$portsrc" type="refbuffer" validity="thispacket"/>
+			<variable name="$portdst" type="refbuffer" validity="thispacket"/>
+
+			<variable name="$firstip" type="refbuffer" validity="thispacket"/>
+			<variable name="$secondip" type="refbuffer" validity="thispacket"/>
+			<variable name="$firstport" type="refbuffer" validity="thispacket"/>
+			<variable name="$secondport" type="refbuffer" validity="thispacket"/>
+
+			<variable name="$type" type="number" validity="thispacket"/>
+			<variable name="$proc" type="number" validity="thispacket"/>
+			<variable name="$payloadlength" type="number" validity="thispacket" value="0"/>
+			
+			<variable name="$sess_table_hit" type="number" validity="thispacket" value="0"/>
+			<variable name="$ks_table_hit" type="number" validity="thispacket" value="0"/>
+			<variable name="$session_hit" type="number" validity="thispacket" value="0"/>
+
+			<!-- Lookup tables for L7 processing -->
+			<lookuptable name="$tcpsessiontable" exactentries="50000" maskentries="1000"  validity="dynamic">
+				<key name="ipsource" type="buffer" size="16"/>
+				<key name="ipdest" type="buffer" size="16"/>
+				<key name="tcpsrcport" type="buffer" size="2"/>
+				<key name="tcpdstport" type="buffer" size="2"/>
+				<data name="nextproto" type="protocol"/>
+				<data name="flag" type="number"/>
+			</lookuptable>
+			<lookuptable name="$udpsessiontable" exactentries="10000" maskentries="1000" validity="dynamic">
+				<key name="ipsource" type="buffer" size="16"/>
+				<key name="ipdest" type="buffer" size="16"/>
+				<key name="tcpsrcport" type="buffer" size="2"/>
+				<key name="tcpdstport" type="buffer" size="2"/>
+				<data name="nextproto" type="protocol"/>
+			</lookuptable>
+			<lookuptable name="$rtptable" exactentries="1000" maskentries="0" validity="dynamic">
+				<key name="ipsource" type="buffer" size="16"/>
+				<key name="ipdest" type="buffer" size="16"/>
+				<key name="srcport" type="buffer" size="2"/>
+				<key name="dstport" type="buffer" size="2"/>
+				<data name="ssrc" type="buffer" size="4"/>
+			</lookuptable>
+			<lookuptable name="$KnownServerTable" exactentries="10000" maskentries="0" validity="dynamic">
+				<key name="ipaddr" type="buffer" size="16"/>
+				<key name="port" type="buffer" size="2"/>
+				<data name="nextproto" type="protocol"/>				
+			</lookuptable>
+
+			<lookuptable name="$CandidateServersTable" exactentries="10000" maskentries="0" validity="dynamic">
+				<key name="ipaddr" type="buffer" size="16"/>
+				<key name="port" type="buffer" size="2"/>
+			</lookuptable>
+				
+			<lookuptable name="$KnownUDPServerTable" exactentries="10000" maskentries="0" validity="dynamic">
+				<key name="ipaddr" type="buffer" size="16"/>
+				<key name="port" type="buffer" size="2"/>
+				<data name="nextproto" type="protocol"/>				
+			</lookuptable>
+
+			<lookuptable name="$skypetempsessiontable" exactentries="10000" maskentries="0" validity="dynamic">
+				<key name="ipaddr" type="buffer" size="16"/>
+				<key name="port" type="buffer" size="2"/>
+				<data name="cnt" type="number" value="0"/>		
+				<data name="id" type="buffer" size="2"/>	
+			</lookuptable>
+			
+			<lookuptable name="$SkypeClientTable" exactentries="10000" maskentries="0" validity="dynamic">
+				<key name="ipaddr" type="buffer" size="16"/>
+				<key name="port" type="buffer" size="2"/>
+				<data name="nextproto" type="protocol"/>				
+			</lookuptable>
+
+			<lookuptable name="$unknownprotosessiontable" exactentries="50000" maskentries="0" validity="dynamic">
+				<key name="ipsource" type="buffer" size="16"/>
+				<key name="ipdest" type="buffer" size="16"/>
+				<key name="tcpsrcport" type="buffer" size="2"/>
+				<key name="tcpdstport" type="buffer" size="2"/>
+			</lookuptable>
+
+			<!-- this table contains information about rpc session -->
+			<lookuptable name="$rpctable" exactentries="1000" maskentries="0" validity="dynamic">
+				<key name="ipsource" type="buffer" size="16"/>
+				<key name="ipdest" type="buffer" size="16"/>
+				<key name="tcpsrcport" type="buffer" size="2"/>
+				<key name="tcpdstport" type="buffer" size="2"/>
+				<data name="prog" type="number"/>
+				<data name="proc" type="number"/>
+				<data name="type" type="number"/>
+			</lookuptable>
+		</init>
+	</execute-code>
+
+	<encapsulation>
+			<switch expr="$linklayer">
+<!-- Bluetooth -->
+<!--
+			<case value="1"> <nextproto proto="#hci_packet_type"/> </case>
+			<case value="13"> <nextproto proto="#hci"/> </case>
+-->
+			<case value="1"> <nextproto proto="#ethernet"/> </case>
+			<!-- Some OSes use this for ATM/LLC encapsulation -->
+			<case value="11"> <nextproto proto="#llc"/> </case>
+			<!-- Encapsulation not supported. Let's use Ethernet, hoping that is correct -->
+			<default> <nextproto proto="#ethernet"/> </default>
+		</switch>
+	</encapsulation>
+
+	<visualization>
+		<showsumtemplate name="startproto">
+			<section name="NUMBER"/>
+			<packethdr value="num"/>
+
+			<section name="TIME"/>
+			<packethdr value="timestamp"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+
+<protocol name="ethernet" longname="Ethernet 802.3" comment="Ethernet DIX has recently been included in 802.3" showsumtemplate="ethernet">
+
+    <format>
+		<fields>
+			<field type="fixed" name="dst" longname="{0x8000 3}" size="6" showtemplate="MACaddressEth"/>
+			<field type="fixed" name="src" longname="{0x8000 4}" size="6" showtemplate="MACaddressEth"/>
+			<field type="fixed" name="type" longname="{0x8000 5}" size="2" showtemplate="eth.typelength"/>
+		</fields>
+	</format>
+
+<!--
+	<format>
+		<fields>
+			<field type="fixed" name="dst" longname="MAC Destination" size="6" showtemplate="MACaddressEth"/>
+			<field type="fixed" name="src" longname="MAC Source" size="6" showtemplate="MACaddressEth"/>
+			<field type="fixed" name="type" longname="Ethertype - Length" size="2" showtemplate="eth.typelength"/>
+		</fields>
+	</format>
+-->
+
+	<encapsulation>
+		<switch expr="buf2int(type)">
+			<case value="0x806"> <nextproto proto="#arp"/> </case>
+			<case value="0x800"> <nextproto proto="#ip"/> </case>
+	        <case value="0x86DD"> <nextproto proto="#ipv6"/> </case>
+			<case value="0x8100"> <nextproto proto="#vlan"/> </case>
+			<case value="0x8847" comment="mpls-unicast"> <nextproto proto="#mpls"/> </case>
+			<case value="0x8848" comment="mpls-multicast"> <nextproto proto="#mpls"/> </case>
+			<case value="0x88A8"> <nextproto proto="#pbb"/> </case>
+		</switch>
+	</encapsulation>
+
+	<visualization>
+		<showsumtemplate name="ethernet">
+			<section name="next"/>
+			<text value="Eth: "/>
+			<protofield name="src" showdata="showvalue"/>
+			<text value=" => "/>
+			<protofield name="dst" showdata="showvalue"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+
+<protocol name="etherpadding" longname="Ethernet padding">
+	<format>
+		<fields>
+			<field type="variable" name="etherpad" longname="Ethernet Padding (frame less than 64 bytes)" expr="$framelength - $currentoffset" showtemplate="Field4BytesHex"/>
+		</fields>
+	</format>
+</protocol>
+
+<protocol name="vlan" longname="Virtual LAN (802.3ac)" showsumtemplate="vlan">
+	<format>
+		<fields>
+			<block name="vlan" size="2" longname="Tag Control Information">
+				<field type="bit" name="pri" longname="{0x8000 7}" mask="0xE000" size="2" showtemplate="FieldHex"/>
+				<field type="bit" name="cfi" longname="CFI" mask="0x1000" size="2" showtemplate="FieldDec"/>
+				<field type="bit" name="vlanid" longname="{0x8000 6}" mask="0x0FFF" size="2" showtemplate="FieldDec"/>
+			</block>
+
+			<field type="fixed" name="type" longname="{0x8000 5} Type" size="2" showtemplate="eth.typelength"/>
+		</fields>
+	</format>
+
+
+	<encapsulation>
+		<switch expr="buf2int(type)">
+			<case value="0" maxvalue="1500"> <nextproto proto="#llc"/> </case>
+			<case value="0x800"> <nextproto proto="#ip"/> </case>
+			<case value="0x806"> <nextproto proto="#arp"/> </case>
+			<case value="0x8100"> <nextproto proto="#vlan" comment="Standard 802.1Q in 802.1Q encapsulation"/> </case>
+			<case value="0x9100"> <nextproto proto="#vlan" comment="802.1Q in 802.1Q encapsulation used by Cisco"/> </case>
+			<case value="0x86DD"> <nextproto proto="#ipv6"/> </case>
+			<case value="0x88A8"> <nextproto proto="#pbb" comment="802.1ad encapsulation"/> </case>
+		</switch>
+	</encapsulation>
+
+	<visualization>
+		<showsumtemplate name="vlan">
+			<text value=" (VLAN-ID "/>
+			<protofield name="vlanid" showdata="showvalue"/>
+			<text value=")"/>
+		</showsumtemplate>
+	</visualization>
+
+</protocol>
+
+<protocol name="mpls" longname="Multi Protocol Label Switching" showsumtemplate="mpls">
+	<format>
+		<fields>
+			<!--
+			The CoS field is identified as Exp (Experimental Use) inside RFC 3032
+			-->
+			<field type="bit" name="label" longname="{0x8000 34} Label" mask="0xFFFFF000" size="4" showtemplate="FieldDec"/>
+			<field type="bit" name="cos" longname="{0x8000 35} Class of Service" mask="0x00000E00" size="4" showtemplate="FieldDec"/>
+			<field type="bit" name="bos" longname="{0x8000 36} Bottom of Stack" mask="0x00000100" size="4" showtemplate="FieldDec"/>
+			<field type="bit" name="ttl" longname="{0x0002 80} Time To Live"  mask="0x000000FF" size="4" showtemplate="FieldDec"/>
+		</fields>
+	</format>
+
+	<encapsulation>
+		<if expr="buf2int(s) == 1">
+			<if-true>
+				<switch expr="buf2int(label)">
+					<case value="0"> <nextproto proto="#ip"/> </case>
+					<case value="2"> <nextproto proto="#ipv6"/> </case>
+					<default> 
+						<nextproto proto="#ip"/>
+					</default>		
+				</switch>
+			</if-true>	
+			<if-false>
+				<nextproto proto="#mpls"/>
+			</if-false>
+		</if>
+	</encapsulation>
+
+	<visualization>
+		<showsumtemplate name="mpls">
+			<section name="next"/>
+			<text value="LABEL: "/>
+			<protofield name="label" showdata="showvalue"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+
+
+<protocol name="llc" longname="IEEE 802.2 Logical Link Control" showsumtemplate="llc">
+	<format>
+		<fields>
+			<field type="fixed" name="dsap" longname="DSAP" size="1" showtemplate="FieldHex"/>
+			<field type="fixed" name="ssap" longname="SSAP" size="1" showtemplate="FieldHex"/>
+
+			<if expr="(buf2int($packet[$currentoffset:1]) bitwand 0b00000011) == 0b00000011"> <!-- last two bits are '11' -->
+				<!-- LLC Unnumbered -->
+				<if-true>
+					<field type="fixed" name="ctrl" longname="Control (Unnumbered)" size="1" showtemplate="FieldHex">
+						<field type="bit" name="mod" longname="Modifier" mask="0xE0" size="1" showtemplate="FieldHex"/>
+						<field type="bit" name="pf" longname="Poll / Final" mask="0x10" size="1" showtemplate="FieldBin"/>
+						<field type="bit" name="type" longname="Type" mask="0x0C" size="1" showtemplate="FieldHex"/>
+						<field type="bit" name="flag" longname="Flag (Unnumbered frame)" mask="0x03" size="1" showtemplate="FieldBin"/>
+					</field>
+				</if-true>
+
+				<if-false>
+					<if expr="(buf2int($packet[$currentoffset:1]) bitwand 0b00000001) == 0b00000000">	<!-- last bit is '0' -->
+						<!-- LLC Information -->
+						<if-true>
+							<!-- Warning: the LLC information ctrl field can be also 16 bits -->
+							<field type="fixed" name="ctrl" longname="Control (Information)" size="1" showtemplate="FieldHex">
+								<field type="bit" name="nr" longname="Sequence Number (Receiver)" mask="0xE0" size="1" showtemplate="FieldHex"/>
+								<field type="bit" name="pf" longname="Poll / Final" mask="0x10" size="1" showtemplate="FieldBin"/>
+								<field type="bit" name="type" longname="Type" mask="0x0C" size="1" showtemplate="FieldHex"/>
+								<field type="bit" name="flag" longname="Flag (Information frame)" mask="0x03" size="1" showtemplate="FieldBin"/>
+							</field>
+						</if-true>
+
+						<if-false>
+							<if expr="(buf2int($packet[$currentoffset:1]) bitwand 0b00000001) == 0b00000001"> <!-- last two bits are '01' -->
+								<!-- LLC Supervisor -->
+								<if-true>
+									<!-- Warning: the LLC Supervisor ctrl field can be also 16 bits -->
+									<field type="fixed" name="ctrl" longname="Control (Supervisor)" size="1" showtemplate="FieldHex">
+										<field type="bit" name="nr" longname="Sequence Number (Receiver)" mask="0xE0" size="1" showtemplate="FieldDec"/>
+										<field type="bit" name="pf" longname="Poll / Final" mask="0x10" size="1" showtemplate="FieldBin"/>
+										<field type="bit" name="ns" longname="Sequence Number (Sender)" mask="0x0E" size="1" showtemplate="FieldDec"/>
+										<field type="bit" name="flag" longname="Flag (Supervisor frame)" mask="0x01" size="1" showtemplate="FieldBin"/>
+									</field>
+								</if-true>
+							</if>
+						</if-false>
+					</if>
+				</if-false>
+			</if>
+		</fields>
+	</format>
+
+
+	<encapsulation>
+		<if expr="(dsap == '\xE0') and (ssap == '\xE0') and (ctrl == '\x03') and ($packet[$currentoffset:2] == '\xFF\xFF')">
+			<if-true>
+
+			</if-true>	
+		</if>
+
+		<switch expr="buf2int(dsap)">
+			<case value="0x06"> <nextproto proto="#ip"/> </case>
+			<case value="0xAA"> <nextproto proto="#snap"/> </case>
+		</switch>
+	</encapsulation>
+
+	<visualization>
+		<showsumtemplate name="llc">
+			<text value=" - "/>
+			<if expr="(buf2int(ctrl) bitwand 0b00000011) == 0b00000011">
+				<if-true>
+					<text value="LLC Unnumbered "/>
+				</if-true>
+
+				<if-false>
+					<if expr="(buf2int(ctrl) bitwand 0b00000001) == 0b00000000">
+						<!-- LLC Information -->
+						<if-true>
+							<text value="LLC Information "/>
+						</if-true>
+
+						<if-false>
+							<if expr="(buf2int(ctrl) bitwand 0b00000011) == 0b00000001">
+								<!-- LLC Supervisor -->
+								<if-true>
+									<text value="LLC Supervisor "/>
+								</if-true>
+							</if>
+						</if-false>
+					</if>
+				</if-false>
+			</if>
+	
+			<text value=": DSAP "/>
+			<protofield name="dsap" showdata="showvalue"/>
+			<text value=", Ctrl "/>
+			<protofield name="ctrl" showdata="showvalue"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+
+<protocol name="snap" longname="IEEE 802.2 Logical Link Control SNAP" showsumtemplate="snap">
+	<format>
+		<fields>
+			<field type="fixed" name="OUI" longname="Organization Unique Identifier" size="3" showtemplate="FieldHex"/>
+			<field type="fixed" name="type" longname="Protocol Type" size="2" showtemplate="snap.type"/>
+		</fields>
+	</format>
+
+	<encapsulation>
+		<if expr="buf2int(OUI) == 0">
+			<if-true>
+				<switch expr="buf2int(type)">
+					<case value="0x0800"> <nextproto proto="#ip"/> </case>
+					<case value="0x0806"> <nextproto proto="#arp"/> </case>
+				</switch>
+			</if-true>
+		</if>
+
+		<if expr="buf2int(OUI) == 0x00000C">
+			<if-true>
+				<switch expr="buf2int(type)">
+
+				</switch>
+			</if-true>
+		</if>
+
+	</encapsulation>
+
+	<visualization>
+		<showtemplate name="snap.type" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0x0800" show="IP"/>
+					<case value="0x0806" show="ARP"/>
+					<case value="0x8137" show="IPX"/>
+
+					<case value="0x2000" show="Cisco Discovery Protocol"/>
+					<case value="0x010B" show="Cisco Per-VLAN Spanning Tree"/>
+
+					<default show="Error in snap.type lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showsumtemplate name="snap">
+			<text value=" - SNAP"/>
+			<if expr="buf2int(type) == 0x010B">
+				<if-true>
+					<section name="next"/>
+					<text value="Cisco Per-VLAN Spanning Tree"/>
+				</if-true>
+			</if>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+
+<protocol name="arp" longname="ARP (Address Resolution Protocol)" comment="This protocol has been 'hardwired' to IP. In fact, we do not know any other network protocol that uses ARP." showsumtemplate="arp">
+	<execute-code>
+		<!-- If we're on Ethernet, update the packet length -->
+		<after when="$linklayer == 1">
+			<assign-variable name="$packetlength" value="$currentoffset"/>
+		</after>
+	</execute-code>
+
+	<format>
+		<fields>
+			<field type="fixed" name="hType" longname="Hardware type" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="pType" longname="Protocol type" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="hLen" longname="Hardware address length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="pLen" longname="Protocol address length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="op" longname="{0x8000 21} Operation code" size="2" showtemplate="arp.code"/>
+			<field type="fixed" name="sHwAddr" longname="{0x8000 24} Sender MAC address" size="6" showtemplate="MACaddressEth"/>
+			<field type="fixed" name="sIPAddr" longname="{0x8000 22} Sender IP address" size="4" showtemplate="ip4addr"/>
+			<field type="fixed" name="dHwAddr" longname="{0x8000 25} Destination MAC address" size="6" showtemplate="MACaddressEth"/>
+			<field type="fixed" name="dIPAddr" longname="{0x8000 23} Destination IP address" size="4" showtemplate="ip4addr"/>
+		</fields>
+	</format>
+
+	<visualization>
+		<showtemplate name="arp.code" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Request"/> 
+					<case value="2" show="Reply"/> 
+					<default show="Error in ARP code lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showsumtemplate name="arp">
+			<section name="next"/>
+			<text value="ARP "/>
+			<protofield name="op" showdata="showmap"/>
+			<text value=": "/>
+			<if expr="buf2int(op) == 1">
+				<if-true>
+					<text value="who has "/>
+					<protofield name="dIPAddr" showdata="showvalue"/>
+					<text value=" tell "/>
+					<protofield name="sIPAddr" showdata="showvalue"/>
+				</if-true>
+
+				<if-false>
+					<protofield name="sIPAddr" showdata="showvalue"/>
+					<text value=" is at "/>
+					<protofield name="sHwAddr" showdata="showvalue"/>
+				</if-false>
+			</if>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+
+<protocol name="ip" longname="IPv4 (Internet Protocol version 4)" showsumtemplate="ipv4">
+	<!-- We should check that 'version' is equal to '4' -->
+	<execute-code>
+
+		<!-- If we're on Ethernet, update the packet length -->
+		<after when="$linklayer == 1">
+			<assign-variable name="$packetlength" value="$currentoffset + buf2int(tlen) - buf2int(hlen) * 4"/>
+		</after>
+	</execute-code>
+
+	<format>
+		<fields>
+			<field type="bit" name="ver" longname="Version" mask="0xF0" size="1" showtemplate="FieldDec"/>
+			<field type="bit" name="hlen" longname="Header length" comment="The length is in multiple of 4 bytes" mask="0x0F" size="1" showtemplate="FieldMul4Dec"/>
+			<!-- <field type="fixed" name="tos" longname="{0x8000 8} Type of service" size="1" showtemplate="FieldHex"/> -->
+			<block name="tos" longname="Type of service">
+				<field type="bit" name="ip dscp" longname="{0x8000 8} DSCP" mask="0xFC" size="1" showtemplate="FieldDec"/>
+				<field type="bit" name="ip ecn" longname="{0x8000 9} ECN" mask="0x03" size="1" showtemplate="FieldDec"/>
+			</block>
+			<field type="fixed" name="tlen" longname="Total length" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="identification" longname="Identification" size="2" showtemplate="FieldDec"/>
+			<block name="ffo" longname="Flags and Fragment offset">
+				<field type="bit" name="unused" longname="Unused" mask="0x8000" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="df" longname="Don't fragment" mask="0x4000" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="mf" longname="More fragments" mask="0x2000" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="foffset" longname="Fragment offset" comment="This is in multiple of 8 bytes" mask="0x1FFF" size="2" showtemplate="ShortMul8Dec"/>
+			</block>
+			<field type="fixed" name="ttl" longname="{0x0002 81} Time to live" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="nextp" longname="{0x8000 10} Next protocol" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="hchecksum" longname="Header Checksum" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="src" longname="{0x8000 11}" size="4" showtemplate="ip4addr"/>
+			<field type="fixed" name="dst" longname="{0x8000 12}" size="4" showtemplate="ip4addr"/>
+			
+
+			<!-- Options loop -->
+			<block name="option" longname="IP Options">
+				<loop type="size" expr="(buf2int(hlen) * 4) - 20">
+					<switch expr="buf2int($packet[$currentoffset:1]) bitwand 0x1F">
+						<case value="0"> <includeblk name="IP_OPT_EOL"/> </case>
+						<case value="1"> <includeblk name="IP_OPT_NOP"/> </case>
+						<case value="2"> <includeblk name="IP_OPT_SEC"/> </case>
+						<case value="3"> <includeblk name="IP_OPT_LSR"/> </case>
+						<case value="4"> <includeblk name="IP_OPT_TS"/> </case>
+						<case value="5"> <includeblk name="IP_OPT_EX_SEC"/> </case>
+						<case value="7"> <includeblk name="IP_OPT_RR"/> </case>
+						<case value="8"> <includeblk name="IP_OPT_SID"/> </case>
+						<case value="9"> <includeblk name="IP_OPT_SSR"/> </case>
+						<case value="18"> <includeblk name="IP_OPT_TR"/> </case>
+						<case value="20"> <includeblk name="IP_OPT_RA"/> </case>
+						<default> <includeblk name="IP_OPT_UNK"/> </default>
+					</switch>
+				</loop>
+			</block>
+
+		</fields>
+
+
+		<!-- IP options -->
+		<block name="IP_OPT_EOL" longname="End of Options List">
+			<field type="fixed" name="type" longname="Option Type" size="1" showtemplate="ipv4.opttype">
+				<field type="bit" name="copy" longname="Copied flag" mask="0x80" size="1" showtemplate="ipv4.optcopytype"/>
+				<field type="bit" name="class" longname="Option Class" mask="0x60" size="1" showtemplate="ipv4.optclass"/>
+				<field type="bit" name="number" longname="Option Number" mask="0x1F" size="1" showtemplate="FieldDec"/>
+			</field>
+			<field type="padding" name="padding" longname="Padding" align="4" showtemplate="FieldHex"/>
+		</block>
+
+		<block name="IP_OPT_NOP" longname="No Operation Option">
+			<field type="fixed" name="type" longname="Option Type" size="1" showtemplate="ipv4.opttype">
+				<field type="bit" name="copy" longname="Copied flag" mask="0x80" size="1" showtemplate="ipv4.optcopytype"/>
+				<field type="bit" name="class" longname="Option Class" mask="0x60" size="1" showtemplate="ipv4.optclass"/>
+				<field type="bit" name="number" longname="Option Number" mask="0x1F" size="1" showtemplate="FieldDec"/>
+			</field>
+		</block>
+
+		<block name="IP_OPT_SEC" longname="Security Option">
+			<field type="fixed" name="type" longname="Option Type" size="1" showtemplate="ipv4.opttype">
+				<field type="bit" name="copy" longname="Copied flag" mask="0x80" size="1" showtemplate="ipv4.optcopytype"/>
+				<field type="bit" name="class" longname="Option Class" mask="0x60" size="1" showtemplate="ipv4.optclass"/>
+				<field type="bit" name="number" longname="Option Number" mask="0x1F" size="1" showtemplate="FieldDec"/>
+			</field>
+			<field type="fixed" name="length" longname="Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="sec" longname="Security" size="2" showtemplate="ipv4.secsec"/>
+			<field type="fixed" name="comp" longname="Compartments" size="2" showtemplate="ipv4.seccomp"/>
+			<field type="fixed" name="hr" longname="Handling Restrictions" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="tcc" longname="Transmission Control Code" size="3" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="IP_OPT_EX_SEC" longname="Extended Security Option">
+			<field type="fixed" name="type" longname="Option Type" size="1" showtemplate="ipv4.opttype">
+				<field type="bit" name="copy" longname="Copied flag" mask="0x80" size="1" showtemplate="ipv4.optcopytype"/>
+				<field type="bit" name="class" longname="Option Class" mask="0x60" size="1" showtemplate="ipv4.optclass"/>
+				<field type="bit" name="number" longname="Option Number" mask="0x1F" size="1" showtemplate="FieldDec"/>
+			</field>
+			<field type="fixed" name="length" longname="Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="asecfc" longname="Additional Security Info Format Code" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="asec" longname="Additional Security Info" expr="buf2int(length) - 3" showtemplate="Field4BytesHex"/>
+			<!-- This expression is wrong; we'll check it later -->
+		</block>
+
+		<block name="IP_OPT_LSR" longname="Loose Source Routing Option">
+			<field type="fixed" name="type" longname="Option Type" size="1" showtemplate="ipv4.opttype">
+				<field type="bit" name="copy" longname="Copied flag" mask="0x80" size="1" showtemplate="ipv4.optcopytype"/>
+				<field type="bit" name="class" longname="Option Class" mask="0x60" size="1" showtemplate="ipv4.optclass"/>
+				<field type="bit" name="number" longname="Option Number" mask="0x1F" size="1" showtemplate="FieldDec"/>
+			</field>
+
+			<field type="fixed" name="length" longname="Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="pointer" longname="Pointer" size="1" showtemplate="FieldDec"/>
+
+			<!-- Loop to print the addresses -->
+			<block name="LSR_alist" longname="Address list">
+				<loop type="size" expr="buf2int(length) - 3">
+					<field type="fixed" name="raddr" longname="Router Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="IP_OPT_SSR" longname="Strict Source Routing Option">
+			<field type="fixed" name="type" longname="Option Type" size="1" showtemplate="ipv4.opttype">
+				<field type="bit" name="copy" longname="Copied flag" mask="0x80" size="1" showtemplate="ipv4.optcopytype"/>
+				<field type="bit" name="class" longname="Option Class" mask="0x60" size="1" showtemplate="ipv4.optclass"/>
+				<field type="bit" name="number" longname="Option Number" mask="0x1F" size="1" showtemplate="FieldDec"/>
+			</field>
+
+			<field type="fixed" name="length" longname="Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="pointer" longname="Pointer" size="1" showtemplate="FieldDec"/>
+
+			<!-- Loop to print the addresses -->
+			<block name="SRR_alist" longname="Address list">
+				<loop type="size" expr="buf2int(length) - 3">
+					<field type="fixed" name="raddr" longname="Router Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="IP_OPT_RR" longname="Record Route Option">
+			<field type="fixed" name="type" longname="Option Type" size="1" showtemplate="ipv4.opttype">
+				<field type="bit" name="copy" longname="Copied flag" mask="0x80" size="1" showtemplate="ipv4.optcopytype"/>
+				<field type="bit" name="class" longname="Option Class" mask="0x60" size="1" showtemplate="ipv4.optclass"/>
+				<field type="bit" name="number" longname="Option Number" mask="0x1F" size="1" showtemplate="FieldDec"/>
+			</field>
+
+			<field type="fixed" name="length" longname="Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="pointer" longname="Pointer" size="1" showtemplate="FieldDec"/>
+
+			<!-- Loop to print the addresses -->
+			<block name="RR_alist" longname="Address list">
+				<loop type="size" expr="buf2int(length) - 3">
+					<field type="fixed" name="raddr" longname="Router Address" size="4" showtemplate="ip4addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="IP_OPT_SID" longname="Stream Identifier Option">
+			<field type="fixed" name="type" longname="Option Type" size="1" showtemplate="ipv4.opttype">
+				<field type="bit" name="copy" longname="Copied flag" mask="0x80" size="1" showtemplate="ipv4.optcopytype"/>
+				<field type="bit" name="class" longname="Option Class" mask="0x60" size="1" showtemplate="ipv4.optclass"/>
+				<field type="bit" name="number" longname="Option Number" mask="0x1F" size="1" showtemplate="FieldDec"/>
+			</field>
+			<field type="fixed" name="length" longname="Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="sid" longname="Stream ID" size="2" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="IP_OPT_RA" longname="Router Alert Option">
+			<field type="fixed" name="type" longname="Option Type" size="1" showtemplate="ipv4.opttype">
+				<field type="bit" name="copy" longname="Copied flag" mask="0x80" size="1" showtemplate="ipv4.optcopytype"/>
+				<field type="bit" name="class" longname="Option Class" mask="0x60" size="1" showtemplate="ipv4.optclass"/>
+				<field type="bit" name="number" longname="Option Number" mask="0x1F" size="1" showtemplate="FieldDec"/>
+			</field>
+			<field type="fixed" name="len" longname="Length" comment="The value of this field must be 4" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="value" longname="Value" size="2" showtemplate="ipv4.optralert"/>
+		</block>
+
+
+		<block name="IP_OPT_TR" longname="Trace Route Option">
+			<field type="fixed" name="type" longname="Option Type" size="1" showtemplate="ipv4.opttype">
+				<field type="bit" name="copy" longname="Copied flag" mask="0x80" size="1" showtemplate="ipv4.optcopytype"/>
+				<field type="bit" name="class" longname="Option Class" mask="0x60" size="1" showtemplate="ipv4.optclass"/>
+				<field type="bit" name="number" longname="Option Number" mask="0x1F" size="1" showtemplate="FieldDec"/>
+			</field>
+
+			<field type="fixed" name="len" longname="Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="id" longname="ID Number" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="ohc" longname="Outbound Hop Count" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="rhc" longname="Return Hop Count" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="TR_addr" longname="Originator IP Address" size="4" showtemplate="ip4addr-noplg"/>
+		</block>
+
+
+		<block name="IP_OPT_TS" longname="Timestamp Option">
+			<field type="fixed" name="type" longname="Option Type" size="1" showtemplate="ipv4.opttype">
+				<field type="bit" name="copy" longname="Copied flag" mask="0x80" size="1" showtemplate="ipv4.optcopytype"/>
+				<field type="bit" name="class" longname="Option Class" mask="0x60" size="1" showtemplate="ipv4.optclass"/>
+				<field type="bit" name="number" longname="Option Number" mask="0x1F" size="1" showtemplate="FieldDec"/>
+			</field>
+
+			<field type="fixed" name="length" longname="Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="pointer" longname="Pointer" size="1" showtemplate="FieldDec"/>
+			<block name="ovf_flags" longname="Overflow and flag">
+				<field type="bit" name="ts_ovf" longname="Overflow" mask="0xF0" size="1" showtemplate="FieldHex"/>
+				<field type="bit" name="ts_flag" longname="Flag" mask="0x0F" size="1" showtemplate="ipv4.opttimestamp"/>
+			</block>
+
+			<!-- Loop to print the timestamps and addresses -->
+			<block name="TS_list" longname="Timestamps">
+				<loop type="size" expr="buf2int(length) - 4">
+					<switch expr="buf2int(ts_flag)">
+						<case value="1">
+							<field type="fixed" name="TS_addr" longname="Address" size="4" showtemplate="ip4addr-noplg"/>
+							<field type="fixed" name="TS_tstamp" longname="Time Stamp" size="4" showtemplate="FieldDec"/>
+						</case>
+						<default>
+							<field type="fixed" name="TS_tstamp" longname="Time Stamp" size="4" showtemplate="FieldDec"/>
+						</default>
+					</switch>
+				</loop>
+			</block>
+		</block>
+
+		<!-- Unknown Option, shown if no other options match -->
+		<block name="IP_OPT_UNK" longname="Unknown or Unsupported Option">
+			<field type="fixed" name="type" longname="Option Type" size="1" showtemplate="ipv4.opttype">
+				<field type="bit" name="copy" longname="Copied flag" mask="0x80" size="1" showtemplate="ipv4.optcopytype"/>
+				<field type="bit" name="class" longname="Option Class" mask="0x60" size="1" showtemplate="ipv4.optclass"/>
+				<field type="bit" name="number" longname="Option Number" mask="0x1F" size="1" showtemplate="FieldDec"/>
+			</field>
+			<field type="fixed" name="length" longname="Length" size="1" showtemplate="FieldDec"/>
+			<field type="variable" name="OptionData" longname="Option Data" expr="buf2int(length)" showtemplate="Field4BytesHex"/>
+		</block>
+	</format>
+
+<!--
+    </fields>
+	</format>
+-->
+
+	<encapsulation>
+		<if expr="buf2int(foffset) == 0">			
+			<if-true>
+				<switch expr="buf2int(nextp)">
+<!--
+					<case value="4"> <nextproto proto="#ip"/> </case>
+-->
+					<case value="6"> <nextproto proto="#tcp"/> </case>
+					<case value="17"> <nextproto proto="#udp"/> </case>
+				</switch>
+			</if-true>
+		</if>
+	</encapsulation>
+
+
+	<visualization>
+		<showtemplate name="ipv4.opttype" showtype="dec">	<!-- Option type -->
+			<showmap>
+				<switch expr="buf2int(this)"> 	
+					<case value="0" show="End of Options List"/>
+					<case value="1" show="No Operation"/>
+					<case value="7" show="Record Route"/>
+					<case value="10" show="Experimental Measurement"/>
+					<case value="68" show="Time Stamp"/>
+					<case value="82" show="Traceroute"/>
+					<case value="130" show="Security"/>
+					<case value="131" show="Loose Source Routing"/>
+					<case value="133" show="Extended Security"/>
+					<case value="134" show="Commercial Security"/>
+					<case value="136" show="Stream ID"/>
+					<case value="137" show="Strict Source Routing"/>
+					<case value="142" show="Expermental Access Control"/>
+					<case value="144" show="IMI Traffic Descriptor"/>
+					<case value="145" show="Extended Internet Protocol"/>
+					<case value="147" show="Address Extension"/>
+					<case value="148" show="Router Alert"/>
+					<case value="149" show="Selective Directed Broadcast"/>
+					<case value="150" show="NSAP Addresses"/>
+					<case value="151" show="Dynamic Packet State"/>
+					<case value="152" show="Upstream Multicast Pkt."/>
+					<case value="205" show="Experimental Flow Control"/>
+					<default show="Unknown option"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="ipv4.optcopytype" showtype="bin">	<!-- Option Copy type -->
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="not copied into all fragments"/>
+					<case value="1" show="copied into all fragments"/>
+					<default show="Unknown"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="ipv4.optclass" showtype="bin">	<!-- Option Class type -->
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="control"/>
+					<case value="1" show="reserved for future use"/>
+					<case value="2" show="debugging and measurement"/>
+					<case value="3" show="reserved for future use"/>
+					<default show="Unknown"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="ipv4.secsec" showtype="dec">	<!-- Security level -->
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Unclassified"/>
+					<case value="61749" show="Confidential"/>
+					<case value="30874" show="EFTO"/>
+					<case value="48205" show="MMMM"/>
+					<case value="24102" show="PROG"/>
+					<case value="44819" show="Restricted"/>
+					<case value="55176" show="Secret"/>
+					<case value="27589" show="Top Secret"/>
+					<default show="Unknown"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="ipv4.seccomp" showtype="dec">	<!-- Security Compartment -->
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Not Compartmented"/>
+					<default show="Unknown Compartment" comment="Every compartment different from 0 is unknown"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="ipv4.optralert" showtype="dec">	<!-- Routing Alert Value -->
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Router shall examine packet"/>
+					<default show="reserved"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="ipv4.opttimestamp" showtype="bin">	<!-- Timestamp Flag -->
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Time stamps only"/>
+					<case value="1" show="Time stamps and addresses"/>
+					<case value="3" show="Time stamps for prespecified addresses"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showsumtemplate name="ipv4">
+			<section name="next"/>
+<!--			<section name="L3"/> -->
+			<text value=" - " when="onlysectionhastext"/>
+			<text value="IP: "/>
+			<protofield name="src" showdata="showvalue"/>
+			<text value=" => "/>
+			<protofield name="dst" showdata="showvalue"/>
+			<text value=" (Len "/>
+			<protofield name="tlen" showdata="showvalue"/>
+			<text value=")"/>
+			<if expr="(buf2int(mf) == 1) or (buf2int(foffset) != 0)">
+				<if-true>
+					<text value=" Fragment " expr="buf2int(foffset)*8"/>
+
+					<!-- the packet ends at: fragment offset * 8 + (total length - header length * 4 - 1) -->
+					<text value=":" expr="buf2int(foffset) * 8 + buf2int(tlen) - 1 - buf2int(hlen) * 4"/>
+				</if-true>
+			</if>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+
+<protocol name="ipv6" longname="IPv6 (Internet Protocol version 6)" showsumtemplate="ipv6">
+	<!-- We should check that 'version' is equal to '6' -->
+	<execute-code>
+		<after>
+			<!-- Store ipsrc and ipdst in a couple of variables for the sake of speed -->
+			<!-- This aims at hiding differences between IPv4 and IPv6 for session tracking -->
+			<assign-variable name="$ipsrc" value="src"/>
+			<assign-variable name="$ipdst" value="dst"/>
+			
+			<if expr="$ipsrc lt $ipdst" >
+				<if-true>
+					<assign-variable name="$firstip" value="src"/>
+					<assign-variable name="$secondip" value="dst"/>
+				</if-true>
+				<if-false>
+					<assign-variable name="$firstip" value="dst"/>
+					<assign-variable name="$secondip" value="src"/>
+				</if-false>
+			</if>
+		</after>
+
+		<!-- If we're on Ethernet, update the packet length -->
+		<after when="$linklayer == 1">
+			<assign-variable name="$packetlength" value="$currentoffset + buf2int(plen)"/>
+		</after>
+	</execute-code>
+
+	<format>
+		<fields>
+			<field type="bit" name="ver" longname="Version" mask="0xF0000000" size="4" showtemplate="FieldDec"/>
+			<field type="bit" name="tos" longname="Type of service" mask="0x0F000000" size="4" showtemplate="FieldHex"/>
+			<field type="bit" name="flabel" longname="{0x8000 28}" mask="0x00FFFFFF" size="4" showtemplate="FieldHex"/>
+			<field type="fixed" name="plen" longname="Payload Length" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="nexthdr" longname="{0x8000 10} Next Header" size="1" showtemplate="ipv6.nexthdr"/>
+			<field type="fixed" name="hop" longname="Hop limit" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="src" longname="{0x8000 26}" size="16" showtemplate="ip6addr" />
+			<field type="fixed" name="dst" longname="{0x8000 27}" size="16" showtemplate="ip6addr" />
+
+			<loop type="while" expr="1">
+				<!-- Loop until we find a 'break' -->
+				<switch expr="buf2int(nexthdr)">
+					<case value="0">
+						<includeblk name="HBH"/>
+					</case>
+					<case value="43">
+						<includeblk name="RH"/>
+					</case>
+					<case value="44">
+						<includeblk name="FH"/>
+					</case>
+					<case value="51">
+						<includeblk name="AH"/>
+					</case>
+					<case value="60">
+						<includeblk name="DOH"/>
+					</case>
+					<default>
+						<loopctrl type="break"/>
+					</default>
+				</switch>
+			</loop>
+		</fields>
+
+
+		<block name="HBH" longname="{0x8000 39 6 1}">
+			<field type="fixed" name="nexthdr" longname="{0x8000 10} Next Header" size="1" showtemplate="ipv6.nexthdr"/>
+			<field type="fixed" name="helen" longname="Length (multiple of 8 bytes, not including the first 8)" size="1" showtemplate="ipv6.hbhlen"/>
+			<loop type="size" expr="(buf2int(helen) * 8) + 6">	<!-- '6' because the first two bytes are nexthdr and helen -->
+				<includeblk name="HBHOption"/>
+			</loop>
+		</block>
+
+		<block name="FH" longname="{0x8000 39 4 4}">
+			<field type="fixed" name="nexthdr" longname="{0x8000 10} Next Header" size="1" showtemplate="ipv6.nexthdr"/>
+			<field type="fixed" name="reserved" longname="Reserved (multiple of 8 bytes)" comment="This is in multiple of 8 bytes" size="1" showtemplate="FieldDec"/>
+			<field type="bit" name="fragment offset" longname="Fragment Offset" mask="0xFFF0" size="2" showtemplate="FieldDec"/>
+			<field type="bit" name="res" longname="Res" mask="0x0004" size="2" showtemplate="FieldHex"/>
+			<field type="bit" name="m" longname="M" mask="0x0001" size="2" showtemplate="FieldBin"/>
+			<field type="fixed" name="identification" longname="Identification" size="4" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="AH" longname="{0x8000 39 2 5}">
+			<field type="fixed" name="nexthdr" longname="{0x8000 10} Next Header" size="1" showtemplate="ipv6.nexthdr"/>
+			<field type="fixed" name="payload len" longname="Payload Len" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="reserved" longname="Reserved" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="spi" longname="Security Parameters Index" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="snf" longname="Sequence Number Field" size="4" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="DOH" longname="{0x8000 39 3 2}">
+			<field type="fixed" name="nexthdr" longname="{0x8000 10} Next Header" size="1" showtemplate="ipv6.nexthdr"/>
+			<field type="fixed" name="helen" longname="Length (multiple of 8 bytes, not including the first 8)" size="1" showtemplate="ipv6.hbhlen"/>
+			<loop type="size" expr="(buf2int(helen) * 8)+6"> <!-- '6' because the first two bytes are nexthdr and helen -->
+				<includeblk name="DOHOption"/>
+			</loop>
+		</block>
+
+		<block name="RH" longname="{0x8000 39 5 3}">
+			<field type="fixed" name="nexthdr" longname="{0x8000 10} Next Header" size="1" showtemplate="ipv6.nexthdr"/>
+			<field type="fixed" name="hlen" longname="Length (multiple of 8 bytes)" comment="This is in multiple of 8 bytes" size="1" showtemplate="FieldDec"/>	
+			<field type="fixed" name="rtype" longname="Routing Type" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="segment left" longname="Segment Left" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="res" longname="Reserved (must be zero)" size="4" showtemplate="FieldDec"/>
+
+			<switch expr="buf2int(rtype)">
+				<case value="0">
+					<loop type="times2repeat" expr="(buf2int(hlen) div 2)">
+						<field type="fixed" name="address" longname="{0x0002 25}" size="16" showtemplate="ip6addr"/>
+					</loop>
+				</case>
+				<default>
+					<field type="variable" name="tsd" longname="Type Specific Data" expr="(buf2int(hlen) * 8)" showtemplate="Field4BytesHex"/>
+				</default>
+			</switch>
+		</block>
+
+
+		<block name="DOHOption" longname="Destination Option Header Option">
+			<field type="fixed" name="opttype" longname="Option Type" size="1" showtemplate="ipv6.opttype">
+				<field type="bit" name="act" longname="Action (action if Option Type is unrecognized)" mask="0xC0" size="1" showtemplate="ipv6.optact"/> 
+				<field type="bit" name="chg" longname="Change (whether or not option data can change while packet is en-route)" mask="0x20" size="1" showtemplate="ipv6.optchg"/> 
+				<field type="bit" name="res" longname="{0x0002 17}" mask="0x1F" size="1" showtemplate="FieldDec"/> 
+			</field>
+
+			<switch expr="buf2int(opttype)">
+				<case value="0">
+					<!-- No fields are present if the option is not 'Pad1'-->
+				</case>
+
+				<case value="5">	<!-- Router Alert -->
+					<field type="fixed" name="optlen" longname="Option Length" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="value" size="2" longname="{0x0002 18} 274 Option Value" showtemplate="ipv6.optroutalert"/>
+				</case>
+
+				<default>
+					<field type="fixed" name="optlen" longname="Option Length" size="1" showtemplate="FieldDec"/>
+					<field type="variable" name="optval" longname="{0x0002 18} 274 Option Value" expr="buf2int(optlen)" showtemplate="Field4BytesHex"/>
+				</default>
+			</switch>
+		</block>
+
+		<block name="HBHOption" longname="Hop-by-Hop Option">
+			<field type="fixed" name="opttype" longname="Option Type" size="1" showtemplate="ipv6.opttype">
+				<field type="bit" name="act" longname="Action (action if Option Type is unrecognized)" mask="0xC0" size="1" showtemplate="ipv6.optact"/> 
+				<field type="bit" name="chg" longname="Change (whether or not option data can change while packet is en-route)" mask="0x20" size="1" showtemplate="ipv6.optchg"/> 
+				<field type="bit" name="res" longname="{0x0002 9} 265 Option Code" mask="0x1F" size="1" showtemplate="FieldDec"/> 
+			</field>
+
+			<switch expr="buf2int(opttype)">
+				<case value="0">
+					<!-- No fields are present if the option is not 'Pad1'-->
+				</case>
+
+				<case value="5">	<!-- Router Alert -->
+					<field type="fixed" name="optlen" longname="Option Length"  size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="value" size="2" longname="{0x0002 10} 266 Option Value" showtemplate="ipv6.optroutalert"/>
+				</case>
+
+				<default>
+					<field type="fixed" name="optlen" longname="Option Length" size="1" showtemplate="FieldDec"/>
+					<field type="variable" name="optval" longname="{0x0002 10} 266 Option Value" expr="buf2int(optlen)" showtemplate="Field4BytesHex"/>
+				</default>
+			</switch>
+		</block>
+
+
+	</format>
+
+
+	<encapsulation>
+		<switch expr="buf2int(nexthdr)">
+			<case value="4"> <nextproto proto="#ip"/> </case>
+			<case value="6"> <nextproto proto="#tcp"/> </case>
+			<case value="17"> <nextproto proto="#udp"/> </case>
+<!--			<case value="29"> <nextproto proto="#TP4"/> </case> -->
+<!--			<case value="45"> <nextproto proto="#IDRP"/> </case> -->
+			<case value="58"> <nextproto proto="#icmp6"/> </case>
+
+		</switch>
+	</encapsulation>
+
+
+	<visualization>
+		<showtemplate name="ipv6.nexthdr" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Hop By Hop Option Header"/>
+					<case value="43" show="Fragment Header"/>
+					<case value="44" show="Authentication Header"/>
+					<case value="51" show="Destination Option Header"/>
+					<case value="60" show="Routing Header"/>
+					<case value="50" show="Encapsulating Security Payload"/>
+					<case value="58" show="Internet Control Message Protocol (ICMPv6)"/>
+					<case value="59" show="No next Header"/>
+					<default show="Upper Layer Header"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="ipv6.opttype" showtype="hex">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Pad1 Option"/>
+					<case value="1" show="PadN Option"/>
+					<case value="5" show="Router Alert Option"/>
+					<default show="Error in IPv6 Option Type lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="ipv6.optact" showtype="bin">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Skip over option"/>
+					<case value="1" show="Discard packet silently"/>
+					<case value="2" show="Discard packet and send ICMP"/>
+					<case value="3" show="Discard packet and send ICMP if packet was unicast"/>
+					<default show="Error in IPv6 Option Action lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="ipv6.optchg" showtype="bin">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Option data does not change en-route"/>
+					<case value="1" show="Option data may change en-route"/>
+					<default show="Error in IPv6 Option Change lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="ipv6.optroutalert" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Datagram contains a Multicast Listener Discovery message"/>
+					<case value="1" show="Datagram contains RSVP message"/>
+					<case value="2" show="Datagram contains an Active Networks message"/> 
+					<default show="Error in IPv6 Router Alert Option lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+
+
+		<!-- Length of the hop by hop option header -->
+		<showtemplate name="ipv6.hbhlen" showtype="dec">
+			<showdtl>
+				<text expr="(buf2int(this) * 8) + 8"/>
+				<text value=" (field value = "/>
+				<protofield showdata="showvalue"/>
+				<text value=")"/>
+			</showdtl>
+		</showtemplate>
+
+
+		<showsumtemplate name="ipv6">
+			<if expr="($prevproto == #ip) or ($prevproto == #ipv6)">
+				<if-true>
+					<text value=" - "/>
+				</if-true>
+				<if-false>
+					<section name="next"/>
+				</if-false>
+			</if>
+
+			<text value="IPv6: "/>
+			<protofield name="src" showdata="showvalue"/>
+			<text value=" => "/>
+			<protofield name="dst" showdata="showvalue"/>
+			<text value=" (Len " expr="buf2int(plen) + 40"/>
+			<text value=")"/>
+		</showsumtemplate>
+	</visualization>
+
+</protocol>
+
+<protocol name="pbb" longname="PBB (Provider Backbone Bridge)" showsumtemplate="pbb">
+    <format>
+        <fields>
+			<!--
+            eth_type  0x88A8
+            B_VLAN
+            eth_type  0x88E7
+            Flags
+            I-SID
+			-->
+			<field type="bit" name="prio" longname="Priority" mask="0xE000" size="2" showtemplate="FieldDec"/>
+			<field type="bit" name="dei" longname="Drop Eligibility" mask="0x1000" size="2" showtemplate="FieldDec"/>
+			<field type="bit" name="isid" longname="{0x8000 37} I-SID" mask="0x0FFF" size="2" showtemplate="FieldDec"/>
+			
+			<field type="fixed" name="type" longname="{0x8000 5} Type" size="2" showtemplate="eth.typelength"/>
+		</fields>
+	</format>
+
+	<encapsulation>
+		<switch expr="buf2int(type)">
+			<case value="0" maxvalue="1500"> <nextproto proto="#llc"/> </case>
+			<case value="0x800"> <nextproto proto="#ip"/> </case>
+			<case value="0x806"> <nextproto proto="#arp"/> </case>
+			<case value="0x8100"> <nextproto proto="#vlan" comment="Standard 802.1Q in 802.1Q encapsulation"/> </case>
+			<case value="0x9100"> <nextproto proto="#vlan" comment="802.1Q in 802.1Q encapsulation used by Cisco"/> </case>
+			<case value="0x86DD"> <nextproto proto="#ipv6"/> </case>
+			<case value="0x88A8"> <nextproto proto="#pbb" comment="802.1ad encapsulation"/> </case>
+		</switch>
+	</encapsulation>
+	<visualization>
+		<showsumtemplate name="pbb">
+			<section name="next"/>
+			<text value="PBB ID: "/>
+			<protofield name="id" showdata="showvalue"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+
+<protocol name="icmp6" longname="ICMPv6 (Internet Control Message Protocol version 6)" showsumtemplate="icmp6">
+	<format>
+		<fields>
+			<!-- The first three fields are common for every ICMPv6 message -->
+			<!-- 'Code' ad 'Checksum' are common among all the headers; however the meaning of the 'Code' is different -->
+			<field type="fixed" name="type" longname="{0x8000 29} Type" size="1" showtemplate="icmp6.type"/>
+
+			<switch expr="buf2int(type)">
+				<!-- Error messages -->
+				<case value="1">
+					<field type="fixed" name="code" longname="{0x8000 30} Code" size="1" showtemplate="icmp6.code1"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="Error"/>
+				</case>
+				<case value="2">
+					<field type="fixed" name="code" longname="{0x8000 30} Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="Error"/>
+				</case>
+				<case value="3">
+					<field type="fixed" name="code" longname="{0x8000 30} Code" size="1" showtemplate="icmp6.code3"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="Error"/>
+				</case>
+				<case value="4">
+					<field type="fixed" name="code" longname="{0x8000 30} Code" size="1" showtemplate="icmp6.code4"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="Error"/>
+				</case>
+
+				<!-- Informational messages -->
+				<case value="128">
+					<field type="fixed" name="code" longname="{0x8000 30} Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="Echo"/>
+				</case>
+				<case value="129">
+					<field type="fixed" name="code" longname="{0x8000 30} Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="Echo"/>
+				</case>
+
+				<!-- Group Management messages -->
+				<case value="130">
+					<field type="fixed" name="code" longname="{0x8000 30} Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="Group"/>
+				</case>
+				<case value="131">
+					<field type="fixed" name="code" longname="{0x8000 30} Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="Group"/>
+				</case>
+				<case value="132">
+					<field type="fixed" name="code" longname="{0x8000 30} Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="Group"/>
+				</case>
+
+				<!-- Router / Neighbor Advertisement / Solicitation -->
+				<case value="133">
+					<field type="fixed" name="code" longname="{0x8000 30} Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="RoutSol"/>
+				</case>
+				<case value="134">
+					<field type="fixed" name="code" longname="{0x8000 30} Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="RoutAdv"/>
+				</case>
+				<case value="135">
+					<field type="fixed" name="code" longname="{0x8000 30} Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="NeighSol"/>
+				</case>
+				<case value="136">
+					<field type="fixed" name="code" longname="{0x8000 30} Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="NeighAdv"/>
+				</case>
+		
+				<!-- Other messages -->
+				<case value="137">
+					<field type="fixed" name="code" longname="{0x8000 30} Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="Redir"/>
+				</case>
+		
+				<case value="138">
+					<field type="fixed" name="code" longname="{0x8000 30} Code" size="1" showtemplate="icmp6.code138"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="RoutRen"/>
+				</case>
+		
+				<case value="141">
+					<field type="fixed" name="code" longname="{0x8000 30} Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="INDS"/>
+				</case>
+		
+				<case value="142">
+					<field type="fixed" name="code" longname="{0x8000 30} Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="INDA"/>
+				</case>
+				<case value="143">
+					<field type="fixed" name="code" longname="{0x8000 30} Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<field type="fixed" name="res" longname="Reserved" size="2" showtemplate="FieldDec"/>
+					<field type="fixed" name="nmult" longname="Number of MultiCast" size="2" showtemplate="FieldDec"/>
+					<loop type="times2repeat" expr="buf2int(nmult)">
+					    <includeblk name="MultAddRec"/>
+					</loop>
+				</case>
+			</switch>
+		</fields>
+
+        <block name="MultAddRec" longname="Multi-cast Address Record">
+            <field type="fixed" name="rectype" longname="Record Type" size="1" showtemplate="FieldDec"/>
+            <field type="fixed" name="auxdata" longname="Auxiliar Data" size="1" showtemplate="FieldDec"/>
+		    <field type="fixed" name="nsrcs" longname="Number of sources" size="2" showtemplate="FieldDec"/>
+		    <field type="fixed" name="maddress" longname="IPv6 Multicast Address" size="16" showtemplate="ip6addr"/>
+		    <loop type="times2repeat" expr="buf2int(nsrcs)">
+		        <field type="fixed" name="address" longname="IPv6 Src Address" size="16" showtemplate="ip6addr"/>
+            </loop>
+        </block>
+		<block name="Error" longname="Error Packet">
+			<field type="fixed" name="unused" size="4" longname="Unused" showtemplate="FieldHex"/>
+			<!-- Here you can find the fragment of the IPv6 packet that caused the error -->
+		</block>
+
+		<block name="Echo" longname="Echo Packet">
+			<field type="fixed" name="id" size="2" longname="Identifier" showtemplate="FieldDec"/>
+			<field type="fixed" name="sequence_number" size="2" longname="Sequence Number" showtemplate="FieldDec"/>
+			<field type="variable" name="data" longname="Data" expr="$packetlength - $currentoffset" showtemplate="Field4BytesHex"/>
+		</block>
+
+		<block name="Group" longname="Group Membership">
+			<field type="fixed" name="maximum_response_delay" size="2" longname="Maximum Response Delay" showtemplate="FieldDec"/>
+			<field type="fixed" name="unused" size="2" longname="unused" showtemplate="FieldDec"/>
+			<field type="fixed" name="multicast_address" longname="Multicast Address" size="16" showtemplate="ip6addr-noplg"/>
+		</block>
+
+		<block name="RoutSol" longname="Router Solicitation">
+			<field type="fixed" name="reserved" longname="Reserved" size="4" showtemplate="FieldDec"/>
+			<loop type="size" expr="$packetlength - $currentoffset">
+				<includeblk name="NDO"/>
+			</loop>
+		</block>
+
+		<block name="RoutAdv" longname="Router Advertisement">
+			<field type="fixed" name="cur_hop_limit" longname="Current Hop Limit" size="1" showtemplate="FieldDec"/>
+			<block name="flags" longname="Flags">
+				<field type="bit" name="managed_address_configuration" mask="0x80" size="1" longname="Managed Address Configuration" showtemplate="FieldBin"/>
+				<field type="bit" name="other_stateful_configuration" mask="0x40" size="1" longname="Other Stateful Configuration" showtemplate="FieldBin"/>
+				<field type="bit" name="reserved" mask="0x3F" size="1" longname="Reserved" showtemplate="FieldBin"/>
+			</block>
+			<field type="fixed" name="router_lifetime" size="2" longname="Router Lifetime" showtemplate="FieldDec"/>
+			<field type="fixed" name="reachable_time" size="4" longname="Reachable Time" showtemplate="FieldDec"/>
+			<field type="fixed" name="retrans_time" size="4" longname="Retransmission Time" showtemplate="FieldDec"/>
+			<loop type="size" expr="$packetlength - $currentoffset">
+				<includeblk name="NDO"/>
+			</loop>
+		</block>
+
+		<block name="NeighSol" longname="Neighbor Solicitation" showsumtemplate="icmp6.neighsol">
+			<field type="fixed" size="4" name="reserved" longname="Reserved" showtemplate="FieldDec"/>
+			<field type="fixed" name="target_address" longname="{0x8000 31}Target Address" size="16" showtemplate="ip6addr-noplg"/>
+			<loop type="size" expr="$packetlength - $currentoffset">
+				<includeblk name="NDO"/>
+			</loop>
+		</block>
+
+		<block name="NeighAdv" longname="Neighbor Advertisement" showsumtemplate="icmp6.neighadv">>
+			<block name="flags" longname="Flags">
+				<field type="bit" name="router_flag" mask="0x80000000" size="4" longname="Router Flag" showtemplate="FieldBin"/>
+				<field type="bit" name="solicited_flag" mask="0x40000000" size="4" longname="Solicited Flag" showtemplate="FieldBin"/>
+				<field type="bit" name="override_flag" mask="0x20000000" size="4" longname="Override Flag" showtemplate="FieldBin"/>
+				<field type="bit" name="reserved" mask="0x1FFFFFFF" size="4" longname="Reserved" showtemplate="FieldBin"/>
+			</block>
+			<field type="fixed" name="target_address" longname="{0x8000 31}Target Address" size="16" showtemplate="ip6addr-noplg"/>
+			<loop type="size" expr="$packetlength - $currentoffset">
+				<includeblk name="NDO"/>
+			</loop>
+		</block>
+
+		<block name="Redir" longname="Redirect">
+			<field type="fixed" name="reserved" longname="Reserved" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="target_address" longname="Target Address" size="16" showtemplate="ip6addr-noplg"/>
+			<field type="fixed" name="destination_address" longname="Destination Address" size="4" showtemplate="ip6addr-noplg"/>
+			<loop type="size" expr="$packetlength - $currentoffset">
+				<includeblk name="NDO"/>
+			</loop>
+		</block>
+
+		<block name="RoutRen" longname="Router Renumbering">
+			<field type="fixed" name="sequence_number" size="4" longname="Sequence Number" showtemplate="FieldDec"/>
+			<field type="fixed" name="segment_number" longname="Segment Number" size="1" showtemplate="FieldDec"/>
+			<block name="flags" longname="Flags">
+				<field type="bit" name="test_command" mask="0x80" size="1" longname="Test Command" showtemplate="FieldBin"/>
+				<field type="bit" name="result_requested" mask="0x40" size="1" longname="Result Requested" showtemplate="FieldBin"/>
+				<field type="bit" name="all_interfaces" mask="0x20" size="1" longname="All Interfaces" showtemplate="FieldBin"/>
+				<field type="bit" name="site_specific" mask="0x10" size="1" longname="Site Specific" showtemplate="FieldBin"/>
+				<field type="bit" name="processed_previously" mask="0x08" size="1" longname="Processed Previously" showtemplate="FieldBin"/>
+				<field type="bit" name="reserved" mask="0x07" size="1" longname="Reserved" showtemplate="FieldBin"/>
+			</block>
+			<field type="fixed" name="maximum_delay" size="2" longname="Maximum Delay" showtemplate="FieldDec"/>
+			<field type="fixed" name="reserved" size="4" longname="Reserved" showtemplate="FieldHex"/>
+			<loop type="size" expr="$packetlength - $currentoffset">
+				<includeblk name="RR_command" type="continue" longname="Router Renumbering Command"/>
+				<includeblk name="RR_result" type="continue" longname="Router Renumbering Result"/>
+			</loop>
+		</block>
+
+		<block name="INDS" longname="Inverse Neighbor Discovery Solicitation">
+			<field type="fixed" name="reserved" size="4" longname="Reserved" showtemplate="FieldDec"/>
+			<loop type="size" expr="$packetlength - $currentoffset">
+				<includeblk name="NDO"/>
+			</loop>
+		</block>
+
+		<block name="INDA" longname="Inverse Neighbor Discovery Advertisement">
+			<field type="fixed" name="reserved" size="4" longname="Reserved" showtemplate="FieldDec"/>
+			<loop type="size" expr="$packetlength - $currentoffset">
+				<includeblk name="NDO"/>
+			</loop>
+		</block>
+
+
+		<!-- Common Options; these are called several times from within other options -->
+<!--
+		<block name="NDO" longname="Neighbor Discovery Option" showtemplate="icmp6.ndo">
+-->
+		<block name="NDO" longname="Neighbor Discovery Option">
+			<field type="fixed" name="ndotype" longname="Type" size="1" showtemplate="icmp6.ndotype"/>
+			<field type="fixed" name="length" longname="Length" size="1" showtemplate="FieldDec"/>
+
+			<switch expr="buf2int(ndotype)">
+				<case value="1" name="source_link_layer_address" longname="Source Link Layer Address">
+					<field type="fixed" name="src_link_layer_address" longname="{0x8000 32} Link Layer Address" size="6" showtemplate="MAC-dash"/>
+				</case>
+
+				<case value="2" name="target_link_layer_address" longname="Target Link Layer Address">
+					<field type="fixed" name="dst_link_layer_address" longname="{0x8000 33} Link Layer Address" size="6" showtemplate="MAC-dash"/>
+				</case>
+
+				<case value="3" name="prefix_information" longname="Prefix Information">
+					<field type="fixed" name="prefix_length" longname="Prefix Length" size="1" showtemplate="FieldDec"/>
+					<block name="flags" longname="Flags">
+						<field type="bit" name="L" mask="0x80" size="1" longname="On-link" showtemplate="FieldBin"/>
+						<field type="bit" name="A" mask="0x40" size="1" longname="Autonomous address-configuration" comment="Can be used as a prefix for interface auto-configuration" showtemplate="FieldBin"/>
+						<field type="bit" name="reserved_1" mask="0x3F" size="1" longname="Reserved" showtemplate="FieldBin"/>
+					</block>
+					<field type="fixed" name="valid_lifetime" size="4" longname="Valid Lifetime" showtemplate="FieldDec"/>
+					<field type="fixed" name="preferred_lifetime" size="4" longname="Preferred Lifetime" showtemplate="FieldDec"/>
+					<field type="fixed" name="reserved_2" size="4" longname="Reserved" showtemplate="FieldDec"/>
+					<field type="fixed" name="prefix" longname="Prefix" size="16" showtemplate="ip6addr-noplg"/>
+				</case>
+
+				<case value="4" name="redirect_header" longname="Redirect Header">
+					<field type="fixed" name="reserved" size="6" longname="Reserved" showtemplate="FieldDec"/>
+					<!-- Here you can find the IPv6 original packet -->
+				</case>
+
+				<case value="5" name="MTU" longname="MTU Option">
+					<field type="fixed" name="reserved" size="2" longname="Reserved" showtemplate="FieldDec"/>
+					<field type="fixed" name="MTU" size="4" longname="MTU (Maximum Transfer Unit)" showtemplate="FieldDec"/>
+				</case>
+
+				<case value="9" name="source_address_list" longname="Source Address List">
+					<field type="fixed" name="reserved" size="6" longname="Reserved" showtemplate="FieldDec"/>
+					<loop type="times2repeat" expr="(buf2int(length) - 1) div 2">
+						<field type="fixed" name="IPv6_address" longname="IPv6 Address" size="16" showtemplate="ip6addr-noplg"/>
+					</loop>
+				</case>
+
+				<case value="10" name="target_address_list" longname="Target Address List">
+					<field type="fixed" name="reserved" size="6" longname="Reserved" showtemplate="FieldDec"/>
+					<loop type="times2repeat" expr="(buf2int(length) - 1) div 2">
+						<field type="fixed" name="IPv6_address" longname="IPv6 Address" size="16" showtemplate="ip6addr-noplg"/>
+					</loop>
+				</case>
+			</switch>
+		</block>
+
+		<block name="RR_command" longname="Router Renumbering Command">
+			<field type="fixed" name="opcode" longname="Opcode" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="oplength" longname="Oplength" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="ordinal" longname="Ordinal" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="matchlength" longname="Match Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="minlength" longname="Minimum Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="maxlength" longname="Maximum Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="reserved" size="2" longname="Reserved" showtemplate="FieldHex"/>
+			<field type="fixed" name="match-prefix" longname="Match-Prefix" size="16" showtemplate="ip6addr-noplg"/>
+
+			<block name="use-prefix_part" longname="Use-Prefix Part">
+				<loop type="times2repeat" expr="(buf2int(oplength) - 3) div 2">
+					<field type="fixed" name="uselength" longname="Use Length" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="keeplength" longname="Keep Length" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="flagmask" longname="Flagmask" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="RAFlags" longname="RA Flags" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="valid_lifetime" size="4" longname="Valid Lifetime" showtemplate="FieldDec"/>
+					<field type="fixed" name="preferred_lifetime" size="4" longname="Preferred Lifetime" showtemplate="FieldDec"/>
+					<block name="flags" longname="Flags">
+						<field type="bit" name="V" mask="0x80000000" size="4" longname="V" showtemplate="FieldBin"/>
+						<field type="bit" name="P" mask="0x40000000" size="4" longname="P" showtemplate="FieldBin"/>
+						<field type="bit" name="reserved" mask="0x3FFFFFFF" size="4" longname="Reserved" showtemplate="FieldBin"/>
+					</block>
+					<field type="fixed" name="userprefix" longname="User Prefix" size="16" showtemplate="ip6addr-noplg"/>
+				</loop>
+			</block>
+		</block>
+
+		<block name="RR_result" longname="Router Renumbering Result">
+			<block name="flags" longname="Flags">
+				<field type="bit" name="reserved" mask="0xFFFC" size="2" longname="Reserved" showtemplate="FieldBin"/>
+				<field type="bit" name="B" mask="0x0002" size="2" longname="B" showtemplate="FieldBin"/>
+				<field type="bit" name="F" mask="0x0001" size="2" longname="F" showtemplate="FieldBin"/>
+			</block>
+			<field type="fixed" name="ordinal" longname="Ordinal" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="matchedlength" longname="Matched Length" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="interfaceindex" size="4" longname="Interface Index" showtemplate="FieldDec"/>
+			<field type="fixed" name="matchedprefix" longname="Matched Prefix" size="16" showtemplate="ip6addr-noplg"/>
+		</block>
+	</format>
+
+
+	<encapsulation>
+		<!-- Just in case; if the ICMPv6 has still data, this will be the IPv6 packet generating the error -->
+		<nextproto proto="#ipv6"/>
+	</encapsulation>
+
+	<visualization>
+		<showtemplate name="icmp6.type" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Destination Unreachable"/>
+					<case value="2" show="Packet Too Big"/>
+					<case value="3" show="Time Exceeded"/>
+					<case value="4" show="Parameter Problem"/>
+					<case value="128" show="Echo Request"/>
+					<case value="129" show="Echo Reply"/>
+					<case value="130" show="Group Membership Query"/>
+					<case value="131" show="Group Membership Report"/>
+					<case value="132" show="Group Membership Reduction"/>
+					<case value="133" show="Router Solicitation"/>
+					<case value="134" show="Router Advertisement"/>
+					<case value="135" show="Neighbor Solicitation"/>
+					<case value="136" show="Neighbor Advertisement"/>
+					<case value="137" show="Redirect"/>
+					<case value="138" show="Router Renumbering"/>
+					<case value="141" show="Inverse Neighbor Discovery Solicitation"/>
+					<case value="142" show="Inverse Neighbor Discovery Advertisement"/>
+					<default show="Error in ICMP6 type lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="icmp6.code1" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="No Route To Destination"/>
+					<case value="1" show="Communication With Destination Administratively Prohibited"/>
+					<case value="2" show="Not A Neighbor"/>
+					<case value="3" show="Address Unreachable"/>
+					<case value="4" show="Port Unreachable"/>
+					<default show="Error in ICMP6 Code 1 lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="icmp6.code3" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Hop Limit Exceeded In Transit"/>
+					<case value="1" show="Fragment Reassembly Time Exceeded"/>
+					<default show="Error in ICMP6 Code 3 lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="icmp6.code4" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Erroneous Header Field"/>
+					<case value="1" show="Unrecognized Next Header"/>
+					<case value="2" show="Unrecognized IPv6 Option"/>
+					<default show="Error in ICMP6 Code 4 lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="icmp6.code138" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Router Renumbering Command"/>
+					<case value="1" show="Router Renumbering Result"/>
+					<case value="255" show="Sequence Number Reset"/>
+					<default show="Error in ICMP6 Code 138 lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="icmp6.ndotype" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="1" show="Source Link Layer Address"/>
+					<case value="2" show="Target Link Layer Address"/>
+					<case value="3" show="Prefix Information"/>
+					<case value="4" show="Redirect Header"/>
+					<case value="5" show="MTU"/>
+					<case value="6" show="NBMA Shortcut Limit Option"/>
+					<case value="7" show="Advertisement Interval"/>
+					<case value="8" show="Home Agent Information"/>
+					<case value="9" show="Source Address List"/>
+					<case value="10" show="Target Address List"/>
+					<default show="Error in ICMP6 NDO Type lookup"/> 
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showsumtemplate name="icmp6">
+			<section name="next"/>
+			<text value="ICMP6: "/>
+			<protofield name="type" showdata="showmap"/>
+			<if expr="(buf2int(type) == 1) or (buf2int(type) == 3) or (buf2int(type) == 4) or (buf2int(type) == 138)">
+				<!-- In this case, print the 'code' as well -->				
+				<if-true>
+					<text value=" ("/>
+					<protofield name="code" showdata="showmap"/>
+					<text value=")"/>
+				</if-true>
+			</if>
+		</showsumtemplate>
+
+		<showsumtemplate name="icmp6.neighsol">
+			<text value=": who has "/>
+			<protofield name="target_address" showdata="showvalue"/>
+			<if expr="ispresent(link_layer_address)">
+				<if-true>
+					<!-- Source MA address is optional -->
+					<text value="? I am at "/>
+					<protofield name="link_layer_address" showdata="showvalue"/>
+				</if-true>
+				<if-false>
+					<text value="?"/>
+				</if-false>
+			</if>
+		</showsumtemplate>
+
+		<showsumtemplate name="icmp6.neighadv">
+			<text value=": I am "/>
+			<protofield name="target_address" showdata="showvalue"/>
+			<text value=" at "/>
+			<protofield name="link_layer_address" showdata="showvalue"/>
+		</showsumtemplate>
+
+<!--
+		<showtemplate name="icmp6.ndo">
+			<protofield name="NDO" showdata="longname"/>
+			<text value=" "/>
+			<protofield name="ndotype" showdata="showmap"/>
+		</showsumtemplate>
+-->
+	</visualization>
+	
+</protocol>
+
+
+<protocol name="tcp" longname="TCP (Transmission Control Protocol)" showsumtemplate="tcp">
+
+	<format>
+		<fields>
+    		<field type="fixed" name="sport" longname="{0x8000 13} " size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="dport" longname="{0x8000 14} " size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="seq" longname="Sequence number" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="ack" longname="Acknowledgement Number" size="4" showtemplate="FieldDec"/>
+			<field type="bit" name="hlen" longname="Header length" mask="0xF000" size="2" comment="This field is in multiple of 4 bytes" showtemplate="FieldMul4Dec"/>
+			<field type="bit" name="res" longname="Reserved (must be zero)" mask="0x0FC0" size="2" showtemplate="FieldHex"/>
+			<field type="bit" name="flags" longname="Flags" mask="0x003F" size="2" showtemplate="FieldHex">
+				<field type="bit" name="urg" longname="Urgent pointer" mask="0x0020" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="ackf" longname="Ack valid" mask="0x0010" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="push" longname="Push requested" mask="0x0008" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="rst" longname="Reset requested" mask="0x0004" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="syn" longname="Syn requested" mask="0x0002" size="2" showtemplate="FieldBin"/>
+				<field type="bit" name="fin" longname="Fin requested" mask="0x0001" size="2" showtemplate="FieldBin"/>
+			</field>
+			<field type="fixed" name="win" longname="Window size" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="crc" longname="Checksum" size="2" showtemplate="FieldHex"/>
+			<field type="fixed" name="urg" longname="Urgent Pointer" size="2" showtemplate="FieldHex"/>
+    </fields>
+
+
+	</format>
+  
+  <visualization>
+		<showsumtemplate name="tcp">
+			<section name="next"/>
+			<text value="TCP: port "/>
+			<protofield name="sport" showdata="showvalue"/>
+			<text value=" => "/>
+			<protofield name="dport" showdata="showvalue"/>
+			<text value=" ("/>
+			<if expr="buf2int(syn) == 1">
+				<if-true>
+					<text value="SYN "/>
+				</if-true>
+			</if>
+			<if expr="buf2int(fin) == 1">
+				<if-true>
+					<text value="FIN "/>
+				</if-true>
+			</if>
+			<if expr="buf2int(ackf) == 1">
+				<if-true>
+					<text value="ACK "/>
+				</if-true>
+			</if>
+			<if expr="buf2int(rst) == 1">
+				<if-true>
+					<text value="RST "/>
+				</if-true>
+			</if>
+			<if expr="buf2int(push) == 1">
+				<if-true>
+					<text value="PUSH "/>
+				</if-true>
+			</if>
+			<if expr="buf2int(urg) == 1">
+				<if-true>
+					<text value="URG "/>
+				</if-true>
+			</if>
+			<text value=")"/>
+			<text value=" Seq "/>
+			<protofield name="seq" showdata="showvalue"/>
+			<text value=", Ack "/>
+			<protofield name="ack" showdata="showvalue"/>
+			<text value=", Win "/>
+			<protofield name="win" showdata="showvalue"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+
+
+<protocol name="udp" longname="UDP (User Datagram protocol)" showsumtemplate="udp">
+
+	<format>
+		<fields>
+			<field type="fixed" name="sport" longname="{0x8000 15}" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="dport" longname="{0x8000 16}" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="len" longname="Payload length" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="crc" longname="Checksum" size="2" showtemplate="FieldHex"/>
+		</fields>
+	</format>
+
+
+	<visualization>
+		<showsumtemplate name="udp">
+			<section name="next"/>
+			<text value="UDP: port "/>
+			<protofield name="sport" showdata="showvalue"/>
+			<text value=" => "/>
+			<protofield name="dport" showdata="showvalue"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+
+
+<protocol name="defaultproto" longname="Other data" comment="Generic protocol that is called when no other protocols are available" showsumtemplate="defaultproto">
+	<execute-code>
+		<before when="($L4proto == #tcp)">
+			<!-- Since both sides of the connection are stored in the table, we can just check for one of them -->
+			<if expr="not updatelookuptable($unknownprotosessiontable, $firstip, $secondip, $firstport, $secondport)">
+				<if-true>
+					<assign-variable name="$session_hit" value="1"/>
+					<update-lookuptable name="$unknownprotosessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+						<lookupkey value="$firstip"/>
+						<lookupkey value="$secondip"/>
+						<lookupkey value="$firstport"/>
+						<lookupkey value="$secondport"/>
+					</update-lookuptable>
+				</if-true>
+			</if>
+		</before>
+		
+		<before when="($L4proto == #udp)">
+			<!-- Since both sides of the connection are stored in the table, we can just check for one of them -->
+			<if expr="not updatelookuptable($unknownprotosessiontable, $ipsrc, $ipdst, $portsrc, $portdst)">
+				<if-true>
+					<assign-variable name="$session_hit" value="1"/>
+					<update-lookuptable name="$unknownprotosessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+						<lookupkey value="$ipsrc"/>
+						<lookupkey value="$ipdst"/>
+						<lookupkey value="$portsrc"/>
+						<lookupkey value="$portdst"/>
+					</update-lookuptable>
+					<update-lookuptable name="$unknownprotosessiontable" action="add" validity="updateonhit" keeptime="300" hittime="300">
+						<lookupkey value="$ipdst"/>
+						<lookupkey value="$ipsrc"/>
+						<lookupkey value="$portdst"/>
+						<lookupkey value="$portsrc"/>
+					</update-lookuptable>
+				</if-true>
+			</if>
+		</before>
+	</execute-code>
+	<format>
+		<fields>
+			<field type="variable" name="payload" longname="Data payload" expr="$packetlength - $currentoffset" showtemplate="Field4BytesHex"/>
+		</fields>
+	</format>
+	
+	<visualization>
+		<showsumtemplate name="defaultproto">
+			<section name="L7"/>
+			<text value="Generic Data"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+
+<protocol name="icmp" longname="ICMP (Internet Control Message Protocol)" showsumtemplate="icmp">
+	<format>
+		<fields>
+			<field type="fixed" name="type" longname="{0x8000 19} Type" size="1" showtemplate="icmp.type"/>
+
+			<!-- fields switch -->
+			<switch expr="buf2int(type)">
+				<case value="0">
+					<field type="fixed" name="code" longname="{0x8000 20} Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="echoreply"/>
+				</case>
+
+				<case value="3">
+					<field type="fixed" name="code" longname="{0x8000 20} Code" size="1" showtemplate="icmp.DestUnreachCode"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="destunreach"/>
+				</case>
+
+				<case value="4">
+					<field type="fixed" name="code" longname="{0x8000 20} Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="squence"/>
+				</case>
+
+				<case value="5">
+					<field type="fixed" name="code" longname="{0x8000 20} Code" size="1" showtemplate="icmp.RedirectCode"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="redirect"/>
+				</case>
+
+				<case value="8">
+					<field type="fixed" name="code" longname="{0x8000 20} Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="echoreq"/>
+				</case>
+
+				<case value="9">
+					<field type="fixed" name="code" longname="{0x8000 20} Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="radv"/>
+				</case>
+
+				<case value="10">
+					<field type="fixed" name="code" longname="{0x8000 20} Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="rsol"/>
+				</case>
+
+				<case value="11">
+					<field type="fixed" name="code" longname="{0x8000 20} Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="timeex"/>
+				</case>
+
+				<case value="12">
+					<field type="fixed" name="code" longname="{0x8000 20} Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="paramprob"/>
+				</case>
+
+				<case value="13">
+					<field type="fixed" name="code" longname="{0x8000 20} Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="tsreq"/>
+				</case>
+
+				<case value="14">
+					<field type="fixed" name="code" longname="{0x8000 20} Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="tsreply"/>
+				</case>
+
+				<case value="17">
+					<field type="fixed" name="code" longname="{0x8000 20} Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="maskreq"/>
+				</case>
+
+				<case value="18">
+					<field type="fixed" name="code" longname="{0x8000 20} Code" size="1" showtemplate="FieldDec"/>
+					<field type="fixed" name="checksum" longname="Checksum" size="2" showtemplate="FieldHex"/>
+					<includeblk name="maskreply"/>
+				</case>
+
+			</switch>
+		</fields>
+
+		<block name="echoreq" longname="Echo Request">
+			<field type="fixed" name="identifier" longname="Identifier" size="2" showtemplate="FieldDec"/> 
+			<field type="fixed" name="seqn" longname="Sequence number" size="2" showtemplate="FieldDec"/> 
+			<field type="variable" name="data" longname="Padding Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="echoreply" longname="Echo Reply">
+			<field type="fixed" name="identifier" longname="Identifier" size="2" showtemplate="FieldDec"/> 
+			<field type="fixed" name="seqn" longname="Sequence number" size="2" showtemplate="FieldDec"/>
+			<field type="variable" name="data" longname="Padding Data" expr="$packetlength - $currentoffset" showtemplate="FieldAscii"/>
+		</block>
+
+		<block name="redirect" longname="Redirect">
+			<field type="fixed" name="address" longname="IP address" size="4" showtemplate="ip4addr-noplg"/> 
+		</block>
+
+		<block name="destunreach" longname="Destination Unreachable">
+			<field type="fixed" name="unused" longname="Unused (must be zero)" size="4" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="squence" longname="Source Quence">
+			<field type="fixed" name="unused" longname="Unused (must be zero)" size="4" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="timeex" longname="Time Exceeded for a Datagram">
+			<field type="fixed" name="unused" longname="Unused (must be zero)" size="4" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="paramprob" longname="Parameter Problem for a Datagram">
+			<field type="bit" name="pointer" longname="Pointer" mask="0xFF000000" size="4" showtemplate="FieldBin"/>
+			<field type="bit" name="unused" longname="Unused" mask="0x00FFFFFF" size="4" showtemplate="FieldBin"/>
+		</block>
+
+		<block name="tsreq" longname="Timestamp Request">
+			<field type="fixed" name="identifier" longname="Identifier" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="sequenum" longname="Sequence Number" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="otimestamp" longname="Originate Timestamp" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="rtimestamp" longname="Receive Timestamp" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="ttimestamp" longname="Transmit Timestamp" size="4" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="tsreply" longname="Timestamp Reply">
+			<field type="fixed" name="identifier" longname="Identifier" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="sequenum" longname="Sequence Number" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="otimestamp" longname="Originate Timestamp" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="rtimestamp" longname="Receive Timestamp" size="4" showtemplate="FieldDec"/>
+			<field type="fixed" name="ttimestamp" longname="Transmit Timestamp" size="4" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="maskreq" longname="Address Mask Request">
+			<field type="fixed" name="identifier" longname="Identifier" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="sequenum" longname="Sequence Number" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="addmask" longname="Address Mask" size="4" showtemplate="ip4addr-noplg"/>
+		</block>
+
+		<block name="maskreply" longname="Address Mask Reply">
+			<field type="fixed" name="identifier" longname="Identifier" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="sequenum" longname="Sequence Number" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="addmask" longname="Address Mask" size="4" showtemplate="ip4addr-noplg"/>
+		</block>
+
+		<block name="radv" longname="Router Advertisement">
+			<field type="fixed" name="reserved" longname="Reserved" size="4" showtemplate="FieldDec"/>
+		</block>
+
+		<block name="rsol" longname="Router Solicitation">
+			<field type="fixed" name="numadd" longname="NumAddr" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="addrsize" longname="AddrSize" size="1" showtemplate="FieldDec"/>
+			<field type="fixed" name="lifetime" longname="LifeTime" size="2" showtemplate="FieldDec"/>
+			<block name="Address" longname="Address">
+				<loop type="times2repeat" expr="buf2int(numadd)">
+					<field type="fixed" name="routeaddr" longname="Router Address" size="4" showtemplate="ip4addr-noplg"/> 
+					<field type="fixed" name="preflevel" longname="Preference Level" size="4" showtemplate="FieldDec"/> 
+				</loop>
+			</block>
+		</block>
+	</format>
+
+
+	<encapsulation>
+		<!-- The ICMP packet can carry the IP datagram that caused the error -->
+		<nextproto proto="#ip"/>
+	</encapsulation>
+
+
+	<visualization>
+		<showtemplate name="icmp.type" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Echo Reply"/>
+					<case value="3" show="Destination Unreachable"/>
+					<case value="4" show="Source Quence"/>
+					<case value="5" show="Redirect"/>
+					<case value="8" show="Echo Request"/>
+					<case value="9" show="Router Advertisement"/>
+					<case value="10" show="Router Solicitation"/>
+					<case value="11" show="Time exceeded for a Datagram"/>
+					<case value="12" show="Parameter Problem on a Datagram"/>
+					<case value="13" show="Timestamp Request"/>
+					<case value="14" show="Timestamp Reply"/>
+					<case value="15" show="Information Request (obsolete)"/>
+					<case value="16" show="Information Reply (obsolete)"/>
+					<case value="17" show="Address Mask Request"/>
+					<case value="18" show="Address Mask Reply"/>
+					<default show="Error in ICMP Type lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+		
+		<showtemplate name="icmp.DestUnreachCode" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Network Unreachable"/>
+					<case value="1" show="Host Unreachable"/>
+					<case value="2" show="Protocol Unreachable"/>
+					<case value="3" show="Port Unreachable"/>
+					<case value="4" show="Fragmentation needed and DF set"/>
+					<case value="5" show="Source routed failed"/>
+					<case value="6" show="Destination network failed"/>
+					<case value="7" show="Destination host failed"/>
+					<case value="8" show="Source host isolated"/>
+					<case value="9" show="Communication with destination network administratively prohibited"/>
+					<case value="10" show="Communication with destination host administratively prohibited"/>
+					<case value="11" show="Network unreachable for type of service"/>
+					<case value="12" show="Host unreachable for type of service"/>
+					<default show="Error in ICMP Destination Unreachable code lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showtemplate name="icmp.RedirectCode" showtype="dec">
+			<showmap>
+				<switch expr="buf2int(this)">
+					<case value="0" show="Redirect datagrams for the Network"/>
+					<case value="1" show="Redirect datagrams for the Host"/>
+					<case value="2" show="Redirect datagrams for the Type of Service and Network"/>
+					<case value="3" show="Redirect datagrams for the Type of Service and Host"/>
+					<default show="Error in ICMP Redirect code lookup"/>
+				</switch>
+			</showmap>
+		</showtemplate>
+
+		<showsumtemplate name="icmp">
+			<section name="next"/>
+			<text value="ICMP "/>
+			<protofield name="type" showdata="showmap"/>
+		</showsumtemplate>
+
+	</visualization>
+</protocol>
+
+
+
+
+<visualization>
+
+	<!-- Defines the structure of the summary view of each packet -->
+	<showsumstruct>
+		<sumsection name="NUMBER" longname="N."/>
+		<sumsection name="TIME" longname="Time"/>
+		<sumsection name="L2" longname="Data Link"/>
+		<sumsection name="L3" longname="Network"/>
+		<sumsection name="L4" longname="Transport"/>
+		<sumsection name="L7" longname="Application"/>
+	</showsumstruct>
+
+
+	<!-- Very simple and common templates -->
+	<showtemplate name="FieldBin" showtype="bin"/>
+	<showtemplate name="FieldDec" showtype="dec"/>
+	<showtemplate name="FieldHex" showtype="hex"/>
+	<showtemplate name="FieldAscii" showtype="ascii" showgrp="1"/>
+
+	<showtemplate name="FieldHexBin" showtype="hex">
+		<showdtl>
+		    <text value="0x"/>
+			<protofield showdata="value"/>
+			<text value=" ("/>
+			<text expr="buf2int(this)"/>
+			<text value=")"/>					
+		</showdtl>
+	</showtemplate>	
+
+	<!-- Template for fast printing -->
+	<showtemplate name="fast-ipv4" showfast="ipv4"/>
+	<showtemplate name="fast-ascii" showfast="ascii"/>
+	<showtemplate name="fast-asciiline" showfast="asciiline"/>
+
+
+
+
+	<!-- Templates that prints a field as a continuous string of hex numbers (e.g. '0xAABBCCDDEE...') -->
+	<!-- with a delimiter every N bytes (in order to improve readability) -->
+	<showtemplate name="Field4BytesHex" showtype="hex" showgrp="4" showsep=" "/>			<!-- E.g. "AABBCCDD AABBCCDD" -->
+	<showtemplate name="Field1BytesHex" showtype="hex" showgrp="1" showsep=" "/>			<!-- E.g. "AA BB CC DD" -->
+	<showtemplate name="Field2BytesHexDash" showtype="hex" showgrp="2" showsep="-"/>		<!-- E.g. "AABB CCDD" -->
+	<showtemplate name="Field2BytesHexColon" showtype="hex" showgrp="2" showsep=":"/>		<!-- E.g. "AABB:CCDD" -->
+
+	<!-- Templates for fields that cannot be printed with standard NetPDL primitives -->
+	<showtemplate name="ip4addr" showtype="dec" showgrp="1" showsep="." showplg="IP46Name"/>
+
+	<showtemplate name="ip6addr" showtype="hexnox" showgrp="2" showsep=":" showplg="IP46Name">
+		<showdtl>
+			<protofield showdata="showvalue"/>
+			<if expr="this == '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'">
+				<if-true>
+					<text value=" (Unspecified Address)"/>
+				</if-true>
+			</if>
+			<if expr="this == '\xFF\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01'">
+				<if-true>
+					<text value=" (All nodes multicast address)"/>
+				</if-true>
+			</if>
+			<if expr="this[0:12] == '\xFF\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01'">
+				<if-true>
+					<text value=" (Multicast solicited node)"/>
+				</if-true>
+			</if>
+
+		</showdtl>
+	</showtemplate>
+
+	<showtemplate name="netbios-name" showplg="NetBIOSName"/>
+
+
+	<!-- Template for printing IPv4 address using only numbers (e.g. netmasks) -->
+	<showtemplate name="ip4addr-noplg" showtype="dec" showgrp="1" showsep="."/>
+
+	<!-- Template for printing IPv6 address using only numbers (e.g. prefixes) -->
+	<showtemplate name="ip6addr-noplg" showtype="hexnox" showgrp="2" showsep=":"/>
+
+	<!-- Templates specific for MAC addresses -->
+	<showtemplate name="MAC-colon" showtype="hexnox" showgrp="1" showsep=":"/>
+	<showtemplate name="MAC-dash" showtype="hexnox" showgrp="3" showsep="-"/>
+
+
+
+
+	<!-- *********************************************************** -->
+	<!-- Generic templates with some common visualization primitives -->
+	<!-- *********************************************************** -->
+
+	<!-- Generic template that prints a field timed by '4' -->
+	<showtemplate name="FieldMul4Dec" showtype="dec">
+		<showdtl>
+			<text expr="buf2int(this) * 4"/>
+			<text value=" (field value = "/>
+			<protofield showdata="showvalue"/>
+			<text value=")"/>
+		</showdtl>
+	</showtemplate>
+
+	<!-- Generic template that prints a short-field timed by '8' -->
+	<showtemplate name="ShortMul8Dec" showtype="dec">
+		<showdtl>
+			<text expr="buf2int(this) * 8"/>
+			<text value=" (field value = "/>
+			<protofield showdata="showvalue"/>
+			<text value=")"/>
+		</showdtl>
+	</showtemplate>
+
+
+	<showtemplate name="ShortDiv256Dec" showtype="dec">
+		<showdtl>
+			<text expr="buf2int(this) div 256"/>
+			<text value=" sec (field value = "/>
+			<protofield showdata="showvalue"/>
+			<text value=")"/>
+		</showdtl>
+	</showtemplate>
+
+
+	<showtemplate name="eth.typelength" showtype="dec">
+		<showdtl>
+			<if expr="buf2int(this) le 1500">				
+				<if-true>
+					<protofield showdata="showvalue"/>
+					<text value=" (Length)"/>
+				</if-true>
+
+				<if-false>
+					<text value="0x"/>
+					<protofield showdata="value"/>
+					<text value=" (Ethertype)"/>
+				</if-false>
+			</if>
+		</showdtl>
+	</showtemplate>
+
+
+	<!-- Generic template for visualizing Ethernet MAC addresses -->
+	<showtemplate name="MACaddressEth" showtype="hexnox" showgrp="3" showsep="-">
+		<showdtl>
+			<protofield showdata="showvalue"/>
+			<if expr="(buf2int(this[0:1]) bitwand 0b00000001) == 0b00000001">
+				<!-- It extracts the first byte of the MAC address, then it matches the result against -->
+				<!-- the 'xxxxxxx1' pattern -->
+				<!-- Extract the first byte of the MAC address -->
+				<!-- If it is a broadcast address, the last char will be '1' (due to network/host byte order)-->
+				
+				<if-true>
+					<if expr="this == '\xFF\xFF\xFF\xFF\xFF\xFF'">
+						<if-true>
+							<text value=" (Broadcast address)"/>
+						</if-true>
+
+						<if-false>
+							<text value=" (Multicast address)"/>
+						</if-false>		
+					</if>
+				</if-true>
+
+				<if-false>
+					<text value=" (Unicast address, vendor "/>
+					<protofield showdata="showmap"/>
+					<text value=")"/>
+				</if-false>
+			</if>
+		</showdtl>
+
+		<showmap>
+			<switch expr="buf2int(this[0:3])">		<!-- Extracts the first 3 bytes of the MAC address -->
+				<case value="0xFFFFFF" show="Broadcast address"/>
+				<case value="0x00000C" show="Cisco"/> 
+				<case value="0x000A8A" show="Cisco Systems Aironet (802.11)"/> 
+				<case value="0x001007" show="Cisco Systems Catalyst 1900"/> 
+				<case value="0x00100B" show="Cisco Systems"/> 
+				<case value="0x00100D" show="Cisco Systems Catalyst 2924-XL"/> 
+				<case value="0x001011" show="Cisco Systems Cisco 75xx"/> 
+				<case value="0x00101F" show="Cisco Systems Catalyst 2901"/> 
+				<case value="0x001029" show="Cisco Systems Catalyst 5000"/> 
+				<case value="0x00102F" show="Cisco Systems Cisco 5000"/> 
+				<!-- Many codes are missing; we want to keep this file more compact -->
+				<case value="0xE20C0F" show="Kingston Technologies"/>
+				<default show="code not available"/>
+			</switch>
+		</showmap>
+	</showtemplate>
+
+</visualization>
+</netpdl>
+
+
+
+
