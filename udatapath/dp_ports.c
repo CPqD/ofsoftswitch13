@@ -522,11 +522,15 @@ dp_ports_add_local(struct datapath *dp, const char *netdev)
 
 struct sw_port *
 dp_ports_lookup(struct datapath *dp, uint32_t port_no) {
+    
+    // exclude local port from ports_num
+    uint32_t ports_num = dp->local_port ? dp->ports_num -1 : dp->ports_num;    
+    
     if (port_no == OFPP_LOCAL) {
         return dp->local_port;
     }
     /* Local port already checked, so dp->ports -1 */
-    if (port_no < 1 || port_no > dp->ports_num -1) {
+    if (port_no < 1 || port_no > ports_num) {
         return NULL;
     }
 
