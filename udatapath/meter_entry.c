@@ -64,7 +64,9 @@ struct meter_entry *
 meter_entry_create(struct datapath *dp, struct meter_table *table, struct ofl_msg_meter_mod *mod) {
     struct meter_entry *entry;
     size_t i;
+    uint64_t now;
 
+    now = time_msec();
     entry = xmalloc(sizeof(struct meter_entry));
 
     entry->dp          = dp;
@@ -119,6 +121,7 @@ meter_entry_create(struct datapath *dp, struct meter_table *table, struct ofl_ms
     entry->stats->meter_bands_num    = mod->meter_bands_num;
     entry->stats->duration_nsec  = 0;
     entry->stats->duration_sec = 0;
+    entry->created      = now;    
     entry->stats->band_stats      = xmalloc(sizeof(struct ofl_meter_band_stats *) * entry->stats->meter_bands_num);
 
 
@@ -135,6 +138,11 @@ meter_entry_create(struct datapath *dp, struct meter_table *table, struct ofl_ms
     return entry;
 }
 
+void
+meter_entry_update(struct meter_entry *entry) {
+    entry->stats->duration_sec  =  (time_msec() - entry->created) / 1000;
+    entry->stats->duration_nsec = ((time_msec() - entry->created) % 1000) * 1000;
+}
 
 void
 meter_entry_destroy(struct meter_entry *entry) {

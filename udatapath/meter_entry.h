@@ -63,6 +63,8 @@ struct meter_entry {
 	struct ofl_meter_stats		*stats;			/* Meter statistics */
 	struct ofl_meter_config		*config;		/* Meter configuration */
 
+    uint64_t                    created;  /* time the entry was created at. */
+    	
 	struct list                 flow_refs;		/* references to flows referencing the meter. */
 
 };
@@ -70,6 +72,10 @@ struct meter_entry {
 /* Creates a meter entry. */
 struct meter_entry *
 meter_entry_create(struct datapath *dp, struct meter_table *table, struct ofl_msg_meter_mod *mod);
+
+/*Update counters */
+void
+meter_entry_update(struct meter_entry *entry);
 
 /* Destroys a meter entry. */
 void

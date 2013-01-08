@@ -254,11 +254,13 @@ meter_table_handle_stats_request_meter(struct meter_table *table,
             size_t i = 0;
 
             HMAP_FOR_EACH(e, struct meter_entry, node, &table->meter_entries) {
+                 meter_entry_update(e);
                  reply.stats[i] = e->stats;
                  i++;
              }
 
         } else {
+            meter_entry_update(entry);
             reply.stats[0] = entry->stats;
         }
 
