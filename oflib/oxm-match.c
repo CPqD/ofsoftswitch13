@@ -228,16 +228,16 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
         case OFI_OXM_OF_IN_PHY_PORT:{
             /* Check for inport presence */
             if (check_present_prereq(match,OXM_OF_IN_PORT))
-                ofl_structs_match_put32(match, f->header, *((uint32_t*) value));
+                ofl_structs_match_put32(match, f->header, htonl(*((uint32_t*) value)));
             else return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_PREREQ);
             
         }
         case OFI_OXM_OF_METADATA:{
-            ofl_structs_match_put64(match, f->header, *((uint64_t*) value));
+            ofl_structs_match_put64(match, f->header, hton64(*((uint64_t*) value)));
             return 0;
         }
         case OFI_OXM_OF_METADATA_W:{
-            ofl_structs_match_put64m(match, f->header,*((uint64_t*) value),*((uint64_t*) mask));
+            ofl_structs_match_put64m(match, f->header,hton64(*((uint64_t*) value)),hton64(*((uint64_t*) mask)));
             return 0;
         }
         /* Ethernet header. */
@@ -441,6 +441,8 @@ oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len)
     uint32_t header;
     uint8_t *p;
     p = ofpbuf_try_pull(buf, match_len);
+    VLOG_DBG(LOG_MODULE, "oxm_match length %u, max "
+                    "length %d", match_len, buf->size);
     
     if (!p) {
         VLOG_DBG_RL(LOG_MODULE,&rl, "oxm_match length %u, rounded up to a "
@@ -508,6 +510,8 @@ oxm_entry_ok(const void *p, unsigned int match_len)
     memcpy(&header, p, 4);
     header = ntohl(header);
     payload_len = OXM_LENGTH(header);
+    VLOG_DBG(LOG_MODULE, "oxm_entry %08"PRIx32" to be decoded "
+                    " with length == %"PRIu32"", OXM_FIELD(header), OXM_LENGTH(header)); 
     if (!payload_len) {
         VLOG_DBG(LOG_MODULE, "oxm_entry %08"PRIx32" has invalid payload "
                     "length 0", header); 
@@ -516,6 +520,8 @@ oxm_entry_ok(const void *p, unsigned int match_len)
     if (match_len < payload_len + 4) {
         VLOG_DBG(LOG_MODULE, "%"PRIu32"-byte oxm_entry but only "
                     "%u bytes left in ox_match", payload_len + 4, match_len);
+        VLOG_DBG(LOG_MODULE, "Header ==  %d"
+                    ,  OXM_FIELD(header));
         return 0;
     }
     return header;
