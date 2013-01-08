@@ -926,7 +926,7 @@ ofl_structs_match_pack(struct ofl_match_header *src, struct ofp_match *dst, uint
             int oxm_len;
             dst->type = htons(m->header.type);
             oxm_fields = (uint8_t*) &dst->oxm_fields;
-            dst->length = htons(sizeof(struct ofp_match));
+            dst->length = htons(sizeof(struct ofp_match) - 4);
             if (src->length){
                 if (order == HOST_ORDER)
                     oxm_len = oxm_put_match(b, m);
