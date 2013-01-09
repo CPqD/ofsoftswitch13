@@ -1135,7 +1135,7 @@ parse_match(char *str, struct ofl_match_header **match) {
         if (strncmp(token, MATCH_ARP_SHA KEY_VAL, strlen(MATCH_ARP_SHA KEY_VAL)) == 0) {
             uint8_t arp_sha[6];
             uint8_t *mask;
-            if (parse_dl_addr(token + strlen(MATCH_DL_SRC KEY_VAL), arp_sha, &mask)) {
+            if (parse_dl_addr(token + strlen(MATCH_ARP_SHA KEY_VAL), arp_sha, &mask)) {
                 ofp_fatal(0, "Error parsing arp_sha: %s.", token);
             }
             else { 
@@ -1557,6 +1557,72 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
             act->field->value = (uint8_t*) dl_type;
         }  
         return 0;        
+    } 
+
+    /* ARP */
+    if (strncmp(token, MATCH_ARP_SHA KEY_VAL2, strlen(MATCH_ARP_SHA KEY_VAL2)) == 0) {
+        uint8_t arp_sha[6];
+        uint8_t *mask;
+        if (parse_dl_addr(token + strlen(MATCH_ARP_SHA KEY_VAL2), arp_sha, &mask)) {
+            ofp_fatal(0, "Error parsing arp_sha: %s.", token);
+        }
+        else { 
+            act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
+            act->field->header = OXM_OF_ARP_SHA;                    
+            act->field->value = (uint8_t*) arp_sha;
+        }     
+        return 0;
+    }
+    if (strncmp(token, MATCH_ARP_THA KEY_VAL2, strlen(MATCH_ARP_THA KEY_VAL2)) == 0) {
+        uint8_t arp_tha[6];
+        uint8_t *mask;
+        if (parse_dl_addr(token + strlen(MATCH_ARP_THA KEY_VAL2), arp_tha, &mask)) {
+            ofp_fatal(0, "Error parsing arp_tha %s.", token);
+        }
+        else { 
+            act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
+            act->field->header = OXM_OF_ARP_THA;                    
+            act->field->value = (uint8_t*) arp_tha;
+        }     
+        return 0;
+    }
+    if (strncmp(token, MATCH_ARP_SPA KEY_VAL2, strlen(MATCH_ARP_SPA KEY_VAL2)) == 0) {
+        uint32_t *arp_src = malloc(sizeof(uint32_t));
+        uint32_t *mask;
+        if (parse_nw_addr(token + strlen(MATCH_ARP_SPA KEY_VAL2), arp_src, &mask)) {
+            ofp_fatal(0, "Error parsing arp_src: %s.", token);
+        }
+        else { 
+            act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
+            act->field->header = OXM_OF_ARP_SPA;                    
+            act->field->value = (uint8_t*) arp_src;
+        }
+        return 0;
+    }
+    if (strncmp(token, MATCH_ARP_TPA KEY_VAL2, strlen(MATCH_ARP_TPA KEY_VAL2)) == 0) {
+        uint32_t *arp_target = malloc(sizeof(uint32_t));
+        uint32_t *mask;
+        if (parse_nw_addr(token + strlen(MATCH_ARP_TPA KEY_VAL2), arp_target, &mask)) {
+            ofp_fatal(0, "Error parsing arp_target: %s.", token);
+        }
+        else { 
+            act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
+            act->field->header = OXM_OF_ARP_TPA;                    
+            act->field->value = (uint8_t*) arp_target;
+        }     
+        return 0;
+    }                
+    if (strncmp(token, MATCH_ARP_OP KEY_VAL2, strlen(MATCH_ARP_OP KEY_VAL2)) == 0) {
+        uint16_t *arp_op = xmalloc(sizeof(uint16_t));
+        if (parse16(token + strlen(MATCH_ARP_OP KEY_VAL2), NULL, 0, 0x7, arp_op)){
+            ofp_fatal(0, "Error parsing arp_op: %s.", token);
+        }
+        else { 
+            act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
+            act->field->header = OXM_OF_ARP_OP;                    
+            act->field->value = (uint8_t*) arp_op;
+        }     
+        return 0;
     }    
     if (strncmp(token, MATCH_DL_VLAN KEY_VAL2, strlen(MATCH_DL_VLAN KEY_VAL2)) == 0) {
             uint16_t *dl_vlan = malloc(sizeof(uint16_t));
@@ -1579,25 +1645,26 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
                 act->field->header = OXM_OF_VLAN_PCP;                    
                 act->field->value = (uint8_t*) pcp;  
             }
+        return 0;    
     }
     if (strncmp(token, MATCH_PBB_ISID KEY_VAL2, strlen(MATCH_PBB_ISID KEY_VAL2)) == 0) {
-            uint32_t *pbb_isid = malloc(sizeof(uint32_t));
-            if (parse32(token + strlen(MATCH_PBB_ISID KEY_VAL2), NULL, 0, 0x1000000, pbb_isid)) {
-                ofp_fatal(0, "Error parsing pbb service id: %s.", token);
-            }
-            else { 
-                act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
-                act->field->header = OXM_OF_PBB_ISID;                    
-                act->field->value = (uint8_t*) pbb_isid;        
-            }
+        uint32_t *pbb_isid = malloc(sizeof(uint32_t));
+        if (parse32(token + strlen(MATCH_PBB_ISID KEY_VAL2), NULL, 0, 0x1000000, pbb_isid)) {
+            ofp_fatal(0, "Error parsing pbb service id: %s.", token);
+        }
+        else { 
+             act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
+            act->field->header = OXM_OF_PBB_ISID;                    
+            act->field->value = (uint8_t*) pbb_isid;        
+        }
         return 0;
     }
     if (strncmp(token, MATCH_MPLS_LABEL KEY_VAL2, strlen(MATCH_MPLS_LABEL KEY_VAL2)) == 0) {
-            uint32_t *mpls_label = malloc(sizeof(uint32_t));
-            if (parse32(token + strlen(MATCH_MPLS_LABEL KEY_VAL2), NULL, 0, 0x1000000, mpls_label)) {
-                ofp_fatal(0, "Error parsing mpls label id: %s.", token);
-            }
-            else { 
+        uint32_t *mpls_label = malloc(sizeof(uint32_t));
+        if (parse32(token + strlen(MATCH_MPLS_LABEL KEY_VAL2), NULL, 0, 0x1000000, mpls_label)) {
+            ofp_fatal(0, "Error parsing mpls label id: %s.", token);
+        }
+        else { 
                 act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
                 act->field->header = OXM_OF_MPLS_LABEL;                    
                 act->field->value = (uint8_t*) mpls_label;        
@@ -1714,7 +1781,7 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
                 act->field->header = OXM_OF_IPV6_SRC;
                 act->field->value = (uint8_t*) addr->s6_addr;
             }     
-            return 0;
+        return 0;
     }
     if (strncmp(token, MATCH_NW_DST_IPV6 KEY_VAL2 , strlen(MATCH_NW_DST_IPV6 KEY_VAL2)) == 0) {
             struct in6_addr *addr = (struct in6_addr*) malloc(sizeof(struct in6_addr)); 
@@ -1727,7 +1794,7 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
                 act->field->header = OXM_OF_IPV6_DST;
                 act->field->value = (uint8_t*) addr->s6_addr;
             }     
-            return 0;
+        return 0;
     }
     if (strncmp(token, MATCH_IPV6_FLABEL KEY_VAL2, strlen(MATCH_IPV6_FLABEL KEY_VAL2)) == 0) {
         uint32_t *ipv6_label = malloc(sizeof(uint32_t));

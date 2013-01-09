@@ -382,11 +382,7 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
             return 0;
             /* ARP header. */
         case OFI_OXM_OF_ARP_OP:{
-            uint8_t *v = (uint8_t*) value;
-            if (*v > 255)
-                return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_VALUE);
-            else
-                ofl_structs_match_put8(match, f->header, *v);
+                ofl_structs_match_put16(match, f->header, ntohs(*((uint16_t*) value)));
             return 0;
         }
         case OFI_OXM_OF_MPLS_LABEL:

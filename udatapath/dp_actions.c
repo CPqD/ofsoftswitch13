@@ -136,8 +136,7 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 pkt->handle_std->valid = false;
                 return;
             }
-            /* Found the field, lets re-write it!! */
-    	    tmp = (uint8_t*) malloc(OXM_LENGTH(iter->header));
+            tmp = (uint8_t*) malloc(OXM_LENGTH(iter->header));
     	    for (i=0;i<OXM_LENGTH(iter->header);i++)
     	    {
         	    memcpy(((uint8_t*)tmp + i) , (act->field->value + OXM_LENGTH(iter->header) - i -1 ), 1); 
