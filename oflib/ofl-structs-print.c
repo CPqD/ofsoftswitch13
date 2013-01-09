@@ -157,20 +157,21 @@ ofl_structs_match_to_string(struct ofl_match_header *match, struct ofl_exp *exp)
 
 void 
 print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
-                
-                if (f->header == OXM_OF_IN_PORT){
+                uint8_t field = OXM_FIELD(f->header);
+
+                if (field == OFPXMT_OFB_IN_PORT){
                     fprintf(stream, "in_port=\"%d\"",*((uint32_t*) f->value));
                     *size -= 8;   
                     if (*size > 4)                                  
                         fprintf(stream, ", ");
                 }
-                else if (f->header == OXM_OF_IN_PHY_PORT){
+                else if (field == OFPXMT_OFB_IN_PHY_PORT){
                             fprintf(stream, "in_phy_port=\"%d\"",*((uint32_t*) f->value));
                             *size -= 8;   
                             if (*size > 4)                                  
                                 fprintf(stream, ", ");
                 }
-                else if (f->header == OXM_OF_VLAN_VID){
+                else if (field == OFPXMT_OFB_VLAN_VID){
                             if ((uint16_t) *f->value == OFPVID_NONE)
                                 fprintf(stream, "vlan_vid= none");
                             else if ((uint16_t) *f->value == OFPVID_PRESENT)
@@ -180,13 +181,13 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
-                else if (f->header == OXM_OF_VLAN_PCP){
+                else if (field == OFPXMT_OFB_VLAN_PCP){
                             fprintf(stream, "vlan_pcp=\"%d\"", *f->value & 0x7);
                             *size -= 5;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 } 
-                else if (f->header == OXM_OF_ETH_TYPE){
+                else if (field == OFPXMT_OFB_ETH_TYPE){
                             uint16_t *v = (uint16_t *) f->value;
                             fprintf(stream, "eth_type=");
                             fprintf(stream,"\"0x%x\"",  *v);
@@ -194,43 +195,43 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             if (*size > 4)                                
                                 fprintf(stream, ", ");                            
                 }
-                else if (f->header == OXM_OF_TCP_SRC){
+                else if (field == OFPXMT_OFB_TCP_SRC){
                             fprintf(stream, "tcp_src=\"%d\"",*((uint16_t*) f->value));
                             *size -= 6;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
-                else if (f->header == OXM_OF_TCP_DST){
+                else if (field == OFPXMT_OFB_TCP_DST){
                             fprintf(stream, "tcp_dst=\"%d\"",*((uint16_t*) f->value));
                             *size -= 6;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
-                else if (f->header == OXM_OF_UDP_SRC){
+                else if (field == OFPXMT_OFB_UDP_SRC){
                             fprintf(stream, "udp_src=\"%d\"",*((uint16_t*) f->value));
                             *size -= 6;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
-                else if (f->header == OXM_OF_UDP_DST){
+                else if (field == OFPXMT_OFB_UDP_DST){
                             fprintf(stream, "udp_dst=\"%d\"",*((uint16_t*) f->value));
                             *size -= 6;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
-                else if (f->header == OXM_OF_SCTP_SRC){
+                else if (field == OFPXMT_OFB_SCTP_SRC){
                             fprintf(stream, "sctp_src=\"%d\"",*((uint16_t*) f->value));
                             *size -= 6;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
-                else if (f->header == OXM_OF_SCTP_DST){
+                else if (field == OFPXMT_OFB_SCTP_DST){
                             fprintf(stream, "sctp_dst=\"%d\"",*((uint16_t*) f->value));
                             *size -= 6;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }                  
-                else if (f->header == OXM_OF_ETH_SRC || f->header == OXM_OF_ETH_SRC_W){
+                else if (field == OFPXMT_OFB_ETH_SRC){
                             fprintf(stream, "eth_src=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value));
                             *size -= 10;                                
                             if (OXM_HASMASK(f->header)){
@@ -240,7 +241,7 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
-                else if (f->header == OXM_OF_ETH_DST || f->header == OXM_OF_ETH_DST_W){
+                else if (field == OFPXMT_OFB_ETH_DST){
                             fprintf(stream, "eth_dst=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value));
                             *size -= 10;                                
                             if (OXM_HASMASK(f->header)){
@@ -249,8 +250,18 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             }
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
-                }                                 
-                else if (f->header == OXM_OF_IPV4_SRC || f->header == OXM_OF_IPV4_SRC_W){
+                }
+                else if (field == OFPXMT_OFB_IPV4_DST){
+                            fprintf(stream, "ipv4_dst=\""IP_FMT"\"",IP_ARGS(f->value));
+                            *size -= 8;
+                            if (OXM_HASMASK(f->header)){
+                                *size -= 4;
+                                fprintf(stream, ", ipv4_dst_mask=\""IP_FMT"\"",IP_ARGS(f->value + 4));
+                            }                                
+                            if (*size > 4)                                
+                                fprintf(stream, ", ");
+                }                                                 
+                else if (field == OFPXMT_OFB_IPV4_SRC){
                             fprintf(stream, "ipv4_src=\""IP_FMT"\"",IP_ARGS(f->value));
                             *size -= 8;                                
                             if (OXM_HASMASK(f->header)){
@@ -260,47 +271,37 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
-                else if (f->header == OXM_OF_IP_PROTO){
+                else if (field == OFPXMT_OFB_IP_PROTO){
                             fprintf(stream, "ip_proto=\"%d\"", *f->value);
                             *size -= 5;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 } 
-                else if (f->header == OXM_OF_IP_DSCP){
+                else if (field == OFPXMT_OFB_IP_DSCP){
                             fprintf(stream, "ip_dscp=\"%d\"", *f->value & 0x3f);
                             *size -= 5;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 } 
-                else if (f->header == OXM_OF_IP_ECN){
+                else if (field == OFPXMT_OFB_IP_ECN){
                             fprintf(stream, "ip_ecn=\"%d\"", *f->value & 0x3);
                             *size -= 5;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 } 
-                else if (f->header == OXM_OF_ICMPV4_TYPE){
+                else if (field == OFPXMT_OFB_ICMPV4_TYPE){
                             fprintf(stream, "icmpv4_type= \"%d\"", *f->value);
                             *size -= 5;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 } 
-                else if (f->header == OXM_OF_ICMPV4_CODE){
+                else if (field == OFPXMT_OFB_ICMPV4_CODE){
                             fprintf(stream, "icmpv4_code=\"%d\"", *f->value);
                             *size -= 5;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }   
-                else if (f->header == OXM_OF_IPV4_DST || f->header == OXM_OF_IPV4_DST_W){
-                            fprintf(stream, "ipv4_dst=\""IP_FMT"\"",IP_ARGS(f->value));
-                            *size -= 8;
-                            if (OXM_HASMASK(f->header)){
-                                *size -= 4;
-                                fprintf(stream, ", ipv4_dst_mask=\""IP_FMT"\"",IP_ARGS(f->value + 4));
-                            }                                
-                            if (*size > 4)                                
-                                fprintf(stream, ", ");
-                }
-                else if (f->header == OXM_OF_ARP_SHA || f->header == OXM_OF_ARP_SHA_W){
+                else if (field == OFPXMT_OFB_ARP_SHA){
                             fprintf(stream, "arp_sha=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value));
                             *size -= 10;                                
                             if (OXM_HASMASK(f->header)){
@@ -310,7 +311,7 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
-                else if (f->header == OXM_OF_ARP_THA || f->header == OXM_OF_ARP_THA_W){
+                else if (field == OFPXMT_OFB_ARP_THA){
                             fprintf(stream, "arp_tha=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value));
                             *size -= 10;
 
@@ -321,7 +322,7 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }                      
-                else if (f->header == OXM_OF_ARP_SPA || f->header == OXM_OF_ARP_SPA_W ){
+                else if (field == OFPXMT_OFB_ARP_SPA){
                             fprintf(stream, "arp_spa=\""IP_FMT"\"",IP_ARGS(f->value));
                             *size -= 8;                                
                             if (OXM_HASMASK(f->header)){
@@ -331,7 +332,7 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 } 
-                else if (f->header == OXM_OF_ARP_TPA || f->header == OXM_OF_ARP_TPA_W){
+                else if (field == OFPXMT_OFB_ARP_TPA){
                             fprintf(stream, "arp_tpa=\""IP_FMT"\"",IP_ARGS(f->value));
                             *size -= 8;                                
                             if (OXM_HASMASK(f->header)){
@@ -341,7 +342,7 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 } 
-                else if (f->header == OXM_OF_ARP_OP){
+                else if (field == OFPXMT_OFB_ARP_OP){
                             uint16_t *v = (uint16_t *) f->value;
                             fprintf(stream, "arp_op=\"0x");
                             fprintf(stream,"%x\"",  *v);
@@ -349,7 +350,7 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
-                else if (f->header == OXM_OF_IPV6_SRC || f->header == OXM_OF_IPV6_SRC_W ){
+                else if (field == OFPXMT_OFB_IPV6_SRC){
                         char addr_str[INET6_ADDRSTRLEN]; 
                         inet_ntop(AF_INET6, f->value, addr_str, INET6_ADDRSTRLEN);
                         *size -= 20;
@@ -362,7 +363,7 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                         if (*size > 4)                                
                                 fprintf(stream, ", ");        
                 }
-                else if (f->header == OXM_OF_IPV6_DST || f->header == OXM_OF_IPV6_DST_W){
+                else if (field == OFPXMT_OFB_IPV6_DST){
                         char addr_str[INET6_ADDRSTRLEN]; 
                         inet_ntop(AF_INET6, f->value, addr_str, INET6_ADDRSTRLEN);
                         *size -= 20;
@@ -375,7 +376,7 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                         if (*size > 4)                                
                                 fprintf(stream, ", ");        
                 }
-                else if (f->header == OXM_OF_IPV6_ND_TARGET){
+                else if (field == OFPXMT_OFB_IPV6_ND_TARGET){
                         char addr_str[INET6_ADDRSTRLEN]; 
                         inet_ntop(AF_INET6, f->value, addr_str, INET6_ADDRSTRLEN);
                         *size -= 20;
@@ -383,19 +384,19 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                         if (*size > 4)                                
                                 fprintf(stream, ", ");        
                 }  
-                 else if (f->header == OXM_OF_IPV6_ND_SLL){
+                 else if (field == OFPXMT_OFB_IPV6_ND_SLL){
                             fprintf(stream, "ipv6_nd_sll=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value));
                             *size -= 10;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
-                else if (f->header == OXM_OF_IPV6_ND_TLL){
+                else if (field == OFPXMT_OFB_IPV6_ND_TLL){
                             fprintf(stream, "ipv6_nd_tll=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value));
                             *size -= 10;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
-                else if (f->header == OXM_OF_IPV6_FLABEL || f->header == OXM_OF_IPV6_FLABEL_W){
+                else if (field == OFPXMT_OFB_IPV6_FLABEL){
                             uint32_t mask = 0x000fffff;
                             *size -= 8;
                             fprintf(stream, "ipv6_flow_label=\"%d\"",*((uint32_t*) f->value) & mask );                              
@@ -407,32 +408,38 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
-                else if (f->header == OXM_OF_ICMPV6_TYPE){
+                else if (field == OFPXMT_OFB_ICMPV6_TYPE){
                             fprintf(stream, "icmpv6_type=\"%d\"", *f->value);
                             *size -= 5;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 } 
-                else if (f->header == OXM_OF_ICMPV6_CODE){
+                else if (field == OFPXMT_OFB_ICMPV6_CODE){
                             fprintf(stream, "icmpv6_code=\"%d\"", *f->value);
                             *size -= 5;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
-                else if (f->header == OXM_OF_MPLS_LABEL){
+                else if (field == OFPXMT_OFB_MPLS_LABEL){
                             uint32_t mask = 0xfffff;
                             fprintf(stream, "mpls_label=\"%d\"",((uint32_t) *f->value) & mask );
                             *size -= 8;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
-                else if (f->header == OXM_OF_MPLS_TC){
+                else if (field == OFPXMT_OFB_MPLS_TC){
                             fprintf(stream, "mpls_tc=\"%d\"", *f->value & 0x3);
                             *size -= 5;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
-                } 
-                else if (f->header == OXM_OF_METADATA || f->header == OXM_OF_METADATA_W){
+                }
+                else if (field == OFPXMT_OFB_MPLS_BOS){
+                            fprintf(stream, "mpls_bos=\"%d\"", *f->value & 0xfe);
+                            *size -= 5;                                
+                            if (*size > 4)                                
+                                fprintf(stream, ", ");
+                }                  
+                else if (field == OFPXMT_OFB_METADATA){
                             fprintf(stream, "metadata=\"%lld\"", *((uint64_t*) f->value));
                             *size -= 12;
                             if (OXM_HASMASK(f->header)){
@@ -442,7 +449,7 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
-                else if (f->header == OXM_OF_PBB_ISID || f->header == OXM_OF_PBB_ISID_W){
+                else if (field == OFPXMT_OFB_PBB_ISID   ){
                             fprintf(stream, "pbb_isid=\"%d\"",*((uint32_t*) f->value));
                             *size -= 8;
                             if (OXM_HASMASK(f->header)){
@@ -452,7 +459,7 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             if (*size > 4)                                
                                 fprintf(stream, ", ");
                 }
-                else if (f->header == OXM_OF_TUNNEL_ID || f->header == OXM_OF_TUNNEL_ID_W){
+                else if (field == OFPXMT_OFB_TUNNEL_ID){
                             fprintf(stream, "tunnel_id=\"%lld\"", *((uint64_t*) f->value));
                             *size -= 12;
                             if (OXM_HASMASK(f->header)){
@@ -462,7 +469,7 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                             if (*size > 4)
                                 fprintf(stream, ", ");                                                           
                 }
-                else if (f->header == OXM_OF_IPV6_EXTHDR || f->header == OXM_OF_IPV6_EXTHDR_W ){
+                else if (field == OFPXMT_OFB_IPV6_EXTHDR){
                             fprintf(stream, "ext_hdr=\\");
                             ofl_ipv6_ext_hdr_print(stream, *((uint16_t*) f->value) );
                             *size -= 6;                                
