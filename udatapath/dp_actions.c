@@ -80,6 +80,7 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
         HMAP_FOR_EACH_WITH_HASH(iter,struct packet_fields, hmap_node, hash_int(act->field->header,0), &pkt->handle_std->match.match_fields)
         {
             struct ip_header *ipv4;
+            struct mpls_header *mpls;
             uint8_t* tmp;
             size_t i;
             
@@ -175,11 +176,29 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
             if (iter->header == OXM_OF_IPV6_SRC || iter->header == OXM_OF_IPV6_DST || 
                 iter->header == OXM_OF_ETH_SRC || iter->header == OXM_OF_ETH_DST   ||
                 iter->header == OXM_OF_ARP_SPA || iter->header == OXM_OF_ARP_TPA   ||
-                iter->header == OXM_OF_ARP_SHA || iter->header == OXM_OF_ARP_THA)
-            {
+                iter->header == OXM_OF_ARP_SHA || iter->header == OXM_OF_ARP_THA) {
                 memcpy(((uint8_t*)pkt->buffer->data + iter->pos) , act->field->value , OXM_LENGTH(iter->header));
                 pkt->handle_std->valid = false;
                 return;
+            }
+            if (iter->header == OXM_OF_MPLS_LABEL){
+                    uint32_t mpls_label =  *((uint32_t*) act->field->value);
+                    mpls = pkt->handle_std->proto->mpls;
+                    mpls->fields = (mpls->fields & ~ntohl(MPLS_LABEL_MASK)) | ntohl((mpls_label << MPLS_LABEL_SHIFT) & MPLS_LABEL_MASK);
+                    memcpy(((uint8_t*)pkt->buffer->data + iter->pos) , &mpls->fields , OXM_LENGTH(iter->header));
+                    return;
+            }
+            if (iter->header == OXM_OF_MPLS_TC){
+                    mpls = pkt->handle_std->proto->mpls;
+                    mpls->fields = (mpls->fields & ~ntohl(MPLS_TC_MASK)) | ntohl((*act->field->value << MPLS_TC_SHIFT) & MPLS_TC_MASK);
+                    memcpy(((uint8_t*)pkt->buffer->data + iter->pos) , &mpls->fields , OXM_LENGTH(iter->header));
+                    return;
+            }
+            if (iter->header == OXM_OF_MPLS_BOS){
+                    mpls = pkt->handle_std->proto->mpls;
+                    mpls->fields = (mpls->fields & ~ntohl(MPLS_S_MASK)) | ntohl((*act->field->value << MPLS_S_SHIFT) & MPLS_S_MASK);
+                    memcpy(((uint8_t*)pkt->buffer->data + iter->pos) , &mpls->fields , OXM_LENGTH(iter->header));
+                    return;             
             }
             tmp = (uint8_t*) malloc(OXM_LENGTH(iter->header));
     	    for (i=0;i<OXM_LENGTH(iter->header);i++)
