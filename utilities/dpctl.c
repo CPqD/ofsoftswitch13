@@ -1367,14 +1367,22 @@ parse_match(char *str, struct ofl_match_header **match) {
         }
         if (strncmp(token, MATCH_MPLS_TC KEY_VAL, strlen(MATCH_MPLS_TC KEY_VAL)) == 0) {
             uint8_t mpls_tc;
-        if (parse8(token + strlen(MATCH_MPLS_TC KEY_VAL), NULL, 0, 0x07, &mpls_tc)) {
-                ofp_fatal(0, "Error parsing mpls_tc: %s.", token);
-            }
-        else 
-            ofl_structs_match_put8(m, OXM_OF_MPLS_TC, mpls_tc);
+            if (parse8(token + strlen(MATCH_MPLS_TC KEY_VAL), NULL, 0, 0x07, &mpls_tc)) {
+                    ofp_fatal(0, "Error parsing mpls_tc: %s.", token);
+                }
+            else 
+                ofl_structs_match_put8(m, OXM_OF_MPLS_TC, mpls_tc);
             continue;
         }
-        
+        if (strncmp(token, MATCH_MPLS_BOS KEY_VAL, strlen(MATCH_MPLS_BOS KEY_VAL)) == 0) {
+            uint8_t mpls_bos;
+            if (parse8(token + strlen(MATCH_MPLS_TC KEY_VAL), NULL, 0, 0x1, &mpls_bos)) {
+                    ofp_fatal(0, "Error parsing mpls_tc: %s.", token);
+                }
+            else 
+                ofl_structs_match_put8(m, OXM_OF_MPLS_BOS, mpls_bos);
+            continue;
+        }        
         /* IPv6 */
         if (strncmp(token, MATCH_NW_SRC_IPV6 KEY_VAL , strlen(MATCH_NW_SRC_IPV6 KEY_VAL)) == 0) {
             struct in6_addr addr, mask;
@@ -1670,7 +1678,31 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
                 act->field->value = (uint8_t*) mpls_label;        
             }
         return 0;
-    }            
+    }
+    if (strncmp(token, MATCH_MPLS_TC KEY_VAL, strlen(MATCH_MPLS_TC KEY_VAL)) == 0) {
+        uint8_t *mpls_tc = (uint8_t*) malloc(sizeof(uint8_t));
+        if (parse8(token + strlen(MATCH_MPLS_TC KEY_VAL), NULL, 0, 0x07, mpls_tc)) {
+                 ofp_fatal(0, "Error parsing mpls_tc: %s.", token);
+            }
+        else { 
+                act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
+                act->field->header = OXM_OF_MPLS_TC;                    
+                act->field->value = mpls_tc;        
+            }
+        return 0;
+    }
+    if (strncmp(token, MATCH_MPLS_BOS KEY_VAL, strlen(MATCH_MPLS_BOS KEY_VAL)) == 0) {
+        uint8_t *mpls_bos = (uint8_t*) malloc(sizeof(uint8_t));
+        if (parse8(token + strlen(MATCH_MPLS_TC KEY_VAL), NULL, 0, 0x1, mpls_bos)) {
+             ofp_fatal(0, "Error parsing mpls_tc: %s.", token);
+        }
+        else { 
+                act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
+                act->field->header = OXM_OF_MPLS_BOS;                    
+                act->field->value = mpls_bos;        
+            }
+        return 0;
+    } 
     if (strncmp(token, MATCH_DL_VLAN_PCP KEY_VAL2, strlen(MATCH_DL_VLAN_PCP KEY_VAL2)) == 0) {
         uint8_t* vlan_pcp = malloc(sizeof(uint8_t));
         if (parse8(token + strlen(MATCH_DL_VLAN_PCP KEY_VAL2), NULL, 0, 0x7, vlan_pcp)) {

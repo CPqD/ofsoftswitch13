@@ -209,6 +209,7 @@ static struct names16 band_names[] = {
 #define MATCH_IPV6_ND_TLL    "ipv6_nd_tll"
 #define MATCH_MPLS_LABEL     "mpls_label"
 #define MATCH_MPLS_TC        "mpls_tc"
+#define MATCH_MPLS_BOS       "mpls_bos"
 #define MATCH_METADATA       "meta"
 #define MATCH_METADATA_MASK  "meta_mask"
 #define MATCH_PBB_ISID       "pbb_isid"
