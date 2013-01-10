@@ -126,8 +126,9 @@ int nblink_add_entry_hmap(struct ofpbuf * pktin, struct hmap * pktout ,struct pa
         /* Do not insert VLAN ethertypes*/
         uint16_t *eth_type = (uint16_t*) malloc(sizeof(uint16_t));
         memcpy(eth_type,pktout_field->value, Size);        
-        if(*eth_type == ETH_TYPE_VLAN || *eth_type == ETH_TYPE_SVLAN ||
-           *eth_type == ETH_TYPE_VLAN_QinQ || *eth_type == ETH_TYPE_VLAN_PBB_B){
+        if(*eth_type == htons(ETH_TYPE_VLAN) || *eth_type == htons(ETH_TYPE_SVLAN) ||
+           *eth_type == htons(ETH_TYPE_VLAN_QinQ) || *eth_type == htons(ETH_TYPE_VLAN_PBB_B)){
+            free(eth_type);
             return 0;
         }
         free(eth_type);
@@ -345,6 +346,8 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
                 nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_VLAN_PCP);
                 PDMLReader->GetPDMLField(proto->Name, (char*) "vlanid", proto->FirstField, &field);
                 nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_VLAN_VID);
+                PDMLReader->GetPDMLField(proto->Name, (char*) "type", proto->FirstField, &field);
+                nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_ETH_TYPE);
                 
             }
             else if (protocol_Name.compare("mpls") == 0 && pkt_proto->mpls == NULL)
