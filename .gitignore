@@ -115,6 +115,8 @@ udatapath/udatapath_ofdatapath-packet.o
 udatapath/udatapath_ofdatapath-packet_handle_std.o
 udatapath/udatapath_ofdatapath-pipeline.o
 udatapath/udatapath_ofdatapath-udatapath.o
+udatapath/udatapath_ofdatapath-meter_entry.o
+udatapath/udatapath_ofdatapath-meter_table.o
 utilities/.deps/
 utilities/.dirstamp
 utilities/dpctl.o
