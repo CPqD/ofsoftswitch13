@@ -18,6 +18,7 @@
 
 #include "nbee_link.h"
 #include "oflib/oxm-match.h"
+#include "oflib/ofl-utils.h"
 #include "lib/hash.h"
 #include "lib/fatal-signal.h"
 
@@ -182,15 +183,49 @@ int nblink_extract_proto_fields(struct ofpbuf * pktin, _nbPDMLField * field, str
     {
         uint8_t i;
         uint8_t *masked_field;
-        masked_field = (uint8_t *) malloc(field->Size);
-        uint32_t true_value = strtol(field->Value,&pEnd,10);             	
-        for (i=0;i<field->Size;i++)
-        {
-            masked_field[i] = (uint8_t)((true_value >> (8*(field->Size-i-1)) ) & 0xFF);
-        }    
-        memcpy(pktout_field->value, masked_field,field->Size);
-        
-        free(masked_field);
+        if (header == OXM_OF_VLAN_VID){
+            uint16_t m_value;   
+            sscanf(field->Value, "%hx", &m_value);
+            m_value = htons((m_value  & VLAN_VID_MASK) >> VLAN_VID_SHIFT);      
+            memcpy(pktout_field->value, &m_value, field->Size);
+        }
+        else if (header == OXM_OF_VLAN_PCP){
+            uint16_t m_value;   
+            sscanf(field->Value, "%hx", &m_value);
+            m_value = (m_value  & VLAN_PCP_MASK) >> VLAN_PCP_SHIFT;      
+            memcpy(pktout_field->value, &m_value, field->Size);
+        }
+        else if(header == OXM_OF_IP_DSCP){
+            uint8_t m_value;   
+            sscanf(field->Value, "%hhx", &m_value);
+            m_value = m_value & IP_DSCP_MASK;      
+            memcpy(pktout_field->value, &m_value, field->Size);
+        }
+        else if(header == OXM_OF_IP_ECN){
+            uint8_t m_value;   
+            sscanf(field->Value, "%hhx", &m_value);
+            m_value = m_value & OXM_OF_IP_ECN;      
+            memcpy(pktout_field->value, &m_value, field->Size);
+        }                
+        else if(header == OXM_OF_MPLS_LABEL){
+            uint32_t m_value;   
+            sscanf(field->Value, "%x", &m_value);
+            m_value = htonl((m_value & MPLS_LABEL_MASK) >> MPLS_LABEL_SHIFT); 
+            memcpy(pktout_field->value, &m_value, field->Size);
+        }
+        else if (OXM_OF_MPLS_TC){
+            uint32_t m_value;   
+            sscanf(field->Value, "%x", &m_value);
+            m_value = (m_value & MPLS_TC_MASK) >> MPLS_TC_SHIFT;     
+            memcpy(pktout_field->value, &m_value, field->Size);
+        }
+        else if (OXM_OF_MPLS_BOS){
+            uint32_t m_value;   
+            sscanf(field->Value, "%x", &m_value);
+            m_value = (m_value & MPLS_S_MASK) >> MPLS_S_SHIFT;       
+            memcpy(pktout_field->value, &m_value, field->Size);
+        }        
+
     }
     else
     {        
@@ -248,7 +283,6 @@ int nblink_extract_exthdr_fields(struct ofpbuf * pktin, struct hmap * pktout, ui
                     next_header == IPV6_TYPE_ESP ){                 
                     *ext_hdrs ^=  OFPIEH_DEST;
                     *ext_hdrs ^=  OFPIEH_UNSEQ;
-                    printf("here %d\n", *ext_hdrs);                    
                     *ext_hdrs = htons(*ext_hdrs);
                     return 0;
                 }
@@ -296,21 +330,14 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
     ext_hdr_orders.insert( pair<uint16_t,uint16_t>(OFPIEH_FRAG,FRAG_ALLOWED));
     ext_hdr_orders.insert( pair<uint16_t,uint16_t>(OFPIEH_AUTH,AUTH_ALLOWED));
     ext_hdr_orders.insert( pair<uint16_t,uint16_t>(OFPIEH_ESP,ESP_ALLOWED));
-    
-    //struct timeval start, end;
 
-    //gettimeofday(&start, NULL);
 	/* Decode packet */
 	if (Decoder->DecodePacket(LinkLayerType, PacketCounter, pkhdr, (const unsigned char*) (pktin->data)) == nbFAILURE)
 	{
 		printf("\nError decoding a packet %s\n\n", Decoder->GetLastError());
 		// Something went wrong
 		return -1;
-	}
-    /*gettimeofday(&end, NULL);        
-
-    printf("Elapsed time %ld\n", ((end.tv_sec * 1000000 + end.tv_usec)
-                  - (start.tv_sec * 1000000 + start.tv_usec)));*/
+	}       
 
 	PDMLReader->GetCurrentPacket(&curr_packet);
 
@@ -461,7 +488,6 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
             else if (protocol_Name.compare("udp") == 0 && pkt_proto->udp == NULL)
             {
                 pkt_proto->udp = (struct udp_header *) ((uint8_t*) pktin->data + proto->Position);
-                pkt_proto->tcp = (struct tcp_header *) ((uint8_t*) pktin->data + proto->Position);
                 PDMLReader->GetPDMLField(proto->Name, (char*) "sport", proto->FirstField, &field);
                 nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_UDP_SRC);
                 PDMLReader->GetPDMLField(proto->Name, (char*) "dport", proto->FirstField, &field);

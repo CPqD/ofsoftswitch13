@@ -187,18 +187,21 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                     mpls = pkt->handle_std->proto->mpls;
                     mpls->fields = (mpls->fields & ~ntohl(MPLS_LABEL_MASK)) | ntohl((mpls_label << MPLS_LABEL_SHIFT) & MPLS_LABEL_MASK);
                     memcpy(((uint8_t*)pkt->buffer->data + iter->pos) , &mpls->fields , OXM_LENGTH(iter->header));
+                    pkt->handle_std->valid = false;
                     return;
             }
             if (iter->header == OXM_OF_MPLS_TC){
                     mpls = pkt->handle_std->proto->mpls;
                     mpls->fields = (mpls->fields & ~ntohl(MPLS_TC_MASK)) | ntohl((*act->field->value << MPLS_TC_SHIFT) & MPLS_TC_MASK);
                     memcpy(((uint8_t*)pkt->buffer->data + iter->pos) , &mpls->fields , OXM_LENGTH(iter->header));
+                    pkt->handle_std->valid = false;
                     return;
             }
             if (iter->header == OXM_OF_MPLS_BOS){
                     mpls = pkt->handle_std->proto->mpls;
                     mpls->fields = (mpls->fields & ~ntohl(MPLS_S_MASK)) | ntohl((*act->field->value << MPLS_S_SHIFT) & MPLS_S_MASK);
                     memcpy(((uint8_t*)pkt->buffer->data + iter->pos) , &mpls->fields , OXM_LENGTH(iter->header));
+                    pkt->handle_std->valid = false;
                     return;             
             }
             tmp = (uint8_t*) malloc(OXM_LENGTH(iter->header));
@@ -844,6 +847,10 @@ dp_actions_output_port(struct packet *pkt, uint32_t out_port, uint32_t out_queue
                 msg.data_length =  pkt->buffer->size;                               
             }    
             
+            
+            if (!pkt->handle_std->valid){
+                packet_handle_std_validate(pkt->handle_std);
+            }
             m = xmalloc (sizeof(struct ofl_match));
             ofl_structs_match_init(m);
             /* In this implementation the fields in_port and in_phy_port 

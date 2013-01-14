@@ -496,7 +496,7 @@ oxm_entry_ok(const void *p, unsigned int match_len)
     unsigned int payload_len;
     uint32_t header;
     
-    if (match_len < 4) {
+    if (match_len <= 4) {
         if (match_len) {
             VLOG_DBG(LOG_MODULE,"oxm_match ends with partial oxm_header");
         }
