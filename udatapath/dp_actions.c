@@ -150,6 +150,7 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                     ipv4->ip_csum = recalc_csum32(ipv4->ip_csum, ipv4->ip_dst, htonl(*((uint32_t*) act->field->value)));
                 }  
                 pkt->handle_std->valid = false;
+                packet_handle_std_validate(pkt->handle_std);
                 free(aux_old);
                 return;        	       
             }
