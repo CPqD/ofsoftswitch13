@@ -19,42 +19,40 @@ Getting Started
 Pre-Building
 ------------
 
-The software switch makes use of the Netbee library to parse packets, therefore library files needed to build  
-the switch.
+The software switch makes use of the NetBee library to parse packets, so we need to install it first.
 
-To compile Netbee on your system your  
-system you need to install the following packages:
+Install the following packages:
 
     $ sudo apt-get install cmake libpcap-dev libxerces-c2-dev libpcre3-dev flex bison  
 
-Download the source code on http://www.nbee.org/download/nbeesrc-12-05-16.php
+Then download the source code from: http://www.nbee.org/download/nbeesrc-12-05-16.php
     
-Create the build system  
+Create the build system
   
     $ cd nbeesrc/src  
-    $ cmake.
+    $ cmake .
 
-Compile  
+Compile
     
     $ make
 
-Add the shared libraries built in `/nbeesrc/bin/` to your `/usr/local/lib` directory.  
+Add the shared libraries built in `/nbeesrc/bin/` to your `/usr/local/lib` directory 
 
-    $ sudo cp nbeesrc/bin/libn*.so /usr/local/lib
+    $ sudo cp ../bin/libn*.so /usr/local/lib
 
-Run `ldconfig`:
+Run `ldconfig`
 
     $ sudo ldconfig
 
-Put the folder `nbeesrc/include` in the `/usr/include`:
+Put the folder `nbeesrc/include` in the `/usr/include`
 
-    $ sudo cp -R nbeesrc/include /usr/include
+    $ sudo cp -R ../include /usr/include
 
 
 Building
 --------
 
-To build, run the following commands in the `of12softswitch` directory:
+To build, run the following commands in the `of13softswitch` directory:
 
     $ ./boot.sh
     $ ./configure
