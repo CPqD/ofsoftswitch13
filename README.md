@@ -59,12 +59,10 @@ The switch makes use of the NetBee library to parse packets, so we need to insta
 ## Building
 Run the following commands in the `of13softswitch` directory to build and install everything:
 
-    ```
     $ ./boot.sh
     $ ./configure
     $ make
     $ sudo make install
-    ```
 
 ## Running
 1. Start the datapath:
