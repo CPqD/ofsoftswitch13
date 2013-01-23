@@ -75,6 +75,7 @@ handle_control_features_request(struct datapath *dp,
              .datapath_id  = dp->id,
              .n_buffers    = dp_buffers_size(dp->buffers),
              .n_tables     = PIPELINE_TABLES,
+             .auxiliary_id = sender->conn_id,
              .capabilities = DP_SUPPORTED_CAPABILITIES,
              .reserved = 0x00000000};
 

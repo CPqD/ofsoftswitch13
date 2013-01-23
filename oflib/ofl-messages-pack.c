@@ -144,7 +144,7 @@ static int
 ofl_msg_pack_packet_in(struct ofl_msg_packet_in *msg, uint8_t **buf, size_t *buf_len) {
     struct ofp_packet_in *packet_in;
     uint8_t *ptr;
-    
+
     *buf_len = sizeof(struct ofp_packet_in) + ROUND_UP(msg->match->length - 4 ,8) + msg->data_length + 2;
     *buf     = (uint8_t *)malloc(*buf_len);
     packet_in = (struct ofp_packet_in *)(*buf);
@@ -159,13 +159,12 @@ ofl_msg_pack_packet_in(struct ofl_msg_packet_in *msg, uint8_t **buf, size_t *buf
     ptr = (*buf) + ROUND_UP((sizeof(struct ofp_packet_in)-4) + msg->match->length,8);
     /*padding bytes*/
 
-    memset(ptr,0,2); 
+    memset(ptr,0,2);
     /* Ethernet frame */
     if (msg->data_length > 0) {
-        printf("Here\n");
-        memcpy(ptr + 2 , msg->data, msg->data_length);  
+        memcpy(ptr + 2 , msg->data, msg->data_length);
     }
-    
+
     return 0;
 }
 
@@ -187,7 +186,7 @@ ofl_msg_pack_flow_removed(struct ofl_msg_flow_removed *msg, uint8_t **buf, size_
     ofr->idle_timeout  = htons( msg->stats->idle_timeout);
     ofr->packet_count  = hton64(msg->stats->packet_count);
     ofr->byte_count    = hton64(msg->stats->byte_count);
-    
+
     ptr = (*buf) + (sizeof(struct ofp_flow_removed) - 4);
 
     ofl_structs_match_pack(msg->stats->match, &(ofr->match),ptr, HOST_ORDER, exp);
@@ -246,10 +245,10 @@ static int
 ofl_msg_pack_flow_mod(struct ofl_msg_flow_mod *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
     struct ofp_flow_mod *flow_mod;
     uint8_t *ptr;
-    
+
     int i;
 
-    *buf_len = ROUND_UP(sizeof(struct ofp_flow_mod)- 4 + msg->match->length,8) + 
+    *buf_len = ROUND_UP(sizeof(struct ofp_flow_mod)- 4 + msg->match->length,8) +
                 ofl_structs_instructions_ofp_total_len(msg->instructions, msg->instructions_num, exp);
 
     *buf     = (uint8_t *)malloc(*buf_len);
@@ -266,8 +265,8 @@ ofl_msg_pack_flow_mod(struct ofl_msg_flow_mod *msg, uint8_t **buf, size_t *buf_l
     flow_mod->out_group    = htonl( msg->out_group);
     flow_mod->flags        = htons( msg->flags);
     memset(flow_mod->pad, 0x00, 2);
-    
-    ptr  = (*buf) + sizeof(struct ofp_flow_mod)- 4; 
+
+    ptr  = (*buf) + sizeof(struct ofp_flow_mod)- 4;
     ofl_structs_match_pack(msg->match, &(flow_mod->match), ptr, HOST_ORDER, exp);
     /* We advance counting the padded bytes */
     ptr = (*buf) + ROUND_UP(sizeof(struct ofp_flow_mod)- 4 + msg->match->length,8);
@@ -344,17 +343,17 @@ ofl_msg_pack_meter_mod(struct ofl_msg_meter_mod *msg, uint8_t ** buf, size_t *bu
 
     *buf_len =  sizeof(struct ofp_meter_mod) + ofl_structs_meter_bands_ofp_total_len(msg->bands, msg->meter_bands_num);
     *buf = malloc(*buf_len);
-    
+
     meter_mod = (struct ofp_meter_mod*) (*buf);
     meter_mod->command = htons(msg->command);
     meter_mod->flags = htons(msg->flags);
-    meter_mod->meter_id = ntohl(msg->meter_id); 
-    
+    meter_mod->meter_id = ntohl(msg->meter_id);
+
     ptr = (*buf) + sizeof(struct ofp_meter_mod);
     for (i=0; i < msg->meter_bands_num; i++) {
         ptr += ofl_structs_meter_band_pack(msg->bands[i], (struct ofp_meter_band_header *) ptr);
     }
-    return 0;    
+    return 0;
 }
 
 static int
@@ -363,7 +362,7 @@ ofl_msg_pack_async_config(struct ofl_msg_async_config *msg, uint8_t **buf, size_
     int i;
     *buf_len = sizeof(struct ofp_async_config);
     *buf = malloc(*buf_len);
-    
+
     ac = (struct ofp_async_config*)(*buf);
     for(i = 0; i < 2; i++){
         ac->packet_in_mask[i] = msg->config->packet_in_mask[i];
@@ -371,11 +370,11 @@ ofl_msg_pack_async_config(struct ofl_msg_async_config *msg, uint8_t **buf, size_
         ac->flow_removed_mask[i] =  msg->config->flow_removed_mask[i];
     }
     return 0;
-} 
+}
 
 static int
 ofl_msg_pack_multipart_request_flow(struct ofl_msg_multipart_request_flow *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
-    
+
     struct ofp_multipart_request *req;
     struct ofp_flow_stats_request *stats;
     uint8_t *ptr;
@@ -392,7 +391,7 @@ ofl_msg_pack_multipart_request_flow(struct ofl_msg_multipart_request_flow *msg, 
     memset(stats->pad2, 0x00, 4);
     stats->cookie      = hton64(msg->cookie);
     stats->cookie_mask = hton64(msg->cookie_mask);
-    
+
     ptr = (*buf) + sizeof(struct ofp_multipart_request) + sizeof(struct ofp_flow_stats_request);
     ofl_structs_match_pack(msg->match, &(stats->match),ptr, HOST_ORDER, exp);
 
@@ -447,24 +446,24 @@ ofl_msg_pack_multipart_request_group(struct ofl_msg_multipart_request_group *msg
     return 0;
 }
 
-static int 
+static int
 ofl_msg_pack_multipart_request_table_features(struct ofl_msg_multipart_request_table_features *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
     struct ofp_multipart_request *req;
     size_t i, features_len;
     uint8_t *data;
-    
+
     features_len = ofl_structs_table_features_ofp_total_len(msg->table_features, msg->tables_num, exp);
     *buf_len = sizeof(struct ofp_multipart_request) + features_len;
     *buf = (uint8_t*) malloc(*buf_len);
-    
+
     req = (struct ofp_multipart_request*) (*buf);
-    
-    if (features_len){ 
+
+    if (features_len){
         data = (uint8_t*) req->body;
         for(i = 0; i < msg->tables_num; i++ ){
-            data += ofl_structs_table_features_pack(msg->table_features[i], (struct ofp_table_features*) data, data, exp);    
+            data += ofl_structs_table_features_pack(msg->table_features[i], (struct ofp_table_features*) data, data, exp);
         }
-    }        
+    }
     return 0;
 }
 
@@ -472,16 +471,16 @@ static int
 ofl_msg_pack_meter_multipart_request(struct ofl_msg_multipart_meter_request *msg, uint8_t **buf, size_t *buf_len){
 
     struct ofp_multipart_request *req;
-    struct ofp_meter_multipart_request *stats;    
-    
+    struct ofp_meter_multipart_request *stats;
+
     *buf_len = sizeof(struct ofp_multipart_request) + sizeof(struct ofp_meter_multipart_request);
     *buf = (uint8_t*) malloc(*buf_len);
 
     req = (struct ofp_multipart_request*) (*buf);
     stats = (struct ofp_meter_multipart_request*) req->body;
     stats->meter_id = htonl(msg->meter_id);
-    memset(stats->pad, 0x00, 4);    
-    
+    memset(stats->pad, 0x00, 4);
+
     return 0;
 }
 
@@ -533,24 +532,24 @@ ofl_msg_pack_multipart_request(struct ofl_msg_multipart_request_header *msg, uin
     case OFPMP_GROUP_FEATURES: {
         error = ofl_msg_pack_multipart_request_empty(msg, buf, buf_len);
         break;
-    }    
-   case OFPMP_METER: 
+    }
+   case OFPMP_METER:
    case OFPMP_METER_CONFIG:{
         error = ofl_msg_pack_meter_multipart_request((struct ofl_msg_multipart_meter_request*)msg, buf, buf_len);
-        break;    
-   }  
+        break;
+   }
    case OFPMP_METER_FEATURES:{
         error = ofl_msg_pack_multipart_request_empty(msg, buf, buf_len);
-        break;    
-   } 
+        break;
+   }
    case OFPMP_TABLE_FEATURES:{
         ofl_msg_pack_multipart_request_table_features((struct ofl_msg_multipart_request_table_features*)msg, buf, buf_len,exp);
-        break;    
-   }   
+        break;
+   }
    case OFPMP_PORT_DESC:{
         error = ofl_msg_pack_multipart_request_empty(msg, buf, buf_len);
-        break;    
-   } 
+        break;
+   }
     case OFPMP_EXPERIMENTER: {
         if (exp == NULL || exp->stats == NULL || exp->stats->req_pack == NULL) {
             OFL_LOG_WARN(LOG_MODULE, "Trying to pack experimenter stat req, but no callback was given.");
@@ -608,7 +607,7 @@ ofl_msg_pack_multipart_reply_flow(struct ofl_msg_multipart_reply_flow *msg, uint
     *buf_len = sizeof(struct ofp_multipart_reply) + ofl_structs_flow_stats_ofp_total_len(msg->stats, msg->stats_num, exp);
     *buf     = (uint8_t *)malloc(*buf_len);
     resp = (struct ofp_multipart_reply *)(*buf);
-    data = (uint8_t*) resp->body; 
+    data = (uint8_t*) resp->body;
     for (i=0; i<msg->stats_num; i++) {
         data += ofl_structs_flow_stats_pack(msg->stats[i], data, exp);
     }
@@ -745,21 +744,21 @@ ofl_msg_pack_multipart_reply_group_features(struct ofl_msg_multipart_reply_group
     return 0;
 }
 
-static int 
+static int
 ofl_msg_pack_multipart_reply_table_features(struct ofl_msg_multipart_reply_table_features *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
     struct ofp_multipart_reply *resp;
     size_t i, features_len;
     uint8_t *data;
-    
+
     features_len = ofl_structs_table_features_ofp_total_len(msg->table_features, msg->tables_num, exp);
     *buf_len = sizeof(struct ofp_multipart_reply) + features_len;
     *buf = (uint8_t*) malloc(*buf_len);
 
     resp = (struct ofp_multipart_reply*) (*buf);
-    if (features_len){ 
+    if (features_len){
         data = (uint8_t*) resp->body;
         for(i = 0; i < msg->tables_num; i++ ){
-           data += ofl_structs_table_features_pack(msg->table_features[i], (struct ofp_table_features*) data, data, exp);    
+           data += ofl_structs_table_features_pack(msg->table_features[i], (struct ofp_table_features*) data, data, exp);
         }
     }
     return 0;
@@ -825,14 +824,14 @@ static int
 ofl_msg_pack_multipart_reply_meter_features(struct ofl_msg_multipart_reply_meter_features *msg, uint8_t **buf, size_t *buf_len) {
     struct ofp_multipart_reply *resp;
     struct ofp_meter_features *feat;
-    
+
     *buf_len = sizeof(struct ofp_multipart_reply) + sizeof(struct ofp_meter_features);
     *buf     = (uint8_t *)malloc(*buf_len);
     resp = (struct ofp_multipart_reply *)(*buf);
     feat = (struct ofp_meter_features *)resp->body;
     feat->max_meter = htonl(msg->features->max_meter);
     feat->band_types = htonl(msg->features->band_types);
-    feat->capabilities = htonl(msg->features->capabilities); 
+    feat->capabilities = htonl(msg->features->capabilities);
     feat->max_bands = msg->features->max_bands;
     feat->max_color = msg->features->max_color;
     memset(feat->pad, 0x0, 2);
@@ -863,7 +862,7 @@ ofl_msg_pack_multipart_reply(struct ofl_msg_multipart_reply_header *msg, uint8_t
             break;
         }
         case OFPMP_TABLE_FEATURES: {
-            error = ofl_msg_pack_multipart_reply_table_features((struct ofl_msg_multipart_reply_table_features*)msg, buf, buf_len, exp);        
+            error = ofl_msg_pack_multipart_reply_table_features((struct ofl_msg_multipart_reply_table_features*)msg, buf, buf_len, exp);
             break;
         }
         case OFPMP_PORT_STATS: {
@@ -887,7 +886,7 @@ ofl_msg_pack_multipart_reply(struct ofl_msg_multipart_reply_header *msg, uint8_t
             break;
         }
         case OFPMP_METER:{
-            error = ofl_msg_pack_multipart_reply_meter_stats((struct ofl_msg_multipart_reply_meter*)msg, buf, buf_len);      
+            error = ofl_msg_pack_multipart_reply_meter_stats((struct ofl_msg_multipart_reply_meter*)msg, buf, buf_len);
             break;
         }
         case OFPMP_METER_CONFIG:{
@@ -1039,11 +1038,11 @@ ofl_msg_pack(struct ofl_msg_header *msg, uint32_t xid, uint8_t **buf, size_t *bu
         /* Controller command messages. */
         case OFPT_GET_ASYNC_REQUEST:{
             error = ofl_msg_pack_empty(msg, buf, buf_len);
-            break;        
+            break;
         }
         case OFPT_GET_ASYNC_REPLY:
         case OFPT_SET_ASYNC:{
-            error = ofl_msg_pack_async_config((struct ofl_msg_async_config *)msg, buf, buf_len);       
+            error = ofl_msg_pack_async_config((struct ofl_msg_async_config *)msg, buf, buf_len);
             break;
         }
         case OFPT_PACKET_OUT: {
@@ -1067,10 +1066,10 @@ ofl_msg_pack(struct ofl_msg_header *msg, uint32_t xid, uint8_t **buf, size_t *bu
             break;
         }
         case OFPT_METER_MOD:{
-            error =  ofl_msg_pack_meter_mod((struct ofl_msg_meter_mod *)msg, buf, buf_len);            
-			break;        
+            error =  ofl_msg_pack_meter_mod((struct ofl_msg_meter_mod *)msg, buf, buf_len);
+			break;
 		}
-		
+
         /* Statistics messages. */
         case OFPT_MULTIPART_REQUEST: {
             error = ofl_msg_pack_multipart_request((struct ofl_msg_multipart_request_header *)msg, buf, buf_len, exp);
@@ -1108,7 +1107,7 @@ ofl_msg_pack(struct ofl_msg_header *msg, uint32_t xid, uint8_t **buf, size_t *bu
             error = -1;
         }
     }
-        
+
     if (error) {
         return error;
         // TODO Zoltan: free buffer?
