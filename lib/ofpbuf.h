@@ -35,6 +35,7 @@
 #define OFPBUF_H 1
 
 #include <stddef.h>
+#include <stdint.h>
 
 /* Buffer for holding arbitrary data.  An ofpbuf is automatically reallocated
  * as necessary if it grows too large for the available memory. */
@@ -42,6 +43,9 @@ struct ofpbuf {
     void *base;                 /* First byte of area malloc()'d area. */
     size_t allocated;           /* Number of bytes allocated. */
 
+    uint8_t conn_id;            /* Connection ID. Application-defined value to 
+                                   associate a connection to the buffer. */
+                                   
     void *data;                 /* First byte actually in use. */
     size_t size;                /* Number of bytes in use. */
 

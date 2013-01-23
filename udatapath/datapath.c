@@ -71,8 +71,9 @@
 static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(60, 60);
 
 
-static struct remote *remote_create(struct datapath *, struct rconn *);
+static struct remote *remote_create(struct datapath *dp, struct rconn *rconn, struct rconn *rconn_aux);
 static void remote_run(struct datapath *, struct remote *);
+static void remote_rconn_run(struct datapath *, struct remote *, uint8_t);
 static void remote_wait(struct remote *);
 static void remote_destroy(struct remote *);
 
@@ -82,6 +83,9 @@ static void remote_destroy(struct remote *);
 #define SW_DESC      __DATE__" "__TIME__
 #define DP_DESC      "OpenFlow 1.3 Reference Userspace Switch Datapath"
 #define SERIAL_NUM   "1"
+
+#define MAIN_CONNECTION 0
+#define PTIN_CONNECTION 1
 
 
 /* Callbacks for processing experimenter messages in OFLib. */
@@ -132,7 +136,9 @@ dp_new(void) {
     list_init(&dp->remotes);
     dp->listeners = NULL;
     dp->n_listeners = 0;
-
+    dp->listeners_aux = NULL;
+    dp->n_listeners_aux = 0;
+    
     memset(dp->ports, 0x00, sizeof (dp->ports));
     dp->local_port = NULL;
 
@@ -167,10 +173,14 @@ dp_new(void) {
 
 
 void
-dp_add_pvconn(struct datapath *dp, struct pvconn *pvconn) {
+dp_add_pvconn(struct datapath *dp, struct pvconn *pvconn, struct pvconn *pvconn_aux) {
     dp->listeners = xrealloc(dp->listeners,
                              sizeof *dp->listeners * (dp->n_listeners + 1));
     dp->listeners[dp->n_listeners++] = pvconn;
+    
+    dp->listeners_aux = xrealloc(dp->listeners_aux,
+                             sizeof *dp->listeners_aux * (dp->n_listeners_aux + 1));
+    dp->listeners_aux[dp->n_listeners_aux++] = pvconn_aux;
 }
 
 void
@@ -196,12 +206,25 @@ dp_run(struct datapath *dp) {
     for (i = 0; i < dp->n_listeners; ) {
         struct pvconn *pvconn = dp->listeners[i];
         struct vconn *new_vconn;
+        
         int retval = pvconn_accept(pvconn, OFP_VERSION, &new_vconn);
         if (!retval) {
-            remote_create(dp, rconn_new_from_vconn("passive", new_vconn));
-        } else if (retval != EAGAIN) {
+            struct rconn * rconn_aux = NULL;
+            if (dp->n_listeners_aux && dp->listeners_aux[i] != NULL) {
+                struct pvconn *pvconn_aux = dp->listeners_aux[i];
+                struct vconn *new_vconn_aux;
+                int retval_aux = pvconn_accept(pvconn_aux, OFP_VERSION, &new_vconn_aux);
+                if (!retval_aux)
+                    rconn_aux = rconn_new_from_vconn("passive_aux", new_vconn_aux);
+            }
+            remote_create(dp, rconn_new_from_vconn("passive", new_vconn), rconn_aux);
+        }
+        else if (retval != EAGAIN) {
             VLOG_WARN_RL(LOG_MODULE, &rl, "accept failed (%s)", strerror(retval));
             dp->listeners[i] = dp->listeners[--dp->n_listeners];
+            if (dp->n_listeners_aux) {
+                dp->listeners_aux[i] = dp->listeners_aux[--dp->n_listeners_aux];
+            }
             continue;
         }
         i++;
@@ -211,25 +234,44 @@ dp_run(struct datapath *dp) {
 static void
 remote_run(struct datapath *dp, struct remote *r)
 {
+    remote_rconn_run(dp, r, MAIN_CONNECTION);
+    
+    if (!rconn_is_alive(r->rconn)) {
+        remote_destroy(r);
+        return;
+    }
+    
+    if (r->rconn_aux == NULL || !rconn_is_alive(r->rconn_aux))
+        return;
+    
+    remote_rconn_run(dp, r, PTIN_CONNECTION);
+}
+
+static void
+remote_rconn_run(struct datapath *dp, struct remote *r, uint8_t conn_id) {
+    struct rconn *rconn;
     ofl_err error;
     size_t i;
-
-    rconn_run(r->rconn);
-
+        
+    if (conn_id == MAIN_CONNECTION)
+        rconn = r->rconn;
+    else if (conn_id == PTIN_CONNECTION)
+        rconn = r->rconn_aux;
+                
+    rconn_run(rconn);
     /* Do some remote processing, but cap it at a reasonable amount so that
      * other processing doesn't starve. */
     for (i = 0; i < 50; i++) {
         if (!r->cb_dump) {
             struct ofpbuf *buffer;
 
-            buffer = rconn_recv(r->rconn);
+            buffer = rconn_recv(rconn);
             if (buffer == NULL) {
                 break;
-
             } else {
                 struct ofl_msg_header *msg;
 
-                struct sender sender = {.remote = r};
+                struct sender sender = {.remote = r, .conn_id = conn_id};
 
                 error = ofl_msg_unpack(buffer->data, buffer->size, &msg, &(sender.xid), dp->exp);
 
@@ -269,10 +311,6 @@ remote_run(struct datapath *dp, struct remote *r)
             }
         }
     }
-
-    if (!rconn_is_alive(r->rconn)) {
-        remote_destroy(r);
-    }
 }
 
 static void
@@ -280,6 +318,11 @@ remote_wait(struct remote *r)
 {
     rconn_run_wait(r->rconn);
     rconn_recv_wait(r->rconn);
+    
+    if (r->rconn_aux) {
+        rconn_run_wait(r->rconn_aux);
+        rconn_recv_wait(r->rconn_aux);    
+    }
 }
 
 static void
@@ -287,21 +330,25 @@ remote_destroy(struct remote *r)
 {
     if (r) {
         if (r->cb_dump && r->cb_done) {
-            r->cb_done(r->cb_aux);
+             r->cb_done(r->cb_aux);    
         }
         list_remove(&r->node);
+        if (r->rconn_aux != NULL) {
+            rconn_destroy(r->rconn_aux);
+        }
         rconn_destroy(r->rconn);
         free(r);
     }
 }
 
 static struct remote *
-remote_create(struct datapath *dp, struct rconn *rconn)
+remote_create(struct datapath *dp, struct rconn *rconn, struct rconn *rconn_aux)
 {
     size_t i;
     struct remote *remote = xmalloc(sizeof *remote);
     list_push_back(&dp->remotes, &remote->node);
     remote->rconn = rconn;
+    remote->rconn_aux = rconn_aux;
     remote->cb_dump = NULL;
     remote->n_txq = 0;
     remote->role = OFPCR_ROLE_EQUAL;
@@ -379,12 +426,21 @@ dp_set_max_queues(struct datapath *dp, uint32_t max_queues) {
 
 static int
 send_openflow_buffer_to_remote(struct ofpbuf *buffer, struct remote *remote) {
-    int retval = rconn_send_with_limit(remote->rconn, buffer, &remote->n_txq,
+    struct rconn* rconn = remote->rconn;
+    int retval;
+    if (buffer->conn_id == PTIN_CONNECTION && 
+        remote->rconn != NULL &&
+        remote->rconn_aux != NULL && 
+        rconn_is_connected(remote->rconn) && 
+        rconn_is_connected(remote->rconn_aux)) {
+            rconn = remote->rconn_aux;
+    }
+    retval = rconn_send_with_limit(rconn, buffer, &remote->n_txq,
                                       TXQ_LIMIT);
      
     if (retval) {
         VLOG_WARN_RL(LOG_MODULE, &rl, "send to %s failed: %s",
-                     rconn_get_name(remote->rconn), strerror(retval));
+                     rconn_get_name(rconn), strerror(retval));
     }
     
     return retval;
@@ -496,6 +552,19 @@ dp_send_message(struct datapath *dp, struct ofl_msg_header *msg,
     ofpbuf = ofpbuf_new(0);
     ofpbuf_use(ofpbuf, buf, buf_size);
     ofpbuf_put_uninit(ofpbuf, buf_size);
+    
+    /* Choose the connection to send the packet to.
+       1) By default, we send it to the main connection
+       2) If there's an associated sender, send the response to the same 
+          connection the request came from
+       3) If it's a packet in, use the auxiliary connection
+    */
+    ofpbuf->conn_id = MAIN_CONNECTION;
+    if (sender != NULL)
+        ofpbuf->conn_id = sender->conn_id;
+    if (msg->type == OFPT_PACKET_IN)
+        ofpbuf->conn_id = PTIN_CONNECTION;
+    
     error = send_openflow_buffer(dp, ofpbuf, sender);
     if (error) {
         VLOG_WARN_RL(LOG_MODULE, &rl, "There was an error sending the message!");

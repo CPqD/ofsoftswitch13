@@ -80,6 +80,8 @@ static char *local_port = "tap:";
 
 static void add_ports(struct datapath *dp, char *port_list);
 
+static bool use_multiple_connections = false;
+
 /* Need to treat this more generically */
 #if defined(UDATAPATH_AS_LIB)
 #define OFP_FATAL(_er, _str, args...) do {                \
@@ -121,15 +123,30 @@ udatapath_cmd(int argc, char *argv[])
           "use --help for usage");
     }
 
+    if (use_multiple_connections && (argc - optind) % 2 != 0)
+        OFP_FATAL(0, "when using multiple connections, you must specify an even number of listeners");
+        
     n_listeners = 0;
-    for (i = optind; i < argc; i++) {
+    for (i = optind; i < argc; i += 2) {
         const char *pvconn_name = argv[i];
-        struct pvconn *pvconn;
-        int retval;
+        const char *pvconn_name_aux = NULL;
+        if (use_multiple_connections)
+            pvconn_name_aux = argv[i + 1];
+
+        struct pvconn *pvconn, *pvconn_aux = NULL;
+        int retval, retval_aux;
 
         retval = pvconn_open(pvconn_name, &pvconn);
         if (!retval || retval == EAGAIN) {
-            dp_add_pvconn(dp, pvconn);
+            // Get another listener if we are using auxiliary connections
+            if (use_multiple_connections) {
+                retval_aux = pvconn_open(pvconn_name_aux, &pvconn_aux);
+                if (retval_aux && retval_aux != EAGAIN) {
+                    ofp_error(retval_aux, "opening auxiliary %s", pvconn_name_aux);
+                    pvconn_aux = NULL;
+                }
+            }
+            dp_add_pvconn(dp, pvconn, pvconn_aux);
             n_listeners++;
         } else {
             ofp_error(retval, "opening %s", pvconn_name);
@@ -203,6 +220,7 @@ parse_options(struct datapath *dp, int argc, char *argv[])
         {"local-port",  required_argument, 0, 'L'},
         {"no-local-port", no_argument, 0, OPT_NO_LOCAL_PORT},
         {"datapath-id", required_argument, 0, 'd'},
+        {"multiconn",     no_argument, 0, 'm'},
         {"verbose",     optional_argument, 0, 'v'},
         {"help",        no_argument, 0, 'h'},
         {"version",     no_argument, 0, 'V'},
@@ -246,6 +264,12 @@ parse_options(struct datapath *dp, int argc, char *argv[])
             dp_set_dpid(dp, dpid);
             break;
         }
+        
+        case 'm': {
+            use_multiple_connections = true;
+            break;
+        }
+        
         case 'h':
             usage();
 
@@ -334,6 +358,8 @@ usage(void)
            "  --no-local-port         disable local port\n"
            "  -d, --datapath-id=ID    Use ID as the OpenFlow switch ID\n"
            "                          (ID must consist of 12 hex digits)\n"
+           "  -m, --multiconn         enable multiple connections to the\n"
+           "                          same controller.\n"
            "  --no-slicing            disable slicing\n"
            "\nOther options:\n"
            "  -D, --detach            run in background as daemon\n"

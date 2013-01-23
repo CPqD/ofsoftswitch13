@@ -345,32 +345,35 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
     struct ofl_table_features **features;
     struct ofl_msg_multipart_request_table_features *feat = (struct ofl_msg_multipart_request_table_features *) msg;
     
-    j = 0;
-    /* If the message body is empty
-       query for table capabilities */
-    if(feat->table_features == NULL){
-       loop: ;
-       features = (struct ofl_table_features**) xmalloc(sizeof(struct ofl_table_features) * 17);
-       for (i = 0; i < 8; i++){
-            features[i] = pl->tables[j]->features; 
-            j++;
-       } 
-        {
-            struct ofl_msg_multipart_reply_table_features reply =
-                {{{.type = OFPT_MULTIPART_REPLY},
-                  .type = OFPMP_TABLE_FEATURES, .flags = j == PIPELINE_TABLES? 0x00000000:OFPMPF_REPLY_MORE},
-                 .table_features     = features,
-                 .tables_num = 8};
-            dp_send_message(pl->dp, (struct ofl_msg_header *)&reply, sender);                 
+    /*Check to see if the body is empty*/
+    if(feat->table_features != NULL){
+        /* Change tables configuration 
+           TODO: Remove flows*/
+        for(i = 0; i < feat->tables_num; i++){
+            pl->tables[feat->table_features[i]->table_id]->features = feat->table_features[i]; 
         } 
-       if (j < PIPELINE_TABLES){
+    }
+
+    j = 0;
+    /* Query for table capabilities */
+    loop: ;
+    features = (struct ofl_table_features**) xmalloc(sizeof(struct ofl_table_features) * 8);
+    for (i = 0; i < 8; i++){
+        features[i] = pl->tables[j]->features; 
+        j++;
+    } 
+    {
+    struct ofl_msg_multipart_reply_table_features reply =
+        {{{.type = OFPT_MULTIPART_REPLY},
+          .type = OFPMP_TABLE_FEATURES, .flags = j == PIPELINE_TABLES? 0x00000000:OFPMPF_REPLY_MORE},
+          .table_features     = features,
+          .tables_num = 8};
+          dp_send_message(pl->dp, (struct ofl_msg_header *)&reply, sender);                 
+    } 
+    if (j < PIPELINE_TABLES){
            goto loop;
-       }          
-    }
-    /* Change tables configuration */
-    else{ 
-        
-    }
+    }          
+   
     return 0;
 }                                    
 
