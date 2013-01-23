@@ -348,7 +348,7 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
 
 static inline bool
 strict_mask8(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
-	return (am[0] == bm[0]) && ((a[0] ^ b[0]) & ~am[0]) == 0;
+	return ((am[0] == bm[0]) && ((a[0] ^ b[0]) & ~am[0])) == 0;
 }
 
 static inline bool
@@ -357,7 +357,7 @@ strict_mask16(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
     uint16_t *b1 = (uint16_t *) b;
     uint16_t *mask_a = (uint16_t *) am;
 	uint16_t *mask_b = (uint16_t *) bm;
-	return (*mask_a == *mask_b) && ((*a1 ^ *b1) & ~(*mask_a)) == 0;
+	return ((*mask_a == *mask_b) && ((*a1 ^ *b1) & ~(*mask_a))) == 0;
 }
 
 static inline bool
@@ -366,7 +366,7 @@ strict_mask32(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
     uint32_t *b1 = (uint32_t *) b;
     uint32_t *mask_a = (uint32_t *) am;
 	uint32_t *mask_b = (uint32_t *) bm;
-	return (*mask_a == *mask_b) && ((*a1 ^ *b1) & ~(*mask_a)) == 0;
+	return ((*mask_a == *mask_b) && ((*a1 ^ *b1) & ~(*mask_a))) == 0;
 }
 
 static inline bool
@@ -375,7 +375,7 @@ strict_mask64(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
     uint64_t *b1 = (uint64_t *) b;
     uint64_t *mask_a = (uint64_t *) am;
 	uint64_t *mask_b = (uint64_t *) bm;
-	return (*mask_a == *mask_b) && ((*a1 ^ *b1) & ~(*mask_a)) == 0;
+	return ((*mask_a == *mask_b) && ((*a1 ^ *b1) & ~(*mask_a))) == 0;
 }
 
 static inline bool
@@ -404,7 +404,6 @@ match_std_strict(struct ofl_match *a, struct ofl_match *b) {
     struct ofl_match_tlv *flow_mod_match; 
     struct ofl_match_tlv *flow_entry_match;
     bool ret = false;
-
     /*Both matches all wildcarded */
     if(!a->header.length && !b->header.length )
         return true;
@@ -427,6 +426,10 @@ match_std_strict(struct ofl_match *a, struct ofl_match *b) {
                 }
                 ret = true;
                 has_mask = OXM_HASMASK(flow_mod_match->header);
+                if (has_mask)
+                {
+                    field_len = field_len/2;
+                }
                 switch (field_len){
                     case (sizeof(uint8_t)):{
                         if (has_mask){
@@ -453,9 +456,8 @@ match_std_strict(struct ofl_match *a, struct ofl_match *b) {
                         break;
                     } 
                     case (sizeof(uint32_t)):{ 
-
                         if (has_mask){
-                            if (strict_mask32(flow_mod_match->value,flow_entry_match->value + field_len, flow_entry_match->value,flow_entry_match->value + field_len) ){
+                            if (strict_mask32(flow_mod_match->value,flow_entry_match->value + field_len, flow_entry_match->value,flow_entry_match->value + field_len) == 0 ){
                               return false;
                             }
                         }
