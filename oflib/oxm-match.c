@@ -259,7 +259,7 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
         /* 802.1Q header. */
         case OFI_OXM_OF_VLAN_VID:{
             uint16_t* vlan_id = (uint16_t*) value;
-            if (ntohs(*vlan_id)> 4095){
+            if (ntohs(*vlan_id)> OFPVID_PRESENT+VLAN_VID_MAX){
                 return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_VALUE);
             }
             else
@@ -269,8 +269,9 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
 
         case OFI_OXM_OF_VLAN_VID_W:{
             uint16_t* vlan_id = (uint16_t*) value;
-            uint16_t* vlan_mask = (uint16_t*) value;
-            if (ntohs(*vlan_id) > 4095)
+            uint16_t* vlan_mask = (uint16_t*) mask;
+
+            if (ntohs(*vlan_id) > OFPVID_PRESENT+VLAN_VID_MAX)
                 return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_VALUE);
             else 
                 ofl_structs_match_put16m(match, f->header, ntohs(*vlan_id), ntohs(*vlan_mask));
