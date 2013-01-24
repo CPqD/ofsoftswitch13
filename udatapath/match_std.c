@@ -327,23 +327,13 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
                 } // end of switch case
             } // end of if (OXM_TYPE(f->header) == OXM_TYPE(packet_f->header))
         } // end of packet_match loop
-<<<<<<< HEAD
         if (OXM_TYPE(f->header) == OXM_TYPE(OXM_OF_VLAN_VID))
         	if (*((uint16_t*)f->value) == OFPVID_NONE)
-        		ret = true;
-=======
-        printf("EZchip - after packet match loop %x\n", OXM_TYPE(f->header));
-        if (OXM_TYPE(f->header) == OXM_TYPE(OXM_OF_VLAN_VID)) {
-        	if (*((uint16_t*)f->value) == OFPVID_NONE) {
-        		printf(" none vlan \n");
-        		ret = true;
-        	}
-        }
->>>>>>> 5949910e58cd49ca87df228fba4ab126096c97d3
+        		ret = true; // in case the packet has no vlan and this is what was expected
 
-         if (!ret)
-            return ret;
-         else ret = false;      
+        if (!ret)
+           return ret;
+        else ret = false;
     } // end of flow_match loop
 
     return true;
