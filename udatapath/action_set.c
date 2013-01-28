@@ -1,5 +1,5 @@
 /* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary
- * Copyright (c) 2012, CPqD, Brazil 
+ * Copyright (c) 2012, CPqD, Brazil
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,11 @@
 #include "packet.h"
 #include "list.h"
 #include "util.h"
+#include "vlog.h"
+
+#define LOG_MODULE VLM_action_set
+
+static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(60, 60);
 
 struct action_set_entry;
 
@@ -72,6 +77,8 @@ action_set_order(struct ofl_action_header *act) {
         case (OFPAT_SET_FIELD):      return 60;
         case (OFPAT_SET_MPLS_TTL):   return 60;
         case (OFPAT_DEC_MPLS_TTL):   return 50;
+        case (OFPAT_PUSH_PBB):       return 30;
+        case (OFPAT_POP_PBB):        return 20;
         case (OFPAT_PUSH_VLAN):      return 30;
         case (OFPAT_POP_VLAN):       return 20;
         case (OFPAT_PUSH_MPLS):      return 30;
@@ -168,10 +175,11 @@ action_set_write_actions(struct action_set *set,
                          size_t actions_num,
                          struct ofl_action_header **actions) {
     size_t i;
-
+    VLOG_DBG_RL(LOG_MODULE, &rl, "Writing to action set.");
     for (i=0; i<actions_num; i++) {
         action_set_write_action(set, actions[i]);
     }
+    VLOG_DBG_RL(LOG_MODULE, &rl, action_set_to_string(set));
 }
 
 void

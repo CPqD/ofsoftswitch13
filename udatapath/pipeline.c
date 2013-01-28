@@ -1,5 +1,5 @@
 /* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary
- * Copyright (c) 2012, CPqD, Brazil  
+ * Copyright (c) 2012, CPqD, Brazil
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -73,7 +73,7 @@ pipeline_create(struct datapath *dp) {
     pl->dp = dp;
 
     nblink_initialize();
-    
+
     return pl;
 }
 
@@ -91,8 +91,8 @@ send_packet_to_controller(struct pipeline *pl, struct packet *pkt, uint8_t table
     msg.table_id    = table_id;
     msg.cookie      = 0xffffffffffffffff;
     msg.data = pkt->buffer->data;
-         
-          
+
+
     /* A max_len of OFPCML_NO_BUFFER means that the complete
         packet should be sent, and it should not be buffered.*/
     if (pl->dp->config.miss_send_len != OFPCML_NO_BUFFER){
@@ -103,16 +103,16 @@ send_packet_to_controller(struct pipeline *pl, struct packet *pkt, uint8_t table
         msg.buffer_id   = OFP_NO_BUFFER;
         msg.data_length = pkt->buffer->size;
     }
- 
+
     m = xmalloc (sizeof(struct ofl_match));
     ofl_structs_match_init(m);
-    /* In this implementation the fields in_port and in_phy_port 
+    /* In this implementation the fields in_port and in_phy_port
         always will be the same, because we are not considering logical
         ports                                 */
     ofl_structs_match_convert_pktf2oflm(&pkt->handle_std->match.match_fields, m);
     msg.match = (struct ofl_match_header*)m;
     dp_send_message(pl->dp, (struct ofl_msg_header *)&msg, NULL);
-    ofl_structs_free_match((struct ofl_match_header* ) m, NULL); 
+    ofl_structs_free_match((struct ofl_match_header* ) m, NULL);
 }
 
 void
@@ -124,11 +124,11 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
         VLOG_DBG_RL(LOG_MODULE, &rl, "processing packet: %s", pkt_str);
         free(pkt_str);
     }
- 
+
     if (!packet_handle_std_is_ttl_valid(pkt->handle_std)) {
         if ((pl->dp->config.flags & OFPC_INVALID_TTL_TO_CONTROLLER) != 0) {
             VLOG_DBG_RL(LOG_MODULE, &rl, "Packet has invalid TTL, sending to controller.");
-            
+
             send_packet_to_controller(pl, pkt, 0/*table_id*/, OFPR_INVALID_TTL);
         } else {
             VLOG_DBG_RL(LOG_MODULE, &rl, "Packet has invalid TTL, dropping.");
@@ -146,7 +146,7 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
         pkt->table_id = next_table->stats->table_id;
         table         = next_table;
         next_table    = NULL;
-         
+
         entry = flow_table_lookup(table, pkt);
         if (entry != NULL) {
 	        if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
@@ -159,7 +159,7 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
             /* Packet could be destroyed by a meter instruction */
             if (!pkt)
                 return;
-            
+
             if (next_table == NULL) {
                /* Cookie field is set 0xffffffffffffffff
                 because we cannot associate it to any
@@ -179,6 +179,16 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
     VLOG_WARN_RL(LOG_MODULE, &rl, "Reached outside of pipeline processing cycle.");
 }
 
+static
+int inst_compare(const void *inst1, const void *inst2){
+    struct ofl_instruction_header * i1 = *(struct ofl_instruction_header **) inst1;
+    struct ofl_instruction_header * i2 = *(struct ofl_instruction_header **) inst2;
+    if ((i1->type == OFPIT_APPLY_ACTIONS && i2->type == OFPIT_CLEAR_ACTIONS) ||
+        (i1->type == OFPIT_CLEAR_ACTIONS && i2->type == OFPIT_APPLY_ACTIONS))
+        return i1->type > i2->type;
+
+    return i1->type < i2->type;
+}
 
 ofl_err
 pipeline_handle_flow_mod(struct pipeline *pl, struct ofl_msg_flow_mod *msg,
@@ -188,13 +198,17 @@ pipeline_handle_flow_mod(struct pipeline *pl, struct ofl_msg_flow_mod *msg,
      *       from all tables */
     ofl_err error;
     size_t i;
-    bool match_kept,insts_kept; 
+    bool match_kept,insts_kept;
 
     if(sender->remote->role == OFPCR_ROLE_SLAVE)
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_IS_SLAVE);
 
     match_kept = false;
     insts_kept = false;
+
+    /*Sort by execution oder*/
+    qsort(msg->instructions, msg->instructions_num,
+        sizeof(struct ofl_instruction_header), inst_compare);
 
     // Validate actions in flow_mod
     for (i=0; i< msg->instructions_num; i++) {
@@ -257,10 +271,10 @@ ofl_err
 pipeline_handle_table_mod(struct pipeline *pl,
                           struct ofl_msg_table_mod *msg,
                           const struct sender *sender) {
-                          
+
     if(sender->remote->role == OFPCR_ROLE_SLAVE)
-        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_IS_SLAVE);    
-    
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_IS_SLAVE);
+
     if (msg->table_id == 0xff) {
         size_t i;
 
@@ -343,15 +357,16 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
                                     const struct sender *sender) {
     size_t i, j;
     struct ofl_table_features **features;
-    struct ofl_msg_multipart_request_table_features *feat = (struct ofl_msg_multipart_request_table_features *) msg;
-    
+    struct ofl_msg_multipart_request_table_features *feat =
+                       (struct ofl_msg_multipart_request_table_features *) msg;
+
     /*Check to see if the body is empty*/
     if(feat->table_features != NULL){
-        /* Change tables configuration 
+        /* Change tables configuration
            TODO: Remove flows*/
         for(i = 0; i < feat->tables_num; i++){
-            pl->tables[feat->table_features[i]->table_id]->features = feat->table_features[i]; 
-        } 
+            pl->tables[feat->table_features[i]->table_id]->features = feat->table_features[i];
+        }
     }
 
     j = 0;
@@ -359,23 +374,23 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
     loop: ;
     features = (struct ofl_table_features**) xmalloc(sizeof(struct ofl_table_features) * 8);
     for (i = 0; i < 8; i++){
-        features[i] = pl->tables[j]->features; 
+        features[i] = pl->tables[j]->features;
         j++;
-    } 
+    }
     {
     struct ofl_msg_multipart_reply_table_features reply =
         {{{.type = OFPT_MULTIPART_REPLY},
           .type = OFPMP_TABLE_FEATURES, .flags = j == PIPELINE_TABLES? 0x00000000:OFPMPF_REPLY_MORE},
           .table_features     = features,
           .tables_num = 8};
-          dp_send_message(pl->dp, (struct ofl_msg_header *)&reply, sender);                 
-    } 
+          dp_send_message(pl->dp, (struct ofl_msg_header *)&reply, sender);
+    }
     if (j < PIPELINE_TABLES){
            goto loop;
-    }          
-   
+    }
+
     return 0;
-}                                    
+}
 
 ofl_err
 pipeline_handle_stats_request_aggregate(struct pipeline *pl,
@@ -432,37 +447,30 @@ pipeline_timeout(struct pipeline *pl) {
     }
 }
 
-
-/* Returns the instruction with the given type from the set of instructions. */
-static struct ofl_instruction_header *
-get_instruction(size_t insts_num, struct ofl_instruction_header **insts, uint16_t type) {
-    size_t i;
-
-    for (i=0; i < insts_num; i++) {
-        if (insts[i]->type == type) {
-            return insts[i];
-        }
-    }
-
-    return NULL;
-}
-
-
 /* Executes the instructions associated with a flow entry */
 static void
 execute_entry(struct pipeline *pl, struct flow_entry *entry,
               struct flow_table **next_table, struct packet **pkt) {
-    /* NOTE: CLEAR instruction must be executed before WRITE_ACTIONS;
-     *       GOTO instruction must be executed last according to spec. 
-     *       METER instruction should executed before APPLY ACTIONS*/
-    struct ofl_instruction_header *inst, *cinst;
+    /* NOTE: instructions, when present, will be executed in
+            the following order:
+            Meter
+            Apply-Actions
+            Clear-Actions
+            Write-Actions
+            Write-Metadata
+            Goto-Table
+    */
     size_t i;
-    bool clear_execd = false;
-    bool meter_execd = false;
+    struct ofl_instruction_header *inst;
 
     for (i=0; i < entry->stats->instructions_num; i++) {
-        inst = entry->stats->instructions[i];
+        /*Packet was dropped by some instruction or action*/
 
+        if(!(*pkt)){
+            return;
+        }
+
+        inst = entry->stats->instructions[i];
         switch (inst->type) {
             case OFPIT_GOTO_TABLE: {
                 struct ofl_instruction_goto_table *gi = (struct ofl_instruction_goto_table *)inst;
@@ -473,67 +481,38 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
             case OFPIT_WRITE_METADATA: {
                 struct ofl_instruction_write_metadata *wi = (struct ofl_instruction_write_metadata *)inst;
                 struct  packet_fields *f;
+
                 /* NOTE: Hackish solution. If packet had multiple handles, metadata
                  *       should be updated in all. */
-                 
                 packet_handle_std_validate((*pkt)->handle_std);
-                
                 /* Search field on the description of the packet. */
-                HMAP_FOR_EACH_WITH_HASH(f,struct packet_fields, hmap_node, hash_int(OXM_OF_METADATA,0), &(*pkt)->handle_std->match.match_fields){
-                    uint64_t *metadata = (uint64_t*) f->value; 
-                    *metadata = (*metadata & ~wi->metadata_mask) | (wi->metadata & wi->metadata_mask);     
+                HMAP_FOR_EACH_WITH_HASH(f,struct packet_fields,
+                    hmap_node, hash_int(OXM_OF_METADATA,0), &(*pkt)->handle_std->match.match_fields){
+                    uint64_t *metadata = (uint64_t*) f->value;
+                    *metadata = (*metadata & ~wi->metadata_mask) | (wi->metadata & wi->metadata_mask);
+                    VLOG_DBG_RL(LOG_MODULE, &rl, "Executing write metadata: %llx", *metadata);
                 }
                 break;
             }
             case OFPIT_WRITE_ACTIONS: {
                 struct ofl_instruction_actions *wa = (struct ofl_instruction_actions *)inst;
-
-                /* If no clear action was executed before, check if there is one,
-                   and execute it out of order */
-                if (!clear_execd) {
-                    cinst = get_instruction(entry->stats->instructions_num, entry->stats->instructions, OFPIT_CLEAR_ACTIONS);
-                    if (cinst != NULL) {
-                        action_set_clear_actions((*pkt)->action_set);
-                        clear_execd = true;
-                    }
-                    action_set_write_actions((*pkt)->action_set, wa->actions_num, wa->actions);
-                }
+                action_set_write_actions((*pkt)->action_set, wa->actions_num, wa->actions);
                 break;
             }
             case OFPIT_APPLY_ACTIONS: {
                 struct ofl_instruction_actions *ia = (struct ofl_instruction_actions *)inst;
-                if(!meter_execd){
-                    cinst = get_instruction(entry->stats->instructions_num, entry->stats->instructions, OFPIT_METER);
-                    if (cinst != NULL) {
-                        struct ofl_instruction_meter *im = (struct ofl_instruction_meter *)cinst;
-                        meter_table_apply(pl->dp->meters, pkt , im->meter_id);
-                        meter_execd = true;
-                        if(!(*pkt))
-                            break;
-                    }
-                }
                 dp_execute_action_list((*pkt), ia->actions_num, ia->actions, entry->stats->cookie);
                 break;
             }
             case OFPIT_CLEAR_ACTIONS: {
-                /* Only execute clear if it has not been executed out of order */
-                if (!clear_execd) {
-                    action_set_clear_actions((*pkt)->action_set);
-                    clear_execd = true;
-                }
+                action_set_clear_actions((*pkt)->action_set);
                 break;
             }
             case OFPIT_METER: {
             	struct ofl_instruction_meter *im = (struct ofl_instruction_meter *)inst;
-            	if(!meter_execd){
-                    meter_table_apply(pl->dp->meters, pkt ,im->meter_id);
-            	    /*packet was dropped*/
-                    if(!(*pkt))
-                        return;
-                    meter_execd = true;
-                }   
+                meter_table_apply(pl->dp->meters, pkt , im->meter_id);
                 break;
-            }            
+            }
             case OFPIT_EXPERIMENTER: {
                 dp_exp_inst((*pkt), (struct ofl_instruction_experimenter *)inst);
                 break;
