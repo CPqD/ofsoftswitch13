@@ -172,11 +172,13 @@ print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size){
                                 fprintf(stream, ", ");
                 }
                 else if (field == OFPXMT_OFB_VLAN_VID){
-                            if ((uint16_t) *f->value == OFPVID_NONE)
+                			uint16_t *v = (uint16_t *) f->value;
+                			if (*v == OFPVID_NONE)
                                 fprintf(stream, "vlan_vid= none");
-                            else if ((uint16_t) *f->value == OFPVID_PRESENT)
-                                fprintf(stream, "vlan_vid= present");
-                            else fprintf(stream, "vlan_vid=\"%d\"",*((uint16_t*) f->value));
+                            else if (*v == OFPVID_PRESENT && OXM_HASMASK(f->header))
+                                fprintf(stream, "vlan_vid= any");
+                            else
+                            	fprintf(stream, "vlan_vid=\"%d\"",*v & VLAN_VID_MASK);
                             *size -= 6;                                
                             if (*size > 4)                                
                                 fprintf(stream, ", ");

@@ -1201,10 +1201,17 @@ parse_match(char *str, struct ofl_match_header **match) {
         /* VLAN */
         if (strncmp(token, MATCH_DL_VLAN KEY_VAL, strlen(MATCH_DL_VLAN KEY_VAL)) == 0) {
             uint16_t dl_vlan;
-            if (parse_vlan_vid(token + strlen(MATCH_DL_VLAN KEY_VAL), &dl_vlan)) {
-                ofp_fatal(0, "Error parsing vlan label: %s.", token);
-            }
-            else ofl_structs_match_put16(m,OXM_OF_VLAN_VID, dl_vlan);
+            char *str = token + strlen(MATCH_DL_VLAN KEY_VAL);
+
+			if (strcmp(str, "any") == 0)
+				ofl_structs_match_put16m(m,OXM_OF_VLAN_VID_W, OFPVID_PRESENT, OFPVID_PRESENT);
+			else if (strcmp(str, "none") == 0)
+				ofl_structs_match_put16(m,OXM_OF_VLAN_VID, OFPVID_NONE);
+			else if (parse16(str, NULL, 0, 0xfff, &dl_vlan))
+				ofp_fatal(0, "Error parsing vlan label: %s.", token);
+			else
+				ofl_structs_match_put16(m,OXM_OF_VLAN_VID, dl_vlan | OFPVID_PRESENT);
+
             continue;
         }
         if (strncmp(token, MATCH_DL_VLAN_PCP KEY_VAL, strlen(MATCH_DL_VLAN_PCP KEY_VAL)) == 0) {

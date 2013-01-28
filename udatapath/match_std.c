@@ -206,24 +206,6 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
     if (flow_match->header.length == 0){
         return true;
     }
-    /*TODO: Possible combinations of VLAN_ID and masks */
-    HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv, hmap_node,hash_int(OXM_OF_VLAN_VID, 0), &flow_match->match_fields){
-        uint16_t *matchv = (uint16_t*) f->value;
-        /* Check if the field is present in the packet */
-        HMAP_FOR_EACH_WITH_HASH(packet_f, struct packet_fields, hmap_node, hash_int(OXM_OF_VLAN_VID, 0), &packet->match_fields){     
-            /* Do not match packets with a VLAN Tag */
-            if (*matchv == OFPVID_NONE && !OXM_HASMASK(f->header))
-                return false;
-            ret = true;
-        }
-
-        if ((*matchv == OFPVID_PRESENT)  & (OXM_HASMASK(f->header))){
-            uint16_t *maskv = (uint16_t*) f->value + 2;
-                if (*maskv == OFPVID_PRESENT && !ret )
-                    return false;     
-        }
-          
-    }      
 
     /* Loop through the match fields */
     HMAP_FOR_EACH(f, struct ofl_match_tlv, hmap_node, &flow_match->match_fields){
@@ -252,6 +234,15 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
                         break;   
                     }
                     case (sizeof(uint16_t)):{
+                        if (OXM_TYPE(f->header) == OXM_TYPE(OXM_OF_VLAN_VID)) {
+                        	if (*((uint16_t*)f->value) == OFPVID_NONE)
+                        		return false; // we have vlan tag when we expect none
+                        	else if (*((uint16_t*)f->value) == OFPVID_PRESENT && has_mask)
+                        		break; // this is the case where each vlan is a match
+                        	else
+                        		*((uint16_t*)f->value) &= VLAN_VID_MASK; // remove CFI bit
+                        }
+
                         if (OXM_TYPE(f->header) == OXM_TYPE(OXM_OF_IPV6_EXTHDR)){
                             if (ipv6_eh_match(f->value, packet_f->value) == 0) {
                                 return false;
@@ -333,13 +324,17 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
                             }
                         break;
                     }
-            }
-            }
-        }
-         if (!ret)
-            return ret;
-         else ret = false;      
-    }
+                } // end of switch case
+            } // end of if (OXM_TYPE(f->header) == OXM_TYPE(packet_f->header))
+        } // end of packet_match loop
+        if (OXM_TYPE(f->header) == OXM_TYPE(OXM_OF_VLAN_VID))
+        	if (*((uint16_t*)f->value) == OFPVID_NONE)
+        		ret = true; // in case the packet has no vlan and this is what was expected
+
+        if (!ret)
+           return ret;
+        else ret = false;
+    } // end of flow_match loop
 
     return true;
 
