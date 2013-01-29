@@ -361,8 +361,6 @@ strict_mask32(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
     uint32_t *b1 = (uint32_t *) b;
     uint32_t *mask_a = (uint32_t *) am;
 	uint32_t *mask_b = (uint32_t *) bm;
-    printf("Mask A  %d %d %d %d \n", a[0],a[1],a[2],a[3]);
-    printf("Mask B  %d %d %d %d \n", b[0],b[1],b[2],b[3]);
 	return ((*mask_a == *mask_b) && ((*a1 ^ *b1) & (*mask_a))) == 0;
 }
 
@@ -586,7 +584,7 @@ struct ofl_match_tlv *flow_mod_match;
                 switch (field_len){
                     case (sizeof(uint8_t)):{
                         if (has_mask){
-                            if (nonstrict_mask8(flow_mod_match->value, flow_entry_match->value + field_len, flow_entry_match->value,flow_entry_match->value + field_len) == 0){
+                            if (nonstrict_mask8(flow_mod_match->value, flow_entry_match->value, flow_mod_match->value + field_len, flow_entry_match->value + field_len) == 0){
                               return false;
                             }
                         }
@@ -598,7 +596,7 @@ struct ofl_match_tlv *flow_mod_match;
                     }
                     case (sizeof(uint16_t)):{
                         if (has_mask){
-                            if (nonstrict_mask16(flow_mod_match->value,flow_entry_match->value + field_len, flow_entry_match->value,flow_entry_match->value + field_len) == 0){
+                            if (nonstrict_mask16(flow_mod_match->value, flow_entry_match->value, flow_mod_match->value + field_len, flow_entry_match->value + field_len) == 0){
                               return false;
                             }
                         }
@@ -611,7 +609,7 @@ struct ofl_match_tlv *flow_mod_match;
                     case (sizeof(uint32_t)):{
 
                         if (has_mask){
-                            if (nonstrict_mask32(flow_mod_match->value,flow_entry_match->value + field_len, flow_entry_match->value,flow_entry_match->value + field_len) ){
+                            if (nonstrict_mask32(flow_mod_match->value, flow_entry_match->value, flow_mod_match->value + field_len, flow_entry_match->value + field_len) == 0){
                               return false;
                             }
                         }
@@ -623,7 +621,7 @@ struct ofl_match_tlv *flow_mod_match;
                     }
                     case (ETH_ADDR_LEN):{
                          if (has_mask){
-                            if (nonstrict_ethaddr(flow_mod_match->value,flow_entry_match->value + field_len, flow_entry_match->value,flow_entry_match->value + field_len) == 0){
+                            if (nonstrict_ethaddr(flow_mod_match->value, flow_entry_match->value, flow_mod_match->value + field_len, flow_entry_match->value + field_len) == 0){
                               return false;
                             }
                          }
@@ -635,7 +633,7 @@ struct ofl_match_tlv *flow_mod_match;
                     }
                     case (sizeof(uint64_t)):{
                         if (has_mask) {
-                            if (nonstrict_mask64(flow_mod_match->value,flow_entry_match->value + field_len, flow_entry_match->value,flow_entry_match->value + field_len) == 0){
+                            if (nonstrict_mask64(flow_mod_match->value, flow_entry_match->value, flow_mod_match->value + field_len, flow_entry_match->value + field_len) == 0){
                               return false;
                             }
                         }
@@ -647,7 +645,7 @@ struct ofl_match_tlv *flow_mod_match;
                     }
    		            case (16):{
                         if (has_mask){
-                            if (nonstrict_ipv6(flow_mod_match->value,flow_entry_match->value + field_len, flow_entry_match->value,flow_entry_match->value + field_len)== 0){
+                            if (nonstrict_ipv6(flow_mod_match->value, flow_entry_match->value, flow_mod_match->value + field_len, flow_entry_match->value + field_len) == 0){
                               return false;
                             }
                         }
