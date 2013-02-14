@@ -208,7 +208,7 @@ pipeline_handle_flow_mod(struct pipeline *pl, struct ofl_msg_flow_mod *msg,
 
     /*Sort by execution oder*/
     qsort(msg->instructions, msg->instructions_num,
-        sizeof(struct ofl_instruction_header), inst_compare);
+        sizeof(struct ofl_instruction_header *), inst_compare);
 
     // Validate actions in flow_mod
     for (i=0; i< msg->instructions_num; i++) {
