@@ -408,6 +408,7 @@ new_port(struct datapath *dp, struct sw_port *port, uint32_t port_no,
         / * FIXME:  Add current, supported and advertised features * /
 #endif
     }
+    dp_port_live_update(port);
 
     port->stats = xmalloc(sizeof(struct ofl_port_stats));
     port->stats->port_no = port_no;
@@ -686,6 +687,7 @@ dp_ports_handle_port_mod(struct datapath *dp, struct ofl_msg_port_mod *msg,
     if (msg->mask) {
         p->conf->config &= ~msg->mask;
         p->conf->config |= msg->config & msg->mask;
+	dp_port_live_update(p);
     }
 
     /*Notify all controllers that the port status has changed*/
@@ -703,6 +705,19 @@ static void
 dp_port_stats_update(struct sw_port *port) {
     port->stats->duration_sec  =  (time_msec() - port->created) / 1000;
     port->stats->duration_nsec = ((time_msec() - port->created) % 1000) * 1000;
+}
+
+void
+dp_port_live_update(struct sw_port *p) {
+
+  if((p->conf->state & OFPPS_LINK_DOWN)
+     || (p->conf->config & OFPPC_PORT_DOWN)) {
+      /* Port not live */
+      p->conf->state &= ~OFPPS_LIVE;
+  } else {
+      /* Port is live */
+      p->conf->state |= OFPPS_LIVE;
+  }
 }
 
 ofl_err
