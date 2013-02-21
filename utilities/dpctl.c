@@ -1050,6 +1050,7 @@ usage(void)
             "\n"
             "  SWITCH features                        show basic information\n"
             "  SWITCH get-config                      get switch configuration\n"
+            "  SWITCH port-desc                       print port description and status\n"
             "  SWITCH meter-config [METER]            get meter configuration\n"
             "  SWITCH stats-desc                      print switch description\n"
             "  SWITCH stats-flow [ARG [MATCH]]        print flow stats\n"
