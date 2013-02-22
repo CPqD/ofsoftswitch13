@@ -589,6 +589,11 @@ ofl_msg_pack_multipart_reply_desc(struct ofl_msg_reply_desc *msg UNUSED, uint8_t
 
     req = (struct ofp_multipart_reply *)(*buf);
     stats = (struct ofp_desc *)req->body;
+    memset(stats->mfr_desc, 0, DESC_STR_LEN);
+    memset(stats->hw_desc, 0, DESC_STR_LEN);
+    memset(stats->sw_desc, 0, DESC_STR_LEN);
+    memset(stats->serial_num, 0, SERIAL_NUM_LEN);
+    memset(stats->dp_desc, 0, DESC_STR_LEN);
     memcpy(stats->mfr_desc,   msg->mfr_desc, DESC_STR_LEN);
     memcpy(stats->hw_desc,    msg->hw_desc, DESC_STR_LEN);
     memcpy(stats->sw_desc,    msg->sw_desc, DESC_STR_LEN);
