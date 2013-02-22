@@ -560,13 +560,17 @@ nonstrict_ipv6(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
 bool
 match_std_nonstrict(struct ofl_match *a, struct ofl_match *b) {
 
-struct ofl_match_tlv *flow_mod_match;
+    struct ofl_match_tlv *flow_mod_match;
     struct ofl_match_tlv *flow_entry_match;
     bool ret = false;
 
     /*Matches all flows */
     if(!a->header.length )
         return true;
+
+    /*A is more specific than B*/
+    if(a->header.length > b->header.length)
+        return false;
 
     /* Loop through the match fields */
     HMAP_FOR_EACH(flow_mod_match, struct ofl_match_tlv, hmap_node, &a->match_fields){

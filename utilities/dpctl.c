@@ -168,7 +168,7 @@ parse_nw_addr(char *str, uint32_t *addr, uint32_t **mask);
 static int
 parse_vlan_vid(char *str, uint16_t *vid);
 
-static int 
+static int
 parse_ext_hdr(char *str, uint16_t *ext_hdr);
 
 static int
@@ -221,11 +221,11 @@ dpctl_transact(struct vconn *vconn, struct ofl_msg_header *req,
         ofp_fatal(0, "Error during transaction.");
     }
     error = ofl_msg_unpack(ofpbufrepl->data, ofpbufrepl->size, repl, NULL /*xid_ptr*/, &dpctl_exp);
-    
+
     if (error) {
         ofp_fatal(0, "Error unpacking reply.");
     }
-    
+
     /* NOTE: if unpack was successful, message takes over ownership of buffer's
      *       data. Rconn and vconn does not allocate headroom, so the ofpbuf
      *       wrapper can simply be deleted, keeping the data for the message. */
@@ -400,13 +400,13 @@ monitor(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED) {
 
 static void
 table_features(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED) {
-    struct ofl_msg_multipart_request_table_features req =  
+    struct ofl_msg_multipart_request_table_features req =
         {{{.type = OFPT_MULTIPART_REQUEST},
               .type = OFPMP_TABLE_FEATURES, .flags = 0x0000},
              .tables_num = 0,
              .table_features = NULL,
           };
-    
+
     dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&req, NULL);
 }
 
@@ -617,11 +617,15 @@ flow_mod(struct vconn *vconn, int argc, char *argv[]) {
             j = 2;
         }
         else {
-            inst_num = argc - 1; 
-            j = 1;
+            if(msg.command == OFPFC_DELETE)
+                inst_num = 0;
+            else {
+                inst_num = argc - 1;
+                j = 1;
+            }
         }
         parse_match(argv[1], &(msg.match));
-            
+
         msg.instructions_num = inst_num;
         msg.instructions = xmalloc(sizeof(struct ofl_instruction_header *) * inst_num);
 
@@ -682,24 +686,24 @@ group_features(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED){
 
 static void meter_mod(struct vconn *vconn, int argc, char *argv[]){
 
-    struct ofl_msg_meter_mod msg = 
+    struct ofl_msg_meter_mod msg =
                 {{.type = OFPT_METER_MOD},
                  .command = OFPMC_ADD,
                  .flags   = OFPMF_KBPS,
-                 .meter_id = 0,       
+                 .meter_id = 0,
                  .meter_bands_num = 0,
                  .bands = NULL};
-   
-   parse_meter_mod_args(argv[0], &msg);             
-           
+
+   parse_meter_mod_args(argv[0], &msg);
+
    if (argc > 1){
         size_t i;
-        size_t bands_num = argc - 1; 
+        size_t bands_num = argc - 1;
         msg.meter_bands_num = bands_num;
-        msg.bands = xmalloc(sizeof(struct ofl_meter_band_header *) * bands_num);                       
+        msg.bands = xmalloc(sizeof(struct ofl_meter_band_header *) * bands_num);
         for (i=0; i < bands_num; i++) {
-            parse_band(argv[i+1], &msg, &msg.bands[i]); 
-        } 
+            parse_band(argv[i+1], &msg, &msg.bands[i]);
+        }
    }
    dpctl_send_and_print(vconn, (struct ofl_msg_header *)&msg);
 
@@ -738,13 +742,13 @@ meter_config(struct vconn *vconn, int argc UNUSED, char *argv[]){
 
 static void
 meter_features(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED){
-   
+
     struct ofl_msg_multipart_request_header req =
             {{.type = OFPT_MULTIPART_REQUEST},
              .type = OFPMP_METER_FEATURES, .flags = 0x0000};
 
     dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&req, NULL);
-}    
+}
 
 static void
 port_mod(struct vconn *vconn, int argc UNUSED, char *argv[]) {
@@ -872,10 +876,10 @@ queue_del(struct vconn *vconn, int argc UNUSED, char *argv[]) {
     dpctl_send_and_print(vconn, (struct ofl_msg_header *)&msg);
 }
 
-static void 
+static void
 get_async(struct vconn *vconn, int argc UNUSED, char *argv[] UNUSED){
 
-    struct ofl_msg_async_config msg = 
+    struct ofl_msg_async_config msg =
              {{.type = OFPT_GET_ASYNC_REQUEST},
              .config = NULL};
 
@@ -901,7 +905,7 @@ static struct command all_commands[] = {
     {"stats-group-desc", 0, 1, stats_group_desc },
     {"stats-meter", 0, 1, stats_meter},
     {"meter-config", 0, 1, meter_config},
-    {"port-desc", 0, 0, port_desc},     
+    {"port-desc", 0, 0, port_desc},
     {"set-config", 1, 1, set_config},
     {"flow-mod", 1, 8/*+1 for each inst type*/, flow_mod },
     {"group-mod", 1, UINT8_MAX, group_mod },
@@ -911,7 +915,7 @@ static struct command all_commands[] = {
     {"table-mod", 1, 1, table_mod },
     {"queue-get-config", 1, 1, queue_get_config},
     {"set-desc", 1, 1, set_desc},
- 
+
     {"queue-mod", 3, 3, queue_mod},
     {"queue-del", 2, 2, queue_del}
 };
@@ -1046,7 +1050,7 @@ usage(void)
             "\n"
             "  SWITCH features                        show basic information\n"
             "  SWITCH get-config                      get switch configuration\n"
-            "  SWITCH meter-config [METER]            get meter configuration\n"            
+            "  SWITCH meter-config [METER]            get meter configuration\n"
             "  SWITCH stats-desc                      print switch description\n"
             "  SWITCH stats-flow [ARG [MATCH]]        print flow stats\n"
             "  SWITCH stats-aggr [ARG [MATCH]]        print flow aggregate stats\n"
@@ -1060,7 +1064,7 @@ usage(void)
             "  SWITCH set-config ARG                  set switch configuration\n"
             "  SWITCH flow-mod ARG [MATCH [INST...]]  send flow_mod message\n"
             "  SWITCH group-mod ARG [BUCARG ACT...]   send group_mod message\n"
-            "  SWITCH meter-mod ARG [BANDARG ...]     send meter_mod message\n"            
+            "  SWITCH meter-mod ARG [BANDARG ...]     send meter_mod message\n"
             "  SWITCH port-mod ARG                    send port_mod message\n"
             "  SWITCH table-mod ARG                   send table_mod message\n"
             "  SWITCH queue-get-config PORT           send queue_get_config message\n"
@@ -1091,7 +1095,7 @@ parse_match(char *str, struct ofl_match_header **match) {
     for (token = strtok_r(str, KEY_SEP, &saveptr); token != NULL; token = strtok_r(NULL, KEY_SEP, &saveptr)) {
          if (strncmp(token, "apply", strlen("apply")) == 0 ||  strncmp(token, "write", strlen("write")) == 0 ) {
                 break;
-         }       
+         }
         /* In_port */
          if (strncmp(token, MATCH_IN_PORT KEY_VAL, strlen(MATCH_IN_PORT KEY_VAL)) == 0) {
             uint32_t in_port;
@@ -1101,7 +1105,7 @@ parse_match(char *str, struct ofl_match_header **match) {
             else ofl_structs_match_put32(m,OXM_OF_IN_PORT,in_port);
             continue;
         }
-        
+
         /* Ethernet Address*/
         if (strncmp(token, MATCH_DL_SRC KEY_VAL, strlen(MATCH_DL_SRC KEY_VAL)) == 0) {
             uint8_t eth_src[6];
@@ -1109,10 +1113,10 @@ parse_match(char *str, struct ofl_match_header **match) {
             if (parse_dl_addr(token + strlen(MATCH_DL_SRC KEY_VAL), eth_src, &mask)) {
                 ofp_fatal(0, "Error parsing dl_src: %s.", token);
             }
-            else { 
+            else {
                 if (mask == NULL)
                     ofl_structs_match_put_eth(m,OXM_OF_ETH_SRC,eth_src);
-                else 
+                else
                     ofl_structs_match_put_eth_m(m,OXM_OF_ETH_SRC_W,eth_src,mask);
             }
             continue;
@@ -1126,11 +1130,11 @@ parse_match(char *str, struct ofl_match_header **match) {
             else {
                  if (mask == NULL)
                     ofl_structs_match_put_eth(m,OXM_OF_ETH_DST,eth_dst);
-                 else 
-                    ofl_structs_match_put_eth_m(m,OXM_OF_ETH_DST_W,eth_dst, mask); 
-            }     
+                 else
+                    ofl_structs_match_put_eth_m(m,OXM_OF_ETH_DST_W,eth_dst, mask);
+            }
             continue;
-        }   
+        }
         /* ARP */
         if (strncmp(token, MATCH_ARP_SHA KEY_VAL, strlen(MATCH_ARP_SHA KEY_VAL)) == 0) {
             uint8_t arp_sha[6];
@@ -1138,7 +1142,7 @@ parse_match(char *str, struct ofl_match_header **match) {
             if (parse_dl_addr(token + strlen(MATCH_ARP_SHA KEY_VAL), arp_sha, &mask)) {
                 ofp_fatal(0, "Error parsing arp_sha: %s.", token);
             }
-            else { 
+            else {
                 if (mask == NULL)
                     ofl_structs_match_put_eth(m, OXM_OF_ARP_SHA, arp_sha);
                 else
@@ -1155,8 +1159,8 @@ parse_match(char *str, struct ofl_match_header **match) {
             else {
                 if (mask == NULL)
                     ofl_structs_match_put_eth(m,OXM_OF_ARP_THA, arp_tha);
-                else 
-                    ofl_structs_match_put_eth_m(m,OXM_OF_ARP_THA_W, arp_tha, mask); 
+                else
+                    ofl_structs_match_put_eth_m(m,OXM_OF_ARP_THA_W, arp_tha, mask);
             }
             continue;
         }
@@ -1166,12 +1170,12 @@ parse_match(char *str, struct ofl_match_header **match) {
             if (parse_nw_addr(token + strlen(MATCH_ARP_SPA KEY_VAL), &(arp_src), &mask)) {
                 ofp_fatal(0, "Error parsing arp_src: %s.", token);
             }
-            else { 
+            else {
                 if (mask == NULL)
                     ofl_structs_match_put32(m, OXM_OF_ARP_SPA,arp_src);
                 else
                     ofl_structs_match_put32m(m, OXM_OF_ARP_SPA_W, arp_src, *mask);
-            }        
+            }
             continue;
         }
         if (strncmp(token, MATCH_ARP_TPA KEY_VAL, strlen(MATCH_ARP_TPA KEY_VAL)) == 0) {
@@ -1180,14 +1184,14 @@ parse_match(char *str, struct ofl_match_header **match) {
             if (parse_nw_addr(token + strlen(MATCH_ARP_TPA KEY_VAL), &(arp_target), &mask)) {
                 ofp_fatal(0, "Error parsing arp_target: %s.", token);
             }
-            else { 
+            else {
                 if (mask == NULL)
                     ofl_structs_match_put32(m, OXM_OF_ARP_TPA, arp_target);
                 else
                     ofl_structs_match_put32m(m, OXM_OF_ARP_TPA_W, arp_target, *mask);
-            }        
+            }
             continue;
-        }                
+        }
         if (strncmp(token, MATCH_ARP_OP KEY_VAL, strlen(MATCH_ARP_OP KEY_VAL)) == 0) {
             uint16_t arp_op;
             if (parse16(token + strlen(MATCH_ARP_OP KEY_VAL), NULL, 0, 0x7, &arp_op)){
@@ -1197,7 +1201,7 @@ parse_match(char *str, struct ofl_match_header **match) {
             }
             continue;
         }
-        
+
         /* VLAN */
         if (strncmp(token, MATCH_DL_VLAN KEY_VAL, strlen(MATCH_DL_VLAN KEY_VAL)) == 0) {
             uint16_t dl_vlan;
@@ -1218,29 +1222,29 @@ parse_match(char *str, struct ofl_match_header **match) {
             uint8_t pcp;
             if (parse8(token + strlen(MATCH_DL_VLAN_PCP KEY_VAL), NULL, 0, 0x7, &pcp)) {
                 ofp_fatal(0, "Error parsing vlan pcp: %s.", token);
-            } else 
+            } else
                 ofl_structs_match_put8(m, OXM_OF_VLAN_PCP, pcp);
             continue;
         }
-        
+
         /* Eth Type */
         if (strncmp(token, MATCH_DL_TYPE KEY_VAL, strlen(MATCH_DL_TYPE KEY_VAL)) == 0) {
             uint16_t dl_type;
             if (parse16(token + strlen(MATCH_DL_TYPE KEY_VAL), NULL, 0, 0xffff, &dl_type)) {
                 ofp_fatal(0, "Error parsing eth_type: %s.", token);
             }
-            else 
+            else
                 ofl_structs_match_put16(m, OXM_OF_ETH_TYPE,dl_type);
             continue;
         }
-        
+
         /* IP */
         if (strncmp(token, MATCH_IP_ECN, strlen(MATCH_IP_ECN KEY_VAL)) == 0) {
             uint8_t ip_ecn;
             if (parse8(token + strlen(MATCH_IP_ECN KEY_VAL), NULL, 0, 0x3f, &ip_ecn)) {
                 ofp_fatal(0, "Error parsing nw_tos: %s.", token);
             }
-            else 
+            else
                  ofl_structs_match_put8(m, OXM_OF_IP_ECN, ip_ecn);
             continue;
         }
@@ -1249,7 +1253,7 @@ parse_match(char *str, struct ofl_match_header **match) {
             if (parse8(token + strlen(MATCH_IP_DSCP KEY_VAL), NULL, 0, 0x3f, &ip_dscp)) {
                 ofp_fatal(0, "Error parsing nw_tos: %s.", token);
             }
-            else 
+            else
                  ofl_structs_match_put8(m, OXM_OF_IP_DSCP, ip_dscp);
             continue;
         }
@@ -1258,7 +1262,7 @@ parse_match(char *str, struct ofl_match_header **match) {
             if (parse8(token + strlen(MATCH_NW_PROTO KEY_VAL), NULL, 0, 0xff, &nw_proto)) {
                 ofp_fatal(0, "Error parsing ip_proto: %s.", token);
             }
-            else ofl_structs_match_put8(m,OXM_OF_IP_PROTO, nw_proto); 
+            else ofl_structs_match_put8(m,OXM_OF_IP_PROTO, nw_proto);
             continue;
         }
         if (strncmp(token, MATCH_NW_SRC KEY_VAL, strlen(MATCH_NW_SRC KEY_VAL)) == 0) {
@@ -1267,49 +1271,49 @@ parse_match(char *str, struct ofl_match_header **match) {
             if (parse_nw_addr(token + strlen(MATCH_NW_SRC KEY_VAL), &(nw_src), &mask)) {
                 ofp_fatal(0, "Error parsing ip_src: %s.", token);
             }
-            else { 
+            else {
                 if (mask == NULL)
                     ofl_structs_match_put32(m, OXM_OF_IPV4_SRC,nw_src);
                 else
                     ofl_structs_match_put32m(m, OXM_OF_IPV4_SRC_W, nw_src, *mask);
-            }        
+            }
             continue;
         }
         if (strncmp(token, MATCH_NW_DST KEY_VAL, strlen(MATCH_NW_DST KEY_VAL)) == 0) {
             uint32_t nw_dst;
-            uint32_t *mask;            
+            uint32_t *mask;
             if (parse_nw_addr(token + strlen(MATCH_NW_DST KEY_VAL), &nw_dst, &mask)) {
                 ofp_fatal(0, "Error parsing ip_dst: %s.", token);
             }
             else {
-                if (mask == NULL) 
+                if (mask == NULL)
                     ofl_structs_match_put32(m, OXM_OF_IPV4_DST,nw_dst);
-                else 
+                else
                     ofl_structs_match_put32m(m, OXM_OF_IPV4_DST_W,nw_dst, *mask);
             }
             continue;
         }
-        
+
         /* ICMP */
         if (strncmp(token, MATCH_ICMPV4_CODE, strlen(MATCH_ICMPV4_CODE KEY_VAL)) == 0) {
             uint8_t icmpv4_code;
             if (parse8(token + strlen(MATCH_ICMPV4_CODE KEY_VAL), NULL, 0, 0x3f, &icmpv4_code)) {
                 ofp_fatal(0, "Error parsing icmpv4_code: %s.", token);
             }
-            else 
+            else
                  ofl_structs_match_put8(m, OXM_OF_ICMPV4_CODE, icmpv4_code);
             continue;
-        }   
+        }
         if (strncmp(token, MATCH_ICMPV4_TYPE, strlen(MATCH_ICMPV4_TYPE KEY_VAL)) == 0) {
             uint8_t icmpv4_type;
             if (parse8(token + strlen(MATCH_ICMPV4_TYPE KEY_VAL), NULL, 0, 0x3f, &icmpv4_type)) {
                 ofp_fatal(0, "Error parsing icmpv4_type: %s.", token);
             }
-            else 
+            else
                  ofl_structs_match_put8(m, OXM_OF_ICMPV4_CODE, icmpv4_type);
             continue;
-        }   
-        
+        }
+
         /* TCP */
         if (strncmp(token, MATCH_TP_SRC KEY_VAL, strlen(MATCH_TP_SRC KEY_VAL)) == 0) {
             uint16_t tp_src;
@@ -1327,7 +1331,7 @@ parse_match(char *str, struct ofl_match_header **match) {
             else ofl_structs_match_put16(m, OXM_OF_TCP_DST,tp_dst);
             continue;
         }
-        
+
         /*UDP */
         if (strncmp(token, MATCH_UDP_SRC KEY_VAL, strlen(MATCH_UDP_SRC KEY_VAL)) == 0) {
             uint16_t udp_src;
@@ -1345,7 +1349,7 @@ parse_match(char *str, struct ofl_match_header **match) {
             else ofl_structs_match_put16(m, OXM_OF_UDP_DST,udp_dst);
             continue;
         }
-        
+
         /*SCTP*/
         if (strncmp(token, MATCH_SCTP_SRC KEY_VAL, strlen(MATCH_SCTP_SRC KEY_VAL)) == 0) {
             uint16_t sctp_src;
@@ -1377,7 +1381,7 @@ parse_match(char *str, struct ofl_match_header **match) {
             if (parse8(token + strlen(MATCH_MPLS_TC KEY_VAL), NULL, 0, 0x07, &mpls_tc)) {
                     ofp_fatal(0, "Error parsing mpls_tc: %s.", token);
                 }
-            else 
+            else
                 ofl_structs_match_put8(m, OXM_OF_MPLS_TC, mpls_tc);
             continue;
         }
@@ -1386,10 +1390,10 @@ parse_match(char *str, struct ofl_match_header **match) {
             if (parse8(token + strlen(MATCH_MPLS_BOS KEY_VAL), NULL, 0, 0x1, &mpls_bos)) {
                     ofp_fatal(0, "Error parsing mpls_tc: %s.", token);
                 }
-            else 
+            else
                 ofl_structs_match_put8(m, OXM_OF_MPLS_BOS, mpls_bos);
             continue;
-        }        
+        }
         /* IPv6 */
         if (strncmp(token, MATCH_NW_SRC_IPV6 KEY_VAL , strlen(MATCH_NW_SRC_IPV6 KEY_VAL)) == 0) {
             struct in6_addr addr, mask;
@@ -1399,10 +1403,10 @@ parse_match(char *str, struct ofl_match_header **match) {
             }
             else {
                 if(ipv6_addr_equals(&mask, &in6addr_zero)){
-                    ofl_structs_match_put_ipv6(m, OXM_OF_IPV6_SRC, addr.s6_addr);    
+                    ofl_structs_match_put_ipv6(m, OXM_OF_IPV6_SRC, addr.s6_addr);
                 }
                 else {
-                    ofl_structs_match_put_ipv6m(m, OXM_OF_IPV6_SRC_W,addr.s6_addr, mask.s6_addr); 
+                    ofl_structs_match_put_ipv6m(m, OXM_OF_IPV6_SRC_W,addr.s6_addr, mask.s6_addr);
                 }
             }
             continue;
@@ -1415,10 +1419,10 @@ parse_match(char *str, struct ofl_match_header **match) {
             }
             else {
                 if(ipv6_addr_equals(&mask, &in6addr_zero)){
-                    ofl_structs_match_put_ipv6(m, OXM_OF_IPV6_DST, addr.s6_addr);    
+                    ofl_structs_match_put_ipv6(m, OXM_OF_IPV6_DST, addr.s6_addr);
                 }
                 else {
-                    ofl_structs_match_put_ipv6m(m, OXM_OF_IPV6_DST_W, addr.s6_addr, mask.s6_addr); 
+                    ofl_structs_match_put_ipv6m(m, OXM_OF_IPV6_DST_W, addr.s6_addr, mask.s6_addr);
                 }
             }
             continue;
@@ -1429,30 +1433,30 @@ parse_match(char *str, struct ofl_match_header **match) {
             if (parse32m(token + strlen(MATCH_IPV6_FLABEL KEY_VAL), NULL, 0, 0xfffff, &ipv6_label, &mask)) {
                 ofp_fatal(0, "Error parsing ipv6_label: %s.", token);
             }
-            else 
+            else
               if(mask == NULL)
                 ofl_structs_match_put32(m, OXM_OF_IPV6_FLABEL, ipv6_label);
-              else 
+              else
                 ofl_structs_match_put32m(m, OXM_OF_IPV6_FLABEL_W, ipv6_label, *mask);
             continue;
-        } 
-                
+        }
+
         /* ICMPv6 */
         if (strncmp(token, MATCH_ICMPV6_CODE, strlen(MATCH_ICMPV6_CODE KEY_VAL)) == 0) {
             uint8_t icmpv6_code;
             if (parse8(token + strlen(MATCH_ICMPV6_CODE KEY_VAL), NULL, 0, 0x3f, &icmpv6_code)) {
                 ofp_fatal(0, "Error parsing icmpv6_code: %s.", token);
             }
-            else 
+            else
                  ofl_structs_match_put8(m, OXM_OF_ICMPV6_CODE, icmpv6_code);
             continue;
-        }   
+        }
         if (strncmp(token, MATCH_ICMPV6_TYPE, strlen(MATCH_ICMPV6_TYPE KEY_VAL)) == 0) {
             uint8_t icmpv6_type;
             if (parse8(token + strlen(MATCH_ICMPV6_TYPE KEY_VAL), NULL, 0, 0x3f, &icmpv6_type)) {
                 ofp_fatal(0, "Error parsing icmpv6_type: %s.", token);
             }
-            else 
+            else
                  ofl_structs_match_put8(m, OXM_OF_ICMPV6_CODE, icmpv6_type);
             continue;
         }
@@ -1464,10 +1468,10 @@ parse_match(char *str, struct ofl_match_header **match) {
                 ofp_fatal(0, "Error parsing ipv6_nd_target %s.", token);
             }
             else {
-                ofl_structs_match_put_ipv6(m, OXM_OF_IPV6_ND_TARGET, addr.s6_addr);    
+                ofl_structs_match_put_ipv6(m, OXM_OF_IPV6_ND_TARGET, addr.s6_addr);
             }
             continue;
-        }        
+        }
         if (strncmp(token, MATCH_IPV6_ND_SLL KEY_VAL, strlen(MATCH_IPV6_ND_SLL KEY_VAL)) == 0) {
             uint8_t eth_src[6];
             uint8_t *mask;
@@ -1487,10 +1491,10 @@ parse_match(char *str, struct ofl_match_header **match) {
             }
             else {
                 ofl_structs_match_put_eth(m, OXM_OF_IPV6_ND_TLL,eth_dst);
-            }                    
+            }
             continue;
         }
-        
+
         /* Metadata */
         if (strncmp(token, MATCH_METADATA KEY_VAL, strlen(MATCH_METADATA KEY_VAL)) == 0) {
             uint64_t metadata;
@@ -1508,7 +1512,7 @@ parse_match(char *str, struct ofl_match_header **match) {
             }
             else ofl_structs_match_put32(m, OXM_OF_PBB_ISID, pbb_isid);
             continue;
-        }    
+        }
         /* Tunnel ID */
         if (strncmp(token, MATCH_TUNNEL_ID KEY_VAL, strlen(MATCH_TUNNEL_ID KEY_VAL)) == 0) {
             uint64_t tunn_id;
@@ -1526,7 +1530,7 @@ parse_match(char *str, struct ofl_match_header **match) {
             }
             else ofl_structs_match_put16(m, OXM_OF_IPV6_EXTHDR, ext_hdr);
             continue;
-        }        
+        }
         ofp_fatal(0, "Error parsing match arg: %s.", token);
     }
 
@@ -1535,44 +1539,44 @@ parse_match(char *str, struct ofl_match_header **match) {
 
 static int
 parse_set_field(char *token, struct ofl_action_set_field *act) {
-       
-    
+
+
     if (strncmp(token, MATCH_DL_SRC KEY_VAL2, strlen(MATCH_DL_SRC KEY_VAL2)) == 0) {
-        uint8_t* dl_src = xmalloc(6);           
+        uint8_t* dl_src = xmalloc(6);
         uint8_t *mask = NULL;
         if (parse_dl_addr(token + strlen(MATCH_DL_SRC KEY_VAL2), dl_src, &mask)) {
                 ofp_fatal(0, "Error parsing dl_src: %s.", token);
-        }else{ 
+        }else{
                 act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
-                act->field->header = OXM_OF_ETH_SRC;                    
+                act->field->header = OXM_OF_ETH_SRC;
                 act->field->value = (uint8_t*) dl_src;
-            }     
+            }
         return 0;
     }
     if (strncmp(token, MATCH_DL_DST KEY_VAL2, strlen(MATCH_DL_DST KEY_VAL2)) == 0) {
-        uint8_t* dl_dst = xmalloc(6);           
+        uint8_t* dl_dst = xmalloc(6);
         uint8_t *mask = NULL;
         if (parse_dl_addr(token + strlen(MATCH_DL_DST KEY_VAL2), dl_dst, &mask)) {
                 ofp_fatal(0, "Error parsing dl_src: %s.", token);
-        }else{ 
+        }else{
                 act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
-                act->field->header = OXM_OF_ETH_DST;                    
+                act->field->header = OXM_OF_ETH_DST;
                 act->field->value = (uint8_t*) dl_dst;
-            }     
+            }
         return 0;
-    }    
+    }
     if (strncmp(token, MATCH_DL_TYPE KEY_VAL2, strlen(MATCH_DL_TYPE KEY_VAL2)) == 0) {
         uint16_t* dl_type = xmalloc(sizeof(uint16_t));
         if (parse16(token + strlen(MATCH_DL_TYPE KEY_VAL2), NULL, 0, 0xffff, dl_type)) {
             ofp_fatal(0, "Error parsing dl_type: %s.", token);
         }
-        else { 
+        else {
             act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
             act->field->header = OXM_OF_ETH_TYPE;
             act->field->value = (uint8_t*) dl_type;
-        }  
-        return 0;        
-    } 
+        }
+        return 0;
+    }
 
     /* ARP */
     if (strncmp(token, MATCH_ARP_SHA KEY_VAL2, strlen(MATCH_ARP_SHA KEY_VAL2)) == 0) {
@@ -1581,11 +1585,11 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
         if (parse_dl_addr(token + strlen(MATCH_ARP_SHA KEY_VAL2), arp_sha, &mask)) {
             ofp_fatal(0, "Error parsing arp_sha: %s.", token);
         }
-        else { 
+        else {
             act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
-            act->field->header = OXM_OF_ARP_SHA;                    
+            act->field->header = OXM_OF_ARP_SHA;
             act->field->value = (uint8_t*) arp_sha;
-        }     
+        }
         return 0;
     }
     if (strncmp(token, MATCH_ARP_THA KEY_VAL2, strlen(MATCH_ARP_THA KEY_VAL2)) == 0) {
@@ -1594,11 +1598,11 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
         if (parse_dl_addr(token + strlen(MATCH_ARP_THA KEY_VAL2), arp_tha, &mask)) {
             ofp_fatal(0, "Error parsing arp_tha %s.", token);
         }
-        else { 
+        else {
             act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
-            act->field->header = OXM_OF_ARP_THA;                    
+            act->field->header = OXM_OF_ARP_THA;
             act->field->value = (uint8_t*) arp_tha;
-        }     
+        }
         return 0;
     }
     if (strncmp(token, MATCH_ARP_SPA KEY_VAL2, strlen(MATCH_ARP_SPA KEY_VAL2)) == 0) {
@@ -1607,9 +1611,9 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
         if (parse_nw_addr(token + strlen(MATCH_ARP_SPA KEY_VAL2), arp_src, &mask)) {
             ofp_fatal(0, "Error parsing arp_src: %s.", token);
         }
-        else { 
+        else {
             act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
-            act->field->header = OXM_OF_ARP_SPA;                    
+            act->field->header = OXM_OF_ARP_SPA;
             act->field->value = (uint8_t*) arp_src;
         }
         return 0;
@@ -1620,34 +1624,34 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
         if (parse_nw_addr(token + strlen(MATCH_ARP_TPA KEY_VAL2), arp_target, &mask)) {
             ofp_fatal(0, "Error parsing arp_target: %s.", token);
         }
-        else { 
+        else {
             act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
-            act->field->header = OXM_OF_ARP_TPA;                    
+            act->field->header = OXM_OF_ARP_TPA;
             act->field->value = (uint8_t*) arp_target;
-        }     
+        }
         return 0;
-    }                
+    }
     if (strncmp(token, MATCH_ARP_OP KEY_VAL2, strlen(MATCH_ARP_OP KEY_VAL2)) == 0) {
         uint16_t *arp_op = xmalloc(sizeof(uint16_t));
         if (parse16(token + strlen(MATCH_ARP_OP KEY_VAL2), NULL, 0, 0x7, arp_op)){
             ofp_fatal(0, "Error parsing arp_op: %s.", token);
         }
-        else { 
+        else {
             act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
-            act->field->header = OXM_OF_ARP_OP;                    
+            act->field->header = OXM_OF_ARP_OP;
             act->field->value = (uint8_t*) arp_op;
-        }     
+        }
         return 0;
-    }    
+    }
     if (strncmp(token, MATCH_DL_VLAN KEY_VAL2, strlen(MATCH_DL_VLAN KEY_VAL2)) == 0) {
             uint16_t *dl_vlan = malloc(sizeof(uint16_t));
             if (parse_vlan_vid(token + strlen(MATCH_DL_VLAN KEY_VAL2), dl_vlan)) {
                 ofp_fatal(0, "Error parsing vlan label: %s.", token);
             }
-            else { 
+            else {
                 act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
-                act->field->header = OXM_OF_VLAN_VID;                    
-                act->field->value = (uint8_t*) dl_vlan;        
+                act->field->header = OXM_OF_VLAN_VID;
+                act->field->value = (uint8_t*) dl_vlan;
             }
         return 0;
     }
@@ -1655,22 +1659,22 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
             uint8_t *pcp = malloc(sizeof(uint8_t));
             if (parse8(token + strlen(MATCH_DL_VLAN_PCP KEY_VAL2), NULL, 0, 0x7, pcp)) {
                 ofp_fatal(0, "Error parsing vlan pcp: %s.", token);
-            } else { 
+            } else {
                 act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
-                act->field->header = OXM_OF_VLAN_PCP;                    
-                act->field->value = (uint8_t*) pcp;  
+                act->field->header = OXM_OF_VLAN_PCP;
+                act->field->value = (uint8_t*) pcp;
             }
-        return 0;    
+        return 0;
     }
     if (strncmp(token, MATCH_PBB_ISID KEY_VAL2, strlen(MATCH_PBB_ISID KEY_VAL2)) == 0) {
         uint32_t *pbb_isid = malloc(sizeof(uint32_t));
         if (parse32(token + strlen(MATCH_PBB_ISID KEY_VAL2), NULL, 0, 0x1000000, pbb_isid)) {
             ofp_fatal(0, "Error parsing pbb service id: %s.", token);
         }
-        else { 
+        else {
              act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
-            act->field->header = OXM_OF_PBB_ISID;                    
-            act->field->value = (uint8_t*) pbb_isid;        
+            act->field->header = OXM_OF_PBB_ISID;
+            act->field->value = (uint8_t*) pbb_isid;
         }
         return 0;
     }
@@ -1679,10 +1683,10 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
         if (parse32(token + strlen(MATCH_MPLS_LABEL KEY_VAL2), NULL, 0, 0x1000000, mpls_label)) {
             ofp_fatal(0, "Error parsing mpls label id: %s.", token);
         }
-        else { 
+        else {
                 act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
-                act->field->header = OXM_OF_MPLS_LABEL;                    
-                act->field->value = (uint8_t*) mpls_label;        
+                act->field->header = OXM_OF_MPLS_LABEL;
+                act->field->value = (uint8_t*) mpls_label;
             }
         return 0;
     }
@@ -1691,10 +1695,10 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
         if (parse8(token + strlen(MATCH_MPLS_TC KEY_VAL2), NULL, 0, 0x07, mpls_tc)) {
                  ofp_fatal(0, "Error parsing mpls_tc: %s.", token);
             }
-        else { 
+        else {
                 act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
-                act->field->header = OXM_OF_MPLS_TC;                    
-                act->field->value = mpls_tc;        
+                act->field->header = OXM_OF_MPLS_TC;
+                act->field->value = mpls_tc;
             }
         return 0;
     }
@@ -1703,13 +1707,13 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
         if (parse8(token + strlen(MATCH_MPLS_BOS KEY_VAL2), NULL, 0, 0x01, mpls_bos)) {
              ofp_fatal(0, "Error parsing mpls_bos: %s.", token);
         }
-        else { 
+        else {
                 act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
-                act->field->header = OXM_OF_MPLS_BOS;                    
-                act->field->value = mpls_bos;        
+                act->field->header = OXM_OF_MPLS_BOS;
+                act->field->value = mpls_bos;
             }
         return 0;
-    } 
+    }
     if (strncmp(token, MATCH_DL_VLAN_PCP KEY_VAL2, strlen(MATCH_DL_VLAN_PCP KEY_VAL2)) == 0) {
         uint8_t* vlan_pcp = malloc(sizeof(uint8_t));
         if (parse8(token + strlen(MATCH_DL_VLAN_PCP KEY_VAL2), NULL, 0, 0x7, vlan_pcp)) {
@@ -1717,8 +1721,8 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
         }
         else{
                 act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
-                act->field->header = OXM_OF_VLAN_PCP;                    
-                act->field->value =  (uint8_t*) vlan_pcp;           
+                act->field->header = OXM_OF_VLAN_PCP;
+                act->field->value =  (uint8_t*) vlan_pcp;
         }
         return 0;
     }
@@ -1731,8 +1735,8 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
         }
         else {
             act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
-            act->field->header = OXM_OF_IPV4_SRC;                    
-            act->field->value =  (uint8_t*) nw_src;   
+            act->field->header = OXM_OF_IPV4_SRC;
+            act->field->value =  (uint8_t*) nw_src;
         }
         return 0;
     }
@@ -1745,8 +1749,8 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
             }
         else {
             act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
-            act->field->header = OXM_OF_IPV4_DST;                    
-            act->field->value =  (uint8_t*) nw_dst; 
+            act->field->header = OXM_OF_IPV4_DST;
+            act->field->value =  (uint8_t*) nw_dst;
         }
         return 0;
     }
@@ -1757,8 +1761,8 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
             }
         else {
             act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
-            act->field->header = OXM_OF_IP_ECN;                    
-            act->field->value =  (uint8_t*) ip_ecn; 
+            act->field->header = OXM_OF_IP_ECN;
+            act->field->value =  (uint8_t*) ip_ecn;
         }
         return 0;
     }
@@ -1770,8 +1774,8 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
 		}
         else {
             act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
-            act->field->header = OXM_OF_IP_DSCP;                    
-            act->field->value =  (uint8_t*) dscp; 
+            act->field->header = OXM_OF_IP_DSCP;
+            act->field->value =  (uint8_t*) dscp;
         }
         return 0;
     }
@@ -1782,57 +1786,57 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
         }
         else {
             act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
-            act->field->header = OXM_OF_IP_PROTO;                    
-            act->field->value =  (uint8_t*) nw_proto; 
+            act->field->header = OXM_OF_IP_PROTO;
+            act->field->value =  (uint8_t*) nw_proto;
         }
         return 0;
-    }       
+    }
     if (strncmp(token, MATCH_TP_SRC KEY_VAL2, strlen(MATCH_TP_SRC KEY_VAL2)) == 0) {
         uint16_t* tp_src = xmalloc(2);
         if (parse16(token+ strlen(MATCH_TP_SRC KEY_VAL2), NULL, 0, 0xffff, tp_src)) {
             ofp_fatal(0, "Error parsing tcp_src: %s.", token);
-        }else{ 
+        }else{
             act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
             act->field->header = OXM_OF_TCP_SRC;
             act->field->value = (uint8_t*) tp_src;
-        }     
+        }
         return 0;
     }
     if (strncmp(token, MATCH_TP_DST KEY_VAL2, strlen(MATCH_TP_DST KEY_VAL2)) == 0) {
         uint16_t* tp_dst = xmalloc(2);
         if (parse16(token + strlen(MATCH_TP_SRC KEY_VAL2), NULL, 0, 0xffff, tp_dst)) {
             ofp_fatal(0, "Error parsing tcp_src: %s.", token);
-        }else{ 
+        }else{
             act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
             act->field->header = OXM_OF_TCP_DST;
             act->field->value = (uint8_t*) tp_dst;
-        }     
+        }
         return 0;
     }
     if (strncmp(token, MATCH_NW_SRC_IPV6 KEY_VAL2 , strlen(MATCH_NW_SRC_IPV6 KEY_VAL2)) == 0) {
-            struct in6_addr *addr = (struct in6_addr*) malloc(sizeof(struct in6_addr)); 
+            struct in6_addr *addr = (struct in6_addr*) malloc(sizeof(struct in6_addr));
             struct in6_addr mask;
             if (str_to_ipv6(token + strlen(MATCH_NW_SRC_IPV6)+1, addr, &mask) < 0) {
                 ofp_fatal(0, "Error parsing nw_src_ipv6: %s.", token);
             }
-            else {    
+            else {
                 act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
                 act->field->header = OXM_OF_IPV6_SRC;
                 act->field->value = (uint8_t*) addr->s6_addr;
-            }     
+            }
         return 0;
     }
     if (strncmp(token, MATCH_NW_DST_IPV6 KEY_VAL2 , strlen(MATCH_NW_DST_IPV6 KEY_VAL2)) == 0) {
-            struct in6_addr *addr = (struct in6_addr*) malloc(sizeof(struct in6_addr)); 
+            struct in6_addr *addr = (struct in6_addr*) malloc(sizeof(struct in6_addr));
             struct in6_addr mask;
             if (str_to_ipv6(token + strlen(MATCH_NW_DST_IPV6)+1, addr, &mask) < 0) {
                 ofp_fatal(0, "Error parsing nw_src_ipv6: %s.", token);
             }
-            else {    
+            else {
                 act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
                 act->field->header = OXM_OF_IPV6_DST;
                 act->field->value = (uint8_t*) addr->s6_addr;
-            }     
+            }
         return 0;
     }
     if (strncmp(token, MATCH_IPV6_FLABEL KEY_VAL2, strlen(MATCH_IPV6_FLABEL KEY_VAL2)) == 0) {
@@ -1840,14 +1844,14 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
         if (parse32(token + strlen(MATCH_IPV6_FLABEL KEY_VAL2), NULL, 0, 0x000fffff, ipv6_label)) {
             ofp_fatal(0, "Error parsing ipv6_label: %s.", token);
         }
-        else {    
+        else {
                 act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
                 act->field->header = OXM_OF_IPV6_FLABEL;
                 act->field->value = (uint8_t*) ipv6_label;
-        }     
+        }
         return 0;
     }
-    ofp_fatal(0, "Error parsing set_field arg: %s.", token);   
+    ofp_fatal(0, "Error parsing set_field arg: %s.", token);
 }
 
 static void
@@ -1886,7 +1890,7 @@ parse_action(uint16_t type, char *str, struct ofl_action_header **act) {
             struct ofl_action_set_field *a = xmalloc(sizeof (struct ofl_action_set_field));
             if (parse_set_field(str, a)) {
                 ofp_fatal(0, "Error parsing field in set_field action: %s.", str);
-            } 
+            }
             (*act) = (struct ofl_action_header *)a;
             break;
         }
@@ -2068,10 +2072,10 @@ parse_inst(char *str, struct ofl_instruction_header **inst) {
                     struct ofl_instruction_meter *i = xmalloc(sizeof(struct ofl_instruction_meter));
                     i->header.type = OFPIT_METER;
                     if(parse32(s, NULL, 0, OFPM_MAX ,&i->meter_id)){
-                        ofp_fatal(0, "Error parsing meter instruction: %s.", s);                        
+                        ofp_fatal(0, "Error parsing meter instruction: %s.", s);
                     }
-                    (*inst) = (struct ofl_instruction_header *)i; 
-                    return;               
+                    (*inst) = (struct ofl_instruction_header *)i;
+                    return;
                 }
                 case (OFPIT_CLEAR_ACTIONS): {
                     struct ofl_instruction_header *i = xmalloc(sizeof(struct ofl_instruction_header));
@@ -2290,11 +2294,11 @@ parse_meter_mod_args(char *str, struct ofl_msg_meter_mod *req){
             continue;
         }
         ofp_fatal(0, "Error parsing group_mod arg: %s.", token);
-    }    
-    
-} 
+    }
 
-static void 
+}
+
+static void
 parse_band_args(char *str, struct ofl_msg_meter_mod *m, struct ofl_meter_band_header *b){
     char *token, *saveptr = NULL;
     for (token = strtok_r(str, KEY_SEP, &saveptr); token != NULL; token = strtok_r(NULL, KEY_SEP, &saveptr)) {
@@ -2325,18 +2329,18 @@ parse_band(char *str, struct ofl_msg_meter_mod *m, struct ofl_meter_band_header 
 
         if (strncmp(str, band_names[i].name, strlen(band_names[i].name)) == 0) {
             s = str + strlen(band_names[i].name);
-            
+
             if (strncmp(s, KEY_VAL2, strlen(KEY_VAL2)) != 0) {
                 ofp_fatal(0, "Error parsing meter band: %s.", str);
             }
-            
+
             s+= strlen(KEY_VAL2);
             switch(band_names[i].code){
                 case(OFPMBT_DROP):{
                     struct ofl_meter_band_drop *d = (struct ofl_meter_band_drop*) xmalloc(sizeof(struct ofl_meter_band_drop));
                     d->type = OFPMBT_DROP;
                     d->rate = 0;
-                    d->burst_size = 0;                    
+                    d->burst_size = 0;
                     parse_band_args(s, m, (struct ofl_meter_band_header*)d);
                     *b = (struct ofl_meter_band_header*) d;
                     break;
@@ -2348,12 +2352,12 @@ parse_band(char *str, struct ofl_msg_meter_mod *m, struct ofl_meter_band_header 
                     d->burst_size = 0;
                     d->prec_level = 0;
                     parse_band_args(s, m, (struct ofl_meter_band_header*)d);
-                    *b = (struct ofl_meter_band_header*) d; 
+                    *b = (struct ofl_meter_band_header*) d;
                     break;
                 }
             }
          }
-    }    
+    }
 }
 
 
@@ -2468,19 +2472,19 @@ parse_table(char *str, uint8_t *table) {
 
 static int
 parse_dl_addr(char *str, uint8_t *addr, uint8_t **mask) {
-    char *saveptr = NULL; 
+    char *saveptr = NULL;
     if (sscanf(str, "%"SCNx8":%"SCNx8":%"SCNx8":%"SCNx8":%"SCNx8":%"SCNx8,
             addr, addr+1, addr+2, addr+3, addr+4, addr+5) != 6){
         return -1;
     }
     strtok_r(str, MASK_SEP, &saveptr);
 
-    if(strcmp(saveptr,"") == 0){  
+    if(strcmp(saveptr,"") == 0){
         *mask = NULL;
         return 0;
     }
     else {
-        *mask = (uint8_t*) malloc (sizeof(OFP_ETH_ALEN)); 
+        *mask = (uint8_t*) malloc (sizeof(OFP_ETH_ALEN));
         if (sscanf(saveptr, "%"SCNx8":%"SCNx8":%"SCNx8":%"SCNx8":%"SCNx8":%"SCNx8,
             *mask, *mask+1, *mask+2, *mask+3, *mask+4, *mask+5) != 6){
             return -1;
@@ -2494,7 +2498,7 @@ parse_nw_addr(char *str, uint32_t *addr, uint32_t **mask) {
     // TODO Zoltan: DNS lookup ?
     uint8_t a[4],b[4];
     uint32_t netmask;
-    char *saveptr = NULL; 
+    char *saveptr = NULL;
 
     if (sscanf(str, "%"SCNu8".%"SCNu8".%"SCNu8".%"SCNu8,
                &a[0], &a[1], &a[2], &a[3]) == 4) {
@@ -2504,12 +2508,12 @@ parse_nw_addr(char *str, uint32_t *addr, uint32_t **mask) {
         return -1;
     }
     strtok_r(str, MASK_SEP, &saveptr);
-    if(strcmp(saveptr,"") == 0){  
+    if(strcmp(saveptr,"") == 0){
         *mask = NULL;
         return 0;
     }
     *mask = (uint32_t*) malloc(sizeof(uint32_t));
-    netmask = 0xffffffff; 
+    netmask = 0xffffffff;
     if(strlen(saveptr) <= 2){
         /* Subnet mask*/
         uint8_t subnet_mask;
@@ -2541,7 +2545,7 @@ parse_vlan_vid(char *str, uint16_t *vid) {
     return parse16(str, vlan_vid_names, NUM_ELEMS(vlan_vid_names), 0xfff, vid);
 }
 
-static int 
+static int
 parse_ext_hdr(char *str, uint16_t *ext_hdr){
     char *token, *saveptr = NULL;
     size_t i;
@@ -2597,7 +2601,7 @@ parse16(char *str, struct names16 *names, size_t names_num, uint16_t max, uint16
          if ((max > 0) && (sscanf(str, "%"SCNu16"", val))  == 1 && (*val <= max)) {
             return 0;
          }
-    }          
+    }
     return -1;
 }
 
@@ -2621,7 +2625,7 @@ parse16m(char *str, struct names16 *names, size_t names_num, uint16_t max, uint1
     token = strtok_r(str, MASK_SEP, &saveptr);
     if(token == NULL)
         mask = NULL;
-    else { 
+    else {
         mask = (uint16_t*) malloc(sizeof(uint16_t));
         sscanf(token, "%"SCNu16"", mask);
     }
@@ -2667,7 +2671,7 @@ parse32m(char *str, struct names32 *names, size_t names_num, uint32_t max, uint3
 
     if(saveptr == NULL)
         *mask = NULL;
-    else { 
+    else {
         *mask = (uint32_t*) malloc(sizeof(uint32_t));
         sscanf(saveptr, "%"SCNu32"", *mask);
     }
