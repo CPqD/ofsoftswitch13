@@ -56,7 +56,7 @@ ofl_utils_count_ofp_table_features_properties(void *data, size_t data_len, size_
     while (data_len >= sizeof(struct ofp_table_feature_prop_header)){
         prop = (struct ofp_table_feature_prop_header *) d;
         if (data_len < ntohs(prop->length) || ntohs(prop->length) < sizeof(struct ofp_table_feature_prop_header) ){
-             OFL_LOG_WARN(LOG_MODULE, "Received property has invalid length.");
+             OFL_LOG_WARN(LOG_MODULE, "Received property has invalid length (prop->length=%d, data_len=%d).", ntohs(prop->length), (int) data_len);
              return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_LEN); 
         }
         data_len -= ROUND_UP(ntohs(prop->length), 8);
@@ -477,7 +477,7 @@ ofl_structs_free_table_features(struct ofl_table_features* features, struct ofl_
 }
 
 void
-ofl_structs_free_table_properties(struct ofl_table_feature_prop_header *prop, struct ofl_exp *exp){
+ofl_structs_free_table_properties(struct ofl_table_feature_prop_header *prop, struct ofl_exp *exp UNUSED){
     switch(prop->type){
         case (OFPTFPT_INSTRUCTIONS):
         case (OFPTFPT_INSTRUCTIONS_MISS):{

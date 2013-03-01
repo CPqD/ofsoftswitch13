@@ -387,7 +387,7 @@ ofl_structs_table_features_unpack(struct ofp_table_features *src,size_t *len, st
         free(feat);
         return error;
     }
-    feat->properties = (struct ofl_table_feature_prop_header**) malloc(sizeof(struct ofl_table_feature_prop_header) * feat->properties_num);
+    feat->properties = (struct ofl_table_feature_prop_header**) malloc(sizeof(struct ofl_table_feature_prop_header *) * feat->properties_num);
     
     prop = (uint8_t*) src->properties;
     for(i = 0; i < feat->properties_num; i++){

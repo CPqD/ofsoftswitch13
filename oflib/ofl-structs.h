@@ -177,7 +177,8 @@ struct ofl_table_feature_prop_header {
     uint16_t type;                /* Table feature type */
     uint16_t length;              /* Property length */
 };
-OFP_ASSERT(sizeof(struct ofp_table_feature_prop_header) == 8);
+// Is this needed ? Jean II
+OFP_ASSERT(sizeof(struct ofl_table_feature_prop_header) == 4);
 
 /* Instructions property */
 struct ofl_table_feature_prop_instructions {

@@ -103,12 +103,12 @@ group_entry_create(struct datapath *dp, struct group_table *table, struct ofl_ms
     entry->stats->packet_count  = 0;
     entry->stats->byte_count    = 0;
     entry->stats->counters_num  = mod->buckets_num;
-    entry->stats->counters      = xmalloc(sizeof(struct ofl_bucket_counter *) * entry->stats->counters_num);
+    entry->stats->counters      = (struct ofl_bucket_counter **) xmalloc(sizeof(struct ofl_bucket_counter *) * entry->stats->counters_num);
     entry->stats->duration_sec  = 0;
     entry->stats->duration_nsec = 0;
 
     for (i=0; i<entry->stats->counters_num; i++) {
-        entry->stats->counters[i] = xmalloc(sizeof(struct ofl_bucket_counter));
+        entry->stats->counters[i] = (struct ofl_bucket_counter *) xmalloc(sizeof(struct ofl_bucket_counter));
         entry->stats->counters[i]->packet_count = 0;
         entry->stats->counters[i]->byte_count = 0;
     }
