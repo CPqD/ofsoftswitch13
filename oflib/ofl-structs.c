@@ -76,7 +76,7 @@ ofl_utils_count_ofp_table_features(void *data, size_t data_len, size_t *count){
     while (data_len >= sizeof(struct ofp_table_features)){
         feature = (struct ofp_table_features *) d;
         if (data_len < ntohs(feature->length) || ntohs(feature->length) < sizeof(struct ofp_table_features) ){
-             OFL_LOG_WARN(LOG_MODULE, "Received feature has invalid length.");
+             OFL_LOG_WARN(LOG_MODULE, "Received feature has invalid length (feat->length=%d, data_len=%d).");
              return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_LEN); 
         }
         data_len -= ntohs(feature->length);

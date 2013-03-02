@@ -76,7 +76,7 @@ ofl_msg_free_multipart_request(struct ofl_msg_multipart_request_header *msg, str
         case OFPMP_METER_FEATURES:
             break;
         case OFPMP_TABLE_FEATURES:{
-            struct ofl_msg_multipart_request_table_features *m = (struct ofl_msg_multipart_reply_table_features *)msg;
+            struct ofl_msg_multipart_request_table_features *m = (struct ofl_msg_multipart_request_table_features *)msg;
             OFL_UTILS_FREE_ARR_FUN2(m->table_features, m->tables_num,
                                     ofl_structs_free_table_features, exp);
             break; 

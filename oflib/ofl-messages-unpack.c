@@ -771,7 +771,7 @@ ofl_msg_unpack_multipart_request_table_features(struct ofp_multipart_request *os
         free(dm);
         return error;
     }
-    dm->table_features = (struct ofl_table_features **) malloc(sizeof(struct ofl_table_features) * dm->tables_num);
+    dm->table_features = (struct ofl_table_features **) malloc(sizeof(struct ofl_table_features *) * dm->tables_num);
     features = (uint8_t* ) os->body;
 
     for(i = 0; i < dm->tables_num; i++){
@@ -1239,7 +1239,7 @@ ofl_msg_unpack_multipart_reply_table_features(struct ofp_multipart_reply *src, s
         free(dm);
         return error;
     }
-    dm->table_features = (struct ofl_table_features **) malloc(sizeof(struct ofl_table_features) * dm->tables_num);
+    dm->table_features = (struct ofl_table_features **) malloc(sizeof(struct ofl_table_features *) * dm->tables_num);
     features = (uint8_t* ) src->body;
 
     for(i = 0; i < dm->tables_num; i++){
