@@ -262,14 +262,14 @@ struct ofl_msg_meter_mod {
 
 
 /**********************
- * Statistics messages
+ * Multipart messages
  **********************/
 
 struct ofl_msg_multipart_request_header {
     struct ofl_msg_header   header; /* OFPT_MULTIPART_REQUEST */
 
     enum ofp_multipart_types   type;  /* One of the OFPMP_* constants. */
-    uint16_t               flags; /* OFPSF_REQ_* flags (none yet defined). */
+    uint16_t               flags;     /* OFPMPF_REQ_* flags. */
 };
 
 struct ofl_msg_multipart_request_flow {
@@ -333,7 +333,7 @@ struct ofl_msg_multipart_reply_header {
     struct ofl_msg_header   header; /* OFPT_MULTIPART_REPLY */
 
     enum ofp_multipart_types   type;  /* One of the OFPMP_* constants. */
-    uint16_t               flags;
+    uint16_t               flags;     /* OFPMPF_REPLY_* flags. */
 };
 
 struct ofl_msg_reply_desc {
@@ -538,6 +538,11 @@ ofl_msg_free_flow_removed(struct ofl_msg_flow_removed *msg, bool with_stats, str
 /****************************************************************************
  * Functions for merging messages
  ****************************************************************************/
+
+/* Merges two table feature requests messages. Returns true if the merged
+ * message was the last in a series of multi-messages. */
+bool
+ofl_msg_merge_multipart_request_table_features(struct ofl_msg_multipart_request_table_features *orig, struct ofl_msg_multipart_request_table_features *merge);
 
 /* Merges two flow stats reply messages. Returns true if the merged message was
  * the last in a series of multi-messages. */
