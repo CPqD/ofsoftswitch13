@@ -222,7 +222,7 @@ ofl_structs_table_properties_unpack(struct ofp_table_feature_prop_header * src, 
     }    
     
     if (*len < ntohs(src->length)) {
-        OFL_LOG_WARN(LOG_MODULE, "Received instruction has invalid length (set to %u, but only %zu received).", ntohs(src->length), *len);
+        OFL_LOG_WARN(LOG_MODULE, "Received table property has invalid length (set to %u, but only %zu received).", ntohs(src->length), *len);
         return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
     }
     plen = ntohs(src->length);
@@ -290,7 +290,7 @@ ofl_structs_table_properties_unpack(struct ofp_table_feature_prop_header * src, 
                 OFL_LOG_WARN(LOG_MODULE, "Received ACTION feature has invalid length (%zu).", *len);
                 return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_LEN);
             }
-            alen = plen - sizeof(struct ofp_action_header); 			
+            alen = plen - sizeof(struct ofp_table_feature_prop_actions);
 			dp = (struct ofl_table_feature_prop_actions*) malloc(sizeof(struct ofl_table_feature_prop_actions));		
 		    error = ofl_utils_count_ofp_actions((uint8_t*)sp->action_ids, alen, &dp->actions_num);
             if(error){
@@ -340,6 +340,8 @@ ofl_structs_table_properties_unpack(struct ofp_table_feature_prop_header * src, 
 	}
     // must set type before check, so free works correctly
     prop->type = (enum ofp_table_feature_prop_type) ntohs(src->type);
+    /* Make sure it can be reused for packing. Jean II */
+    prop->length = ntohs(src->length);
 
 	if (plen != 0){
         *len = *len - ntohs(src->length) + plen;

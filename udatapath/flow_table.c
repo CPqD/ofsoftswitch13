@@ -328,11 +328,11 @@ flow_table_create_property(struct ofl_table_feature_prop_header **prop, enum ofp
     }
 }
 
-static void
+static int
 flow_table_features(struct ofl_table_features *features){
 
     int type, j;
-    features->properties = (struct ofl_table_feature_prop_header **) xmalloc(sizeof(struct ofl_table_feature_prop_header *) * features->properties_num);
+    features->properties = (struct ofl_table_feature_prop_header **) xmalloc(sizeof(struct ofl_table_feature_prop_header *) * TABLE_FEATURES_NUM);
     j = 0;
     for(type = OFPTFPT_INSTRUCTIONS; type <= OFPTFPT_APPLY_SETFIELD_MISS; type++){ 
         //features->properties[j] = xmalloc(sizeof(struct ofl_table_feature_prop_header));
@@ -342,6 +342,12 @@ flow_table_features(struct ofl_table_features *features){
         }
         j++;
     }
+    /* Sanity check. Jean II */
+    if(j != TABLE_FEATURES_NUM) {
+        VLOG_WARN(LOG_MODULE, "Invalid number of table features, %d instead of %d.", j, TABLE_FEATURES_NUM);
+        abort();
+    }
+    return j;
 }
 
 struct flow_table *
@@ -369,9 +375,8 @@ flow_table_create(struct datapath *dp, uint8_t table_id) {
     table->features->metadata_write = 0xffffffffffffffff;
     table->features->config        = OFPTC_TABLE_MISS_CONTROLLER;
     table->features->max_entries   = FLOW_TABLE_MAX_ENTRIES;
-    table->features->properties_num = TABLE_FEATURES_NUM;
-    flow_table_features(table->features);
-    
+    table->features->properties_num = flow_table_features(table->features);
+
     list_init(&table->match_entries);
     list_init(&table->hard_entries);
     list_init(&table->idle_entries);

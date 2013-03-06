@@ -945,7 +945,7 @@ ofl_structs_table_features_print(FILE *stream, struct ofl_table_features *s){
                           "metadata_match=\"%"PRIx64"\", metadata_write=\"%"PRIx64"\", config=\"%"PRIu32"\"," 
                           "max_entries=\"%"PRIu32"\"",
                   s->name, s->metadata_match, s->metadata_write, s->config, s->max_entries);      
-    for(i =0; i < s->properties_num -1; i++){
+    for(i =0; i < s->properties_num; i++){
         ofl_structs_table_properties_print(stream, s->properties[i]);    
     }    
 }

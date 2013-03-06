@@ -297,9 +297,16 @@ size_t
 ofl_structs_table_features_properties_ofp_total_len(struct ofl_table_feature_prop_header **props, size_t features_num, struct ofl_exp *exp){
     int i;
     size_t sum = 0;
+    size_t sum_check;
     for(i = 0; i < features_num; i++){
         /* Length is padded to 8  bytes */
         sum += ROUND_UP(props[i]->length, 8);
+
+	/* Sanity check ! Jean II */
+	sum_check = ofl_structs_table_features_properties_ofp_len(props[i], exp);
+	if(props[i]->length != sum_check)
+	  OFL_LOG_WARN(LOG_MODULE, "Table feature property %X has unexpected length, %u != %zu.", props[i]->type, props[i]->length, sum_check);
+
     } 
 	return sum;    
 }
@@ -309,7 +316,7 @@ size_t ofl_structs_table_features_ofp_total_len(struct ofl_table_features **feat
     int i, total_len;
     total_len = 0;
     for(i = 0; i < tables_num; i++){
-        total_len +=  sizeof(struct ofp_table_features) + ofl_structs_table_features_properties_ofp_total_len(feat[i]->properties, feat[i]->properties_num - 1,exp);   
+        total_len +=  sizeof(struct ofp_table_features) + ofl_structs_table_features_properties_ofp_total_len(feat[i]->properties, feat[i]->properties_num, exp);   
     }
     return total_len;
 }
@@ -432,7 +439,7 @@ ofl_structs_table_features_pack(struct ofl_table_features *src, struct ofp_table
     int i;
    
    
-    total_len = sizeof(struct ofp_table_features) + ofl_structs_table_features_properties_ofp_total_len(src->properties,src->properties_num -1,exp);
+    total_len = sizeof(struct ofp_table_features) + ofl_structs_table_features_properties_ofp_total_len(src->properties,src->properties_num,exp);
     dst->table_id = src->table_id;
     memset(dst->pad, 0x0,5);
     strncpy(dst->name,src->name, OFP_MAX_TABLE_NAME_LEN);
@@ -442,7 +449,7 @@ ofl_structs_table_features_pack(struct ofl_table_features *src, struct ofp_table
     dst->max_entries = htonl(src->max_entries); 
     
     ptr = (uint8_t*) (data + sizeof(struct ofp_table_features));
-    for(i = 0; i < src->properties_num -1; i++){
+    for(i = 0; i < src->properties_num; i++){
         ptr += ofl_structs_table_properties_pack(src->properties[i], (struct ofp_table_feature_prop_header*) ptr, ptr, exp);
     }
     dst->length = htons(total_len);
