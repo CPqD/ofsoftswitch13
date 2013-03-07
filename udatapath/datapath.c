@@ -540,7 +540,7 @@ dp_send_message(struct datapath *dp, struct ofl_msg_header *msg,
 
     if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
         char *msg_str = ofl_msg_to_string(msg, dp->exp);
-        VLOG_DBG_RL(LOG_MODULE, &rl, "sending: %s", msg_str);
+        VLOG_DBG_RL(LOG_MODULE, &rl, "sending: %.400s", msg_str);
         free(msg_str);
     }
 

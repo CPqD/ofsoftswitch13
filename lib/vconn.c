@@ -513,7 +513,7 @@ again:
                 ds_put_hex_dump(&string, (*msgp)->data, MIN((*msgp)->size, 1024), 0, false);
                 str = ds_cstr(&string);
             }
-            VLOG_DBG_RL(LOG_MODULE, &rl, "%s: received: %s", vconn->name, str);
+            VLOG_DBG_RL(LOG_MODULE, &rl, "%s: received: %.400s", vconn->name, str);
 
             free(str);
         }
@@ -605,7 +605,7 @@ do_send(struct vconn *vconn, struct ofpbuf *buf)
 
         retval = (vconn->class->send)(vconn, buf);
         if (retval != EAGAIN) {
-            VLOG_DBG_RL(LOG_MODULE, &rl, "%s: sent (%s): %s",
+            VLOG_DBG_RL(LOG_MODULE, &rl, "%s: sent (%s): %.400s",
                         vconn->name, strerror(retval), str);
         }
 
