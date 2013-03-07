@@ -1240,7 +1240,7 @@ parse_match(char *str, struct ofl_match_header **match) {
         }
 
         /* IP */
-        if (strncmp(token, MATCH_IP_ECN, strlen(MATCH_IP_ECN KEY_VAL)) == 0) {
+        if (strncmp(token, MATCH_IP_ECN KEY_VAL, strlen(MATCH_IP_ECN KEY_VAL)) == 0) {
             uint8_t ip_ecn;
             if (parse8(token + strlen(MATCH_IP_ECN KEY_VAL), NULL, 0, 0x3f, &ip_ecn)) {
                 ofp_fatal(0, "Error parsing nw_tos: %s.", token);
@@ -1249,7 +1249,7 @@ parse_match(char *str, struct ofl_match_header **match) {
                  ofl_structs_match_put8(m, OXM_OF_IP_ECN, ip_ecn);
             continue;
         }
-        if (strncmp(token, MATCH_IP_DSCP, strlen(MATCH_IP_DSCP KEY_VAL)) == 0) {
+        if (strncmp(token, MATCH_IP_DSCP KEY_VAL, strlen(MATCH_IP_DSCP KEY_VAL)) == 0) {
             uint8_t ip_dscp;
             if (parse8(token + strlen(MATCH_IP_DSCP KEY_VAL), NULL, 0, 0x3f, &ip_dscp)) {
                 ofp_fatal(0, "Error parsing nw_tos: %s.", token);
@@ -1443,7 +1443,7 @@ parse_match(char *str, struct ofl_match_header **match) {
         }
 
         /* ICMPv6 */
-        if (strncmp(token, MATCH_ICMPV6_CODE, strlen(MATCH_ICMPV6_CODE KEY_VAL)) == 0) {
+        if (strncmp(token, MATCH_ICMPV6_CODE KEY_VAL, strlen(MATCH_ICMPV6_CODE KEY_VAL)) == 0) {
             uint8_t icmpv6_code;
             if (parse8(token + strlen(MATCH_ICMPV6_CODE KEY_VAL), NULL, 0, 0x3f, &icmpv6_code)) {
                 ofp_fatal(0, "Error parsing icmpv6_code: %s.", token);
@@ -1452,13 +1452,13 @@ parse_match(char *str, struct ofl_match_header **match) {
                  ofl_structs_match_put8(m, OXM_OF_ICMPV6_CODE, icmpv6_code);
             continue;
         }
-        if (strncmp(token, MATCH_ICMPV6_TYPE, strlen(MATCH_ICMPV6_TYPE KEY_VAL)) == 0) {
+        if (strncmp(token, MATCH_ICMPV6_TYPE KEY_VAL, strlen(MATCH_ICMPV6_TYPE KEY_VAL)) == 0) {
             uint8_t icmpv6_type;
             if (parse8(token + strlen(MATCH_ICMPV6_TYPE KEY_VAL), NULL, 0, 0x3f, &icmpv6_type)) {
                 ofp_fatal(0, "Error parsing icmpv6_type: %s.", token);
             }
             else
-                 ofl_structs_match_put8(m, OXM_OF_ICMPV6_CODE, icmpv6_type);
+                 ofl_structs_match_put8(m, OXM_OF_ICMPV6_TYPE, icmpv6_type);
             continue;
         }
 
