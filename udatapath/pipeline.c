@@ -373,17 +373,102 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
     struct ofl_msg_multipart_request_table_features *feat =
                        (struct ofl_msg_multipart_request_table_features *) msg;
 
-    /*Check to see if the body is empty*/
+    /* Check if we already received fragments of a multipart request. */
+    if(sender->remote->mp_req_msg != NULL) {
+      bool nomore;
+
+      /* We can only merge requests having the same XID. */
+      if(sender->xid != sender->remote->mp_req_xid)
+	{
+	  VLOG_ERR(LOG_MODULE, "multipart request: wrong xid (0x%X != 0x%X)", sender->xid, sender->remote->mp_req_xid);
+
+	  /* Technically, as our buffer can only hold one pending request,
+	   * this is a buffer overflow ! Jean II */
+	  /* Return error. */
+	  return ofl_error(OFPET_BAD_REQUEST, OFPBRC_MULTIPART_BUFFER_OVERFLOW);
+	}
+
+      VLOG_DBG(LOG_MODULE, "multipart request: merging with previous fragments (%d+%d)", ((struct ofl_msg_multipart_request_table_features *) sender->remote->mp_req_msg)->tables_num, feat->tables_num);
+
+      /* Merge the request with previous fragments. */
+      nomore = ofl_msg_merge_multipart_request_table_features((struct ofl_msg_multipart_request_table_features *) sender->remote->mp_req_msg, feat);
+
+      /* Check if incomplete. */
+      if(!nomore)
+	return 0;
+
+      VLOG_DBG(LOG_MODULE, "multipart request: reassembly complete (%d)", ((struct ofl_msg_multipart_request_table_features *) sender->remote->mp_req_msg)->tables_num);
+
+      /* Use the complete request. */
+      feat = (struct ofl_msg_multipart_request_table_features *) sender->remote->mp_req_msg;
+
+#if 0
+      {
+	char *str;
+	str = ofl_msg_to_string((struct ofl_msg_header *) feat, pl->dp->exp);
+	VLOG_DBG(LOG_MODULE, "\nMerged request:\n%s\n\n", str);
+	free(str);
+      }
+#endif
+
+    } else {
+      /* Check if the request is an initial fragment. */
+      if(msg->flags & OFPMPF_REQ_MORE) {
+	struct ofl_msg_multipart_request_table_features* saved_msg;
+
+	VLOG_DBG(LOG_MODULE, "multipart request: create reassembly buffer (%d)", feat->tables_num);
+
+	/* Create a buffer the do reassembly. */
+	saved_msg = (struct ofl_msg_multipart_request_table_features*) malloc(sizeof(struct ofl_msg_multipart_request_table_features));
+	saved_msg->header.header.type = OFPT_MULTIPART_REQUEST;
+	saved_msg->header.type = OFPMP_TABLE_FEATURES;
+	saved_msg->header.flags = 0;
+	saved_msg->tables_num = 0;
+	saved_msg->table_features = NULL;
+
+	/* Save the fragment for later use. */
+	ofl_msg_merge_multipart_request_table_features(saved_msg, feat);
+	sender->remote->mp_req_msg = (struct ofl_msg_multipart_request_header *) saved_msg;
+	sender->remote->mp_req_xid = sender->xid;
+
+	return 0;
+      }
+
+      /* Non fragmented request. Nothing to do... */
+      VLOG_DBG(LOG_MODULE, "multipart request: non-fragmented request (%d)", feat->tables_num);
+    }
+
+    /*Check to see if the body is empty.*/
+    /* Should check merge->tables_num instead. Jean II */
     if(feat->table_features != NULL){
         /* Change tables configuration
            TODO: Remove flows*/
+        /* TODO : In theory, tables missing from the request should be
+	 * disabled ! Maybe we could return an error if table number not
+	 * the same, like OFPTFFC_BAD_TABLE... Jean II  */
+        VLOG_DBG(LOG_MODULE, "pipeline_handle_stats_request_table_features_request: updating features");
         for(i = 0; i < feat->tables_num; i++){
+	    /* Obvious memory leak.
+	     * Obvious memory ownership issue when non-frag requests.
+	     * Jean II */
             pl->tables[feat->table_features[i]->table_id]->features = feat->table_features[i];
         }
     }
 
+    /* Cleanup request. */
+    if(sender->remote->mp_req_msg != NULL) {
+      /* Can't free entire structure, we are pointing to it ! */
+      //ofl_msg_free((struct ofl_msg_header *) sender->remote->mp_req_msg, NULL);
+      free(sender->remote->mp_req_msg);
+      sender->remote->mp_req_msg = NULL;
+      sender->remote->mp_req_xid = 0;  /* Currently not needed. Jean II. */
+    }
+
     j = 0;
     /* Query for table capabilities */
+    /* Note : PIPELINE_TABLES must be multiple of 8 for this code to work.
+     * Otherwise we go out of bounds and may not set the MORE flags properly.
+     * Jean II */
     loop: ;
     features = (struct ofl_table_features**) xmalloc(sizeof(struct ofl_table_features *) * 8);
     for (i = 0; i < 8; i++){

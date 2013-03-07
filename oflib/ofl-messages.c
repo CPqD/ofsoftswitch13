@@ -361,6 +361,94 @@ ofl_msg_free_flow_removed(struct ofl_msg_flow_removed *msg, bool with_stats, str
 
 
 bool
+ofl_msg_merge_multipart_request_table_features(struct ofl_msg_multipart_request_table_features *orig, struct ofl_msg_multipart_request_table_features *merge) {
+    uint32_t new_tables_num;
+    size_t i, j;
+    struct ofl_table_feature_prop_header **properties;
+    struct ofl_table_feature_prop_header *old_prop;
+    struct ofl_table_feature_prop_header *new_prop;
+    int properties_num;
+    int k;
+
+    /* Keep body potentially empty if nothing to merge. Jean II */
+    if(merge->tables_num) {
+      new_tables_num = orig->tables_num + merge->tables_num;
+
+      orig->table_features = (struct ofl_table_features ** )realloc(orig->table_features, new_tables_num * sizeof(struct ofl_table_features *));
+
+      for (i=0; i < merge->tables_num; i++) {
+        j = orig->tables_num + i;
+        orig->table_features[j] = (struct ofl_table_features *)malloc(sizeof(struct ofl_table_features));
+        memcpy(orig->table_features[j], merge->table_features[i], sizeof(struct ofl_table_features));
+	properties = merge->table_features[i]->properties;
+	properties_num = merge->table_features[i]->properties_num;
+	for (k = 0; k < properties_num; k++) {
+	  old_prop = properties[k];
+	  switch (old_prop->type) {
+	  case OFPTFPT_INSTRUCTIONS:
+	  case OFPTFPT_INSTRUCTIONS_MISS: {
+	    struct ofl_table_feature_prop_instructions *old_prop_i = (struct ofl_table_feature_prop_instructions*) old_prop;
+	    struct ofl_table_feature_prop_instructions *new_prop_i;
+	    new_prop_i = (struct ofl_table_feature_prop_instructions*) malloc(sizeof(struct ofl_table_feature_prop_instructions));
+	    new_prop = (struct ofl_table_feature_prop_header *) new_prop_i;
+	    memcpy((char *) new_prop, (char *) old_prop, sizeof(struct ofl_table_feature_prop_instructions));
+	    new_prop_i->instruction_ids = (struct ofl_instruction_header*) malloc(sizeof(struct ofl_instruction_header) * old_prop_i->ids_num);
+	    memcpy((char *) new_prop_i->instruction_ids, (char *) old_prop_i->instruction_ids, sizeof(struct ofl_instruction_header) * old_prop_i->ids_num);
+	    break;
+	  }
+	  case OFPTFPT_NEXT_TABLES:
+	  case OFPTFPT_NEXT_TABLES_MISS: {
+	    struct ofl_table_feature_prop_next_tables *old_prop_nt = (struct ofl_table_feature_prop_next_tables*) old_prop;
+	    struct ofl_table_feature_prop_next_tables *new_prop_nt;
+	    new_prop_nt = (struct ofl_table_feature_prop_next_tables*) malloc(sizeof(struct ofl_table_feature_prop_next_tables));
+	    new_prop = (struct ofl_table_feature_prop_header *) new_prop_nt;
+	    memcpy((char *) new_prop, (char *) old_prop, sizeof(struct ofl_table_feature_prop_next_tables));
+	    new_prop_nt->next_table_ids = (uint8_t*) malloc(sizeof(uint8_t) * old_prop_nt->table_num);
+	    memcpy((char *) new_prop_nt->next_table_ids, (char *) old_prop_nt->next_table_ids, sizeof(uint8_t) * old_prop_nt->table_num);
+	    break;
+	  }
+	  case OFPTFPT_WRITE_ACTIONS:
+	  case OFPTFPT_WRITE_ACTIONS_MISS:
+	  case OFPTFPT_APPLY_ACTIONS:
+	  case OFPTFPT_APPLY_ACTIONS_MISS: {
+	    struct ofl_table_feature_prop_actions *old_prop_a = (struct ofl_table_feature_prop_actions*) old_prop;
+	    struct ofl_table_feature_prop_actions *new_prop_a;
+	    new_prop_a = (struct ofl_table_feature_prop_actions*) malloc(sizeof(struct ofl_table_feature_prop_actions));
+	    new_prop = (struct ofl_table_feature_prop_header *) new_prop_a;
+	    memcpy((char *) new_prop, (char *) old_prop, sizeof(struct ofl_table_feature_prop_actions));
+	    new_prop_a->action_ids = (struct ofl_action_header*) malloc(sizeof(struct ofl_action_header) * old_prop_a->actions_num);
+	    memcpy((char *) new_prop_a->action_ids, (char *) old_prop_a->action_ids, sizeof(struct ofl_action_header) * old_prop_a->actions_num);
+	    break;
+	  }
+	  case OFPTFPT_MATCH:
+	  case OFPTFPT_WILDCARDS:
+	  case OFPTFPT_WRITE_SETFIELD:
+	  case OFPTFPT_WRITE_SETFIELD_MISS:
+	  case OFPTFPT_APPLY_SETFIELD:
+	  case OFPTFPT_APPLY_SETFIELD_MISS: { 
+	    struct ofl_table_feature_prop_oxm *old_prop_o = (struct ofl_table_feature_prop_oxm*) old_prop;
+	    struct ofl_table_feature_prop_oxm *new_prop_o;
+	    new_prop_o = (struct ofl_table_feature_prop_oxm*) malloc(sizeof(struct ofl_table_feature_prop_oxm));
+	    new_prop = (struct ofl_table_feature_prop_header *) new_prop_o;
+	    memcpy((char *) new_prop, (char *) old_prop, sizeof(struct ofl_table_feature_prop_oxm));
+	    new_prop_o->oxm_ids = (uint32_t*) malloc(sizeof(uint32_t) * old_prop_o->oxm_num);
+	    memcpy((char *) new_prop_o->oxm_ids, (char *) old_prop_o->oxm_ids, sizeof(uint32_t) * old_prop_o->oxm_num);
+	    break;
+	  }
+	  default:
+	    new_prop = NULL;
+	  }
+	  orig->table_features[j]->properties[k] = new_prop;
+	}
+      }
+
+      orig->tables_num = new_tables_num;
+    }
+
+    return ((merge->header.flags & OFPMPF_REQ_MORE) == 0);
+}
+
+bool
 ofl_msg_merge_multipart_reply_flow(struct ofl_msg_multipart_reply_flow *orig, struct ofl_msg_multipart_reply_flow *merge) {
     uint32_t new_stats_num;
     size_t i, j;
