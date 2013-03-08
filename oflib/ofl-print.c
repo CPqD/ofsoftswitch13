@@ -489,7 +489,7 @@ ofl_error_code_print(FILE *stream, uint16_t type, uint16_t code) {
             break;
         }
     }
-    fprintf(stream, "?(%u)", type);
+    fprintf(stream, "?(%u)", code);
 }
 
 
