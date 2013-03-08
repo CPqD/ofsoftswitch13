@@ -373,6 +373,17 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
     struct ofl_msg_multipart_request_table_features *feat =
                        (struct ofl_msg_multipart_request_table_features *) msg;
 
+    /* Further validation of request not done in
+     * ofl_structs_table_features_unpack(). Jean II */
+    if(feat->table_features != NULL) {
+        for(i = 0; i < feat->tables_num; i++){
+	    if(feat->table_features[i]->table_id >= PIPELINE_TABLES)
+	        return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_TABLE);
+	    /* We may want to validate things like config, max_entries,
+	     * metadata... */
+        }
+    }
+
     /* Check if we already received fragments of a multipart request. */
     if(sender->remote->mp_req_msg != NULL) {
       bool nomore;
