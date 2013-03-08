@@ -2847,7 +2847,7 @@ set_table_features_match(struct vconn *vconn, int argc, char *argv[]) {
     last_table = table_feat->table_features[table_feat->tables_num - 1]->table_id;
     t = 0;
     batch_table = table_feat->tables_num;
-    while(t < last_table) {
+    while(t <= last_table) {
       int i;
       int prev_t = t;
       for(i = 0; i < batch_table; i++) {
