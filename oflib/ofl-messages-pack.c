@@ -178,7 +178,7 @@ ofl_msg_pack_flow_removed(struct ofl_msg_flow_removed *msg, uint8_t **buf, size_
 
     ofr = (struct ofp_flow_removed *)(*buf);
     ofr->cookie        = hton64(msg->stats->cookie);
-    ofr->priority      = hton64(msg->stats->priority);
+    ofr->priority      = htons(msg->stats->priority);
     ofr->reason        =        msg->reason;
     ofr->table_id      =        msg->stats->table_id;
     ofr->duration_sec  = htonl( msg->stats->duration_sec);

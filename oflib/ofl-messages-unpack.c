@@ -296,7 +296,7 @@ ofl_msg_unpack_flow_removed(struct ofp_header *src,uint8_t *buf, size_t *len, st
     dr->stats->table_id         =        sr->table_id;
     dr->stats->duration_sec     = ntohl( sr->duration_sec);
     dr->stats->duration_nsec    = ntohl( sr->duration_nsec);
-    dr->stats->priority         = ntoh64(sr->priority);
+    dr->stats->priority         = ntohs(sr->priority);
     dr->stats->idle_timeout     = ntohs( sr->idle_timeout);
     dr->stats->hard_timeout     = 0;
     dr->stats->cookie           = ntoh64(sr->cookie);
