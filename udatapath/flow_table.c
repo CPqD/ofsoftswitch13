@@ -370,6 +370,7 @@ flow_table_create(struct datapath *dp, uint8_t table_id) {
 
     table = xmalloc(sizeof(struct flow_table));
     table->dp = dp;
+    table->disabled = 0;
     
     /*Init table stats */
     table->stats = xmalloc(sizeof(struct ofl_table_stats));

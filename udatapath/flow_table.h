@@ -48,6 +48,7 @@
 
 struct flow_table {
     struct datapath           *dp;
+    bool                       disabled;      /* Don't use that table. */
     struct ofl_table_features *features;      /*store table features*/
     struct ofl_table_stats    *stats;         /* structure storing table statistics. */
     

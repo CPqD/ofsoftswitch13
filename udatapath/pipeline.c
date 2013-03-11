@@ -441,17 +441,22 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
     /*Check to see if the body is empty.*/
     /* Should check merge->tables_num instead. Jean II */
     if(feat->table_features != NULL){
+        /* Disable all tables, they will be selectively re-enabled. */
+        for(i = 0; i < PIPELINE_TABLES; i++){
+	    pl->tables[i]->disabled = true;
+	}
         /* Change tables configuration
            TODO: Remove flows*/
-        /* TODO : In theory, tables missing from the request should be
-	 * disabled ! Maybe we could return an error if table number not
-	 * the same, like OFPTFFC_BAD_TABLE... Jean II  */
+        /* TODO : In theory, tables should be in ascending order !
+	 * Maybe we could return an error if table number not
+	 * expected, like OFPTFFC_BAD_TABLE... Jean II  */
         VLOG_DBG(LOG_MODULE, "pipeline_handle_stats_request_table_features_request: updating features");
         for(i = 0; i < feat->tables_num; i++){
 	    /* Obvious memory leak.
 	     * Obvious memory ownership issue when non-frag requests.
 	     * Jean II */
             pl->tables[feat->table_features[i]->table_id]->features = feat->table_features[i];
+	    pl->tables[i]->disabled = false;
         }
     }
 
@@ -466,21 +471,28 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
 
     j = 0;
     /* Query for table capabilities */
-    /* Note : PIPELINE_TABLES must be multiple of 8 for this code to work.
-     * Otherwise we go out of bounds and may not set the MORE flags properly.
-     * Jean II */
     loop: ;
     features = (struct ofl_table_features**) xmalloc(sizeof(struct ofl_table_features *) * 8);
+    /* Return 8 tables per reply segment. */
     for (i = 0; i < 8; i++){
+        /* Skip disabled tables. */
+        while((j < PIPELINE_TABLES) && (pl->tables[j]->disabled == true))
+	    j++;
+	/* Stop at the last table. */
+	if(j >= PIPELINE_TABLES)
+	    break;
+	/* Use that table in the reply. */
         features[i] = pl->tables[j]->features;
         j++;
     }
+    VLOG_DBG(LOG_MODULE, "multipart reply: returning %d tables, next table-id %d", i, j);
     {
     struct ofl_msg_multipart_reply_table_features reply =
-        {{{.type = OFPT_MULTIPART_REPLY},
-          .type = OFPMP_TABLE_FEATURES, .flags = j == PIPELINE_TABLES? 0x00000000:OFPMPF_REPLY_MORE},
+         {{{.type = OFPT_MULTIPART_REPLY},
+           .type = OFPMP_TABLE_FEATURES,
+           .flags = (j == PIPELINE_TABLES ? 0x00000000 : OFPMPF_REPLY_MORE) },
           .table_features     = features,
-          .tables_num = 8};
+          .tables_num = i };
           dp_send_message(pl->dp, (struct ofl_msg_header *)&reply, sender);
     }
     if (j < PIPELINE_TABLES){
