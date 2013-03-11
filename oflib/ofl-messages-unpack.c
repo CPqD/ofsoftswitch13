@@ -1479,7 +1479,7 @@ ofl_msg_unpack_queue_get_config_request(struct ofp_header *src, size_t *len, str
 
     sr = (struct ofp_queue_get_config_request *)src;
 
-    if (ntohl(sr->port) == 0 || ntohl(sr->port) > OFPP_MAX) {
+    if (ntohl(sr->port) == 0 || ntohl(sr->port) > OFPP_ANY) {
         OFL_LOG_WARN(LOG_MODULE, "Received GET_CONFIG_REQUEST message has invalid port (%u).", ntohl(sr->port));
         return ofl_error(OFPET_QUEUE_OP_FAILED, OFPQOFC_BAD_PORT);
     }
