@@ -1517,7 +1517,7 @@ struct ofp_role_prop_expermenter {
 	uint32_t experimenter_data[0];
 };
 OFP_ASSERT(sizeof(struct ofp_role_prop_expermenter) ==12);
-D
+
 /*modified by dingwanfu*/
 /* Role status event message. */
 struct ofp_role_status {
