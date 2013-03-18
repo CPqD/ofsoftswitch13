@@ -114,6 +114,30 @@ ofl_msg_unpack_role_request(struct ofp_header *src, size_t *len, struct ofl_msg_
     return 0;
 }
 
+/*modified by dingwanfu*/
+static int 
+ofl_msg_unpack_role_status(struct ofp_header *src, size_t *len, struct ofl_msg_header **msg) {
+
+	struct ofp_role_status * srl;
+	struct ofl_msg_role_status * drl; 
+
+	if (*len < sizeof(struct ofp_role_status)){
+            OFL_LOG_WARN(LOG_MODULE, "Received ROLE_STATUS message has invalid length (%zu).", *len);
+      	    return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    	}
+    	*len -= sizeof(struct ofp_role_status);    
+    
+    	srl = (struct ofp_role_status *) src;
+    	drl = (struct ofl_msg_role_status *) malloc(sizeof(struct ofl_msg_role_status));
+    
+    	drl->role = ntohl(srl->role);
+	drl->reason = srl->reason;
+    	drl->generation_id = ntoh64(srl->generation_id);
+
+    	*msg = (struct ofl_msg_header *)drl;
+    	return 0;
+}
+
 static ofl_err
 ofl_msg_unpack_features_reply(struct ofp_header *src, size_t *len, struct ofl_msg_header **msg) {
     struct ofp_switch_features *sr;

@@ -125,7 +125,17 @@ struct ofl_msg_role_request {
 	uint64_t generation_id;   /* Master Election Generation Id */
 };
 
+/*modified by dingwanfu*/
+struct ofl_msg_role_status {
+	struct ofp_header header;  /* Type OFPT_ROLE_REQUEST/OFPT_ROLE_REPLY. */
+	uint32_t role;              /* One of OFPCR_ROLE_*. */
+        uint8_t reason;             /* One of OFPCR_*. */
+	uint8_t pad[3];             /* Align to 64 bits. */
+	uint64_t generation_id;    /* Master Election Generation Id */
 
+    /* Role Property list */
+	struct ofp_role_prop_header properties[0];
+};
 
 /************************
  * Asynchronous messages
