@@ -66,154 +66,18 @@ output(struct packet *pkt, struct ofl_action_output *action) {
 }
 
 /* Executes a set field action.
-TODO: if we use the the index structure to the packet fields 
+TODO: if we use the the index structure to the packet fields
 revalidation is not needed  */
 
 static void
-set_field(struct packet *pkt, struct ofl_action_set_field *act ) 
+set_field(struct packet *pkt, struct ofl_action_set_field *act )
 {
     packet_handle_std_validate(pkt->handle_std);
     if (pkt->handle_std->valid)
     {
-        struct packet_fields *iter;
-        /* Search field on the description of the packet. */
-        HMAP_FOR_EACH_WITH_HASH(iter,struct packet_fields, hmap_node, hash_int(act->field->header,0), &pkt->handle_std->match.match_fields)
-        {
-            struct ip_header *ipv4;
-            struct mpls_header *mpls;
-            uint8_t* tmp;
-            size_t i;
-            
-            /* TODO: Checksum for SCTP and ICMP */
-            if (iter->header == OXM_OF_IPV4_SRC || iter->header == OXM_OF_IPV4_DST 
-                || iter->header == OXM_OF_IP_DSCP || iter->header == OXM_OF_IP_ECN)
-            {
-                uint16_t *aux_old ;
-                aux_old = (uint16_t *)malloc(sizeof(uint16_t));
-                memcpy(aux_old, ((uint8_t*)pkt->buffer->data + iter->pos - 1) , (2 * OXM_LENGTH(iter->header)));
-                if (iter->header == OXM_OF_IP_DSCP)
-                {
-                    uint8_t* aux;
-                    aux = (uint8_t *)malloc(OXM_LENGTH(iter->header));
-                    memcpy(aux,((uint8_t*)pkt->buffer->data + iter->pos) , OXM_LENGTH(iter->header));
-                    *aux = *aux ^ ((*act->field->value) << 2 );
-                    memcpy(((uint8_t*)pkt->buffer->data + iter->pos) , aux , OXM_LENGTH(iter->header));
-                    free(aux);
-                }
-                else if (iter->header == OXM_OF_IP_ECN)
-                {
-                    memcpy(((uint8_t*)pkt->buffer->data + iter->pos) , act->field->value , OXM_LENGTH(iter->header));
-                }
-                else 
-                {
-                    memcpy(((uint8_t*)pkt->buffer->data + iter->pos) , act->field->value , OXM_LENGTH(iter->header));
-                }
 
-                // update TCP/UDP checksum
-                ipv4 = pkt->handle_std->proto->ipv4;
-                if (pkt->handle_std->proto->tcp != NULL) {
-                    struct tcp_header *tcp = pkt->handle_std->proto->tcp;
-                    if (iter->header == OXM_OF_IPV4_SRC)
-                    {
-                        tcp->tcp_csum = recalc_csum16(tcp->tcp_csum, ipv4->ip_src,htonl(*((uint32_t*) act->field->value)));
-                    }
-                    else if (iter->header == OXM_OF_IPV4_DST)
-                    {
-                        tcp->tcp_csum = recalc_csum16(tcp->tcp_csum, ipv4->ip_dst,htonl(*((uint32_t*) act->field->value)));
-                    }
-                } else if (pkt->handle_std->proto->udp != NULL) {
-                    struct udp_header *udp = pkt->handle_std->proto->udp;
-                    if (iter->header == OXM_OF_IPV4_SRC)
-                    {
-                        udp->udp_csum = recalc_csum32(udp->udp_csum, ipv4->ip_src, htonl(*((uint32_t*) act->field->value)));
-                    }
-                    else if (iter->header == OXM_OF_IPV4_DST)
-                    {
-                        udp->udp_csum = recalc_csum32(udp->udp_csum, ipv4->ip_dst, htonl(*((uint32_t*) act->field->value)));
-                    }
-                }
 
-                if (iter->header == OXM_OF_IP_DSCP || iter->header == OXM_OF_IP_ECN)
-                {
-                    uint16_t *aux ;
-                    aux = (uint16_t *)malloc(sizeof(uint16_t));
-                    memcpy(aux, ((uint8_t*)pkt->buffer->data + iter->pos - 1) , (2 * OXM_LENGTH(iter->header)));
-                    ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, *aux_old, *aux);
-                    free(aux);
-                }
-                else if (iter->header == OXM_OF_IPV4_SRC)
-                {
-                    ipv4->ip_csum = recalc_csum32(ipv4->ip_csum, ipv4->ip_src, htonl(*((uint32_t*) act->field->value)));
-                }
-                else 
-                { 
-                    ipv4->ip_csum = recalc_csum32(ipv4->ip_csum, ipv4->ip_dst, htonl(*((uint32_t*) act->field->value)));
-                }  
-                pkt->handle_std->valid = false;
-                packet_handle_std_validate(pkt->handle_std);
-                free(aux_old);
-                return;        	       
-            }
-            if (iter->header == OXM_OF_TCP_SRC)
-            {
-                struct tcp_header *tcp = pkt->handle_std->proto->tcp;
-                tcp->tcp_csum = recalc_csum16(tcp->tcp_csum, tcp->tcp_src, htons(*((uint16_t*) act->field->value)));
-            }
-            else if (iter->header == OXM_OF_TCP_DST)
-            {
-                struct tcp_header *tcp = pkt->handle_std->proto->tcp;
-                tcp->tcp_csum = recalc_csum16(tcp->tcp_csum, tcp->tcp_dst, htons(*((uint16_t*) act->field->value)));
-            }
-            else if (iter->header == OXM_OF_UDP_SRC)
-            {
-                struct udp_header *udp = pkt->handle_std->proto->udp;
-                udp->udp_csum = recalc_csum16(udp->udp_csum, udp->udp_src, htons(*((uint16_t*) act->field->value)));
-            }
-            else if (iter->header == OXM_OF_UDP_DST)
-            {
-                struct udp_header *udp = pkt->handle_std->proto->udp;
-                udp->udp_csum = recalc_csum16(udp->udp_csum, udp->udp_dst, htons(*((uint16_t*) act->field->value)));
-            }
-            if (iter->header == OXM_OF_IPV6_SRC || iter->header == OXM_OF_IPV6_DST || 
-                iter->header == OXM_OF_ETH_SRC || iter->header == OXM_OF_ETH_DST   ||
-                iter->header == OXM_OF_ARP_SPA || iter->header == OXM_OF_ARP_TPA   ||
-                iter->header == OXM_OF_ARP_SHA || iter->header == OXM_OF_ARP_THA) {
-                memcpy(((uint8_t*)pkt->buffer->data + iter->pos) , act->field->value , OXM_LENGTH(iter->header));
-                pkt->handle_std->valid = false;
-                return;
-            }
-            if (iter->header == OXM_OF_MPLS_LABEL){
-                    uint32_t mpls_label =  *((uint32_t*) act->field->value);
-                    mpls = pkt->handle_std->proto->mpls;
-                    mpls->fields = (mpls->fields & ~ntohl(MPLS_LABEL_MASK)) | ntohl((mpls_label << MPLS_LABEL_SHIFT) & MPLS_LABEL_MASK);
-                    memcpy(((uint8_t*)pkt->buffer->data + iter->pos) , &mpls->fields , OXM_LENGTH(iter->header));
-                    pkt->handle_std->valid = false;
-                    return;
-            }
-            if (iter->header == OXM_OF_MPLS_TC){
-                    mpls = pkt->handle_std->proto->mpls;
-                    mpls->fields = (mpls->fields & ~ntohl(MPLS_TC_MASK)) | ntohl((*act->field->value << MPLS_TC_SHIFT) & MPLS_TC_MASK);
-                    memcpy(((uint8_t*)pkt->buffer->data + iter->pos) , &mpls->fields , OXM_LENGTH(iter->header));
-                    pkt->handle_std->valid = false;
-                    return;
-            }
-            if (iter->header == OXM_OF_MPLS_BOS){
-                    mpls = pkt->handle_std->proto->mpls;
-                    mpls->fields = (mpls->fields & ~ntohl(MPLS_S_MASK)) | ntohl((*act->field->value << MPLS_S_SHIFT) & MPLS_S_MASK);
-                    memcpy(((uint8_t*)pkt->buffer->data + iter->pos) , &mpls->fields , OXM_LENGTH(iter->header));
-                    pkt->handle_std->valid = false;
-                    return;             
-            }
-            tmp = (uint8_t*) malloc(OXM_LENGTH(iter->header));
-    	    for (i=0;i<OXM_LENGTH(iter->header);i++)
-    	    {
-        	    memcpy(((uint8_t*)tmp + i) , (act->field->value + OXM_LENGTH(iter->header) - i -1 ), 1); 
-    	    }
-    	    memcpy(((uint8_t*)pkt->buffer->data + iter->pos) , tmp , OXM_LENGTH(iter->header));
-            pkt->handle_std->valid = false;
-    	    return;
-        }
-        VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute SET_FIELD action on packet with no corresponding field.");
+        //VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute SET_FIELD action on packet with no corresponding field.");
     }
 
 }
@@ -242,7 +106,7 @@ copy_ttl_out(struct packet *pkt, struct ofl_action_header *act UNUSED) {
     } else {
         VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute COPY_TTL_OUT action on packet with no mpls.");
     }
-} 
+}
 
 /* Executes copy ttl in action. */
 static void
@@ -264,7 +128,7 @@ copy_ttl_in(struct packet *pkt, struct ofl_action_header *act UNUSED) {
             uint8_t new_ttl = (ntohl(mpls->fields) & MPLS_TTL_MASK) >> MPLS_TTL_SHIFT;
             uint16_t old_val = htons((ipv4->ip_proto) + (ipv4->ip_ttl<<8));
             uint16_t new_val = htons((ipv4->ip_proto) + (new_ttl<<8));
-            ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val); 
+            ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val);
             ipv4->ip_ttl = new_ttl;
 
         } else {
@@ -393,7 +257,7 @@ set_mpls_ttl(struct packet *pkt, struct ofl_action_mpls_ttl *act) {
     }
 }
 
-/*Executes dec mpls ttl action.*/ 
+/*Executes dec mpls ttl action.*/
 static void
 dec_mpls_ttl(struct packet *pkt, struct ofl_action_header *act UNUSED) {
     packet_handle_std_validate(pkt->handle_std);
@@ -420,7 +284,7 @@ push_mpls(struct packet *pkt, struct ofl_action_push *act) {
         struct snap_header *snap, *new_snap;
         struct mpls_header *mpls, *new_mpls, *push_mpls;
         struct ip_header *ipv4;
-        struct ipv6_header *ipv6;        
+        struct ipv6_header *ipv6;
         size_t eth_size;
 
         eth = pkt->handle_std->proto->eth;
@@ -459,7 +323,7 @@ push_mpls(struct packet *pkt, struct ofl_action_push *act) {
                                         + ETH_HEADER_LEN + MPLS_HEADER_LEN + LLC_HEADER_LEN);
             push_mpls = (struct mpls_header *)((uint8_t *)new_eth + ETH_HEADER_LEN);
 
-            // push data to create space for new MPLS 
+            // push data to create space for new MPLS
             memmove((uint8_t *)push_mpls + MPLS_HEADER_LEN, push_mpls,
                     pkt->buffer->size - ETH_HEADER_LEN);
 
@@ -475,12 +339,12 @@ push_mpls(struct packet *pkt, struct ofl_action_push *act) {
         } else if (ipv6 != NULL) {
             // copy IP HOP LIMIT to MPLS TTL (rest is zero), and set S bit
             push_mpls->fields = htonl((uint32_t)ipv6->ipv6_hop_limit & MPLS_TTL_MASK) | htonl(MPLS_S_MASK);
-        } 
+        }
         else {
             push_mpls->fields = htonl(MPLS_S_MASK);
         }
 
-        if (new_snap != NULL) {            
+        if (new_snap != NULL) {
             new_snap->snap_type = ntohs(act->ethertype);
         } else {
             new_eth->eth_type = ntohs(act->ethertype);
@@ -578,7 +442,7 @@ push_pbb(struct packet *pkt, struct ofl_action_push *act) {
                                         + ETH_HEADER_LEN + PBB_HEADER_LEN + LLC_HEADER_LEN);
             push_pbb = (struct pbb_header *)((uint8_t *)new_eth + ETH_HEADER_LEN);
 
-            // push data to create space for new PBB 
+            // push data to create space for new PBB
             memmove((uint8_t *)push_pbb + PBB_HEADER_LEN, push_pbb,
                     pkt->buffer->size - ETH_HEADER_LEN);
 
@@ -587,13 +451,13 @@ push_pbb(struct packet *pkt, struct ofl_action_push *act) {
         }
 
         push_pbb->id = new_pbb == NULL ? 0x0000 : new_pbb->id;
-        push_pbb->id = vlan == NULL 
-                       ? push_pbb->id 
+        push_pbb->id = vlan == NULL
+                       ? push_pbb->id
                        : push_pbb->id & (((uint32_t) (vlan->vlan_tci & ~htonl(VLAN_PCP_MASK)) )<< 16);
         memcpy(push_pbb->c_eth_dst,eth,ETH_HEADER_LEN);
 
         if (new_snap != NULL) {
-            
+
             push_pbb->pbb_next_type = new_snap->snap_type;
             new_snap->snap_type = ntohs(act->ethertype);
             new_eth->eth_type = htons(ntohs(new_eth->eth_type) + PBB_HEADER_LEN);
@@ -625,7 +489,7 @@ pop_pbb(struct packet *pkt, struct ofl_action_header *act UNUSED) {
 //        eth = (uint8_t *)eth + move_size;
         memmove(pkt->buffer->data, pbb->c_eth_dst, (pkt->buffer->size - move_size));
         pkt->buffer->size -= move_size;
-        
+
         pkt->handle_std->valid = false;
     } else {
         VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute POP_PBB action on packet with no PBB header.");
@@ -645,8 +509,8 @@ group(struct packet *pkt, struct ofl_action_group *act) {
     pkt->out_group = act->group_id;
 }
 
-/* Executes set nw ttl action. 
-TODO Set IPv6 hop limit*/ 
+/* Executes set nw ttl action.
+TODO Set IPv6 hop limit*/
 static void
 set_nw_ttl(struct packet *pkt, struct ofl_action_set_nw_ttl *act) {
     packet_handle_std_validate(pkt->handle_std);
@@ -663,7 +527,7 @@ set_nw_ttl(struct packet *pkt, struct ofl_action_set_nw_ttl *act) {
 }
 
 /* Executes dec nw ttl action.
-TODO Dec IPv6 hop limit*/ 
+TODO Dec IPv6 hop limit*/
 static void
 dec_nw_ttl(struct packet *pkt, struct ofl_action_header *act UNUSED) {
     packet_handle_std_validate(pkt->handle_std);
@@ -763,7 +627,7 @@ dp_execute_action(struct packet *pkt,
         	dp_exp_action(pkt, (struct ofl_action_experimenter *)action);
             break;
         }
-     
+
         default: {
             VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute unknown action type (%u).", action->type);
         }
@@ -829,14 +693,14 @@ dp_actions_output_port(struct packet *pkt, uint32_t out_port, uint32_t out_queue
         }
         case (OFPP_CONTROLLER): {
             struct ofl_msg_packet_in msg;
-            struct ofl_match *m; 
+            struct ofl_match *m;
             msg.header.type = OFPT_PACKET_IN;
             msg.total_len   = pkt->buffer->size;
             msg.reason = OFPR_ACTION;
             msg.table_id = pkt->table_id;
             msg.data        = pkt->buffer->data;
             msg.cookie = cookie;
-            
+
             if (pkt->dp->config.miss_send_len != OFPCML_NO_BUFFER){
                 dp_buffers_save(pkt->dp->buffers, pkt);
                 msg.buffer_id = pkt->buffer_id;
@@ -844,22 +708,21 @@ dp_actions_output_port(struct packet *pkt, uint32_t out_port, uint32_t out_queue
             }
             else {
                 msg.buffer_id = OFP_NO_BUFFER;
-                msg.data_length =  pkt->buffer->size;                               
-            }    
-            
-            
+                msg.data_length =  pkt->buffer->size;
+            }
+
+
             if (!pkt->handle_std->valid){
                 packet_handle_std_validate(pkt->handle_std);
             }
             m = xmalloc (sizeof(struct ofl_match));
             ofl_structs_match_init(m);
-            /* In this implementation the fields in_port and in_phy_port 
+            /* In this implementation the fields in_port and in_phy_port
                 always will be the same, because we are not considering logical
                 ports*/
-            ofl_structs_match_convert_pktf2oflm(&pkt->handle_std->match.match_fields, m);
             msg.match = (struct ofl_match_header*)m;
             dp_send_message(pkt->dp, (struct ofl_msg_header *)&msg, NULL);
-            ofl_structs_free_match((struct ofl_match_header* ) m, NULL); 
+            ofl_structs_free_match((struct ofl_match_header* ) m, NULL);
             break;
         }
         case (OFPP_FLOOD):

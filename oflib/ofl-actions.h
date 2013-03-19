@@ -38,7 +38,6 @@
 #include "ofl.h"
 #include "ofl-structs.h"
 #include "../include/openflow/openflow.h"
-//#include "nbee_link/nbee_link.h"
 
 struct ofl_exp;
 
@@ -66,13 +65,13 @@ struct ofl_action_mpls_ttl {
 
     uint8_t   mpls_ttl; /* MPLS TTL */
 };
-   
+
 struct ofl_action_push {
     struct ofl_action_header   header; /* OFPAT_PUSH_VLAN/MPLS/PBB. */
 
     uint16_t   ethertype; /* Ethertype */
 };
-   
+
 struct ofl_action_pop_mpls {
     struct ofl_action_header   header; /* OFPAT_POP_MPLS. */
 
@@ -84,7 +83,7 @@ struct ofl_action_set_queue {
 
     uint32_t   queue_id;
 };
-    
+
 struct ofl_action_group {
     struct ofl_action_header   header; /* OFPAT_GROUP. */
 

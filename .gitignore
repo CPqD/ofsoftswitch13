@@ -59,8 +59,6 @@ lib/vlog-socket.o
 lib/vlog.o
 nbee_link/.deps/
 nbee_link/.dirstamp
-nbee_link/libnbee_link.a
-nbee_link/nbee_link.o
 oflib-exp/.deps/
 oflib-exp/.dirstamp
 oflib-exp/liboflib_exp.a

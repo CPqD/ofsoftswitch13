@@ -1,5 +1,5 @@
 /* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary
- * Copyright (c) 2012, CPqD, Brazil  
+ * Copyright (c) 2012, CPqD, Brazil
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,6 @@
 #include "packets.h"
 #include "match_std.h"
 #include "oflib/ofl-structs.h"
-#include "nbee_link/nbee_link.h"
 
 /****************************************************************************
  * A handler processing a datapath packet for standard matches.

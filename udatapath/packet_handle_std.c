@@ -1,5 +1,5 @@
 /* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary
- * Copyright (c) 2012, CPqD, Brazil  
+ * Copyright (c) 2012, CPqD, Brazil
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,6 @@
 #include "lib/hash.h"
 #include "oflib/oxm-match.h"
 
-#include "nbee_link/nbee_link.h"
 
 /* Resets all protocol fields to NULL */
 
@@ -55,48 +54,24 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
     uint64_t metadata;
     if(handle->valid)
         return;
-    struct packet_fields * iter, *next;
-    HMAP_FOR_EACH_SAFE(iter, next, struct packet_fields, hmap_node, &handle->match.match_fields){
-        free(iter->value);
-        free(iter);
-    }
-    hmap_init(&handle->match.match_fields);
 
-    if (nblink_packet_parse(handle->pkt->buffer,&handle->match.match_fields, handle->proto) < 0)
-        return;
     handle->valid = true;
-    
-    /* Add in_port value to the hash_map */    
-    pktout_inport = (struct packet_fields*) malloc(sizeof(struct packet_fields));	
-    pktout_inport->header = OXM_OF_IN_PORT;
-    pktout_inport->value = (uint8_t*) malloc(sizeof(uint32_t));
-    memset(pktout_inport->value,0x0,sizeof(uint32_t));
-    in_port = htonl(handle->pkt->in_port);
-    memcpy(pktout_inport->value,&in_port,sizeof(uint32_t));
-    hmap_insert(&handle->match.match_fields, &pktout_inport->hmap_node,hash_int(pktout_inport->header, 0));  
 
-    /*Add metadata value to the hash_map */
-    pktout_metadata = (struct packet_fields*) malloc(sizeof(struct packet_fields));
-    pktout_metadata->header = OXM_OF_METADATA;
-    pktout_metadata->value = (uint8_t*) malloc(sizeof(uint64_t) );
-    metadata = 0xffffffffffffffff;
-    memcpy(pktout_metadata->value, &metadata, sizeof(uint64_t));
-    hmap_insert(&handle->match.match_fields, &pktout_metadata->hmap_node,hash_int(pktout_metadata->header, 0));  
     return;
 }
 
- 
+
 struct packet_handle_std *
 packet_handle_std_create(struct packet *pkt) {
 	struct packet_handle_std *handle = xmalloc(sizeof(struct packet_handle_std));
 	handle->proto = xmalloc(sizeof(struct protocols_std));
 	handle->pkt = pkt;
-	
+
 	hmap_init(&handle->match.match_fields);
-	
+
 	handle->valid = false;
 	packet_handle_std_validate(handle);
-        
+
 	return handle;
 }
 
@@ -119,11 +94,8 @@ void
 packet_handle_std_destroy(struct packet_handle_std *handle) {
 
     struct packet_fields * iter, *next;
-    HMAP_FOR_EACH_SAFE(iter, next, struct packet_fields, hmap_node, &handle->match.match_fields){
-        free(iter->value);
-        free(iter);
-    }
-    free(handle->proto);   
+
+    free(handle->proto);
     hmap_destroy(&handle->match.match_fields);
     free(handle);
 }
@@ -132,7 +104,7 @@ bool
 packet_handle_std_is_ttl_valid(struct packet_handle_std *handle) {
     packet_handle_std_validate(handle);
 
-    if (handle->proto->mpls != NULL) {
+    /*if (handle->proto->mpls != NULL) {
         uint32_t ttl = ntohl(handle->proto->mpls->fields) & MPLS_TTL_MASK;
         if (ttl <= 1) {
             return false;
@@ -142,7 +114,7 @@ packet_handle_std_is_ttl_valid(struct packet_handle_std *handle) {
         if (handle->proto->ipv4->ip_ttl < 1) {
             return false;
         }
-    }
+    }*/
     return true;
 }
 
@@ -158,7 +130,7 @@ packet_handle_std_is_fragment(struct packet_handle_std *handle) {
 
 bool
 packet_handle_std_match(struct packet_handle_std *handle, struct ofl_match *match){
-    
+
     if (!handle->valid){
         packet_handle_std_validate(handle);
         if (!handle->valid){
@@ -172,13 +144,13 @@ packet_handle_std_match(struct packet_handle_std *handle, struct ofl_match *matc
 
 /* TODO Denicol: From this point on, work to be done */
 
-/* If pointer is not null, returns str; otherwise returns an empty string. 
+/* If pointer is not null, returns str; otherwise returns an empty string.
 static inline const char *
 pstr(void *ptr, const char *str) {
     return (ptr == NULL) ? "" : str;
 }
 
- Prints the names of protocols that are available in the given protocol stack. 
+ Prints the names of protocols that are available in the given protocol stack.
 
 static void
 proto_print(FILE *stream, struct protocols_std *p) {
