@@ -79,7 +79,7 @@ meter_entry_create(struct datapath *dp, struct meter_table *table, struct ofl_ms
     entry->config->meter_bands_num = mod->meter_bands_num;
 
     //entry->config->bands = mod->bands; //allocate and copy from mod
-    entry->config->bands = xmalloc(sizeof(struct ofl_meter_band_header *) * entry->config->meter_bands_num);
+    entry->config->bands = (struct ofl_meter_band_header **) xmalloc(sizeof(struct ofl_meter_band_header *) * entry->config->meter_bands_num);
     for(i = 0; i < entry->config->meter_bands_num; i++){
     	switch(mod->bands[i]->type){
 			case (OFPMBT_DROP):{
@@ -122,11 +122,11 @@ meter_entry_create(struct datapath *dp, struct meter_table *table, struct ofl_ms
     entry->stats->duration_nsec  = 0;
     entry->stats->duration_sec = 0;
     entry->created      = now;    
-    entry->stats->band_stats      = xmalloc(sizeof(struct ofl_meter_band_stats *) * entry->stats->meter_bands_num);
+    entry->stats->band_stats      = (struct ofl_meter_band_stats **) xmalloc(sizeof(struct ofl_meter_band_stats *) * entry->stats->meter_bands_num);
 
 
     for (i=0; i<entry->stats->meter_bands_num; i++) {
-        entry->stats->band_stats[i] = xmalloc(sizeof(struct ofl_meter_band_stats));
+        entry->stats->band_stats[i] = (struct ofl_meter_band_stats *) xmalloc(sizeof(struct ofl_meter_band_stats));
         entry->stats->band_stats[i]->byte_band_count = 0;
         entry->stats->band_stats[i]->packet_band_count = 0;
 	    entry->stats->band_stats[i]->last_fill = time_msec();

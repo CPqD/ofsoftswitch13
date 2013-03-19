@@ -309,7 +309,7 @@ size_t ofl_structs_table_features_ofp_total_len(struct ofl_table_features **feat
     int i, total_len;
     total_len = 0;
     for(i = 0; i < tables_num; i++){
-        total_len +=  sizeof(struct ofp_table_features) + ofl_structs_table_features_properties_ofp_total_len(feat[i]->properties, feat[i]->properties_num - 1,exp);   
+        total_len +=  sizeof(struct ofp_table_features) + ofl_structs_table_features_properties_ofp_total_len(feat[i]->properties, feat[i]->properties_num,exp);   
     }
     return total_len;
 }
@@ -432,7 +432,7 @@ ofl_structs_table_features_pack(struct ofl_table_features *src, struct ofp_table
     int i;
    
    
-    total_len = sizeof(struct ofp_table_features) + ofl_structs_table_features_properties_ofp_total_len(src->properties,src->properties_num -1,exp);
+    total_len = sizeof(struct ofp_table_features) + ofl_structs_table_features_properties_ofp_total_len(src->properties,src->properties_num, exp);
     dst->table_id = src->table_id;
     memset(dst->pad, 0x0,5);
     strncpy(dst->name,src->name, OFP_MAX_TABLE_NAME_LEN);
@@ -442,7 +442,7 @@ ofl_structs_table_features_pack(struct ofl_table_features *src, struct ofp_table
     dst->max_entries = htonl(src->max_entries); 
     
     ptr = (uint8_t*) (data + sizeof(struct ofp_table_features));
-    for(i = 0; i < src->properties_num -1; i++){
+    for(i = 0; i < src->properties_num; i++){
         ptr += ofl_structs_table_properties_pack(src->properties[i], (struct ofp_table_feature_prop_header*) ptr, ptr, exp);
     }
     dst->length = htons(total_len);

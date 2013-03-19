@@ -864,22 +864,25 @@ ofl_structs_table_properties_print(FILE * stream, struct ofl_table_feature_prop_
         case OFPTFPT_INSTRUCTIONS_MISS:{
             struct ofl_table_feature_prop_instructions *insts = (struct ofl_table_feature_prop_instructions*) s; 
             fprintf(stream, "[");        
-            for(i = 0; i < insts->ids_num -1; i++){
-                ofl_instruction_type_print(stream, insts->instruction_ids[i].type);                 
-                fprintf(stream, ", ");        
-            }
-            ofl_instruction_type_print(stream, insts->instruction_ids[insts->ids_num-1].type);                             
-            fprintf(stream, "]");        
-            break;
+            if(insts->ids_num) {
+                for(i = 0; i < insts->ids_num -1; i++){
+                    ofl_instruction_type_print(stream, insts->instruction_ids[i].type);
+                    fprintf(stream, ", ");        
+                }
+                ofl_instruction_type_print(stream, insts->instruction_ids[insts->ids_num-1].type);
+           }     
+           break;
         }
         case OFPTFPT_NEXT_TABLES:
         case OFPTFPT_NEXT_TABLES_MISS:{
             struct ofl_table_feature_prop_next_tables *tbls = (struct ofl_table_feature_prop_next_tables*) s;
             fprintf(stream, "[");
-            for(i = 0; i < tbls->table_num -1; i++){
-                fprintf(stream, "%d, ", tbls->next_table_ids[i]);
-            }
-                fprintf(stream, "%d]", tbls->next_table_ids[tbls->table_num -1]);                                                          
+            if(tbls->table_num) {
+                for(i = 0; i < tbls->table_num -1; i++){
+                    fprintf(stream, "%d, ", tbls->next_table_ids[i]);
+                }
+                fprintf(stream, "%d]", tbls->next_table_ids[tbls->table_num -1]);
+            }                                                          
             break;
         }
         case OFPTFPT_APPLY_ACTIONS:
@@ -888,11 +891,13 @@ ofl_structs_table_properties_print(FILE * stream, struct ofl_table_feature_prop_
         case OFPTFPT_WRITE_ACTIONS_MISS:{
             struct ofl_table_feature_prop_actions *acts = (struct ofl_table_feature_prop_actions*) s;
             fprintf(stream, "[");
-            for(i = 0; i < acts->actions_num -1; i++){
-                ofl_action_type_print(stream, acts->action_ids[i].type);                 
-                fprintf(stream, ", ");        
-            }
-            ofl_action_type_print(stream, acts->action_ids[acts->actions_num-1].type);                             
+            if(acts->actions_num) {
+                for(i = 0; i < acts->actions_num -1; i++){
+                    ofl_action_type_print(stream, acts->action_ids[i].type);
+                    fprintf(stream, ", ");
+                }
+                ofl_action_type_print(stream, acts->action_ids[acts->actions_num-1].type);
+            }                             
             fprintf(stream, "]");                                    
             break;
         }
@@ -904,15 +909,15 @@ ofl_structs_table_properties_print(FILE * stream, struct ofl_table_feature_prop_
         case OFPTFPT_WRITE_SETFIELD_MISS:{
             struct ofl_table_feature_prop_oxm *oxms = (struct ofl_table_feature_prop_oxm*) s;
             fprintf(stream, "[");
-            for(i = 0; i < oxms->oxm_num -1; i++){
-                ofl_oxm_type_print(stream, oxms->oxm_ids[i]);
-                fprintf(stream, ", " );
-            }
-                ofl_oxm_type_print(stream, oxms->oxm_ids[oxms->oxm_num -1]);
+            if(oxms->oxm_num) {
+                for(i = 0; i < oxms->oxm_num -1; i++){
+                    ofl_oxm_type_print(stream, oxms->oxm_ids[i]);
+                    fprintf(stream, ", " );
+                }
+                 ofl_oxm_type_print(stream, oxms->oxm_ids[oxms->oxm_num -1]);
+             }
             break;
-        }
-        
-        
+        }     
     }
 }
 
@@ -935,7 +940,7 @@ ofl_structs_table_features_print(FILE *stream, struct ofl_table_features *s){
                           "metadata_match=\"%"PRIx64"\", metadata_write=\"%"PRIx64"\", config=\"%"PRIu32"\"," 
                           "max_entries=\"%"PRIu32"\"",
                   s->name, s->metadata_match, s->metadata_write, s->config, s->max_entries);      
-    for(i =0; i < s->properties_num -1; i++){
+    for(i =0; i < s->properties_num; i++){
         ofl_structs_table_properties_print(stream, s->properties[i]);    
     }    
 }

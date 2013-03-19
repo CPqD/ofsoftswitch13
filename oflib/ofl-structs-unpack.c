@@ -290,7 +290,7 @@ ofl_structs_table_properties_unpack(struct ofp_table_feature_prop_header * src, 
                 OFL_LOG_WARN(LOG_MODULE, "Received ACTION feature has invalid length (%zu).", *len);
                 return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_LEN);
             }
-            alen = plen - sizeof(struct ofp_action_header); 			
+            alen = plen - sizeof(struct ofp_table_feature_prop_actions); 			
 			dp = (struct ofl_table_feature_prop_actions*) malloc(sizeof(struct ofl_table_feature_prop_actions));		
 		    error = ofl_utils_count_ofp_actions((uint8_t*)sp->action_ids, alen, &dp->actions_num);
             if(error){
@@ -340,7 +340,7 @@ ofl_structs_table_properties_unpack(struct ofp_table_feature_prop_header * src, 
 	}
     // must set type before check, so free works correctly
     prop->type = (enum ofp_table_feature_prop_type) ntohs(src->type);
-
+    prop->length = ntohs(src->length);
 	if (plen != 0){
         *len = *len - ntohs(src->length) + plen;
         OFL_LOG_WARN(LOG_MODULE, "The received property contained extra bytes (%zu).", plen);
@@ -387,7 +387,7 @@ ofl_structs_table_features_unpack(struct ofp_table_features *src,size_t *len, st
         free(feat);
         return error;
     }
-    feat->properties = (struct ofl_table_feature_prop_header**) malloc(sizeof(struct ofl_table_feature_prop_header) * feat->properties_num);
+    feat->properties = (struct ofl_table_feature_prop_header**) malloc(sizeof(struct ofl_table_feature_prop_header *) * feat->properties_num);
     
     prop = (uint8_t*) src->properties;
     for(i = 0; i < feat->properties_num; i++){

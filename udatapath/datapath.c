@@ -65,6 +65,7 @@
 #include "rconn.h"
 #include "stp.h"
 #include "vconn.h"
+#include <sys/resource.h>
 
 #define LOG_MODULE VLM_dp
 
@@ -129,16 +130,16 @@ dp_new(void) {
 
 
     dp->id = gen_datapath_id();
-   
-    dp->generation_id = -1; 
-    
+
+    dp->generation_id = -1;
+
     dp->last_timeout = time_now();
     list_init(&dp->remotes);
     dp->listeners = NULL;
     dp->n_listeners = 0;
     dp->listeners_aux = NULL;
     dp->n_listeners_aux = 0;
-    
+
     memset(dp->ports, 0x00, sizeof (dp->ports));
     dp->local_port = NULL;
 
@@ -167,7 +168,7 @@ dp_new(void) {
     #if defined(OF_HW_PLAT) && (defined(UDATAPATH_AS_LIB) || defined(USE_NETDEV))
         dp_hw_drv_init(dp);
     #endif
-
+    //##MEASUREMENT
     return dp;
 }
 
@@ -177,7 +178,7 @@ dp_add_pvconn(struct datapath *dp, struct pvconn *pvconn, struct pvconn *pvconn_
     dp->listeners = xrealloc(dp->listeners,
                              sizeof *dp->listeners * (dp->n_listeners + 1));
     dp->listeners[dp->n_listeners++] = pvconn;
-    
+
     dp->listeners_aux = xrealloc(dp->listeners_aux,
                              sizeof *dp->listeners_aux * (dp->n_listeners_aux + 1));
     dp->listeners_aux[dp->n_listeners_aux++] = pvconn_aux;
@@ -188,16 +189,21 @@ dp_run(struct datapath *dp) {
     time_t now = time_now();
     struct remote *r, *rn;
     size_t i;
-    
+
     if (now != dp->last_timeout) {
         dp->last_timeout = now;
         meter_table_add_tokens(dp->meters);
         pipeline_timeout(dp->pipeline);
     }
-
+    /*int who = RUSAGE_SELF;
+    struct rusage usage;
+    int ret;
+    ret = getrusage(who, &usage);
+    if (!ret)
+        printf("Usage now %ld\n", usage.ru_maxrss);*/
     poll_timer_wait(1000);
     dp_ports_run(dp);
-    
+
     /* Talk to remotes. */
     LIST_FOR_EACH_SAFE (r, rn, struct remote, node, &dp->remotes) {
         remote_run(dp, r);
@@ -206,7 +212,7 @@ dp_run(struct datapath *dp) {
     for (i = 0; i < dp->n_listeners; ) {
         struct pvconn *pvconn = dp->listeners[i];
         struct vconn *new_vconn;
-        
+
         int retval = pvconn_accept(pvconn, OFP_VERSION, &new_vconn);
         if (!retval) {
             struct rconn * rconn_aux = NULL;
@@ -235,15 +241,15 @@ static void
 remote_run(struct datapath *dp, struct remote *r)
 {
     remote_rconn_run(dp, r, MAIN_CONNECTION);
-    
+
     if (!rconn_is_alive(r->rconn)) {
         remote_destroy(r);
         return;
     }
-    
+
     if (r->rconn_aux == NULL || !rconn_is_alive(r->rconn_aux))
         return;
-    
+
     remote_rconn_run(dp, r, PTIN_CONNECTION);
 }
 
@@ -252,12 +258,12 @@ remote_rconn_run(struct datapath *dp, struct remote *r, uint8_t conn_id) {
     struct rconn *rconn;
     ofl_err error;
     size_t i;
-        
+
     if (conn_id == MAIN_CONNECTION)
         rconn = r->rconn;
     else if (conn_id == PTIN_CONNECTION)
         rconn = r->rconn_aux;
-                
+
     rconn_run(rconn);
     /* Do some remote processing, but cap it at a reasonable amount so that
      * other processing doesn't starve. */
@@ -318,10 +324,10 @@ remote_wait(struct remote *r)
 {
     rconn_run_wait(r->rconn);
     rconn_recv_wait(r->rconn);
-    
+
     if (r->rconn_aux) {
         rconn_run_wait(r->rconn_aux);
-        rconn_recv_wait(r->rconn_aux);    
+        rconn_recv_wait(r->rconn_aux);
     }
 }
 
@@ -330,7 +336,7 @@ remote_destroy(struct remote *r)
 {
     if (r) {
         if (r->cb_dump && r->cb_done) {
-             r->cb_done(r->cb_aux);    
+             r->cb_done(r->cb_aux);
         }
         list_remove(&r->node);
         if (r->rconn_aux != NULL) {
@@ -356,7 +362,7 @@ remote_create(struct datapath *dp, struct rconn *rconn, struct rconn *rconn_aux)
     for(i = 0; i < 2; i++){
         memset(&remote->config.packet_in_mask[i], 0x7, sizeof(uint32_t));
         memset(&remote->config.port_status_mask[i], 0x7, sizeof(uint32_t));
-        memset(&remote->config.flow_removed_mask[i], 0x1f, sizeof(uint32_t));                
+        memset(&remote->config.flow_removed_mask[i], 0x1f, sizeof(uint32_t));
     }
     return remote;
 }
@@ -428,21 +434,21 @@ static int
 send_openflow_buffer_to_remote(struct ofpbuf *buffer, struct remote *remote) {
     struct rconn* rconn = remote->rconn;
     int retval;
-    if (buffer->conn_id == PTIN_CONNECTION && 
+    if (buffer->conn_id == PTIN_CONNECTION &&
         remote->rconn != NULL &&
-        remote->rconn_aux != NULL && 
-        rconn_is_connected(remote->rconn) && 
+        remote->rconn_aux != NULL &&
+        rconn_is_connected(remote->rconn) &&
         rconn_is_connected(remote->rconn_aux)) {
             rconn = remote->rconn_aux;
     }
     retval = rconn_send_with_limit(rconn, buffer, &remote->n_txq,
                                       TXQ_LIMIT);
-     
+
     if (retval) {
         VLOG_WARN_RL(LOG_MODULE, &rl, "send to %s failed: %s",
                      rconn_get_name(rconn), strerror(retval));
     }
-    
+
     return retval;
 }
 
@@ -453,54 +459,54 @@ send_openflow_buffer(struct datapath *dp, struct ofpbuf *buffer,
     if (sender) {
         /* Send back to the sender. */
         return send_openflow_buffer_to_remote(buffer, sender->remote);
-    
+
     } else {
         /* Broadcast to all remotes. */
         struct remote *r, *prev = NULL;
-        uint8_t msg_type; 
+        uint8_t msg_type;
         /* Get the type of the message */
-        memcpy(&msg_type,((char* ) buffer->data) + 1, sizeof(uint8_t)); 
+        memcpy(&msg_type,((char* ) buffer->data) + 1, sizeof(uint8_t));
         LIST_FOR_EACH (r, struct remote, node, &dp->remotes) {
             /* do not send to remotes with slave role apart from port status */
             if (r->role == OFPCR_ROLE_EQUAL || r->role == OFPCR_ROLE_MASTER){
                 /*Check if the message is enabled in the asynchronous configuration*/
                 switch(msg_type){
                     case (OFPT_PACKET_IN):{
-                        struct ofp_packet_in *p = (struct ofp_packet_in*)buffer->data; 
+                        struct ofp_packet_in *p = (struct ofp_packet_in*)buffer->data;
                         /* Do not send message if the reason is not enabled */
                         if((p->reason == OFPR_NO_MATCH) && !(r->config.packet_in_mask[0] & 0x1))
                             continue;
-                        if((p->reason == OFPR_ACTION) && !(r->config.packet_in_mask[0] & 0x2))                        
+                        if((p->reason == OFPR_ACTION) && !(r->config.packet_in_mask[0] & 0x2))
                             continue;
-                        if((p->reason == OFPR_INVALID_TTL) && !(r->config.packet_in_mask[0] & 0x4))                        
-                            continue;                            
+                        if((p->reason == OFPR_INVALID_TTL) && !(r->config.packet_in_mask[0] & 0x4))
+                            continue;
                         break;
                     }
                     case (OFPT_PORT_STATUS):{
                         struct ofp_port_status *p = (struct ofp_port_status*)buffer->data;
                         if((p->reason == OFPPR_ADD) && !(r->config.port_status_mask[0] & 0x1))
                             continue;
-                        if((p->reason == OFPPR_DELETE) && !(r->config.port_status_mask[0] & 0x2))                        
+                        if((p->reason == OFPPR_DELETE) && !(r->config.port_status_mask[0] & 0x2))
                             continue;
-                        if((p->reason == OFPPR_MODIFY) && !(r->config.packet_in_mask[0] & 0x4))                        
-                            continue;                        
+                        if((p->reason == OFPPR_MODIFY) && !(r->config.packet_in_mask[0] & 0x4))
+                            continue;
                     }
                     case (OFPT_FLOW_REMOVED):{
                         struct ofp_flow_removed *p= (struct ofp_flow_removed *)buffer->data;
                         if((p->reason == OFPRR_IDLE_TIMEOUT) && !(r->config.port_status_mask[0] & 0x1))
                             continue;
-                        if((p->reason == OFPRR_HARD_TIMEOUT) && !(r->config.port_status_mask[0] & 0x2))                        
+                        if((p->reason == OFPRR_HARD_TIMEOUT) && !(r->config.port_status_mask[0] & 0x2))
                             continue;
-                        if((p->reason == OFPRR_DELETE) && !(r->config.packet_in_mask[0] & 0x4))                        
-                            continue;                     
-                        if((p->reason == OFPRR_GROUP_DELETE) && !(r->config.packet_in_mask[0] & 0x8))                        
+                        if((p->reason == OFPRR_DELETE) && !(r->config.packet_in_mask[0] & 0x4))
                             continue;
-                        if((p->reason == OFPRR_METER_DELETE) && !(r->config.packet_in_mask[0] & 0x10))                        
-                            continue;                            
+                        if((p->reason == OFPRR_GROUP_DELETE) && !(r->config.packet_in_mask[0] & 0x8))
+                            continue;
+                        if((p->reason == OFPRR_METER_DELETE) && !(r->config.packet_in_mask[0] & 0x10))
+                            continue;
                     }
                 }
-            } 
-            else { 
+            }
+            else {
                 /* In this implementation we assume that a controller with role slave
                    can is able to receive only port stats messages */
                 if (r->role == OFPCR_ROLE_SLAVE && msg_type != OFPT_PORT_STATUS) {
@@ -510,12 +516,12 @@ send_openflow_buffer(struct datapath *dp, struct ofpbuf *buffer,
                     struct ofp_port_status *p = (struct ofp_port_status*)buffer->data;
                     if((p->reason == OFPPR_ADD) && !(r->config.port_status_mask[1] & 0x1))
                         continue;
-                    if((p->reason == OFPPR_DELETE) && !(r->config.port_status_mask[1] & 0x2))                        
+                    if((p->reason == OFPPR_DELETE) && !(r->config.port_status_mask[1] & 0x2))
                         continue;
-                    if((p->reason == OFPPR_MODIFY) && !(r->config.packet_in_mask[1] & 0x4))                        
-                        continue; 
+                    if((p->reason == OFPPR_MODIFY) && !(r->config.packet_in_mask[1] & 0x4))
+                        continue;
                 }
-            }    
+            }
             if (prev) {
                 send_openflow_buffer_to_remote(ofpbuf_clone(buffer), prev);
             }
@@ -523,7 +529,7 @@ send_openflow_buffer(struct datapath *dp, struct ofpbuf *buffer,
         }
         if (prev) {
             send_openflow_buffer_to_remote(buffer, prev);
-        } else {   
+        } else {
             ofpbuf_delete(buffer);
         }
         return 0;
@@ -543,7 +549,7 @@ dp_send_message(struct datapath *dp, struct ofl_msg_header *msg,
         VLOG_DBG_RL(LOG_MODULE, &rl, "sending: %s", msg_str);
         free(msg_str);
     }
-    
+
     error = ofl_msg_pack(msg, sender == NULL ? 0 : sender->xid, &buf, &buf_size, dp->exp);
     if (error) {
         VLOG_WARN_RL(LOG_MODULE, &rl, "There was an error packing the message!");
@@ -552,10 +558,10 @@ dp_send_message(struct datapath *dp, struct ofl_msg_header *msg,
     ofpbuf = ofpbuf_new(0);
     ofpbuf_use(ofpbuf, buf, buf_size);
     ofpbuf_put_uninit(ofpbuf, buf_size);
-    
+
     /* Choose the connection to send the packet to.
        1) By default, we send it to the main connection
-       2) If there's an associated sender, send the response to the same 
+       2) If there's an associated sender, send the response to the same
           connection the request came from
        3) If it's a packet in, use the auxiliary connection
     */
@@ -564,7 +570,7 @@ dp_send_message(struct datapath *dp, struct ofl_msg_header *msg,
         ofpbuf->conn_id = sender->conn_id;
     if (msg->type == OFPT_PACKET_IN)
         ofpbuf->conn_id = PTIN_CONNECTION;
-    
+
     error = send_openflow_buffer(dp, ofpbuf, sender);
     if (error) {
         VLOG_WARN_RL(LOG_MODULE, &rl, "There was an error sending the message!");
@@ -590,7 +596,7 @@ dp_check_generation_id(struct datapath *dp, uint64_t new_gen_id){
         return ofl_error(OFPET_ROLE_REQUEST_FAILED, OFPRRFC_STALE);
     else dp->generation_id = new_gen_id;
     return 0;
-    
+
 }
 
 ofl_err
@@ -649,7 +655,7 @@ dp_handle_role_request(struct datapath *dp, struct ofl_msg_role_request *msg,
 ofl_err
 dp_handle_async_request(struct datapath *dp, struct ofl_msg_async_config *msg,
                                             const struct sender *sender) {
-    
+
     uint16_t async_type = msg->header.type;
     switch(async_type){
         case (OFPT_GET_ASYNC_REQUEST):{
@@ -659,13 +665,13 @@ dp_handle_async_request(struct datapath *dp, struct ofl_msg_async_config *msg,
             dp_send_message(dp, (struct ofl_msg_header *)&reply, sender);
 
             ofl_msg_free((struct ofl_msg_header*)msg, dp->exp);
-            
+
             break;
-        }    
+        }
         case (OFPT_SET_ASYNC):{
             memcpy(&sender->remote->config, msg->config, sizeof(struct ofl_async_config));
             break;
         }
-    }                                        
-    return 0;                                        
-}                                            
+    }
+    return 0;
+}

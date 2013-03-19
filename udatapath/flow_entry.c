@@ -1,5 +1,5 @@
 /* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary
- * Copyright (c) 2012, CPqD, Brazil 
+ * Copyright (c) 2012, CPqD, Brazil
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -112,12 +112,13 @@ flow_entry_matches(struct flow_entry *entry, struct ofl_msg_flow_mod *mod, bool 
 	if (check_cookie && ((entry->stats->cookie & mod->cookie_mask) != (mod->cookie & mod->cookie_mask))) {
 		return false;
 	}
-    
+
     if (strict) {
         return ( (entry->stats->priority == mod->priority) &&
                  match_std_strict((struct ofl_match *)mod->match,
                                 (struct ofl_match *)entry->stats->match));
     } else {
+        printf("Entry stats match %d\n", entry->stats->match->type);
         return match_std_nonstrict((struct ofl_match *)mod->match,
                                    (struct ofl_match *)entry->stats->match);
     }
@@ -333,14 +334,14 @@ flow_entry_create(struct datapath *dp, struct flow_table *table, struct ofl_msg_
     entry->stats->hard_timeout     = mod->hard_timeout;
     entry->stats->cookie           = mod->cookie;
     entry->no_pkt_count = ((mod->flags & OFPFF_NO_PKT_COUNTS) != 0 );
-    entry->no_byt_count = ((mod->flags & OFPFF_NO_BYT_COUNTS) != 0 ); 
+    entry->no_byt_count = ((mod->flags & OFPFF_NO_BYT_COUNTS) != 0 );
     if (entry->no_pkt_count)
         entry->stats->packet_count     = 0xffffffffffffffff;
-    else 
+    else
         entry->stats->packet_count     = 0;
     if (entry->no_byt_count)
         entry->stats->byte_count       = 0xffffffffffffffff;
-    else 
+    else
         entry->stats->byte_count       = 0;
 
     entry->stats->match            = mod->match;

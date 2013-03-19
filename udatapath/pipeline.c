@@ -372,7 +372,7 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
     j = 0;
     /* Query for table capabilities */
     loop: ;
-    features = (struct ofl_table_features**) xmalloc(sizeof(struct ofl_table_features) * 8);
+    features = (struct ofl_table_features**) xmalloc(sizeof(struct ofl_table_features *) * 8);
     for (i = 0; i < 8; i++){
         features[i] = pl->tables[j]->features;
         j++;
