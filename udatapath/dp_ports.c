@@ -856,31 +856,57 @@ dp_ports_handle_queue_get_config_request(struct datapath *dp,
                                                 const struct sender *sender) {
     struct sw_port *p;
 
-    p = dp_ports_lookup(dp, msg->port);
+    struct ofl_msg_queue_get_config_reply reply =
+            {{.type = OFPT_QUEUE_GET_CONFIG_REPLY},
+             .queues = NULL};
 
-    if (p == NULL || (p->stats->port_no != msg->port)) {
-        return ofl_error(OFPET_QUEUE_OP_FAILED, OFPQOFC_BAD_PORT);
-    } else {
-        size_t i, idx = 0;
+    if (msg->port == OFPP_ANY) {
+        size_t i, idx = 0, num = 0;
 
-        struct ofl_msg_queue_get_config_reply reply =
-                {{.type = OFPT_QUEUE_GET_CONFIG_REPLY},
-                 .port       = msg->port,
-                 .queues_num = p->num_queues,
-                 .queues     = xmalloc(sizeof(struct ofl_packet_queue *) * p->num_queues)};
-        for (i=0; i<p->max_queues; i++) {
-            if (p->queues[i].port != NULL) {
-                reply.queues[idx] = p->queues[i].props;
-                idx++;
-            }
+        LIST_FOR_EACH(p, struct sw_port, node, &dp->port_list) {
+            num += p->num_queues;
         }
 
-        dp_send_message(dp, (struct ofl_msg_header *)&reply, sender);
+        reply.port       = OFPP_ANY;
+        reply.queues_num = num;
+        reply.queues     = xmalloc(sizeof(struct ofl_packet_queue *) * num);
 
-        free(reply.queues);
-        ofl_msg_free((struct ofl_msg_header *)msg, dp->exp);
-        return 0;
+        LIST_FOR_EACH(p, struct sw_port, node, &dp->port_list) {
+            for (i=0; i<p->max_queues; i++) {
+                if (p->queues[i].port != NULL) {
+                    reply.queues[idx] = p->queues[i].props;
+                    idx++;
+                }
+             }
+         }
+    } else {
+        p = dp_ports_lookup(dp, msg->port);
+
+        if (p == NULL || (p->stats->port_no != msg->port)) {
+            free(reply.queues);
+            ofl_msg_free((struct ofl_msg_header *)msg, dp->exp);
+            return ofl_error(OFPET_QUEUE_OP_FAILED, OFPQOFC_BAD_PORT);
+        } else {
+            size_t i, idx = 0;
+
+            reply.port       = msg->port;
+            reply.queues_num = p->num_queues;
+            reply.queues     = xmalloc(sizeof(struct ofl_packet_queue *) * p->num_queues);
+
+            for (i=0; i<p->max_queues; i++) {
+                if (p->queues[i].port != NULL) {
+                    reply.queues[idx] = p->queues[i].props;
+                    idx++;
+                }
+            }
+        }
     }
+
+    dp_send_message(dp, (struct ofl_msg_header *)&reply, sender);
+
+    free(reply.queues);
+    ofl_msg_free((struct ofl_msg_header *)msg, dp->exp);
+    return 0;
 }
 
 /*

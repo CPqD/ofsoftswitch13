@@ -296,7 +296,7 @@ ofl_msg_unpack_flow_removed(struct ofp_header *src,uint8_t *buf, size_t *len, st
     dr->stats->table_id         =        sr->table_id;
     dr->stats->duration_sec     = ntohl( sr->duration_sec);
     dr->stats->duration_nsec    = ntohl( sr->duration_nsec);
-    dr->stats->priority         = ntoh64(sr->priority);
+    dr->stats->priority         = ntohs(sr->priority);
     dr->stats->idle_timeout     = ntohs( sr->idle_timeout);
     dr->stats->hard_timeout     = 0;
     dr->stats->cookie           = ntoh64(sr->cookie);
@@ -1479,7 +1479,7 @@ ofl_msg_unpack_queue_get_config_request(struct ofp_header *src, size_t *len, str
 
     sr = (struct ofp_queue_get_config_request *)src;
 
-    if (ntohl(sr->port) == 0 || ntohl(sr->port) > OFPP_MAX) {
+    if (ntohl(sr->port) == 0 || ntohl(sr->port) > OFPP_ANY) {
         OFL_LOG_WARN(LOG_MODULE, "Received GET_CONFIG_REQUEST message has invalid port (%u).", ntohl(sr->port));
         return ofl_error(OFPET_QUEUE_OP_FAILED, OFPQOFC_BAD_PORT);
     }
