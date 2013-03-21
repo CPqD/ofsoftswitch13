@@ -114,7 +114,7 @@ pkt_mask32(uint8_t *a, uint8_t *am, uint8_t *b) {
     uint32_t *b1 = (uint32_t *) b;
     uint32_t *mask = (uint32_t *) am;
 
-    return (((*mask & *a1) ^ (*mask & ntohll(*b1))) == 0);
+    return (((*mask & *a1) ^ (*mask & ntohl(*b1))) == 0);
 }
 
 /*Returns true if two values of 32 bit size match, considering their masks. */
@@ -196,53 +196,190 @@ ipv6_eh_match(uint8_t *a, uint8_t *b) {
 
 bool
 packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
+
+    struct ofl_match_tlv *f, *packet_f;
+    bool ret = false;
+
+    if (flow_match->header.length == 0){
+        return true;
+    }
+    /* Loop through the match fields */
+    HMAP_FOR_EACH(f, struct ofl_match_tlv, hmap_node, &flow_match->match_fields){
+        /* Check if the field is present in the packet */
+        // HMAP_FOR_EACH_WITH_HASH(packet_f, struct packet_fields, hmap_node, hash_int(f->header, 0), &packet->match_fields){
+        HMAP_FOR_EACH(packet_f, struct ofl_match_tlv, hmap_node, &packet->match_fields){
+            if (OXM_TYPE(f->header) == OXM_TYPE(packet_f->header)) {
+                int field_len =  OXM_LENGTH(f->header);
+                bool has_mask = OXM_HASMASK(f->header);
+                ret = true;
+                if (has_mask)
+                {
+                    field_len = field_len/2;
+                }
+                switch (field_len){
+                    case (sizeof(uint8_t)):{
+                        if (has_mask){
+                            if (pkt_mask8(f->value,f->value + field_len, packet_f->value) == 0){
+                              return false;
+                            }
+                        }
+                        else
+                            if (matches_8(f->value, packet_f->value) == 0){
+                              return false;
+                        }
+                        break;
+                    }
+                    case (sizeof(uint16_t)):{
+                        if (OXM_TYPE(f->header) == OXM_TYPE(OXM_OF_VLAN_VID)) {
+                            if (*((uint16_t*)f->value) == OFPVID_NONE)
+                                return false; // we have vlan tag when we expect none
+                            else if (*((uint16_t*)f->value) == OFPVID_PRESENT && has_mask)
+                                break; // this is the case where each vlan is a match
+                            else
+                                *((uint16_t*)f->value) &= VLAN_VID_MASK; // remove CFI bit
+                        }
+
+                        if (OXM_TYPE(f->header) == OXM_TYPE(OXM_OF_IPV6_EXTHDR)){
+                            if (ipv6_eh_match(f->value, packet_f->value) == 0) {
+                                return false;
+                            }
+                        }
+                        else if (has_mask){
+                            if (pkt_mask16(f->value,f->value+ field_len, packet_f->value) == 0){
+                              return false;
+                            }
+                        }
+                        else {
+                            if (pkt_match_16(f->value, packet_f->value) == 0){
+                              return false;
+                            }
+                        }
+                        break;
+                    }
+                    case (sizeof(uint32_t)):{
+                        if (has_mask){
+                            if (OXM_TYPE(f->header) == OXM_TYPE(OXM_OF_IPV4_DST) || OXM_TYPE(f->header) == OXM_TYPE(OXM_OF_IPV4_SRC)
+                                || OXM_TYPE(f->header) == OXM_TYPE(OXM_OF_ARP_SPA) || OXM_TYPE(f->header) == OXM_TYPE(OXM_OF_ARP_TPA)){
+                                if (matches_mask32(f->value,f->value + field_len, packet_f->value) == 0){
+                                     return false;
+                                }
+                            }
+                            else
+                                if (pkt_mask32(f->value,f->value + field_len, packet_f->value) == 0){
+                                    return false;
+                            }
+                        }
+                        else
+                            if (OXM_TYPE(f->header) == OXM_TYPE(OXM_OF_IPV4_DST) || OXM_TYPE(f->header) == OXM_TYPE(OXM_OF_IPV4_SRC)
+                                ||OXM_TYPE(f->header) == OXM_TYPE(OXM_OF_ARP_SPA) || OXM_TYPE(f->header) == OXM_TYPE(OXM_OF_ARP_TPA)){
+                                if (matches_32(f->value, packet_f->value) == 0){
+                                     return false;
+                                }
+                            }
+                            else {
+                                if (pkt_match_32(f->value, packet_f->value) == 0){
+                                    return false;
+                                }
+                            }
+                        break;
+                    }
+                    case (ETH_ADDR_LEN):{
+                         if (has_mask){
+                            if (eth_mask(f->value,f->value + field_len, packet_f->value) == 0){
+                              return false;
+                            }
+                         }
+                        else
+                            if (eth_match(f->value, packet_f->value) == 0){
+                              return false;
+                            }
+                        break;
+                    }
+                    case (sizeof(uint64_t)):{
+                        if (has_mask) {
+                            if (pkt_mask64(f->value,f->value + field_len, packet_f->value) == 0){
+                              return false;
+                            }
+                        }
+                        else
+                            if (matches_64(f->value, packet_f->value) == 0){
+                              return false;
+                            }
+                        break;
+                    }
+                    case (16):{
+                        if (has_mask){
+                            if (ipv6_mask(f->value,f->value + field_len, packet_f->value) == 0){
+
+                              return false;
+                            }
+                        }
+                        else
+                            if (ipv6_match(f->value, packet_f->value) == 0){
+                              return false;
+                            }
+                        break;
+                    }
+                } // end of switch case
+            } // end of if (OXM_TYPE(f->header) == OXM_TYPE(packet_f->header))
+        } // end of packet_match loop
+        if (OXM_TYPE(f->header) == OXM_TYPE(OXM_OF_VLAN_VID))
+            if (*((uint16_t*)f->value) == OFPVID_NONE)
+                ret = true; // in case the packet has no vlan and this is what was expected
+
+        if (!ret)
+           return ret;
+        else ret = false;
+    } // end of flow_match loop
+
     return true;
+
 }
 
 
 static inline bool
 strict_mask8(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
-	return ((am[0] == bm[0]) && ((a[0] ^ b[0]) & ~am[0])) == 0;
+    return ((am[0] == bm[0]) && ((a[0] ^ b[0]) & ~am[0])) == 0;
 }
 
 static inline bool
 strict_mask16(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
-	uint16_t *a1 = (uint16_t *) a;
+    uint16_t *a1 = (uint16_t *) a;
     uint16_t *b1 = (uint16_t *) b;
     uint16_t *mask_a = (uint16_t *) am;
-	uint16_t *mask_b = (uint16_t *) bm;
-	return ((*mask_a == *mask_b) && ((*a1 ^ *b1) & (*mask_a))) == 0;
+    uint16_t *mask_b = (uint16_t *) bm;
+    return ((*mask_a == *mask_b) && ((*a1 ^ *b1) & (*mask_a))) == 0;
 }
 
 static inline bool
 strict_mask32(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
-	uint32_t *a1 = (uint32_t *) a;
+    uint32_t *a1 = (uint32_t *) a;
     uint32_t *b1 = (uint32_t *) b;
     uint32_t *mask_a = (uint32_t *) am;
-	uint32_t *mask_b = (uint32_t *) bm;
-	return ((*mask_a == *mask_b) && ((*a1 ^ *b1) & (*mask_a))) == 0;
+    uint32_t *mask_b = (uint32_t *) bm;
+    return ((*mask_a == *mask_b) && ((*a1 ^ *b1) & (*mask_a))) == 0;
 }
 
 static inline bool
 strict_mask64(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
-	uint64_t *a1 = (uint64_t *) a;
+    uint64_t *a1 = (uint64_t *) a;
     uint64_t *b1 = (uint64_t *) b;
     uint64_t *mask_a = (uint64_t *) am;
-	uint64_t *mask_b = (uint64_t *) bm;
-	return ((*mask_a == *mask_b) && ((*a1 ^ *b1) & (*mask_a))) == 0;
+    uint64_t *mask_b = (uint64_t *) bm;
+    return ((*mask_a == *mask_b) && ((*a1 ^ *b1) & (*mask_a))) == 0;
 }
 
 static inline bool
 strict_ethaddr(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
-	return strict_mask32(a,b,am,bm) &&
-		   strict_mask16(a+4, b+4, am+4, bm+4);
+    return strict_mask32(a,b,am,bm) &&
+           strict_mask16(a+4, b+4, am+4, bm+4);
 }
 
 
 static inline bool
 strict_ipv6(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
     return strict_mask64(a,b,am,bm) &&
-		   strict_mask64(a+8, b+8, am+8, bm+8);
+           strict_mask64(a+8, b+8, am+8, bm+8);
 
 }
 
@@ -255,7 +392,118 @@ strict_ipv6(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
 bool
 match_std_strict(struct ofl_match *a, struct ofl_match *b) {
 
-return true;
+    struct ofl_match_tlv *flow_mod_match;
+    struct ofl_match_tlv *flow_entry_match;
+    bool ret = false;
+    /*Both matches all wildcarded */
+    if(!a->header.length && !b->header.length )
+        return true;
+    /* If the matches differ in length, there is no reason to compare
+        once they will differ in the number of fields */
+    if (a->header.length != b->header.length)
+        return false;
+
+
+    /* Loop through the match fields */
+    HMAP_FOR_EACH(flow_mod_match, struct ofl_match_tlv, hmap_node, &a->match_fields){
+       /* Check if the field is present in the flow entry */
+        HMAP_FOR_EACH_WITH_HASH(flow_entry_match, struct ofl_match_tlv, hmap_node, hash_int(flow_mod_match->header, 0), &b->match_fields){
+                int field_len =  OXM_LENGTH(flow_mod_match->header);
+                bool has_mask;
+                /* Check if both fields have or not a mask */
+                if ( (OXM_HASMASK(flow_mod_match->header) && !OXM_HASMASK(flow_entry_match->header))
+                    || (!OXM_HASMASK(flow_mod_match->header) && OXM_HASMASK(flow_entry_match->header))){
+                    return false;
+                }
+                ret = true;
+                has_mask = OXM_HASMASK(flow_mod_match->header);
+                if (has_mask)
+                {
+                    field_len = field_len/2;
+                }
+                switch (field_len){
+                    case (sizeof(uint8_t)):{
+                        if (has_mask){
+                            if (strict_mask8(flow_mod_match->value, flow_entry_match->value, flow_mod_match->value + field_len, flow_entry_match->value + field_len) == 0 ){
+                              return false;
+                            }
+                        }
+                        else
+                            if (matches_8(flow_mod_match->value, flow_entry_match->value) == 0){
+                              return false;
+                        }
+                        break;
+                    }
+                    case (sizeof(uint16_t)):{
+                        if (has_mask){
+                            if (strict_mask16(flow_mod_match->value, flow_entry_match->value, flow_mod_match->value + field_len, flow_entry_match->value + field_len) == 0 ){
+                              return false;
+                            }
+                        }
+                        else
+                            if (matches_16(flow_mod_match->value, flow_entry_match->value) == 0){
+                              return false;
+                        }
+                        break;
+                    }
+                    case (sizeof(uint32_t)):{
+                        if (has_mask){
+                            if (strict_mask32(flow_mod_match->value, flow_entry_match->value, flow_mod_match->value + field_len, flow_entry_match->value + field_len) == 0 ){
+                              return false;
+                            }
+                        }
+                        else
+                            if (matches_32(flow_mod_match->value, flow_entry_match->value) == 0){
+                              return false;
+                            }
+                        break;
+                    }
+                    case (ETH_ADDR_LEN):{
+                         if (has_mask){
+                            if (strict_ethaddr(flow_mod_match->value, flow_entry_match->value, flow_mod_match->value + field_len, flow_entry_match->value + field_len) == 0 ){
+                              return false;
+                            }
+                         }
+                        else
+                            if (eth_match(flow_mod_match->value, flow_entry_match->value) == 0){
+                              return false;
+                            }
+                        break;
+                    }
+                    case (sizeof(uint64_t)):{
+                        if (has_mask) {
+                            if (strict_mask64(flow_mod_match->value, flow_entry_match->value,flow_mod_match->value + field_len, flow_entry_match->value + field_len) == 0 ){
+                              return false;
+                            }
+                        }
+                        else
+                            if (matches_64(flow_mod_match->value, flow_entry_match->value) == 0){
+                              return false;
+                            }
+                        break;
+                    }
+                    case (16):{
+                        if (has_mask){
+                            if (strict_ipv6(flow_mod_match->value,flow_entry_match->value, flow_entry_match->value,flow_entry_match->value + field_len)== 0){
+                              return false;
+                            }
+                        }
+                        else
+                            if (ipv6_match(flow_mod_match->value, flow_entry_match->value) == 0){
+                              return false;
+                            }
+                        break;
+                    }
+
+            }
+
+        }
+         if (!ret)
+            return ret;
+        else ret = false;
+    }
+
+    return true;
 }
 
 
@@ -271,7 +519,7 @@ nonstrict_mask16(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
     uint16_t *a1 = (uint16_t *) a;
     uint16_t *b1 = (uint16_t *) b;
     uint16_t *mask_a = (uint16_t *) am;
-	uint16_t *mask_b = (uint16_t *) bm;
+    uint16_t *mask_b = (uint16_t *) bm;
     return (~(*mask_a) & (~(*a1) | ~(*b1) | *mask_b) & (*a1| *b1 | *mask_b)) == 0;
 }
 
@@ -280,7 +528,7 @@ nonstrict_mask32(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
     uint32_t *a1 = (uint32_t *) a;
     uint32_t *b1 = (uint32_t *) b;
     uint32_t *mask_a = (uint32_t *) am;
-	uint32_t *mask_b = (uint32_t *) bm;
+    uint32_t *mask_b = (uint32_t *) bm;
     return (~(*mask_a) & (~(*a1) | ~(*b1) | *mask_b) & (*a1| *b1 | *mask_b)) == 0;
 }
 
@@ -289,26 +537,132 @@ nonstrict_mask64(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
     uint64_t *a1 = (uint64_t *) a;
     uint64_t *b1 = (uint64_t *) b;
     uint64_t *mask_a = (uint64_t *) am;
-	uint64_t *mask_b = (uint64_t *) bm;
+    uint64_t *mask_b = (uint64_t *) bm;
     return (~(*mask_a) & (~(*a1) | ~(*b1) | *mask_b) & (*a1| *b1 | *mask_b)) == 0;
 }
 
 static inline bool
 nonstrict_ethaddr(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
-	return nonstrict_mask32(a,  b, am, bm) &&
-		   nonstrict_mask16(a, b, am, bm);
+    return nonstrict_mask32(a,  b, am, bm) &&
+           nonstrict_mask16(a, b, am, bm);
 }
 
 static inline bool
 nonstrict_ipv6(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
-	return nonstrict_mask64(a, b, am, bm) &&
-		   nonstrict_mask64(a, b, am, bm);
+    return nonstrict_mask64(a, b, am, bm) &&
+           nonstrict_mask64(a, b, am, bm);
 }
 
 bool
 match_std_nonstrict(struct ofl_match *a, struct ofl_match *b) {
 
+    struct ofl_match_tlv *flow_mod_match;
+    struct ofl_match_tlv *flow_entry_match;
+    bool ret = false;
+
+    /*Matches all flows */
+    if(!a->header.length )
+        return true;
+
+    /*A is more specific than B*/
+    if(a->header.length > b->header.length)
+        return false;
+
+    /* Loop through the match fields */
+    HMAP_FOR_EACH(flow_mod_match, struct ofl_match_tlv, hmap_node, &a->match_fields){
+       /* Check if the field is present in the flow entry */
+        HMAP_FOR_EACH_WITH_HASH(flow_entry_match, struct ofl_match_tlv, hmap_node, hash_int(flow_mod_match->header, 0), &b->match_fields){
+                int field_len =  OXM_LENGTH(flow_mod_match->header);
+                bool has_mask;
+                /* Check if both fields have or not a mask */
+                if ( (OXM_HASMASK(flow_mod_match->header) && !OXM_HASMASK(flow_entry_match->header))
+                    || (!OXM_HASMASK(flow_mod_match->header) && OXM_HASMASK(flow_entry_match->header))){
+                    return false;
+                }
+                ret = true;
+                has_mask = OXM_HASMASK(flow_mod_match->header);
+                switch (field_len){
+                    case (sizeof(uint8_t)):{
+                        if (has_mask){
+                            if (nonstrict_mask8(flow_mod_match->value, flow_entry_match->value, flow_mod_match->value + field_len, flow_entry_match->value + field_len) == 0){
+                              return false;
+                            }
+                        }
+                        else
+                            if (matches_8(flow_mod_match->value, flow_entry_match->value) == 0){
+                              return false;
+                        }
+                        break;
+                    }
+                    case (sizeof(uint16_t)):{
+                        if (has_mask){
+                            if (nonstrict_mask16(flow_mod_match->value, flow_entry_match->value, flow_mod_match->value + field_len, flow_entry_match->value + field_len) == 0){
+                              return false;
+                            }
+                        }
+                        else
+                            if (matches_16(flow_mod_match->value, flow_entry_match->value) == 0){
+                              return false;
+                        }
+                        break;
+                    }
+                    case (sizeof(uint32_t)):{
+
+                        if (has_mask){
+                            if (nonstrict_mask32(flow_mod_match->value, flow_entry_match->value, flow_mod_match->value + field_len, flow_entry_match->value + field_len) == 0){
+                              return false;
+                            }
+                        }
+                        else
+                            if (matches_32(flow_mod_match->value, flow_entry_match->value) == 0){
+                              return false;
+                            }
+                        break;
+                    }
+                    case (ETH_ADDR_LEN):{
+                         if (has_mask){
+                            if (nonstrict_ethaddr(flow_mod_match->value, flow_entry_match->value, flow_mod_match->value + field_len, flow_entry_match->value + field_len) == 0){
+                              return false;
+                            }
+                         }
+                        else
+                            if (eth_match(flow_mod_match->value, flow_entry_match->value) == 0){
+                              return false;
+                            }
+                        break;
+                    }
+                    case (sizeof(uint64_t)):{
+                        if (has_mask) {
+                            if (nonstrict_mask64(flow_mod_match->value, flow_entry_match->value, flow_mod_match->value + field_len, flow_entry_match->value + field_len) == 0){
+                              return false;
+                            }
+                        }
+                        else
+                            if (matches_64(flow_mod_match->value, flow_entry_match->value) == 0){
+                              return false;
+                            }
+                        break;
+                    }
+                    case (16):{
+                        if (has_mask){
+                            if (nonstrict_ipv6(flow_mod_match->value, flow_entry_match->value, flow_mod_match->value + field_len, flow_entry_match->value + field_len) == 0){
+                              return false;
+                            }
+                        }
+                        else
+                            if (ipv6_match(flow_mod_match->value, flow_entry_match->value) == 0){
+                              return false;
+                            }
+                        break;
+                    }
+
+            }
+
+        }
+         if (!ret)
+            return ret;
+        else ret = false;
+    }
     return true;
 
 }
-

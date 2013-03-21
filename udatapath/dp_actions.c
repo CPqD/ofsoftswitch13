@@ -693,7 +693,6 @@ dp_actions_output_port(struct packet *pkt, uint32_t out_port, uint32_t out_queue
         }
         case (OFPP_CONTROLLER): {
             struct ofl_msg_packet_in msg;
-            struct ofl_match *m;
             msg.header.type = OFPT_PACKET_IN;
             msg.total_len   = pkt->buffer->size;
             msg.reason = OFPR_ACTION;
@@ -715,14 +714,12 @@ dp_actions_output_port(struct packet *pkt, uint32_t out_port, uint32_t out_queue
             if (!pkt->handle_std->valid){
                 packet_handle_std_validate(pkt->handle_std);
             }
-            m = xmalloc (sizeof(struct ofl_match));
-            ofl_structs_match_init(m);
+
             /* In this implementation the fields in_port and in_phy_port
                 always will be the same, because we are not considering logical
                 ports*/
-            msg.match = (struct ofl_match_header*)m;
+            msg.match = (struct ofl_match_header*) &pkt->handle_std->match;
             dp_send_message(pkt->dp, (struct ofl_msg_header *)&msg, NULL);
-            ofl_structs_free_match((struct ofl_match_header* ) m, NULL);
             break;
         }
         case (OFPP_FLOOD):

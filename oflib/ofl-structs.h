@@ -1,5 +1,5 @@
 /* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary
- * Copyright (c) 2012, CPqD, Brazil 
+ * Copyright (c) 2012, CPqD, Brazil
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,7 +49,7 @@ struct ofl_exp;
 /****************************************************************************
  * Supplementary structure definitions.
  ****************************************************************************/
- 
+
 struct ofl_packet_queue {
     uint32_t   queue_id; /* id for the specific queue. */
     size_t                         properties_num;
@@ -94,7 +94,7 @@ struct ofl_instruction_goto_table {
 
 struct ofl_instruction_write_metadata {
     struct ofl_instruction_header   header; /* OFPIT_WRITE_METADATA */
-    
+
     uint64_t   metadata;      /* Metadata value to write */
     uint64_t   metadata_mask; /* Metadata write bitmask */
 };
@@ -145,7 +145,7 @@ struct ofl_bucket {
     struct ofl_action_header **actions;
 };
 
-struct ofl_flow_stats { 
+struct ofl_flow_stats {
     uint8_t                         table_id;      /* ID of table flow came from. */
     uint32_t                        duration_sec;  /* Time flow has been alive in secs. */
     uint32_t                        duration_nsec; /* Time flow has been alive in nsecs
@@ -195,7 +195,7 @@ struct ofl_table_feature_prop_next_tables {
 /* Actions property */
 struct ofl_table_feature_prop_actions {
     struct ofl_table_feature_prop_header header;
-    size_t actions_num; 
+    size_t actions_num;
     struct ofl_action_header *action_ids; /*Actions list*/
 };
 
@@ -234,7 +234,7 @@ struct ofl_match {
 };
 
 struct ofl_match_tlv{
-    
+
     struct hmap_node hmap_node;
     uint32_t header;    /* TLV header */
     uint8_t *value;     /* TLV value */
@@ -295,7 +295,7 @@ struct ofl_port_stats {
     uint64_t   rx_crc_err;   /* Number of CRC errors. */
     uint64_t   collisions;   /* Number of collisions. */
     uint32_t   duration_sec; /* Time port has been alive in seconds */
-    uint32_t   duration_nsec; /* Time port has been alive in nanoseconds 
+    uint32_t   duration_nsec; /* Time port has been alive in nanoseconds
                                  beyond duration_sec */
 };
 
@@ -311,8 +311,8 @@ struct ofl_group_stats {
     uint64_t   byte_count;
     size_t                      counters_num;
     uint32_t   duration_sec; /* Time group has been alive in seconds */
-    uint32_t   duration_nsec; /* Time group has been alive in nanoseconds 
-                                 beyond duration_sec */    
+    uint32_t   duration_nsec; /* Time group has been alive in nanoseconds
+                                 beyond duration_sec */
     struct ofl_bucket_counter **counters;
 };
 
@@ -343,8 +343,8 @@ struct ofl_queue_stats {
     uint64_t   tx_packets; /* Number of transmitted packets. */
     uint64_t   tx_errors;  /* Number of packets dropped due to overrun. */
     uint32_t   duration_sec; /* Time queue has been alive in seconds */
-    uint32_t   duration_nsec; /* Time queue has been alive in nanoseconds 
-                                 beyond duration_sec */    
+    uint32_t   duration_nsec; /* Time queue has been alive in nanoseconds
+                                 beyond duration_sec */
 };
 
 struct ofl_group_desc_stats {
@@ -362,7 +362,7 @@ struct ofl_meter_band_stats {
     uint64_t byte_band_count;  /* Number of bytes in band. */
 
     /* Token bucket */
-    uint64_t last_fill;       
+    uint64_t last_fill;
     uint64_t tokens;
 };
 
@@ -435,13 +435,13 @@ ofl_structs_match_put_eth(struct ofl_match *match, uint32_t header, uint8_t valu
 void
 ofl_structs_match_put_eth_m(struct ofl_match *match, uint32_t header, uint8_t value[ETH_ADDR_LEN], uint8_t mask[ETH_ADDR_LEN]);
 
-void 
+void
 ofl_structs_match_put_ipv6(struct ofl_match *match, uint32_t header, uint8_t value[IPv6_ADDR_LEN] );
 
-void 
+void
 ofl_structs_match_put_ipv6m(struct ofl_match *match, uint32_t header, uint8_t value[IPv6_ADDR_LEN], uint8_t mask[IPv6_ADDR_LEN]);
 
-int 
+int
 ofl_structs_match_ofp_total_len(struct ofl_match *match);
 
 void
@@ -564,7 +564,7 @@ ofl_structs_meter_config_unpack(struct ofp_meter_config *src, size_t *len, struc
  * Functions for freeing action structures
  ****************************************************************************/
 
-void 
+void
 ofl_structs_free_meter_bands(struct ofl_meter_band_header *meter_band);
 
 void
@@ -597,10 +597,10 @@ ofl_structs_free_match(struct ofl_match_header *match, struct ofl_exp *exp);
 void
 ofl_structs_free_meter_band_stats(struct ofl_meter_band_stats* s);
 
-void 
+void
 ofl_structs_free_meter_stats(struct ofl_meter_stats *stats);
 
-void 
+void
 ofl_structs_free_meter_config(struct ofl_meter_config *conf);
 
 void
@@ -680,7 +680,7 @@ size_t
 ofl_structs_meter_bands_ofp_total_len(struct ofl_meter_band_header **meter_bands, size_t meter_bands_num);
 
 size_t
-ofl_structs_meter_band_ofp_len(struct ofl_meter_band_header *meter_band); 
+ofl_structs_meter_band_ofp_len(struct ofl_meter_band_header *meter_band);
 
 size_t
 ofl_structs_buckets_ofp_total_len(struct ofl_bucket ** buckets, size_t buckets_num, struct ofl_exp *exp);
@@ -703,7 +703,7 @@ ofl_structs_group_stats_ofp_len(struct ofl_group_stats *stats);
 size_t
 ofl_structs_group_desc_stats_ofp_total_len(struct ofl_group_desc_stats ** stats, size_t stats_num, struct ofl_exp *exp);
 
-size_t 
+size_t
 ofl_structs_table_features_properties_ofp_len(struct ofl_table_feature_prop_header *prop, struct ofl_exp *exp);
 
 size_t
@@ -732,16 +732,16 @@ ofl_structs_match_ofp_len(struct ofl_match_header *match, struct ofl_exp *exp);
 size_t
 ofl_structs_meter_stats_ofp_total_len(struct ofl_meter_stats **stats, size_t stats_num);
 
-size_t 
+size_t
 ofl_structs_meter_stats_ofp_len(struct ofl_meter_stats * stats);
 
-size_t 
+size_t
 ofl_structs_pack_band_stats(struct ofl_meter_band_stats *src, struct ofp_meter_band_stats *dst);
 
 size_t
 ofl_structs_meter_conf_ofp_total_len(struct ofl_meter_config **meter_conf, size_t stats_num);
 
-size_t 
+size_t
 ofl_structs_meter_conf_ofp_len(struct ofl_meter_config * meter_conf);
 
 
@@ -855,25 +855,25 @@ ofl_structs_meter_band_to_string(struct ofl_meter_band_header* s);
 void
 ofl_structs_meter_band_print(FILE *stream, struct ofl_meter_band_header* s);
 
-char* 
+char*
 ofl_structs_meter_band_stats_to_string(struct ofl_meter_band_stats* s);
 
 void
 ofl_structs_meter_band_stats_print(FILE *stream, struct ofl_meter_band_stats* s);
 
-char* 
+char*
 ofl_structs_meter_features_to_string(struct ofl_meter_features* s);
 
 void
 ofl_structs_meter_features_print(FILE *stream, struct ofl_meter_features* s);
 
 char *
-ofl_structs_meter_stats_to_string(struct ofl_meter_stats *s); 
+ofl_structs_meter_stats_to_string(struct ofl_meter_stats *s);
 
 void
 ofl_structs_meter_stats_print(FILE *stream, struct ofl_meter_stats* s);
 
-char* 
+char*
 ofl_structs_meter_config_to_string(struct ofl_meter_config* s);
 
 void
