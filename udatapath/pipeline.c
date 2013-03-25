@@ -234,6 +234,10 @@ pipeline_handle_flow_mod(struct pipeline *pl, struct ofl_msg_flow_mod *msg,
                 return error;
             }
         }
+	/* Reject goto in the last table. */
+	if ((msg->table_id == (PIPELINE_TABLES - 1))
+	    && (msg->instructions[i]->type == OFPIT_GOTO_TABLE))
+	  return ofl_error(OFPET_BAD_INSTRUCTION, OFPBIC_UNSUP_INST);
     }
 
     if (msg->table_id == 0xff) {
