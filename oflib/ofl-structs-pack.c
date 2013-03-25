@@ -334,7 +334,7 @@ ofl_structs_table_properties_pack(struct ofl_table_feature_prop_header * src, st
             uint8_t *ptr;
 
             dp->length = htons(sp->header.length);
-            ptr = (uint8_t*) data + (sizeof(struct ofp_table_feature_prop_header) -4);
+            ptr = (uint8_t*) data + (sizeof(struct ofp_table_feature_prop_header));
             for(i = 0; i < sp->ids_num; i++){
                 if(sp->instruction_ids[i].type == OFPIT_EXPERIMENTER){
                     struct ofp_instruction inst;
@@ -367,7 +367,7 @@ ofl_structs_table_properties_pack(struct ofl_table_feature_prop_header * src, st
             struct ofp_table_feature_prop_next_tables *dp = (struct ofp_table_feature_prop_next_tables*) dst;
 
             dp->length = htons(sp->header.length);
-            ptr = data + (sizeof(struct ofp_table_feature_prop_header) -4);
+            ptr = data + (sizeof(struct ofp_table_feature_prop_header));
             for(i = 0; i < sp->table_num; i++){
                 memcpy(ptr, &sp->next_table_ids[i], sizeof(uint8_t));
                 ptr += sizeof(uint8_t);
@@ -386,7 +386,7 @@ ofl_structs_table_properties_pack(struct ofl_table_feature_prop_header * src, st
             struct ofp_table_feature_prop_actions *dp = (struct ofp_table_feature_prop_actions*) dst;
 
             dp->length = htons(sp->header.length);
-            ptr = data + (sizeof(struct ofp_table_feature_prop_header) -4);
+            ptr = data + (sizeof(struct ofp_table_feature_prop_header));
             for(i = 0; i < sp->actions_num; i++){
                 if(sp->action_ids[i].type == OFPAT_EXPERIMENTER){
                     memcpy(ptr, &sp->action_ids[i], sizeof(struct ofp_action_header));
@@ -414,7 +414,7 @@ ofl_structs_table_properties_pack(struct ofl_table_feature_prop_header * src, st
             struct ofp_table_feature_prop_oxm *dp = (struct ofp_table_feature_prop_oxm*) dst;
 
             dp->length = htons(sp->header.length);
-            data += sizeof(struct ofp_table_feature_prop_header) - 4;
+            data += sizeof(struct ofp_table_feature_prop_header);
             for(i = 0; i < sp->oxm_num; i++){
                 uint32_t header = htonl(sp->oxm_ids[i]);
                 memcpy(data, &header, sizeof(uint32_t));

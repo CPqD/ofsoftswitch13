@@ -1052,10 +1052,8 @@ struct ofp_table_feature_prop_header{
     uint16_t type;  /* One of OFPTFPT_NEXT_TABLES,
                        OFPTFPT_NEXT_TABLES_MISS. */
     uint16_t length; /* Length in bytes of this property. */
-
-    uint8_t pad[4];
 };
-OFP_ASSERT(sizeof(struct ofp_table_feature_prop_header) == 8);
+OFP_ASSERT(sizeof(struct ofp_table_feature_prop_header) == 4);
 
 /* Body for ofp_multipart_request of type OFPMP_TABLE_FEATURES./
 * Body of reply to OFPMP_TABLE_FEATURES request. */
