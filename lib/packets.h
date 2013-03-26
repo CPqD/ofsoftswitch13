@@ -1,6 +1,6 @@
 /* Copyright (c) 2008 The Board of Trustees of The Leland Stanford
  * Junior University
- * 
+ *
  * We are making the OpenFlow specification and associated documentation
  * (Software) available for public use and benefit with the expectation
  * that others will use, modify and enhance the Software and contribute
@@ -13,10 +13,10 @@
  * distribute, sublicense, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -25,7 +25,7 @@
  * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * 
+ *
  * The name and trademarks of copyright holder(s) may NOT be used in
  * advertising or publicity pertaining to the Software or any
  * derivatives without specific, written prior permission.
@@ -54,16 +54,16 @@ static inline bool eth_addr_is_multicast(const uint8_t ea[6])
 {
     return ea[0] & 1;
 }
-static inline bool eth_addr_is_local(const uint8_t ea[6]) 
+static inline bool eth_addr_is_local(const uint8_t ea[6])
 {
     return ea[0] & 2;
 }
-static inline bool eth_addr_is_zero(const uint8_t ea[6]) 
+static inline bool eth_addr_is_zero(const uint8_t ea[6])
 {
     return !(ea[0] | ea[1] | ea[2] | ea[3] | ea[4] | ea[5]);
 }
 static inline bool eth_addr_equals(const uint8_t a[ETH_ADDR_LEN],
-                                   const uint8_t b[ETH_ADDR_LEN]) 
+                                   const uint8_t b[ETH_ADDR_LEN])
 {
     return !memcmp(a, b, ETH_ADDR_LEN);
 }
@@ -115,11 +115,11 @@ static inline bool eth_addr_is_reserved(const uint8_t ea[ETH_ADDR_LEN])
 #define ETH_TYPE_ARP           0x0806
 #define ETH_TYPE_VLAN          0x8100
 #define ETH_TYPE_SVLAN         0x9200
-#define ETH_TYPE_VLAN_QinQ     0x9100     
+#define ETH_TYPE_VLAN_QinQ     0x9100
 #define ETH_TYPE_VLAN_PBB_B    0x88a8
 #define ETH_TYPE_VLAN_PBB_S    0x88e7
 #define ETH_TYPE_MPLS          0x8847
-#define ETH_TYPE_MPLS_MCAST    0x8848    
+#define ETH_TYPE_MPLS_MCAST    0x8848
 
 #define ETH_HEADER_LEN 14
 #define ETH_PAYLOAD_MIN 46
@@ -178,6 +178,12 @@ struct vlan_header {
 };
 BUILD_ASSERT_DECL(VLAN_HEADER_LEN == sizeof(struct vlan_header));
 
+/*This structure is used to reconstruct the vlan tag on netdev*/
+struct vlan_tag {
+    uint16_t vlan_tp_id;          /* Lowest 12 bits are VLAN ID. */
+    uint16_t vlan_tci;
+};
+
 #define VLAN_ETH_HEADER_LEN (ETH_HEADER_LEN + VLAN_HEADER_LEN)
 struct vlan_eth_header {
     uint8_t veth_dst[ETH_ADDR_LEN];
@@ -219,7 +225,7 @@ BUILD_ASSERT_DECL(VLAN_ETH_HEADER_LEN == sizeof(struct vlan_eth_header));
 #define IPV6_TYPE_FH  44
 #define IPV6_TYPE_AH  51
 #define IPV6_TYPE_ESP 50
-#define IPV6_NO_NEXT_HEADER 59        
+#define IPV6_NO_NEXT_HEADER 59
 
 #define IP_VERSION 4
 
@@ -379,7 +385,7 @@ struct protocols_std {
    struct vlan_header     * vlan;
    struct vlan_header     * vlan_last; /* points to the last VLAN header */
    struct mpls_header     * mpls;
-   struct pbb_header      * pbb;   
+   struct pbb_header      * pbb;
    struct ip_header       * ipv4;
    struct ipv6_header     * ipv6;
    struct arp_eth_header  * arp;
@@ -389,7 +395,7 @@ struct protocols_std {
    struct icmp_header     * icmp;
 };
 
-static inline void 
+static inline void
 protocol_reset(struct protocols_std *proto) {
     proto->eth       = NULL;
     proto->eth_snap  = NULL;

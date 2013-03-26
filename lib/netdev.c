@@ -29,6 +29,38 @@
  * The name and trademarks of copyright holder(s) may NOT be used in
  * advertising or publicity pertaining to the Software or any
  * derivatives without specific, written prior permission.
+ *
+ * Modifications: Reconstruct VLAN header from PACKET_AUXDATA
+ *
+ * The modification includes code from libpcap; the copyright notice for that
+ * code is
+ /*
+ *  pcap-linux.c: Packet capture interface to the Linux kernel
+ *
+ *  Copyright (c) 2000 Torsten Landschoff <torsten@debian.org>
+ *             Sebastian Krahmer  <krahmer@cs.uni-potsdam.de>
+ *
+ *  License: BSD
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *
+ *  1. Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in
+ *     the documentation and/or other materials provided with the
+ *     distribution.
+ *  3. The names of the authors may not be used to endorse or promote
+ *     products derived from this software without specific prior
+ *     written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+ *  IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+ *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+ *
+ *
  */
 
 #include <config.h>
@@ -40,6 +72,12 @@
 #include <arpa/inet.h>
 #include <inttypes.h>
 #include <linux/if_tun.h>
+#include <linux/if_packet.h>
+
+
+#ifdef PACKET_AUXDATA
+#   define HAVE_PACKET_AUXDATA
+#endif
 
 /* Fix for some compile issues we were experiencing when setting up openwrt
  * with the 2.4 kernel. linux/ethtool.h seems to use kernel-style inttypes,
@@ -64,11 +102,9 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
-#include <netpacket/packet.h>
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_arp.h>
-#include <net/if_packet.h>
 #include <net/route.h>
 #include <netinet/in.h>
 #include <stdlib.h>
@@ -708,6 +744,13 @@ do_open_netdev(const char *name, int ethertype, int tap_fd,
     if (netdev_fd < 0) {
         return errno;
     }
+  #ifdef HAVE_PACKET_AUXDATA
+        uint32_t val = 1;
+          if (setsockopt(netdev_fd, SOL_PACKET, PACKET_AUXDATA, &val,
+               sizeof val) == -1 && errno != ENOPROTOOPT){
+              VLOG_ERR(LOG_MODULE, "setsockopt(SO_RCVBUF,%zu): %s", val, strerror(errno));
+          }
+  #endif
 
     /* Set non-blocking mode. */
     error = set_nonblocking(netdev_fd);
@@ -874,16 +917,47 @@ pad_to_minimum_length(struct ofpbuf *buffer)
 int
 netdev_recv(struct netdev *netdev, struct ofpbuf *buffer)
 {
-    ssize_t n_bytes;
+
+#ifdef HAVE_PACKET_AUXDATA
+    /* Code from libpcap to reconstruct VLAN header */
+    struct iovec    iov;
+    struct cmsghdr    *cmsg;
+    struct msghdr     msg;
+    struct sockaddr   from;
+    union {
+      struct cmsghdr  cmsg;
+      char    buf[CMSG_SPACE(sizeof(struct tpacket_auxdata))];
+    } cmsg_buf;
+#else
     struct sockaddr_ll sll;
     socklen_t sll_len;
+#endif
+    ssize_t n_bytes;
 
     assert(buffer->size == 0);
     assert(ofpbuf_tailroom(buffer) >= ETH_TOTAL_MIN);
 
+#ifdef HAVE_PACKET_AUXDATA
+    /* Code from libpcap to reconstruct VLAN header */
+    memset(&msg, 0, sizeof(struct msghdr));
+    memset(cmsg_buf.buf, 0, CMSG_SPACE(sizeof(struct tpacket_auxdata)));
+
+    msg.msg_name    = &from;
+    msg.msg_namelen   = sizeof(from);
+    msg.msg_iov   = &iov;
+    msg.msg_iovlen    = 1;
+    msg.msg_control   = &cmsg_buf;
+    msg.msg_controllen  = sizeof(cmsg_buf);
+    msg.msg_flags   = 0;
+
+    iov.iov_len   = buffer->allocated;
+    iov.iov_base    = buffer->data;
+
+#else
     /* prepare to call recvfrom */
     memset(&sll,0,sizeof sll);
     sll_len = sizeof sll;
+#endif
 
     /* cannot execute recvfrom over a tap device */
     if (!strncmp(netdev->name, "tap", 3)) {
@@ -894,9 +968,15 @@ netdev_recv(struct netdev *netdev, struct ofpbuf *buffer)
     }
     else {
         do {
+#ifdef HAVE_PACKET_AUXDATA
+            /* Code from libpcap to reconstruct VLAN header */
+            n_bytes = recvmsg(netdev->tap_fd, &msg, 0);
+#else
             n_bytes = recvfrom(netdev->tap_fd, ofpbuf_tail(buffer),
                                (ssize_t)ofpbuf_tailroom(buffer), 0,
                                (struct sockaddr *)&sll, &sll_len);
+
+#endif /* ifdef HAVE_PACKET_AUXDATA  */
         } while (n_bytes < 0 && errno == EINTR);
     }
     if (n_bytes < 0) {
@@ -906,14 +986,35 @@ netdev_recv(struct netdev *netdev, struct ofpbuf *buffer)
         }
         return errno;
     } else {
+
+#ifdef HAVE_PACKET_AUXDATA
+            /* Code from libpcap to reconstruct VLAN header */
+            for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+                struct tpacket_auxdata *aux;
+                struct vlan_tag *tag;
+                buffer->size += n_bytes;
+
+                if (cmsg->cmsg_len < CMSG_LEN(sizeof(struct tpacket_auxdata)) ||
+                    cmsg->cmsg_level != SOL_PACKET ||
+                    cmsg->cmsg_type != PACKET_AUXDATA){
+                    continue;
+                }
+                aux = (struct tpacket_auxdata *)CMSG_DATA(cmsg);
+                if (aux->tp_vlan_tci == 0)
+                  continue;
+                buffer->data = (uint8_t *)(buffer->data) - VLAN_HEADER_LEN;
+                memmove(buffer->data,(uint8_t*)buffer->data + VLAN_HEADER_LEN, ETH_ALEN * 2);
+                tag = (struct vlan_tag *)((uint8_t*)buffer->data + ETH_ALEN * 2);
+                tag->vlan_tp_id = htons(ETH_P_8021Q);
+                tag->vlan_tci = htons(aux->tp_vlan_tci);
+            }
+#else
         /* we have multiple raw sockets at the same interface, so we also
          * receive what others send, and need to filter them out.
-         * TODO(yiannisy): can we install this as a BPF at kernel? */
+         * TODO(yiannisy): can we install this as a BPF at kernel?*/
         if (sll.sll_pkttype == PACKET_OUTGOING) {
             return EAGAIN;
         }
-
-
         buffer->size += n_bytes;
 
         /* When the kernel internally sends out an Ethernet frame on an
@@ -922,8 +1023,10 @@ netdev_recv(struct netdev *netdev, struct ofpbuf *buffer)
          * request, we see a too-short frame.  So pad it out to the minimum
          * length. */
         pad_to_minimum_length(buffer);
+#endif
         return 0;
     }
+
 }
 
 /* Registers with the poll loop to wake up from the next call to poll_block()
