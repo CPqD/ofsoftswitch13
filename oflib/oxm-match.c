@@ -46,7 +46,6 @@
 //#include <config.h>
 
 #include "oxm-match.h"
-
 #include <netinet/icmp6.h>
 #include "hmap.h"
 #include "hash.h"
@@ -76,26 +75,8 @@ static const uint8_t eth_mcast_1[ETH_ADDR_LEN]
 static const uint8_t eth_mcast_0[ETH_ADDR_LEN]
     = {0xfe, 0xff, 0xff, 0xff, 0xff, 0xff};
 
-/* For each OXM_* field, define OFI_OXM_* as consecutive integers starting from
- * zero. */
-enum oxm_field_index {
-#define DEFINE_FIELD(HEADER,DL_TYPES, NW_PROTO, MASKABLE) \
-        OFI_OXM_##HEADER,
-#include "oxm-match.def"
-    N_OXM_FIELDS
-};
 
-struct oxm_field {
-    struct hmap_node hmap_node;
-    enum oxm_field_index index;       /* OFI_* value. */
-    uint32_t header;                  /* OXM_* value. */
-    uint16_t dl_type[N_OXM_DL_TYPES]; /* dl_type prerequisites. */
-    uint8_t nw_proto;                 /* nw_proto prerequisite, if nonzero. */
-    bool maskable;                    /* Writable with OXAST_REG_{MOVE,LOAD}? */
-};
-
-/* All the known fields. */
-static struct oxm_field oxm_fields[N_OXM_FIELDS] = {
+struct oxm_field all_fields[NUM_OXM_FIELDS] = {
 #define DEFINE_FIELD(HEADER, DL_TYPES, NW_PROTO, MASKABLE)     \
     { HMAP_NODE_NULL_INITIALIZER, OFI_OXM_##HEADER, OXM_##HEADER, \
         DL_CONVERT DL_TYPES, NW_PROTO, MASKABLE },
@@ -112,8 +93,8 @@ oxm_init(void)
     if (hmap_is_empty(&all_oxm_fields)) {
         int i;
 
-        for (i = 0; i < N_OXM_FIELDS; i++) {
-            struct oxm_field *f = &oxm_fields[i];
+        for (i = 0; i < NUM_OXM_FIELDS; i++) {
+            struct oxm_field *f = &all_fields[i];
             hmap_insert(&all_oxm_fields, &f->hmap_node,
                         hash_int(f->header, 0));
         }
@@ -128,7 +109,7 @@ oxm_init(void)
     }
 }
 
-static const struct oxm_field *
+struct oxm_field *
 oxm_field_lookup(uint32_t header)
 {
     struct oxm_field *f;
@@ -158,7 +139,7 @@ check_present_prereq(const struct ofl_match *match, uint32_t header){
     return false;
 }
 
-static bool
+bool
 oxm_prereqs_ok(const struct oxm_field *field, const struct ofl_match *rule)
 {
 
@@ -273,7 +254,7 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
 
             if (ntohs(*vlan_id) > OFPVID_PRESENT+VLAN_VID_MAX)
                 return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_VALUE);
-            else 
+            else
                 ofl_structs_match_put16m(match, f->header, ntohs(*vlan_id), ntohs(*vlan_mask));
             return 0;
         }
@@ -419,7 +400,7 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
         case OFI_OXM_OF_IPV6_EXTHDR_W:
             ofl_structs_match_put16m(match, f->header, ntohs(*((uint16_t*) value)),ntohs(*((uint16_t*) mask)));
             return 0;
-        case N_OXM_FIELDS:
+        case NUM_OXM_FIELDS:
             NOT_REACHED();
     }
     NOT_REACHED();
