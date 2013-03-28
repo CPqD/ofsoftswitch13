@@ -37,6 +37,7 @@
 #include "oflib/ofl.h"
 #include "oflib/ofl-actions.h"
 #include "oflib/ofl-log.h"
+#include "oflib/oxm-match.h"
 #include "packet.h"
 #include "packets.h"
 #include "pipeline.h"
@@ -66,8 +67,7 @@ output(struct packet *pkt, struct ofl_action_output *action) {
 }
 
 /* Executes a set field action.
-TODO: if we use the the index structure to the packet fields
-revalidation is not needed  */
+TODO: Rewrite functions to every case, cleaning the code*/
 
 static void
 set_field(struct packet *pkt, struct ofl_action_set_field *act )
@@ -75,8 +75,227 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
     packet_handle_std_validate(pkt->handle_std);
     if (pkt->handle_std->valid)
     {
+        /*Field existence is guaranteed by the
+        field pre-requisite on matching */
+        switch(act->field->header){
+            case OXM_OF_ETH_DST:{
+                memcpy(pkt->handle_std->proto->eth->eth_dst,
+                    act->field->value, OXM_LENGTH(act->field->header));
+                break;
+            }
+            case OXM_OF_ETH_SRC:{
+                memcpy(pkt->handle_std->proto->eth->eth_src,
+                    act->field->value, OXM_LENGTH(act->field->header));
+                break;
+            }
+            case OXM_OF_ETH_TYPE:{
+                uint16_t *v = (uint16_t*) act->field->value;
+                *v = htons(*v);
+                memcpy(&pkt->handle_std->proto->eth->eth_type,
+                    v, OXM_LENGTH(act->field->header));
+                break;
+            }
+            case OXM_OF_VLAN_VID:{
+                struct vlan_header *vlan =  pkt->handle_std->proto->vlan;
+                uint16_t v = (*(uint16_t*)act->field->value);
+                vlan->vlan_tci = htons((ntohs(vlan->vlan_tci) & ~VLAN_VID_MASK) |
+                               (v & VLAN_VID_MASK));
+                break;
+            }
+            case OXM_OF_VLAN_PCP:{
+                struct vlan_header *vlan = pkt->handle_std->proto->vlan;
 
+                vlan->vlan_tci = (vlan->vlan_tci & ~htons(VLAN_PCP_MASK))
+                                     | htons(*act->field->value << VLAN_PCP_SHIFT);
+                break;
+            }
+            case OXM_OF_IP_DSCP:{
+                struct ip_header *ipv4 =  pkt->handle_std->proto->ipv4;
+                uint8_t tos = (ipv4->ip_tos & ~IP_DSCP_MASK) |
+                               (*act->field->value << 2);
 
+                ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, (uint16_t)(ipv4->ip_tos), (uint16_t)tos);
+                ipv4->ip_tos = tos;
+                break;
+            }
+            case OXM_OF_IP_ECN:{
+                struct ip_header *ipv4 =  pkt->handle_std->proto->ipv4;
+                uint8_t tos = (ipv4->ip_tos & ~IP_ECN_MASK) |
+                               (*act->field->value & IP_ECN_MASK);
+                ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, (uint16_t)(ipv4->ip_tos), (uint16_t)tos);
+                ipv4->ip_tos = tos;
+                break;
+            }
+            case OXM_OF_IP_PROTO:{
+                pkt->handle_std->proto->ipv4->ip_proto = *act->field->value;
+                break;
+            }
+            case OXM_OF_IPV4_SRC:{
+                struct ip_header *ipv4 = pkt->handle_std->proto->ipv4;
+
+                /*Reconstruct TCP or UDP checksum*/
+                if (pkt->handle_std->proto->tcp != NULL) {
+                    struct tcp_header *tcp = pkt->handle_std->proto->tcp;
+                    tcp->tcp_csum = recalc_csum32(tcp->tcp_csum,
+                        ipv4->ip_src,htonl(*((uint32_t*) act->field->value)));
+                } else if (pkt->handle_std->proto->udp != NULL) {
+                    struct udp_header *udp = pkt->handle_std->proto->udp;
+                    udp->udp_csum = recalc_csum32(udp->udp_csum,
+                        ipv4->ip_src, htonl(*((uint32_t*) act->field->value)));
+                }
+
+                ipv4->ip_csum = recalc_csum32(ipv4->ip_csum, ipv4->ip_src,
+                                     htonl(*((uint32_t*) act->field->value)));
+
+                ipv4->ip_src = *((uint32_t*) act->field->value);
+                break;
+            }
+            case OXM_OF_IPV4_DST:{
+                struct ip_header *ipv4 = pkt->handle_std->proto->ipv4;
+
+                /*Reconstruct TCP or UDP checksum*/
+                if (pkt->handle_std->proto->tcp != NULL) {
+                    struct tcp_header *tcp = pkt->handle_std->proto->tcp;
+                    tcp->tcp_csum = recalc_csum32(tcp->tcp_csum,
+                        ipv4->ip_dst, htonl(*((uint32_t*) act->field->value)));
+                } else if (pkt->handle_std->proto->udp != NULL) {
+                    struct udp_header *udp = pkt->handle_std->proto->udp;
+                    udp->udp_csum = recalc_csum32(udp->udp_csum,
+                        ipv4->ip_dst, htonl(*((uint32_t*) act->field->value)));
+                }
+
+                ipv4->ip_csum = recalc_csum32(ipv4->ip_csum, ipv4->ip_dst,
+                                    htonl(*((uint32_t*) act->field->value)));
+
+                ipv4->ip_dst = *((uint32_t*) act->field->value);
+                break;
+            }
+            case OXM_OF_TCP_SRC:{
+                struct tcp_header *tcp = pkt->handle_std->proto->tcp;
+                uint16_t *v = (uint16_t*) act->field->value;
+                *v = htons(*v);
+                memcpy(&tcp->tcp_src, v, OXM_LENGTH(act->field->header));
+                tcp->tcp_csum = recalc_csum16(tcp->tcp_csum, tcp->tcp_src,
+                                    htons(*((uint16_t*) act->field->value)));
+                break;
+            }
+            case OXM_OF_TCP_DST:{
+                struct tcp_header *tcp = pkt->handle_std->proto->tcp;
+                uint16_t *v = (uint16_t*) act->field->value;
+                *v = htons(*v);
+                memcpy(&tcp->tcp_dst, v, OXM_LENGTH(act->field->header));
+                tcp->tcp_csum = recalc_csum16(tcp->tcp_csum, tcp->tcp_dst,
+                                    htons(*((uint16_t*) act->field->value)));
+                break;
+            }
+            case OXM_OF_UDP_SRC:{
+                struct udp_header *udp = pkt->handle_std->proto->udp;
+                uint16_t *v = (uint16_t*) act->field->value;
+                *v = htons(*v);
+                memcpy(&udp->udp_src, v, OXM_LENGTH(act->field->header));
+                udp->udp_csum = recalc_csum16(udp->udp_csum, udp->udp_dst,
+                                     htons(*((uint16_t*) act->field->value)));
+                break;
+            }
+            case OXM_OF_UDP_DST:{
+                struct udp_header *udp = pkt->handle_std->proto->udp;
+                uint16_t *v = (uint16_t*) act->field->value;
+                *v = htons(*v);
+                memcpy(&udp->udp_dst, v, OXM_LENGTH(act->field->header));
+                udp->udp_csum = recalc_csum16(udp->udp_csum, udp->udp_dst,
+                                     htons(*((uint16_t*) act->field->value)));
+                break;
+            }
+            case OXM_OF_SCTP_SRC:{
+                uint16_t *v = (uint16_t*) act->field->value;
+                *v = htons(*v);
+                memcpy(&pkt->handle_std->proto->sctp->sctp_src,
+                    v, OXM_LENGTH(act->field->header));
+                break;
+            }
+            case OXM_OF_SCTP_DST:{
+                uint16_t *v = (uint16_t*) act->field->value;
+                *v = htons(*v);
+                memcpy(&pkt->handle_std->proto->sctp->sctp_dst,
+                    v, OXM_LENGTH(act->field->header));
+                break;
+            }
+            case OXM_OF_ICMPV4_TYPE:
+            case OXM_OF_ICMPV6_TYPE:{
+                pkt->handle_std->proto->icmp->icmp_type = *act->field->value;
+                break;
+            }
+
+            case OXM_OF_ICMPV4_CODE:
+            case OXM_OF_ICMPV6_CODE:{
+                pkt->handle_std->proto->icmp->icmp_code = *act->field->value;
+                break;
+            }
+            case OXM_OF_ARP_OP:
+            case OXM_OF_ARP_SPA:{
+                pkt->handle_std->proto->arp->ar_spa = *((uint32_t*)
+                                                            act->field->value);
+            }
+            case OXM_OF_ARP_TPA:{
+                 pkt->handle_std->proto->arp->ar_tpa = *((uint32_t*)
+                                                            act->field->value);
+            }
+            case OXM_OF_ARP_SHA:{
+                memcpy(pkt->handle_std->proto->arp->ar_sha,
+                        act->field->value, OXM_LENGTH(act->field->header));
+                break;
+            }
+            case OXM_OF_ARP_THA:{
+                memcpy(pkt->handle_std->proto->arp->ar_tha,
+                        act->field->value, OXM_LENGTH(act->field->header));
+                        break;
+            }
+            case OXM_OF_IPV6_SRC:{
+                memcpy(&pkt->handle_std->proto->ipv6->ipv6_src,
+                        act->field->value, OXM_LENGTH(act->field->header));
+                        break;
+            }
+            case OXM_OF_IPV6_DST:{
+                memcpy(&pkt->handle_std->proto->ipv6->ipv6_dst,
+                        act->field->value, OXM_LENGTH(act->field->header));
+                        break;
+            }
+            case OXM_OF_IPV6_FLABEL:
+            case OXM_OF_IPV6_ND_TARGET:{
+                struct icmp_header *icmp = pkt->handle_std->proto->icmp;
+                break;
+            }
+            case OXM_OF_IPV6_ND_SLL:{
+                struct icmp_header *icmp = pkt->handle_std->proto->icmp;
+                break;
+            }
+            case OXM_OF_IPV6_ND_TLL:{
+                struct icmp_header *icmp = pkt->handle_std->proto->icmp;
+                break;
+            }
+            case OXM_OF_MPLS_LABEL:{
+                struct mpls_header *mpls = pkt->handle_std->proto->mpls;
+                uint32_t v = *((uint32_t*) act->field->value);
+                mpls->fields = (mpls->fields & ~ntohl(MPLS_LABEL_MASK)) |
+                ntohl((v << MPLS_LABEL_SHIFT) & MPLS_LABEL_MASK);
+                break;
+            }
+            case OXM_OF_MPLS_TC:{
+                struct mpls_header *mpls = pkt->handle_std->proto->mpls;
+                mpls->fields = (mpls->fields & ~ntohl(MPLS_TC_MASK))
+                | ntohl((*act->field->value << MPLS_TC_SHIFT) & MPLS_TC_MASK);
+            }
+            case OXM_OF_MPLS_BOS:{
+                struct mpls_header *mpls = pkt->handle_std->proto->mpls;
+                mpls->fields = (mpls->fields & ~ntohl(MPLS_S_MASK))
+                | ntohl((*act->field->value << MPLS_S_SHIFT) & MPLS_S_MASK);
+            }
+            default:
+                VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to set unknow field.");
+                break;
+        }
+        pkt->handle_std->valid = false;
+        return;
         //VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute SET_FIELD action on packet with no corresponding field.");
     }
 
@@ -794,5 +1013,29 @@ dp_actions_validate(struct datapath *dp, size_t actions_num, struct ofl_action_h
         }
     }
 
+    return 0;
+}
+
+
+ofl_err
+dp_actions_check_set_field_req(struct ofl_msg_flow_mod *msg, size_t actions_num, struct ofl_action_header **actions){
+    size_t i;
+
+    for (i=0; i < actions_num; i++) {
+        if (actions[i]->type == OFPAT_SET_FIELD) {
+            struct ofl_action_set_field *as = (struct ofl_action_set_field*)actions[i];
+            struct oxm_field  *f;
+
+            /*There is no match field, so the prerequisites are not present*/
+            if (msg->match->length == 0)
+                return ofl_error(OFPET_BAD_ACTION, OFPBAC_MATCH_INCONSISTENT);
+
+            f = oxm_field_lookup(as->field->header);
+            if(!oxm_prereqs_ok(f, (struct ofl_match*) msg->match)) {
+                return ofl_error(OFPET_BAD_ACTION, OFPBAC_MATCH_INCONSISTENT);
+            }
+
+        }
+    }
     return 0;
 }

@@ -211,6 +211,10 @@ pipeline_handle_flow_mod(struct pipeline *pl, struct ofl_msg_flow_mod *msg,
             if (error) {
                 return error;
             }
+            error = dp_actions_check_set_field_req(msg, ia->actions_num, ia->actions);
+            if (error) {
+                return error;
+            }
         }
     }
 
@@ -471,13 +475,26 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
             }
             case OFPIT_WRITE_METADATA: {
                 struct ofl_instruction_write_metadata *wi = (struct ofl_instruction_write_metadata *)inst;
-                struct  packet_fields *f;
-
+                struct ofl_match_tlv *f = NULL;
+                bool found = false;
                 /* NOTE: Hackish solution. If packet had multiple handles, metadata
                  *       should be updated in all. */
                 packet_handle_std_validate((*pkt)->handle_std);
-                /* Search field on the description of the packet. */
 
+                uint64_t *metadata = (uint64_t*) f->value;
+                /* Search field on the description of the packet. */
+                HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv, hmap_node,
+                    hash_int(OXM_OF_METADATA,0), &(*pkt)->handle_std->match.match_fields){
+                    memset(f->value,(*metadata & ~wi->metadata_mask) |
+                         (wi->metadata & wi->metadata_mask), sizeof(uint64_t));
+                    found = true;
+                }
+                /* Insert metadata*/
+                if(!found){
+                    ofl_structs_match_put64(&(*pkt)->handle_std->match,
+                            OXM_OF_METADATA, (*metadata & ~wi->metadata_mask) |
+                         (wi->metadata & wi->metadata_mask));
+                }
                 break;
             }
             case OFPIT_WRITE_ACTIONS: {
