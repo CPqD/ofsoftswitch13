@@ -608,23 +608,27 @@ flow_mod(struct vconn *vconn, int argc, char *argv[]) {
              .instructions = NULL};
 
     parse_flow_mod_args(argv[0], &msg);
-
     if (argc > 1) {
         size_t i, j;
         size_t inst_num;
         if (argc > 2){
             inst_num = argc - 2;
             j = 2;
+            parse_match(argv[1], &(msg.match));
         }
         else {
-            if(msg.command == OFPFC_DELETE)
+            if(msg.command == OFPFC_DELETE){
                 inst_num = 0;
+                parse_match(argv[1], &(msg.match));
+            }
             else {
+                struct ofl_match *m = xmalloc(sizeof(struct ofl_match));
+                ofl_structs_match_init(m);
+                msg.match = (struct ofl_match_header*) m;
                 inst_num = argc - 1;
                 j = 1;
             }
         }
-        parse_match(argv[1], &(msg.match));
 
         msg.instructions_num = inst_num;
         msg.instructions = xmalloc(sizeof(struct ofl_instruction_header *) * inst_num);
@@ -1983,6 +1987,7 @@ parse_actions(char *str, size_t *acts_num, struct ofl_action_header ***acts) {
 
     for (token = strtok_r(str, KEY_SEP, &saveptr); token != NULL; token = strtok_r(NULL, KEY_SEP, &saveptr)) {
         found = false;
+
         for (i=0; i<NUM_ELEMS(action_names); i++) {
             if (strncmp(token, action_names[i].name, strlen(action_names[i].name)) == 0) {
                 s = token + strlen(action_names[i].name);
