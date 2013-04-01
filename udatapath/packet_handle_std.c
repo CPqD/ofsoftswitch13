@@ -58,16 +58,16 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
         struct ofl_match *m = &handle->match;
         struct protocols_std *proto = handle->proto;
         uint64_t current_metadata;
-        uint8_t next_proto;
         struct ofl_match_tlv *field;
         size_t offset = 0;
+        uint8_t next_proto = 0;
 
         handle->valid = true;
 
         protocol_reset(handle->proto);
 
         m->header.type = OFPMT_OXM;
-        ofl_structs_match_put32(m, OXM_OF_IN_PORT, htonl(pkt->in_port));
+        ofl_structs_match_put32(m, OXM_OF_IN_PORT, pkt->in_port);
         HMAP_FOR_EACH_WITH_HASH(field, struct ofl_match_tlv, hmap_node,
             hash_int(OXM_OF_METADATA,0), & m->match_fields){
             current_metadata = (uint64_t) *field->value;
@@ -88,7 +88,7 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
             ofl_structs_match_put_eth(m, OXM_OF_ETH_SRC, proto->eth->eth_src);
             ofl_structs_match_put_eth(m, OXM_OF_ETH_DST, proto->eth->eth_dst);
             ofl_structs_match_put16(m, OXM_OF_ETH_TYPE,
-                                                proto->eth->eth_type);
+                                                ntohs(proto->eth->eth_type));
         } else {
             /* Ethernet 802.3 */
             struct llc_header *llc;
@@ -149,7 +149,7 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
 
             // Note: DL type is updated
             ofl_structs_match_put16(m, OXM_OF_ETH_TYPE,
-                                           proto->vlan->vlan_next_type);
+                                           ntohs(proto->vlan->vlan_next_type));
 
         }
 
@@ -160,14 +160,29 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
             if (pkt->buffer->size < offset + sizeof(struct vlan_header)) {
                 return;
             }
-            proto->vlan_last = (struct vlan_header *)((uint8_t *)pkt->buffer->data + offset);
+            proto->vlan_last = (struct vlan_header *)((uint8_t *)
+                                                  pkt->buffer->data + offset);
             offset += sizeof(struct vlan_header);
 
             ofl_structs_match_put16(m, OXM_OF_ETH_TYPE,
-                                           proto->vlan->vlan_next_type);
+                                           ntohs(proto->vlan->vlan_next_type));
         }
 
-        /* MPLS */
+        /* PBB ISID */
+        if (ntohs(proto->eth->eth_type) == ETH_TYPE_PBB){
+            uint32_t isid;
+            if (pkt->buffer->size < offset + sizeof(struct pbb_header)) {
+                return;
+            }
+            proto->pbb = (struct pbb_header*) ((uint8_t *)
+                                                pkt->buffer->data + offset);
+
+            offset += sizeof(struct pbb_header);
+            isid = ntohl( proto->pbb->id)  & PBB_ISID_MASK;
+            ofl_structs_match_put32(m, OXM_OF_PBB_ISID, isid);
+
+            return;
+        }
 
         if (ntohs(proto->eth->eth_type) == ETH_TYPE_MPLS ||
             ntohs(proto->eth->eth_type) == ETH_TYPE_MPLS_MCAST) {
@@ -270,6 +285,9 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
             ofl_structs_match_put32(m, OXM_OF_IPV6_FLABEL,
                                     ipv6_fl);
 
+            ofl_structs_match_put8(m, OXM_OF_IP_PROTO,
+                                            proto->ipv6->ipv6_next_hd);
+
             next_proto = proto->ipv6->ipv6_next_hd;
 
             /*TODO: Check for extension headers*/
@@ -285,8 +303,10 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
                                                 pkt->buffer->data + offset);
             offset += sizeof(struct tcp_header);
 
-            ofl_structs_match_put16(m, OXM_OF_TCP_SRC, proto->tcp->tcp_src);
-            ofl_structs_match_put16(m, OXM_OF_TCP_DST, proto->tcp->tcp_dst);
+            ofl_structs_match_put16(m, OXM_OF_TCP_SRC,
+                                                ntohs(proto->tcp->tcp_src));
+            ofl_structs_match_put16(m, OXM_OF_TCP_DST,
+                                                ntohs(proto->tcp->tcp_dst));
 
             return;
         }
@@ -294,11 +314,14 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
             if (pkt->buffer->size < offset + sizeof(struct udp_header)) {
                 return;
             }
-            proto->udp = (struct udp_header *)((uint8_t *)pkt->buffer->data + offset);
+            proto->udp = (struct udp_header *)((uint8_t *)
+                                                pkt->buffer->data + offset);
             offset += sizeof(struct udp_header);
 
-            ofl_structs_match_put16(m, OXM_OF_UDP_SRC, proto->udp->udp_src);
-            ofl_structs_match_put16(m, OXM_OF_UDP_DST, proto->udp->udp_dst);
+            ofl_structs_match_put16(m, OXM_OF_UDP_SRC,
+                                                ntohs(proto->udp->udp_src));
+            ofl_structs_match_put16(m, OXM_OF_UDP_DST,
+                                                ntohs(proto->udp->udp_dst));
 
             return;
 
@@ -307,37 +330,45 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
             if (pkt->buffer->size < offset + sizeof(struct icmp_header)) {
                 return;
             }
-            proto->icmp = (struct icmp_header *)((uint8_t *)pkt->buffer->data + offset);
+            proto->icmp = (struct icmp_header *)((uint8_t *)
+                                                pkt->buffer->data + offset);
             offset += sizeof(struct icmp_header);
 
-            ofl_structs_match_put8(m, OXM_OF_ICMPV4_TYPE, proto->icmp->icmp_type);
-            ofl_structs_match_put8(m, OXM_OF_ICMPV4_CODE, proto->icmp->icmp_code);
+            ofl_structs_match_put8(m, OXM_OF_ICMPV4_TYPE,
+                                                    proto->icmp->icmp_type);
+            ofl_structs_match_put8(m, OXM_OF_ICMPV4_CODE,
+                                                    proto->icmp->icmp_code);
             return;
 
         }else if (next_proto == IPV6_TYPE_ICMPV6){
             if (pkt->buffer->size < offset + sizeof(struct icmp_header)) {
                 return;
             }
-            proto->icmp = (struct icmp_header *)((uint8_t *)pkt->buffer->data + offset);
+            proto->icmp = (struct icmp_header *)((uint8_t *)
+                                                pkt->buffer->data + offset);
             offset += sizeof(struct icmp_header);
 
-            ofl_structs_match_put8(m, OXM_OF_ICMPV6_TYPE, proto->icmp->icmp_type);
-            ofl_structs_match_put8(m, OXM_OF_ICMPV6_CODE, proto->icmp->icmp_code);
+            ofl_structs_match_put8(m, OXM_OF_ICMPV6_TYPE,
+                                                    proto->icmp->icmp_type);
+            ofl_structs_match_put8(m, OXM_OF_ICMPV6_CODE,
+                                                    proto->icmp->icmp_code);
 
             /*IPV6 Neighbor Discovery */
             if(proto->icmp->icmp_type == ICMPV6_NEIGHSOL ||
                                     proto->icmp->icmp_type == ICMPV6_NEIGHADV){
                 struct ipv6_nd_header *nd;
-                struct ipv6_nd_options_hd *opt;;
-                if (pkt->buffer->size < offset + sizeof(struct ipv6_nd_header)) {
+                struct ipv6_nd_options_hd *opt;
+                if (pkt->buffer->size < offset + sizeof(struct ipv6_nd_header)){
                     return;
                 }
-                nd = (struct ipv6_nd_header*) ((uint8_t *)pkt->buffer->data + offset);
+                nd = (struct ipv6_nd_header*) ((uint8_t *)
+                                                pkt->buffer->data + offset);
                 offset += sizeof(struct ipv6_nd_header);
                 ofl_structs_match_put_ipv6(m, OXM_OF_IPV6_ND_TARGET,
                         nd->target_addr.s6_addr);
 
-                opt = (struct ipv6_nd_options_hd*) ((uint8_t *)pkt->buffer->data + offset);
+                opt = (struct ipv6_nd_options_hd*)((uint8_t *)
+                                                pkt->buffer->data + offset);
                 if(opt->type == ND_OPT_SLL){
                     uint8_t nd_sll[6];
                     memcpy(nd_sll, ((uint8_t *)pkt->buffer->data + offset +
@@ -362,11 +393,14 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
             if (pkt->buffer->size < offset + sizeof(struct sctp_header)) {
                 return;
             }
-            proto->sctp = (struct sctp_header *)((uint8_t *)pkt->buffer->data + offset);
+            proto->sctp = (struct sctp_header *)((uint8_t *)pkt->buffer->data
+                                                                    + offset);
             offset += sizeof(struct sctp_header);
 
-            ofl_structs_match_put16(m, OXM_OF_SCTP_SRC, proto->sctp->sctp_src);
-            ofl_structs_match_put16(m, OXM_OF_SCTP_SRC, proto->sctp->sctp_dst);
+            ofl_structs_match_put16(m, OXM_OF_SCTP_SRC,
+                                                ntohs(proto->sctp->sctp_src));
+            ofl_structs_match_put16(m, OXM_OF_SCTP_SRC,
+                                                ntohs(proto->sctp->sctp_dst));
 
             return;
         }
