@@ -178,6 +178,12 @@ struct vlan_header {
 };
 BUILD_ASSERT_DECL(VLAN_HEADER_LEN == sizeof(struct vlan_header));
 
+/*This structure is used to reconstruct the vlan tag on netdev*/
+struct vlan_tag {
+    uint16_t vlan_tp_id;          /* Lowest 12 bits are VLAN ID. */
+    uint16_t vlan_tci;
+};
+
 #define VLAN_ETH_HEADER_LEN (ETH_HEADER_LEN + VLAN_HEADER_LEN)
 struct vlan_eth_header {
     uint8_t veth_dst[ETH_ADDR_LEN];
