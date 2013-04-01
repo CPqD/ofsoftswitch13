@@ -48,36 +48,17 @@ matches_8(uint8_t *a, uint8_t *b) {
 
 /* Returns true if two values of 8 bit size match, considering their masks. */
 static int
-pkt_mask8(uint8_t *a, uint8_t *am, uint8_t *b) {
+matches_mask8(uint8_t *a, uint8_t *am, uint8_t *b) {
      return ((~(am[0]) & (a[0] ^ b[0])) == 0x00);
 }
-
-/* Returns true if two values of 16 bit size match */
-static int
-pkt_match_16(uint8_t *a, uint8_t *b) {
-    uint16_t *a1 = (uint16_t *) a;
-    uint16_t *b1 = (uint16_t *) b;
-    return ((*a1 ^ ntohs(*b1)) == 0);
-}
-
 
 /* Returns true if two values of 16 bit size match */
 static int
 matches_16(uint8_t *a, uint8_t *b) {
     uint16_t *a1 = (uint16_t *) a;
     uint16_t *b1 = (uint16_t *) b;
+
     return (((*a1 ^ *b1)) == 0);
-}
-
-
-/* Returns true if two values of 16 bit size match, considering their masks. */
-static int
-pkt_mask16(uint8_t *a, uint8_t *am, uint8_t *b) {
-    uint16_t *a1 = (uint16_t *) a;
-    uint16_t *b1 = (uint16_t *) b;
-    uint16_t *mask = (uint16_t *) am;
-
-    return (((~*mask) & (*a1 ^ ntohs(*b1))) == 0);
 }
 
 /* Returns true if two values of 16 bit size match, considering their masks. */
@@ -90,15 +71,6 @@ matches_mask16(uint8_t *a, uint8_t *am, uint8_t *b) {
     return (((*mask & *a1) ^ (*mask & *b1)) == 0);
 }
 
-
-/*Returns true if two values of 32 bit size match . */
-static int
-pkt_match_32(uint8_t *a, uint8_t *b) {
-    uint32_t *a1 = (uint32_t *) a;
-    uint32_t *b1 = (uint32_t *) b;
-    return ((*a1 ^ ntohl(*b1)) == 0);
-}
-
 /*Returns true if two values of 32 bit size match . */
 static int
 matches_32(uint8_t *a, uint8_t *b) {
@@ -107,15 +79,6 @@ matches_32(uint8_t *a, uint8_t *b) {
     return ((*a1 ^ *b1) == 0);
 }
 
-/*Returns true if two values of 32 bit size match, considering their masks. */
-static int
-pkt_mask32(uint8_t *a, uint8_t *am, uint8_t *b) {
-    uint32_t *a1 = (uint32_t *) a;
-    uint32_t *b1 = (uint32_t *) b;
-    uint32_t *mask = (uint32_t *) am;
-
-    return (((*mask & *a1) ^ (*mask & ntohl(*b1))) == 0);
-}
 
 /*Returns true if two values of 32 bit size match, considering their masks. */
 static int
@@ -129,30 +92,11 @@ matches_mask32(uint8_t *a, uint8_t *am, uint8_t *b) {
 
 /* Returns true if two values of 64 bits size match*/
 static int
-pkt_64(uint8_t *a, uint8_t *b) {
-    uint64_t *a1 = (uint64_t *) a;
-    uint64_t *b1 = (uint64_t *) b;
-
-    return ((*a1 ^ ntohll(*b1)) == 0);
-}
-
-/* Returns true if two values of 64 bits size match*/
-static int
 matches_64(uint8_t *a, uint8_t *b) {
     uint64_t *a1 = (uint64_t *) a;
     uint64_t *b1 = (uint64_t *) b;
 
     return ((*a1 ^ *b1) == 0);
-}
-
-/* Returns true if two values of 64 bits size match, considering their masks.*/
-static int
-pkt_mask64(uint8_t *a,uint8_t *am, uint8_t *b) {
-    uint64_t *a1 = (uint64_t *) a;
-    uint64_t *b1 = (uint64_t *) b;
-    uint64_t *mask = (uint64_t *) am;
-
-    return (((*mask & *a1) ^ (*mask & ntohll(*b1))) == 0);
 }
 
 /* Returns true if two values of 64 bits size match, considering their masks.*/
@@ -203,10 +147,10 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
     if (flow_match->header.length == 0){
         return true;
     }
+
     /* Loop through the match fields */
     HMAP_FOR_EACH(f, struct ofl_match_tlv, hmap_node, &flow_match->match_fields){
         /* Check if the field is present in the packet */
-        // HMAP_FOR_EACH_WITH_HASH(packet_f, struct packet_fields, hmap_node, hash_int(f->header, 0), &packet->match_fields){
         HMAP_FOR_EACH(packet_f, struct ofl_match_tlv, hmap_node, &packet->match_fields){
             if (OXM_TYPE(f->header) == OXM_TYPE(packet_f->header)) {
                 int field_len =  OXM_LENGTH(f->header);
@@ -219,7 +163,7 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
                 switch (field_len){
                     case (sizeof(uint8_t)):{
                         if (has_mask){
-                            if (pkt_mask8(f->value,f->value + field_len, packet_f->value) == 0){
+                            if (matches_mask8(f->value,f->value + field_len, packet_f->value) == 0){
                               return false;
                             }
                         }
@@ -245,12 +189,12 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
                             }
                         }
                         else if (has_mask){
-                            if (pkt_mask16(f->value,f->value+ field_len, packet_f->value) == 0){
+                            if (matches_mask16(f->value,f->value+ field_len, packet_f->value) == 0){
                               return false;
                             }
                         }
                         else {
-                            if (pkt_match_16(f->value, packet_f->value) == 0){
+                            if (matches_16(f->value, packet_f->value) == 0){
                               return false;
                             }
                         }
@@ -258,29 +202,15 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
                     }
                     case (sizeof(uint32_t)):{
                         if (has_mask){
-                            if (OXM_TYPE(f->header) == OXM_TYPE(OXM_OF_IPV4_DST) || OXM_TYPE(f->header) == OXM_TYPE(OXM_OF_IPV4_SRC)
-                                || OXM_TYPE(f->header) == OXM_TYPE(OXM_OF_ARP_SPA) || OXM_TYPE(f->header) == OXM_TYPE(OXM_OF_ARP_TPA)){
-                                if (matches_mask32(f->value,f->value + field_len, packet_f->value) == 0){
-                                     return false;
-                                }
-                            }
-                            else
-                                if (pkt_mask32(f->value,f->value + field_len, packet_f->value) == 0){
-                                    return false;
+                            if (matches_mask32(f->value,f->value + field_len, packet_f->value) == 0){
+                                return false;
                             }
                         }
-                        else
-                            if (OXM_TYPE(f->header) == OXM_TYPE(OXM_OF_IPV4_DST) || OXM_TYPE(f->header) == OXM_TYPE(OXM_OF_IPV4_SRC)
-                                ||OXM_TYPE(f->header) == OXM_TYPE(OXM_OF_ARP_SPA) || OXM_TYPE(f->header) == OXM_TYPE(OXM_OF_ARP_TPA)){
-                                if (matches_32(f->value, packet_f->value) == 0){
-                                     return false;
-                                }
+                        else{
+                            if (matches_32(f->value, packet_f->value) == 0){
+                                return false;
                             }
-                            else {
-                                if (pkt_match_32(f->value, packet_f->value) == 0){
-                                    return false;
-                                }
-                            }
+                        }
                         break;
                     }
                     case (ETH_ADDR_LEN):{
@@ -297,7 +227,7 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
                     }
                     case (sizeof(uint64_t)):{
                         if (has_mask) {
-                            if (pkt_mask64(f->value,f->value + field_len, packet_f->value) == 0){
+                            if (matches_mask64(f->value,f->value + field_len, packet_f->value) == 0){
                               return false;
                             }
                         }

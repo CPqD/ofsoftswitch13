@@ -98,15 +98,15 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
             case OXM_OF_VLAN_VID:{
                 struct vlan_header *vlan =  pkt->handle_std->proto->vlan;
                 uint16_t v = (*(uint16_t*)act->field->value);
-                vlan->vlan_tci = htons((ntohs(vlan->vlan_tci) & ~VLAN_VID_MASK) |
-                               (v & VLAN_VID_MASK));
+                vlan->vlan_tci = htons((ntohs(vlan->vlan_tci) & ~VLAN_VID_MASK)
+                                                | (v & VLAN_VID_MASK));
                 break;
             }
             case OXM_OF_VLAN_PCP:{
                 struct vlan_header *vlan = pkt->handle_std->proto->vlan;
 
                 vlan->vlan_tci = (vlan->vlan_tci & ~htons(VLAN_PCP_MASK))
-                                     | htons(*act->field->value << VLAN_PCP_SHIFT);
+                                | htons(*act->field->value << VLAN_PCP_SHIFT);
                 break;
             }
             case OXM_OF_IP_DSCP:{
@@ -114,7 +114,8 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 uint8_t tos = (ipv4->ip_tos & ~IP_DSCP_MASK) |
                                (*act->field->value << 2);
 
-                ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, (uint16_t)(ipv4->ip_tos), (uint16_t)tos);
+                ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, (uint16_t)
+                                                (ipv4->ip_tos), (uint16_t)tos);
                 ipv4->ip_tos = tos;
                 break;
             }
@@ -122,7 +123,8 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 struct ip_header *ipv4 =  pkt->handle_std->proto->ipv4;
                 uint8_t tos = (ipv4->ip_tos & ~IP_ECN_MASK) |
                                (*act->field->value & IP_ECN_MASK);
-                ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, (uint16_t)(ipv4->ip_tos), (uint16_t)tos);
+                ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, (uint16_t)
+                                                (ipv4->ip_tos), (uint16_t)tos);
                 ipv4->ip_tos = tos;
                 break;
             }
@@ -260,18 +262,54 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                         act->field->value, OXM_LENGTH(act->field->header));
                         break;
             }
-            case OXM_OF_IPV6_FLABEL:
+            case OXM_OF_IPV6_FLABEL:{
+                struct ipv6_header *ipv6 = (struct ipv6_header*)
+                                            pkt->handle_std->proto->ipv6;
+                uint32_t v = *((uint32_t*) act->field->value);
+                ipv6->ipv6_ver_tc_fl  = (ipv6->ipv6_ver_tc_fl  &
+                    ~ntohl(IPV6_FLABEL_MASK)) | ntohl(v & IPV6_FLABEL_MASK);
+                break;
+            }
+            /*IPV6 Neighbor Discovery */
             case OXM_OF_IPV6_ND_TARGET:{
                 struct icmp_header *icmp = pkt->handle_std->proto->icmp;
+                uint8_t offset;
+                uint8_t *data = (uint8_t*)icmp;
+                /*ICMP header + neighbor discovery header reserverd bytes*/
+                offset = sizeof(struct icmp_header) + 4;
+
+                memcpy(data + offset, act->field->value,
+                                            OXM_LENGTH(act->field->header));
                 break;
             }
             case OXM_OF_IPV6_ND_SLL:{
                 struct icmp_header *icmp = pkt->handle_std->proto->icmp;
+                uint8_t offset;
+                struct ipv6_nd_options_hd *opt = (struct ipv6_nd_options_hd*)
+                                        icmp + sizeof(struct icmp_header);
+                uint8_t *data = (uint8_t*) opt;
+                /*ICMP header + neighbor discovery header reserverd bytes*/
+                offset = sizeof(struct ipv6_nd_header);
+
+                if(opt->type == ND_OPT_SLL){
+                    memcpy(data + offset, act->field->value,
+                                    OXM_LENGTH(act->field->header));
+                }
                 break;
             }
             case OXM_OF_IPV6_ND_TLL:{
                 struct icmp_header *icmp = pkt->handle_std->proto->icmp;
-                break;
+                uint8_t offset;
+                struct ipv6_nd_options_hd *opt = (struct ipv6_nd_options_hd*)
+                                        icmp + sizeof(struct icmp_header);
+                uint8_t *data = (uint8_t*) opt;
+                /*ICMP header + neighbor discovery header reserverd bytes*/
+                offset = sizeof(struct ipv6_nd_header);
+
+                if(opt->type == ND_OPT_TLL){
+                    memcpy(data + offset, act->field->value,
+                                    OXM_LENGTH(act->field->header));
+                }                break;
             }
             case OXM_OF_MPLS_LABEL:{
                 struct mpls_header *mpls = pkt->handle_std->proto->mpls;
@@ -290,13 +328,18 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 mpls->fields = (mpls->fields & ~ntohl(MPLS_S_MASK))
                 | ntohl((*act->field->value << MPLS_S_SHIFT) & MPLS_S_MASK);
             }
+            case OXM_OF_PBB_ISID :{
+                struct pbb_header *pbb = pkt->handle_std->proto->pbb;
+                uint32_t v = *((uint32_t*) act->field->value);
+                pbb->id = (pbb->id & ~ntohl(PBB_ISID_MASK)) |
+                                                ntohl(v & IPV6_FLABEL_MASK);
+            }
             default:
                 VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to set unknow field.");
                 break;
         }
         pkt->handle_std->valid = false;
         return;
-        //VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute SET_FIELD action on packet with no corresponding field.");
     }
 
 }
@@ -309,21 +352,28 @@ copy_ttl_out(struct packet *pkt, struct ofl_action_header *act UNUSED) {
 
         if ((ntohl(mpls->fields) & MPLS_S_MASK) == 0) {
             // There is an inner MPLS header
-            struct mpls_header *in_mpls = (struct mpls_header *)((uint8_t *)mpls + MPLS_HEADER_LEN);
+            struct mpls_header *in_mpls = (struct mpls_header *)
+                                           ((uint8_t *)mpls + MPLS_HEADER_LEN);
 
-            mpls->fields = (mpls->fields & ~htonl(MPLS_TTL_MASK)) | (in_mpls->fields & htonl(MPLS_TTL_MASK));
+            mpls->fields = (mpls->fields & ~htonl(MPLS_TTL_MASK)) |
+                                      (in_mpls->fields & htonl(MPLS_TTL_MASK));
 
-        } else if (pkt->buffer->size >= ETH_HEADER_LEN + MPLS_HEADER_LEN + IP_HEADER_LEN) {
+        } else if (pkt->buffer->size >= ETH_HEADER_LEN +
+                                           MPLS_HEADER_LEN + IP_HEADER_LEN) {
             // Assumes an IPv4 header follows, if there is place for it
-            struct ip_header *ipv4 = (struct ip_header *)((uint8_t *)mpls + MPLS_HEADER_LEN);
+            struct ip_header *ipv4 = (struct ip_header *)
+                                        ((uint8_t *)mpls + MPLS_HEADER_LEN);
 
-            mpls->fields = (mpls->fields & ~htonl(MPLS_TTL_MASK)) | htonl((uint32_t)ipv4->ip_ttl & MPLS_TTL_MASK);
+            mpls->fields = (mpls->fields & ~htonl(MPLS_TTL_MASK)) |
+                                htonl((uint32_t)ipv4->ip_ttl & MPLS_TTL_MASK);
 
         } else {
-            VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute copy ttl in action on packet with only one mpls.");
+            VLOG_WARN_RL(LOG_MODULE, &rl,
+            "Trying to execute copy ttl in action on packet with only one mpls.");
         }
     } else {
-        VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute COPY_TTL_OUT action on packet with no mpls.");
+        VLOG_WARN_RL(LOG_MODULE, &rl,
+        "Trying to execute COPY_TTL_OUT action on packet with no mpls.");
     }
 }
 
@@ -336,25 +386,32 @@ copy_ttl_in(struct packet *pkt, struct ofl_action_header *act UNUSED) {
 
         if ((ntohl(mpls->fields) & MPLS_S_MASK) == 0) {
             // There is an inner MPLS header
-            struct mpls_header *in_mpls = (struct mpls_header *)((uint8_t *)mpls + MPLS_HEADER_LEN);
+            struct mpls_header *in_mpls = (struct mpls_header *)
+                                        ((uint8_t *)mpls + MPLS_HEADER_LEN);
 
-            in_mpls->fields = (in_mpls->fields & ~htonl(MPLS_TTL_MASK)) | (mpls->fields & htonl(MPLS_TTL_MASK));
+            in_mpls->fields = (in_mpls->fields & ~htonl(MPLS_TTL_MASK))
+                                    | (mpls->fields & htonl(MPLS_TTL_MASK));
 
-        } else if (pkt->buffer->size >= ETH_HEADER_LEN + MPLS_HEADER_LEN + IP_HEADER_LEN) {
+        } else if (pkt->buffer->size >= ETH_HEADER_LEN +
+                                            MPLS_HEADER_LEN + IP_HEADER_LEN) {
             // Assumes an IPv4 header follows, if there is place for it
-            struct ip_header *ipv4 = (struct ip_header *)((uint8_t *)mpls + MPLS_HEADER_LEN);
+            struct ip_header *ipv4 = (struct ip_header *)
+                                        ((uint8_t *)mpls + MPLS_HEADER_LEN);
 
-            uint8_t new_ttl = (ntohl(mpls->fields) & MPLS_TTL_MASK) >> MPLS_TTL_SHIFT;
+            uint8_t new_ttl = (ntohl(mpls->fields) & MPLS_TTL_MASK) >>
+                                                                MPLS_TTL_SHIFT;
             uint16_t old_val = htons((ipv4->ip_proto) + (ipv4->ip_ttl<<8));
             uint16_t new_val = htons((ipv4->ip_proto) + (new_ttl<<8));
             ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val);
             ipv4->ip_ttl = new_ttl;
 
         } else {
-            VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute copy ttl in action on packet with only one mpls.");
+            VLOG_WARN_RL(LOG_MODULE, &rl,
+             "Trying to execute copy ttl in action on packet with only one mpls.");
         }
     } else {
-        VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute COPY_TTL_IN action on packet with no mpls.");
+        VLOG_WARN_RL(LOG_MODULE,
+            &rl, "Trying to execute COPY_TTL_IN action on packet with no mpls.");
     }
 }
 
@@ -426,7 +483,8 @@ push_vlan(struct packet *pkt, struct ofl_action_push *act) {
         pkt->handle_std->valid = false;
 
     } else {
-        VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute push vlan action on packet with no eth.");
+        VLOG_WARN_RL(LOG_MODULE, &rl,
+            "Trying to execute push vlan action on packet with no eth.");
     }
 }
 
@@ -457,7 +515,8 @@ pop_vlan(struct packet *pkt, struct ofl_action_header *act UNUSED) {
         //TODO Zoltan: revalidating might not be necessary in all cases
         pkt->handle_std->valid = false;
     } else {
-        VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute POP_VLAN action on packet with no eth/vlan.");
+        VLOG_WARN_RL(LOG_MODULE, &rl,
+            "Trying to execute POP_VLAN action on packet with no eth/vlan.");
     }
 }
 
@@ -469,10 +528,12 @@ set_mpls_ttl(struct packet *pkt, struct ofl_action_mpls_ttl *act) {
     if (pkt->handle_std->proto->mpls != NULL) {
         struct mpls_header *mpls = pkt->handle_std->proto->mpls;
 
-        mpls->fields = (mpls->fields & ~ntohl(MPLS_TTL_MASK)) | ntohl((act->mpls_ttl << MPLS_TTL_SHIFT) & MPLS_TTL_MASK);
+        mpls->fields = (mpls->fields & ~ntohl(MPLS_TTL_MASK)) |
+                    ntohl((act->mpls_ttl << MPLS_TTL_SHIFT) & MPLS_TTL_MASK);
 
     } else {
-        VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute SET_MPLS_TTL action on packet with no mpls.");
+        VLOG_WARN_RL(LOG_MODULE, &rl,
+            "Trying to execute SET_MPLS_TTL action on packet with no mpls.");
     }
 }
 
@@ -489,7 +550,8 @@ dec_mpls_ttl(struct packet *pkt, struct ofl_action_header *act UNUSED) {
         mpls->fields = (mpls->fields & ~ntohl(MPLS_TTL_MASK)) | htonl(ttl);
 
     } else {
-        VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute DEC_MPLS_TTL action on packet with no mpls.");
+        VLOG_WARN_RL(LOG_MODULE, &rl,
+            "Trying to execute DEC_MPLS_TTL action on packet with no mpls.");
     }
 }
 
@@ -554,10 +616,12 @@ push_mpls(struct packet *pkt, struct ofl_action_push *act) {
             push_mpls->fields = new_mpls->fields & ~htonl(MPLS_S_MASK);
         } else if (ipv4 != NULL) {
             // copy IP TTL to MPLS TTL (rest is zero), and set S bit
-            push_mpls->fields = htonl((uint32_t)ipv4->ip_ttl & MPLS_TTL_MASK) | htonl(MPLS_S_MASK);
+            push_mpls->fields = htonl((uint32_t)ipv4->ip_ttl &
+                                        MPLS_TTL_MASK) | htonl(MPLS_S_MASK);
         } else if (ipv6 != NULL) {
             // copy IP HOP LIMIT to MPLS TTL (rest is zero), and set S bit
-            push_mpls->fields = htonl((uint32_t)ipv6->ipv6_hop_limit & MPLS_TTL_MASK) | htonl(MPLS_S_MASK);
+            push_mpls->fields = htonl((uint32_t)ipv6->ipv6_hop_limit &
+                                            MPLS_TTL_MASK) | htonl(MPLS_S_MASK);
         }
         else {
             push_mpls->fields = htonl(MPLS_S_MASK);
@@ -610,7 +674,8 @@ pop_mpls(struct packet *pkt, struct ofl_action_pop_mpls *act) {
         //TODO Zoltan: revalidating might not be necessary at all cases
         pkt->handle_std->valid = false;
     } else {
-        VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute POP_MPLS action on packet with no eth/mpls.");
+        VLOG_WARN_RL(LOG_MODULE, &rl,
+            "Trying to execute POP_MPLS action on packet with no eth/mpls.");
     }
 }
 
@@ -672,7 +737,8 @@ push_pbb(struct packet *pkt, struct ofl_action_push *act) {
         push_pbb->id = new_pbb == NULL ? 0x0000 : new_pbb->id;
         push_pbb->id = vlan == NULL
                        ? push_pbb->id
-                       : push_pbb->id & (((uint32_t) (vlan->vlan_tci & ~htonl(VLAN_PCP_MASK)) )<< 16);
+                       : push_pbb->id & (((uint32_t)
+                            (vlan->vlan_tci & ~htonl(VLAN_PCP_MASK)) )<< 16);
         memcpy(push_pbb->c_eth_dst,eth,ETH_HEADER_LEN);
 
         if (new_snap != NULL) {
@@ -688,7 +754,8 @@ push_pbb(struct packet *pkt, struct ofl_action_push *act) {
         pkt->handle_std->valid = false;
 
     } else {
-        VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute push pbb action on packet with no eth.");
+        VLOG_WARN_RL(LOG_MODULE, &rl,
+            "Trying to execute push pbb action on packet with no eth.");
     }
 }
 
@@ -711,7 +778,8 @@ pop_pbb(struct packet *pkt, struct ofl_action_header *act UNUSED) {
 
         pkt->handle_std->valid = false;
     } else {
-        VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute POP_PBB action on packet with no PBB header.");
+        VLOG_WARN_RL(LOG_MODULE, &rl,
+            "Trying to execute POP_PBB action on packet with no PBB header.");
     }
 }
 
@@ -741,7 +809,8 @@ set_nw_ttl(struct packet *pkt, struct ofl_action_set_nw_ttl *act) {
         ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val);
         ipv4->ip_ttl = act->nw_ttl;
     } else {
-        VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute SET_NW_TTL action on packet with no ipv4.");
+        VLOG_WARN_RL(LOG_MODULE, &rl,
+            "Trying to execute SET_NW_TTL action on packet with no ipv4.");
     }
 }
 
@@ -762,7 +831,8 @@ dec_nw_ttl(struct packet *pkt, struct ofl_action_header *act UNUSED) {
             ipv4->ip_ttl = new_ttl;
         }
     } else {
-        VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute DEC_NW_TTL action on packet with no ipv4.");
+        VLOG_WARN_RL(LOG_MODULE, &rl,
+            "Trying to execute DEC_NW_TTL action on packet with no ipv4.");
     }
 }
 
@@ -848,7 +918,8 @@ dp_execute_action(struct packet *pkt,
         }
 
         default: {
-            VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute unknown action type (%u).", action->type);
+            VLOG_WARN_RL(LOG_MODULE, &rl,
+                "Trying to execute unknown action type (%u).", action->type);
         }
     }
     if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
@@ -1026,11 +1097,12 @@ dp_actions_check_set_field_req(struct ofl_msg_flow_mod *msg, size_t actions_num,
             struct ofl_action_set_field *as = (struct ofl_action_set_field*)actions[i];
             struct oxm_field  *f;
 
+            f = oxm_field_lookup(as->field->header);
+
             /*There is no match field, so the prerequisites are not present*/
-            if (msg->match->length == 0)
+            if (msg->match->length == 0 && f->dl_type[0] != 0)
                 return ofl_error(OFPET_BAD_ACTION, OFPBAC_MATCH_INCONSISTENT);
 
-            f = oxm_field_lookup(as->field->header);
             if(!oxm_prereqs_ok(f, (struct ofl_match*) msg->match)) {
                 return ofl_error(OFPET_BAD_ACTION, OFPBAC_MATCH_INCONSISTENT);
             }

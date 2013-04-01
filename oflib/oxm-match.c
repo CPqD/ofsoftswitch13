@@ -145,14 +145,48 @@ oxm_prereqs_ok(const struct oxm_field *field, const struct ofl_match *rule)
 
     struct ofl_match_tlv *omt = NULL;
 
+
+    /*Check ICMP type*/
+    if (field->header == OXM_OF_IPV6_ND_SLL || field->header == OXM_OF_IPV6_ND_TARGET ){
+        bool found =  false;
+        HMAP_FOR_EACH_WITH_HASH (omt, struct ofl_match_tlv, hmap_node, hash_int(OXM_OF_ICMPV6_TYPE, 0),
+              &rule->match_fields) {
+            if (*omt->value != ICMPV6_NEIGHSOL){
+                return false;
+            }
+            found = true;
+        }
+        if(!found)
+            return false;
+    }
+    /*Check ICMP type*/
+    if (field->header == OXM_OF_IPV6_ND_TLL || field->header == OXM_OF_IPV6_ND_TARGET){
+        bool found =  false;
+        HMAP_FOR_EACH_WITH_HASH (omt, struct ofl_match_tlv, hmap_node, hash_int(OXM_OF_ICMPV6_TYPE, 0),
+              &rule->match_fields) {
+            if (*omt->value != ICMPV6_NEIGHADV){
+                return false;
+            }
+            found = true;
+        }
+        if(!found)
+            return false;
+    }
+
     /*Check for IP_PROTO */
-    if (field->nw_proto)
+    if (field->nw_proto){
+        bool found =  false;
         HMAP_FOR_EACH_WITH_HASH (omt, struct ofl_match_tlv, hmap_node, hash_int(OXM_OF_IP_PROTO, 0),
             &rule->match_fields) {
+
             uint8_t ip_proto;
             memcpy(&ip_proto,omt->value, sizeof(uint8_t));
             if (field->nw_proto != ip_proto)
                 return false;
+            found = true;
+        }
+        if(!found)
+            return false;
     }
 
     /* Check for eth_type */
@@ -170,6 +204,7 @@ oxm_prereqs_ok(const struct oxm_field *field, const struct ofl_match *rule)
               }
         }
     }
+
     return false;
 }
 

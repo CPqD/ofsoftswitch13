@@ -253,6 +253,8 @@ BUILD_ASSERT_DECL(IP_HEADER_LEN == sizeof(struct ip_header));
 #define IPV6_TC(ipv6_ver_tc_fl) ((ipv6_ver_tc_fl) & 0xff00000)
 #define IPV6_FLABEL(ipv6_ver_tc_fl) ((ipv6_ver_tc_fl) & 0xffff)
 
+#define IPV6_FLABEL_MASK 0xfffff
+
 #define IPV6_HEADER_LEN 40
 struct ipv6_header {
     uint32_t ipv6_ver_tc_fl;
@@ -369,6 +371,7 @@ struct qtag_prefix {
 };
 
 #define PBB_HEADER_LEN 18
+#define PBB_ISID_MASK 0xffffff
 
 struct pbb_header {
     uint32_t id; /* Service Instance Identifier */
