@@ -14,48 +14,6 @@ The following components are available in this package:
 
 These instructions have been tested on Ubuntu 12.04. Other distributions or versions may need different steps.
 
-## Before building
-The switch makes use of the NetBee library to parse packets, so we need to install it first.
-
-1. Install the following packages:
-
-    ```
-    $ sudo apt-get install cmake libpcap-dev libxerces-c2-dev libpcre3-dev flex bison
-    ```
-
-2. Download and unpack the source code from: http://www.nbee.org/download/nbeesrc-12-05-16.php
-
-3. Create the build system
-
-    ```
-    $ cd nbeesrc/src
-    $ cmake .
-    ```
-
-4. Compile
-
-    ```
-    $ make
-    ```
-
-5. Add the shared libraries built in `/nbeesrc/bin/` to your `/usr/local/lib` directory
-
-    ```
-    $ sudo cp ../bin/libn*.so /usr/local/lib
-    ```
-
-6. Run `ldconfig`
-
-    ```
-    $ sudo ldconfig
-    ```
-
-7. Put the folder `nbeesrc/include` in the `/usr/include`
-
-    ```
-    $ sudo cp -R ../include /usr/include
-    ```
-
 ## Building
 Run the following commands in the `of13softswitch` directory to build and install everything:
 
