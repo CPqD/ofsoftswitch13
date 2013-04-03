@@ -78,7 +78,7 @@ stp_local_packet_cb(struct relay *r, void *stp_)
         && msg->size >= offsetof(struct ofp_switch_features, ports)) {
     	/* TODO Zoltan: Temporarily removed when moving to Openflow 1.1 */
         /* struct ofp_switch_features *osf = msg->data;
-        osf->capabilities |= htonl(OFPC_STP); *
+        osf->capabilities |= hton32(OFPC_STP); *
         return false;
     }*/
 
@@ -88,7 +88,7 @@ stp_local_packet_cb(struct relay *r, void *stp_)
     }
     port_no = 0;
     /*TODO: Removed to port to OpenFlow 1.2 */
-   // port_no = ntohs(opi->in_port);
+   // port_no = ntoh16(opi->in_port);
     //if (port_no >= STP_MAX_PORTS) {
     //    /* STP only supports 255 ports. */
      //   return false;
@@ -107,7 +107,7 @@ stp_local_packet_cb(struct relay *r, void *stp_)
 
     get_ofp_packet_payload(opi, &payload);
     flow_extract(&payload, port_no, &flow);
-    if (flow.dl_type != htons(0x05ff)) {
+    if (flow.dl_type != hton16(0x05ff)) {
         VLOG_DBG(LOG_MODULE, "non-LLC frame received on STP multicast address");
         return false;
     }
@@ -119,8 +119,8 @@ stp_local_packet_cb(struct relay *r, void *stp_)
     }
 
     /* Trim off padding on payload. */
-    if (payload.size > ntohs(eth->eth_type) + ETH_HEADER_LEN) {
-        payload.size = ntohs(eth->eth_type) + ETH_HEADER_LEN;
+    if (payload.size > ntoh16(eth->eth_type) + ETH_HEADER_LEN) {
+        payload.size = ntoh16(eth->eth_type) + ETH_HEADER_LEN;
     }
     if (ofpbuf_try_pull(&payload, ETH_HEADER_LEN + LLC_HEADER_LEN)) {
         struct stp_port *p = stp_get_port(stp->stp, port_no);
@@ -186,7 +186,7 @@ stp_periodic_cb(void *stp_)
             if (!stp_forward_in_state(s_state)) {
                 p_config = OFPPC_NO_FLOOD;
             }
-            port_watcher_set_flags(stp->pw, port_no, 
+            port_watcher_set_flags(stp->pw, port_no,
                                    p_config, OFPPC_NO_FLOOD,
                                    p_state, OFPPS_STP_MASK);
         } else {
@@ -244,8 +244,8 @@ stp_port_changed_cb(uint32_t port_no,
     if (!new
 		/* TODO Zoltan: Temporarily removed when moving to Openflow 1.1 */
         /*
-        || new->config & htonl(OFPPC_NO_STP | OFPPC_PORT_DOWN)
-        || new->state & htonl(OFPPS_LINK_DOWN) */) {
+        || new->config & hton32(OFPPC_NO_STP | OFPPC_PORT_DOWN)
+        || new->state & hton32(OFPPS_LINK_DOWN) */) {
         stp_port_disable(p);
     } else {
         int speed = 0;

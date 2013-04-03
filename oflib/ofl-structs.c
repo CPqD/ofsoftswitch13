@@ -50,39 +50,39 @@ ofl_utils_count_ofp_table_features_properties(void *data, size_t data_len, size_
 
     struct ofp_table_feature_prop_header *prop;
     uint8_t *d;
-    
+
     d = (uint8_t*) data;
-    *count = 0;    
+    *count = 0;
     while (data_len >= sizeof(struct ofp_table_feature_prop_header)){
         prop = (struct ofp_table_feature_prop_header *) d;
-        if (data_len < ntohs(prop->length) || ntohs(prop->length) < sizeof(struct ofp_table_feature_prop_header) ){
-            OFL_LOG_WARN(LOG_MODULE, "Received property has invalid length (prop->length=%d, data_len=%d).", ntohs(prop->length), (int) data_len);
-            return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_LEN); 
+        if (data_len < ntoh16(prop->length) || ntoh16(prop->length) < sizeof(struct ofp_table_feature_prop_header) ){
+            OFL_LOG_WARN(LOG_MODULE, "Received property has invalid length (prop->length=%d, data_len=%d).", ntoh16(prop->length), (int) data_len);
+            return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_LEN);
         }
-        data_len -= ROUND_UP(ntohs(prop->length), 8);
-        d += ROUND_UP(ntohs(prop->length), 8);  
+        data_len -= ROUND_UP(ntoh16(prop->length), 8);
+        d += ROUND_UP(ntoh16(prop->length), 8);
         (*count)++;
-    } 
-    return 0; 
+    }
+    return 0;
 }
 
 ofl_err
 ofl_utils_count_ofp_table_features(void *data, size_t data_len, size_t *count){
     struct ofp_table_features *feature;
     uint8_t *d;
-    
+
     d = (uint8_t*) data;
     *count = 0;
     while (data_len >= sizeof(struct ofp_table_features)){
         feature = (struct ofp_table_features *) d;
-        if (data_len < ntohs(feature->length) || ntohs(feature->length) < sizeof(struct ofp_table_features) ){
-             OFL_LOG_WARN(LOG_MODULE, "Received feature has invalid length (feat->length=%d, data_len=%d).", ntohs(feature->length), data_len);
-             return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_LEN); 
+        if (data_len < ntoh16(feature->length) || ntoh16(feature->length) < sizeof(struct ofp_table_features) ){
+             OFL_LOG_WARN(LOG_MODULE, "Received feature has invalid length (feat->length=%d, data_len=%d).", ntoh16(feature->length), data_len);
+             return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_LEN);
         }
-        data_len -= ntohs(feature->length);
-        d += ntohs(feature->length);  
+        data_len -= ntoh16(feature->length);
+        d += ntoh16(feature->length);
         (*count)++;
-    } 
+    }
     return 0;
 }
 
@@ -98,13 +98,13 @@ ofl_utils_count_ofp_instructions(void *data, size_t data_len, size_t *count) {
     /* this is needed so that buckets are handled correctly */
     while (data_len >= sizeof(struct ofp_instruction)- 4) {
         inst = (struct ofp_instruction *)d;
-        if (data_len < ntohs(inst->len) || ntohs(inst->len) < sizeof(struct ofp_instruction) - 4) {
+        if (data_len < ntoh16(inst->len) || ntoh16(inst->len) < sizeof(struct ofp_instruction) - 4) {
             OFL_LOG_WARN(LOG_MODULE, "Received instruction has invalid length.");
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
-                    
+
         }
-        data_len -= ntohs(inst->len);
-        d += ntohs(inst->len);
+        data_len -= ntoh16(inst->len);
+        d += ntoh16(inst->len);
         (*count)++;
 
     }
@@ -124,12 +124,12 @@ ofl_utils_count_ofp_buckets(void *data, size_t data_len, size_t *count) {
     while (data_len >= sizeof(struct ofp_bucket)) {
         bucket = (struct ofp_bucket *)d;
 
-        if (data_len < ntohs(bucket->len) || ntohs(bucket->len) < sizeof(struct ofp_bucket)) {
+        if (data_len < ntoh16(bucket->len) || ntoh16(bucket->len) < sizeof(struct ofp_bucket)) {
             OFL_LOG_WARN(LOG_MODULE, "Received bucket has invalid length.");
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
         }
-        data_len -= ntohs(bucket->len);
-        d += ntohs(bucket->len);
+        data_len -= ntoh16(bucket->len);
+        d += ntoh16(bucket->len);
         (*count)++;
     }
 
@@ -148,12 +148,12 @@ ofl_utils_count_ofp_meter_bands(void *data, size_t data_len, size_t *count) {
     while (data_len >= sizeof(struct ofp_bucket)) {
         mb = (struct ofp_meter_band_header *)d;
 
-        if (data_len < ntohs(mb->len) || ntohs(mb->len) < sizeof(struct ofp_meter_band_header)) {
+        if (data_len < ntoh16(mb->len) || ntoh16(mb->len) < sizeof(struct ofp_meter_band_header)) {
             OFL_LOG_WARN(LOG_MODULE, "Received bucket has invalid length.");
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
         }
-        data_len -= ntohs(mb->len);
-        d += ntohs(mb->len);
+        data_len -= ntoh16(mb->len);
+        d += ntoh16(mb->len);
         (*count)++;
     }
 
@@ -178,12 +178,12 @@ ofl_utils_count_ofp_packet_queues(void *data, size_t data_len, size_t *count) {
     while (data_len >= sizeof(struct ofp_packet_queue)) {
         queue = (struct ofp_packet_queue *)d;
 
-        if (data_len < ntohs(queue->len) || ntohs(queue->len) < sizeof(struct ofp_packet_queue)) {
+        if (data_len < ntoh16(queue->len) || ntoh16(queue->len) < sizeof(struct ofp_packet_queue)) {
             OFL_LOG_WARN(LOG_MODULE, "Received queue has invalid length.");
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
         }
-        data_len -= ntohs(queue->len);
-        d += ntohs(queue->len);
+        data_len -= ntoh16(queue->len);
+        d += ntoh16(queue->len);
         (*count)++;
     }
 
@@ -200,12 +200,12 @@ ofl_utils_count_ofp_flow_stats(void *data, size_t data_len, size_t *count) {
     *count = 0;
     while (data_len >= sizeof(struct ofp_flow_stats)) {
         stat = (struct ofp_flow_stats *)d;
-        if (data_len < ntohs(stat->length) || ntohs(stat->length) < sizeof(struct ofp_flow_stats)) {
+        if (data_len < ntoh16(stat->length) || ntoh16(stat->length) < sizeof(struct ofp_flow_stats)) {
             OFL_LOG_WARN(LOG_MODULE, "Received flow stat has invalid length.");
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
         }
-        data_len -= ntohs(stat->length);
-        d += ntohs(stat->length);
+        data_len -= ntoh16(stat->length);
+        d += ntoh16(stat->length);
         (*count)++;
     }
 
@@ -223,12 +223,12 @@ ofl_utils_count_ofp_group_stats(void *data, size_t data_len, size_t *count) {
     while (data_len >= sizeof(struct ofp_group_stats)) {
         stat = (struct ofp_group_stats *)d;
 
-        if (data_len < ntohs(stat->length) || ntohs(stat->length) < sizeof(struct ofp_group_stats)) {
+        if (data_len < ntoh16(stat->length) || ntoh16(stat->length) < sizeof(struct ofp_group_stats)) {
             OFL_LOG_WARN(LOG_MODULE, "Received group stat has invalid length.");
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
         }
-        data_len -= ntohs(stat->length);
-        d += ntohs(stat->length);
+        data_len -= ntoh16(stat->length);
+        d += ntoh16(stat->length);
         (*count)++;
     }
 
@@ -272,12 +272,12 @@ ofl_utils_count_ofp_group_desc_stats(void *data UNUSED, size_t data_len, size_t 
     while (data_len >= sizeof(struct ofp_group_desc_stats)) {
         stat = (struct ofp_group_desc_stats *)d;
 
-        if (data_len < ntohs(stat->length) || ntohs(stat->length) < sizeof(struct ofp_group_desc_stats)) {
+        if (data_len < ntoh16(stat->length) || ntoh16(stat->length) < sizeof(struct ofp_group_desc_stats)) {
             OFL_LOG_WARN(LOG_MODULE, "Received group desc stat has invalid length.");
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
         }
-        data_len -= ntohs(stat->length);
-        d += ntohs(stat->length);
+        data_len -= ntoh16(stat->length);
+        d += ntoh16(stat->length);
         (*count)++;
     }
 
@@ -295,12 +295,12 @@ ofl_utils_count_ofp_queue_props(void *data, size_t data_len, size_t *count) {
     while (data_len >= sizeof(struct ofp_queue_prop_header)) {
         prop = (struct ofp_queue_prop_header *)d;
 
-        if (data_len < ntohs(prop->len) || ntohs(prop->len) < sizeof(struct ofp_queue_prop_header)) {
+        if (data_len < ntoh16(prop->len) || ntoh16(prop->len) < sizeof(struct ofp_queue_prop_header)) {
             OFL_LOG_WARN(LOG_MODULE, "Received queue prop has invalid length.");
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
         }
-        data_len -= ntohs(prop->len);
-        d += ntohs(prop->len);
+        data_len -= ntoh16(prop->len);
+        d += ntoh16(prop->len);
         (*count)++;
     }
 
@@ -318,12 +318,12 @@ ofl_utils_count_ofp_meter_stats(void *data, size_t data_len, size_t *count){
     while (data_len >= sizeof(struct ofp_meter_stats)) {
         stats = (struct ofp_meter_stats *)d;
 
-        if (data_len < ntohs(stats->len) || ntohs(stats->len) < sizeof(struct ofp_meter_stats)) {
+        if (data_len < ntoh16(stats->len) || ntoh16(stats->len) < sizeof(struct ofp_meter_stats)) {
             OFL_LOG_WARN(LOG_MODULE, "Received meter stat has invalid length.");
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
         }
-        data_len -= ntohs(stats->len);
-        d += ntohs(stats->len);
+        data_len -= ntoh16(stats->len);
+        d += ntoh16(stats->len);
         (*count)++;
     }
     return 0;
@@ -359,12 +359,12 @@ ofl_utils_count_ofp_meter_config(void *data, size_t data_len, size_t *count){
 
     while (data_len >= sizeof(struct ofp_meter_config)) {
         config = (struct ofp_meter_config *)d;
-        if (data_len < ntohs(config->length) || ntohs(config->length) < sizeof(struct ofp_meter_config)) {
+        if (data_len < ntoh16(config->length) || ntoh16(config->length) < sizeof(struct ofp_meter_config)) {
             OFL_LOG_WARN(LOG_MODULE, "Received meter stat has invalid length.");
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
         }
-        data_len -= ntohs(config->length);
-        d += ntohs(config->length);
+        data_len -= ntoh16(config->length);
+        d += ntoh16(config->length);
         (*count)++;
     }
     return 0;
@@ -406,7 +406,7 @@ ofl_structs_free_instruction(struct ofl_instruction_header *inst, struct ofl_exp
 }
 
 void ofl_structs_free_meter_bands(struct ofl_meter_band_header *meter_band){
-    free(meter_band);            
+    free(meter_band);
 }
 
 void
@@ -414,18 +414,18 @@ ofl_structs_free_meter_band_stats(struct ofl_meter_band_stats* s){
     free(s);
  }
 
-void 
+void
 ofl_structs_free_meter_stats(struct ofl_meter_stats *stats){
     OFL_UTILS_FREE_ARR_FUN(stats->band_stats, stats->meter_bands_num,
                             ofl_structs_free_meter_band_stats);
-    free(stats);   
+    free(stats);
 }
 
-void 
+void
 ofl_structs_free_meter_config(struct ofl_meter_config *conf){
     OFL_UTILS_FREE_ARR_FUN(conf->bands, conf->meter_bands_num,
                             ofl_structs_free_meter_bands);
-    free(conf);   
+    free(conf);
 }
 
 void
@@ -500,15 +500,15 @@ ofl_structs_free_table_properties(struct ofl_table_feature_prop_header *prop, st
             break;
         }
         case (OFPTFPT_APPLY_SETFIELD):
-        case (OFPTFPT_APPLY_SETFIELD_MISS):        
+        case (OFPTFPT_APPLY_SETFIELD_MISS):
         case (OFPTFPT_WRITE_SETFIELD):
-        case (OFPTFPT_WRITE_SETFIELD_MISS):        
+        case (OFPTFPT_WRITE_SETFIELD_MISS):
         case (OFPTFPT_WILDCARDS):
         case (OFPTFPT_MATCH):{
             struct ofl_table_feature_prop_oxm *oxm = (struct ofl_table_feature_prop_oxm *)prop;
             free(oxm->oxm_ids);
             break;
-        }                   
+        }
     }
     free(prop);
 }
@@ -528,7 +528,7 @@ ofl_structs_free_match(struct ofl_match_header *match, struct ofl_exp *exp) {
                 free(m);
             }
             else free(match);
-            
+
             break;
         }
         default: {

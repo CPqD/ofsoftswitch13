@@ -188,7 +188,7 @@ struct vlan_tag {
 struct vlan_eth_header {
     uint8_t veth_dst[ETH_ADDR_LEN];
     uint8_t veth_src[ETH_ADDR_LEN];
-    uint16_t veth_type;         /* Always htons(ETH_TYPE_VLAN). */
+    uint16_t veth_type;         /* Always hton16(ETH_TYPE_VLAN). */
     uint16_t veth_tci;          /* Lowest 12 bits are VLAN ID. */
     uint16_t veth_next_type;
 } __attribute__((packed));
@@ -227,7 +227,7 @@ BUILD_ASSERT_DECL(VLAN_ETH_HEADER_LEN == sizeof(struct vlan_eth_header));
 #define IP_MORE_FRAGMENTS 0x2000 /* More fragments. */
 #define IP_FRAG_OFF_MASK  0x1fff /* Fragment offset. */
 #define IP_IS_FRAGMENT(ip_frag_off) \
-        ((ip_frag_off) & htons(IP_MORE_FRAGMENTS | IP_FRAG_OFF_MASK))
+        ((ip_frag_off) & hton16(IP_MORE_FRAGMENTS | IP_FRAG_OFF_MASK))
 
 #define IP_ADDR_LEN 4
 
@@ -324,8 +324,8 @@ BUILD_ASSERT_DECL(UDP_HEADER_LEN == sizeof(struct udp_header));
 #define TCP_ACK 0x10
 #define TCP_URG 0x20
 
-#define TCP_FLAGS(tcp_ctl) (htons(tcp_ctl) & 0x003f)
-#define TCP_OFFSET(tcp_ctl) (htons(tcp_ctl) >> 12)
+#define TCP_FLAGS(tcp_ctl) (hton16(tcp_ctl) & 0x003f)
+#define TCP_OFFSET(tcp_ctl) (hton16(tcp_ctl) >> 12)
 
 #define TCP_HEADER_LEN 20
 struct tcp_header {

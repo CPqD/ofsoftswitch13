@@ -1,6 +1,6 @@
 /* Copyright (c) 2008, 2009 The Board of Trustees of The Leland Stanford
  * Junior University
- * 
+ *
  * We are making the OpenFlow specification and associated documentation
  * (Software) available for public use and benefit with the expectation
  * that others will use, modify and enhance the Software and contribute
@@ -13,10 +13,10 @@
  * distribute, sublicense, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -25,7 +25,7 @@
  * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * 
+ *
  * The name and trademarks of copyright holder(s) may NOT be used in
  * advertising or publicity pertaining to the Software or any
  * derivatives without specific, written prior permission.
@@ -307,7 +307,7 @@ ssl_open(const char *name, char *suffix, struct vconn **vconnp)
     if (lookup_ip(host_name, &sin.sin_addr)) {
         return ENOENT;
     }
-    sin.sin_port = htons(port_string && *port_string ? atoi(port_string)
+    sin.sin_port = hton16(port_string && *port_string ? atoi(port_string)
                          : OFP_SSL_PORT);
 
     /* Create socket. */
@@ -585,7 +585,7 @@ again:
         want_bytes = sizeof(struct ofp_header) - rx->size;
     } else {
         struct ofp_header *oh = rx->data;
-        size_t length = ntohs(oh->length);
+        size_t length = ntoh16(oh->length);
         if (length < sizeof(struct ofp_header)) {
             VLOG_ERR_RL(&rl, "received too-short ofp_header (%zu bytes)",
                         length);
@@ -836,8 +836,8 @@ pssl_open(const char *name, char *suffix, struct pvconn **pvconnp)
 
     memset(&sin, 0, sizeof sin);
     sin.sin_family = AF_INET;
-    sin.sin_addr.s_addr = htonl(INADDR_ANY);
-    sin.sin_port = htons(atoi(suffix) ? atoi(suffix) : OFP_SSL_PORT);
+    sin.sin_addr.s_addr = hton32(INADDR_ANY);
+    sin.sin_port = hton16(atoi(suffix) ? atoi(suffix) : OFP_SSL_PORT);
     retval = bind(fd, (struct sockaddr *) &sin, sizeof sin);
     if (retval < 0) {
         int error = errno;
@@ -901,8 +901,8 @@ pssl_accept(struct pvconn *pvconn, struct vconn **new_vconnp)
     }
 
     sprintf(name, "ssl:"IP_FMT, IP_ARGS(&sin.sin_addr));
-    if (sin.sin_port != htons(OFP_SSL_PORT)) {
-        sprintf(strchr(name, '\0'), ":%"PRIu16, ntohs(sin.sin_port));
+    if (sin.sin_port != hton16(OFP_SSL_PORT)) {
+        sprintf(strchr(name, '\0'), ":%"PRIu16, ntoh16(sin.sin_port));
     }
     return new_ssl_vconn(name, new_fd, SERVER, STATE_SSL_CONNECTING, &sin,
                          new_vconnp);
@@ -1011,7 +1011,7 @@ tmp_dh_callback(SSL *ssl UNUSED, int is_export UNUSED, int keylength)
 
 /* Returns true if SSL is at least partially configured. */
 bool
-vconn_ssl_is_configured(void) 
+vconn_ssl_is_configured(void)
 {
     return has_private_key || has_certificate || has_ca_cert;
 }

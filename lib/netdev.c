@@ -357,7 +357,7 @@ open_queue_socket(const char * name, uint16_t class_id, int * fd)
     struct sockaddr_ll sll;
     uint32_t priority;
 
-    *fd = socket(PF_PACKET, SOCK_RAW, htons(0)); /* this is a write-only sock */
+    *fd = socket(PF_PACKET, SOCK_RAW, hton16(0)); /* this is a write-only sock */
     if (*fd < 0) {
         return errno;
     }
@@ -737,7 +737,7 @@ do_open_netdev(const char *name, int ethertype, int tap_fd,
 
     /* Create raw socket. */
     netdev_fd = socket(PF_PACKET, SOCK_RAW,
-                       htons(ethertype == NETDEV_ETH_TYPE_NONE ? 0
+                       hton16(ethertype == NETDEV_ETH_TYPE_NONE ? 0
                              : ethertype == NETDEV_ETH_TYPE_ANY ? ETH_P_ALL
                              : ethertype == NETDEV_ETH_TYPE_802_2 ? ETH_P_802_2
                              : ethertype));
@@ -1005,8 +1005,8 @@ netdev_recv(struct netdev *netdev, struct ofpbuf *buffer)
                 buffer->data = (uint8_t *)(buffer->data) - VLAN_HEADER_LEN;
                 memmove(buffer->data,(uint8_t*)buffer->data + VLAN_HEADER_LEN, ETH_ALEN * 2);
                 tag = (struct vlan_tag *)((uint8_t*)buffer->data + ETH_ALEN * 2);
-                tag->vlan_tp_id = htons(ETH_P_8021Q);
-                tag->vlan_tci = htons(aux->tp_vlan_tci);
+                tag->vlan_tp_id = hton16(ETH_P_8021Q);
+                tag->vlan_tci = hton16(aux->tp_vlan_tci);
             }
 #else
         /* we have multiple raw sockets at the same interface, so we also

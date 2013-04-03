@@ -522,10 +522,10 @@ dp_ports_add_local(struct datapath *dp, const char *netdev)
 
 struct sw_port *
 dp_ports_lookup(struct datapath *dp, uint32_t port_no) {
-    
+
     // exclude local port from ports_num
-    uint32_t ports_num = dp->local_port ? dp->ports_num -1 : dp->ports_num;    
-    
+    uint32_t ports_num = dp->local_port ? dp->ports_num -1 : dp->ports_num;
+
     if (port_no == OFPP_LOCAL) {
         return dp->local_port;
     }
@@ -651,7 +651,7 @@ dp_ports_handle_port_mod(struct datapath *dp, struct ofl_msg_port_mod *msg,
                                                 const struct sender *sender) {
 
     struct sw_port *p;
-    
+
     if(sender->remote->role == OFPCR_ROLE_SLAVE)
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_IS_SLAVE);
 
@@ -709,7 +709,7 @@ dp_ports_handle_stats_request_port(struct datapath *dp,
 
     } else {
         port = dp_ports_lookup(dp, msg->port_no);
-        
+
         if (port != NULL && port->netdev != NULL) {
             reply.stats_num = 1;
             reply.stats = xmalloc(sizeof(struct ofl_port_stats *));
@@ -739,20 +739,20 @@ dp_ports_handle_port_desc_request(struct datapath *dp,
              .type = OFPMP_PORT_DESC, .flags = 0x0000},
              .stats_num   = 0,
              .stats       = NULL};
-    
+
     reply.stats_num = dp->ports_num;
     reply.stats     = xmalloc(sizeof(struct ofl_port *) * dp->ports_num);
 
     LIST_FOR_EACH(port, struct sw_port, node, &dp->port_list) {
         reply.stats[i] = port->conf;
         i++;
-    }            
+    }
 
     dp_send_message(dp, (struct ofl_msg_header *)&reply, sender);
 
     free(reply.stats);
     ofl_msg_free((struct ofl_msg_header *)msg, dp->exp);
-    
+
     return 0;
 }
 
@@ -919,7 +919,7 @@ new_queue(struct sw_port * port, struct sw_queue * queue,
           struct ofl_queue_prop_min_rate * mr)
 {
     uint64_t now = time_msec();
-    
+
     memset(queue, '\0', sizeof *queue);
     queue->port = port;
     queue->created = now;
@@ -1025,7 +1025,7 @@ dp_ports_handle_queue_modify(struct datapath *dp, struct ofl_exp_openflow_msg_qu
     if (IS_HW_PORT(p)) {
 #if defined(OF_HW_PLAT) && !defined(USE_NETDEV)
         error = dp->hw_drv->port_queue_config(dp->hw_drv, port_no,
-                                              queue_id, ntohs(mr->rate));
+                                              queue_id, ntoh16(mr->rate));
         if (error < 0) {
             VLOG_ERR(LOG_MODULE, "Failed to update HW port %d queue %d",
                      port_no, queue_id);

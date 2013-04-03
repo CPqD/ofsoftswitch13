@@ -29,18 +29,18 @@ enum byte_order{
 static inline uint64_t
 htonll(uint64_t n)
 {
-    return htonl(1) == 1 ? n : ((uint64_t) htonl(n) << 32) | htonl(n >> 32);
+    return hton32(1) == 1 ? n : ((uint64_t) hton32(n) << 32) | hton32(n >> 32);
 }
 
 static inline uint64_t
 ntohll(uint64_t n)
 {
-    return htonl(1) == 1 ? n : ((uint64_t) ntohl(n) << 32) | ntohl(n >> 32);
+    return hton32(1) == 1 ? n : ((uint64_t) ntoh32(n) << 32) | ntoh32(n >> 32);
 }
 
 
 
-/* These macros may substitute for htons(), htonl(), and htonll() in contexts
+/* These macros may substitute for hton16(), hton32(), and htonll() in contexts
  * where function calls are not allowed, such as case labels.  They should not
  * be used elsewhere because all of them evaluate their argument many times. */
 #ifdef WORDS_BIGENDIAN

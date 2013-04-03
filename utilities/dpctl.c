@@ -2529,7 +2529,7 @@ parse_nw_addr(char *str, uint32_t *addr, uint32_t **mask) {
         if (subnet_mask == 0)
             netmask = 0x00000000;
         else netmask = netmask << (32 - subnet_mask);
-        **mask = htonl(netmask);
+        **mask = hton32(netmask);
     }
     else {
         /*Arbitrary mask*/

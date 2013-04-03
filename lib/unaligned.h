@@ -33,13 +33,13 @@ static inline void put_unaligned_u64(uint64_t *, uint64_t);
 static inline uint16_t get_unaligned_u16(const uint16_t *p_)
 {
     const uint8_t *p = (const uint8_t *) p_;
-    return ntohs((p[0] << 8) | p[1]);
+    return ntoh16((p[0] << 8) | p[1]);
 }
 
 static inline void put_unaligned_u16(uint16_t *p_, uint16_t x_)
 {
     uint8_t *p = (uint8_t *) p_;
-    uint16_t x = ntohs(x_);
+    uint16_t x = ntoh16(x_);
 
     p[0] = x >> 8;
     p[1] = x;
@@ -48,13 +48,13 @@ static inline void put_unaligned_u16(uint16_t *p_, uint16_t x_)
 static inline uint32_t get_unaligned_u32(const uint32_t *p_)
 {
     const uint8_t *p = (const uint8_t *) p_;
-    return ntohl((p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3]);
+    return ntoh32((p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3]);
 }
 
 static inline void put_unaligned_u32(uint32_t *p_, uint32_t x_)
 {
     uint8_t *p = (uint8_t *) p_;
-    uint32_t x = ntohl(x_);
+    uint32_t x = ntoh32(x_);
 
     p[0] = x >> 24;
     p[1] = x >> 16;

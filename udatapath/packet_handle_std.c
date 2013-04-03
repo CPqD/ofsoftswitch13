@@ -83,12 +83,12 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
                                                 pkt->buffer->data + offset);
         offset += sizeof(struct eth_header);
 
-        if (ntohs(proto->eth->eth_type) >= ETH_TYPE_II_START) {
+        if (ntoh16(proto->eth->eth_type) >= ETH_TYPE_II_START) {
             /* Ethernet II */
             ofl_structs_match_put_eth(m, OXM_OF_ETH_SRC, proto->eth->eth_src);
             ofl_structs_match_put_eth(m, OXM_OF_ETH_DST, proto->eth->eth_dst);
             ofl_structs_match_put16(m, OXM_OF_ETH_TYPE,
-                                                ntohs(proto->eth->eth_type));
+                                                ntoh16(proto->eth->eth_type));
         } else {
             /* Ethernet 802.3 */
             struct llc_header *llc;
@@ -123,13 +123,13 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
             ofl_structs_match_put_eth(m, OXM_OF_ETH_SRC, proto->eth->eth_src);
             ofl_structs_match_put_eth(m, OXM_OF_ETH_DST, proto->eth->eth_dst);
             ofl_structs_match_put16(m, OXM_OF_ETH_TYPE,
-                                                ntohs(proto->eth->eth_type));
+                                                ntoh16(proto->eth->eth_type));
 
         }
 
         /* VLAN */
-        if (ntohs(proto->eth->eth_type) == ETH_TYPE_VLAN ||
-            ntohs(proto->eth->eth_type) == ETH_TYPE_VLAN_PBB) {
+        if (ntoh16(proto->eth->eth_type) == ETH_TYPE_VLAN ||
+            ntoh16(proto->eth->eth_type) == ETH_TYPE_VLAN_PBB) {
 
             uint16_t vlan_id;
             uint8_t vlan_pcp;
@@ -140,22 +140,22 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
                                                 pkt->buffer->data + offset);
             proto->vlan_last = proto->vlan;
             offset += sizeof(struct vlan_header);
-            vlan_id  = (ntohs(proto->vlan->vlan_tci) &
+            vlan_id  = (ntoh16(proto->vlan->vlan_tci) &
                                             VLAN_VID_MASK) >> VLAN_VID_SHIFT;
-            vlan_pcp = (ntohs(proto->vlan->vlan_tci) &
+            vlan_pcp = (ntoh16(proto->vlan->vlan_tci) &
                                             VLAN_PCP_MASK) >> VLAN_PCP_SHIFT;
             ofl_structs_match_put16(m, OXM_OF_VLAN_VID, vlan_id);
             ofl_structs_match_put8(m, OXM_OF_VLAN_PCP, vlan_pcp);
 
             // Note: DL type is updated
             ofl_structs_match_put16(m, OXM_OF_ETH_TYPE,
-                                           ntohs(proto->vlan->vlan_next_type));
+                                           ntoh16(proto->vlan->vlan_next_type));
 
         }
 
         /* skip through rest of VLAN tags */
-        while (ntohs(proto->eth->eth_type) == ETH_TYPE_VLAN ||
-               ntohs(proto->eth->eth_type) == ETH_TYPE_VLAN_PBB) {
+        while (ntoh16(proto->eth->eth_type) == ETH_TYPE_VLAN ||
+               ntoh16(proto->eth->eth_type) == ETH_TYPE_VLAN_PBB) {
 
             if (pkt->buffer->size < offset + sizeof(struct vlan_header)) {
                 return;
@@ -165,11 +165,11 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
             offset += sizeof(struct vlan_header);
 
             ofl_structs_match_put16(m, OXM_OF_ETH_TYPE,
-                                           ntohs(proto->vlan->vlan_next_type));
+                                           ntoh16(proto->vlan->vlan_next_type));
         }
 
         /* PBB ISID */
-        if (ntohs(proto->eth->eth_type) == ETH_TYPE_PBB){
+        if (ntoh16(proto->eth->eth_type) == ETH_TYPE_PBB){
             uint32_t isid;
             if (pkt->buffer->size < offset + sizeof(struct pbb_header)) {
                 return;
@@ -178,14 +178,14 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
                                                 pkt->buffer->data + offset);
 
             offset += sizeof(struct pbb_header);
-            isid = ntohl( proto->pbb->id)  & PBB_ISID_MASK;
+            isid = ntoh32( proto->pbb->id)  & PBB_ISID_MASK;
             ofl_structs_match_put32(m, OXM_OF_PBB_ISID, isid);
 
             return;
         }
 
-        if (ntohs(proto->eth->eth_type) == ETH_TYPE_MPLS ||
-            ntohs(proto->eth->eth_type) == ETH_TYPE_MPLS_MCAST) {
+        if (ntoh16(proto->eth->eth_type) == ETH_TYPE_MPLS ||
+            ntoh16(proto->eth->eth_type) == ETH_TYPE_MPLS_MCAST) {
             uint32_t mpls_label;
             uint32_t mpls_tc;
             uint32_t mpls_bos;
@@ -195,11 +195,11 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
             proto->mpls = (struct mpls_header *)((uint8_t *)
                                     pkt->buffer->data + offset);
             offset += sizeof(struct mpls_header);
-            mpls_label = (ntohl(proto->mpls->fields) &
+            mpls_label = (ntoh32(proto->mpls->fields) &
                                           MPLS_LABEL_MASK) >> MPLS_LABEL_SHIFT;
-            mpls_tc =    (ntohl(proto->mpls->fields) &
+            mpls_tc =    (ntoh32(proto->mpls->fields) &
                                                 MPLS_TC_MASK) >> MPLS_TC_SHIFT;
-            mpls_bos =  (ntohl(proto->mpls->fields) &
+            mpls_bos =  (ntoh32(proto->mpls->fields) &
                                             MPLS_S_MASK) >> MPLS_S_SHIFT;
             ofl_structs_match_put32(m, OXM_OF_MPLS_LABEL, mpls_label);
             ofl_structs_match_put8(m, OXM_OF_MPLS_TC, mpls_tc);
@@ -210,7 +210,7 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
         }
 
         /* ARP */
-        if (ntohs(proto->eth->eth_type) == ETH_TYPE_ARP) {
+        if (ntoh16(proto->eth->eth_type) == ETH_TYPE_ARP) {
             if (pkt->buffer->size < offset + sizeof(struct arp_eth_header)) {
                 return;
             }
@@ -218,17 +218,17 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
                                 pkt->buffer->data + offset);
             offset += sizeof(struct arp_eth_header);
 
-            if (ntohs(proto->arp->ar_hrd) == 1 &&
-                ntohs(proto->arp->ar_pro) == ETH_TYPE_IP &&
+            if (ntoh16(proto->arp->ar_hrd) == 1 &&
+                ntoh16(proto->arp->ar_pro) == ETH_TYPE_IP &&
                 proto->arp->ar_hln == ETH_ADDR_LEN &&
                 proto->arp->ar_pln == 4) {
 
-                if (ntohs(proto->arp->ar_op) <= 0xff) {
+                if (ntoh16(proto->arp->ar_op) <= 0xff) {
                     ofl_structs_match_put16(m, OXM_OF_ARP_OP,
                                                 proto->arp->ar_op);
                 }
-                if (ntohs(proto->arp->ar_op) == ARP_OP_REQUEST ||
-                    ntohs(proto->arp->ar_op) == ARP_OP_REPLY) {
+                if (ntoh16(proto->arp->ar_op) == ARP_OP_REQUEST ||
+                    ntoh16(proto->arp->ar_op) == ARP_OP_REPLY) {
                     ofl_structs_match_put_eth(m, OXM_OF_ARP_SHA,
                                                 proto->arp->ar_sha);
                     ofl_structs_match_put_eth(m,OXM_OF_ARP_THA,
@@ -243,7 +243,7 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
             return;
         }
         /* Network Layer */
-        else if (ntohs(proto->eth->eth_type) == ETH_TYPE_IP) {
+        else if (ntoh16(proto->eth->eth_type) == ETH_TYPE_IP) {
             if (pkt->buffer->size < offset + sizeof(struct ip_header)) {
                 return;
             }
@@ -266,7 +266,7 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
             }
             next_proto = proto->ipv4->ip_proto;
         }
-        else if (ntohs(proto->eth->eth_type) == ETH_TYPE_IPV6){
+        else if (ntoh16(proto->eth->eth_type) == ETH_TYPE_IPV6){
             uint32_t ipv6_fl;
             if (pkt->buffer->size < offset + sizeof(struct ipv6_header)) {
                 return;
@@ -281,7 +281,7 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
             ofl_structs_match_put_ipv6(m, OXM_OF_IPV6_DST,
                         proto->ipv6->ipv6_dst.s6_addr);
 
-            ipv6_fl =  IPV6_FLABEL(ntohl(proto->ipv6->ipv6_ver_tc_fl));
+            ipv6_fl =  IPV6_FLABEL(ntoh32(proto->ipv6->ipv6_ver_tc_fl));
             ofl_structs_match_put32(m, OXM_OF_IPV6_FLABEL,
                                     ipv6_fl);
 
@@ -304,9 +304,9 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
             offset += sizeof(struct tcp_header);
 
             ofl_structs_match_put16(m, OXM_OF_TCP_SRC,
-                                                ntohs(proto->tcp->tcp_src));
+                                                ntoh16(proto->tcp->tcp_src));
             ofl_structs_match_put16(m, OXM_OF_TCP_DST,
-                                                ntohs(proto->tcp->tcp_dst));
+                                                ntoh16(proto->tcp->tcp_dst));
 
             return;
         }
@@ -319,9 +319,9 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
             offset += sizeof(struct udp_header);
 
             ofl_structs_match_put16(m, OXM_OF_UDP_SRC,
-                                                ntohs(proto->udp->udp_src));
+                                                ntoh16(proto->udp->udp_src));
             ofl_structs_match_put16(m, OXM_OF_UDP_DST,
-                                                ntohs(proto->udp->udp_dst));
+                                                ntoh16(proto->udp->udp_dst));
 
             return;
 
@@ -398,9 +398,9 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
             offset += sizeof(struct sctp_header);
 
             ofl_structs_match_put16(m, OXM_OF_SCTP_SRC,
-                                                ntohs(proto->sctp->sctp_src));
+                                                ntoh16(proto->sctp->sctp_src));
             ofl_structs_match_put16(m, OXM_OF_SCTP_SRC,
-                                                ntohs(proto->sctp->sctp_dst));
+                                                ntoh16(proto->sctp->sctp_dst));
 
             return;
         }
@@ -456,7 +456,7 @@ packet_handle_std_is_ttl_valid(struct packet_handle_std *handle) {
     packet_handle_std_validate(handle);
 
     /*if (handle->proto->mpls != NULL) {
-        uint32_t ttl = ntohl(handle->proto->mpls->fields) & MPLS_TTL_MASK;
+        uint32_t ttl = ntoh32(handle->proto->mpls->fields) & MPLS_TTL_MASK;
         if (ttl <= 1) {
             return false;
         }

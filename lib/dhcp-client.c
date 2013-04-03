@@ -937,9 +937,9 @@ do_receive_msg(struct dhclient *cli, struct dhcp_msg *msg)
         }
 
        /*flow_extract(&b, 0, &flow);
-        if (flow.dl_type != htons(ETH_TYPE_IP)
+        if (flow.dl_type != hton16(ETH_TYPE_IP)
             || flow.nw_proto != IP_TYPE_UDP
-            || flow.tp_dst != htons(68)
+            || flow.tp_dst != hton16(68)
             || !(eth_addr_is_broadcast(flow.dl_dst)
                  || eth_addr_equals(flow.dl_dst,
                                     netdev_get_etheraddr(cli->netdev)))) {
@@ -964,7 +964,7 @@ do_receive_msg(struct dhclient *cli, struct dhcp_msg *msg)
         if (!error) {
             if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
                 VLOG_DBG_RL(LOG_MODULE, &rl, "received %s",
-                            dhcp_msg_to_string(msg, false, &cli->s)); 
+                            dhcp_msg_to_string(msg, false, &cli->s));
             } else {
                 VLOG_INFO_RL(LOG_MODULE, &rl, "received %s", dhcp_type_name(msg->type));
             }
@@ -995,17 +995,17 @@ do_send_msg(struct dhclient *cli, const struct dhcp_msg *msg)
 
     memcpy(eh.eth_src, netdev_get_etheraddr(cli->netdev), ETH_ADDR_LEN);
     memcpy(eh.eth_dst, eth_addr_broadcast, ETH_ADDR_LEN);
-    eh.eth_type = htons(ETH_TYPE_IP);
+    eh.eth_type = hton16(ETH_TYPE_IP);
 
     nh.ip_ihl_ver = IP_IHL_VER(5, IP_VERSION);
     nh.ip_tos = 0;
-    nh.ip_tot_len = htons(IP_HEADER_LEN + UDP_HEADER_LEN + b.size);
+    nh.ip_tot_len = hton16(IP_HEADER_LEN + UDP_HEADER_LEN + b.size);
     /* We can't guarantee uniqueness of ip_id versus the host's, screwing up
      * fragment reassembly, so prevent fragmentation and use an all-zeros
      * ip_id.  RFC 791 doesn't say we can do this, but Linux does the same
      * thing for DF packets, so it must not screw anything up.  */
     nh.ip_id = 0;
-    nh.ip_frag_off = htons(IP_DONT_FRAGMENT);
+    nh.ip_frag_off = hton16(IP_DONT_FRAGMENT);
     nh.ip_ttl = 64;
     nh.ip_proto = IP_TYPE_UDP;
     nh.ip_csum = 0;
@@ -1022,9 +1022,9 @@ do_send_msg(struct dhclient *cli, const struct dhcp_msg *msg)
     nh.ip_dst = INADDR_BROADCAST;
     nh.ip_csum = csum(&nh, sizeof nh);
 
-    th.udp_src = htons(66);
-    th.udp_dst = htons(67);
-    th.udp_len = htons(UDP_HEADER_LEN + b.size);
+    th.udp_src = hton16(66);
+    th.udp_dst = hton16(67);
+    th.udp_len = hton16(UDP_HEADER_LEN + b.size);
     th.udp_csum = 0;
     udp_csum = csum_add32(0, nh.ip_src);
     udp_csum = csum_add32(udp_csum, nh.ip_dst);

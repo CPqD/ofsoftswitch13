@@ -56,17 +56,17 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
         return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
     }
 
-    if (*len < ntohs(src->len)) {
-        OFL_LOG_WARN(LOG_MODULE, "Received action has invalid length (set to %u, but only %zu received).", ntohs(src->len), *len);
+    if (*len < ntoh16(src->len)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received action has invalid length (set to %u, but only %zu received).", ntoh16(src->len), *len);
         return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
     }
 
-    if ((ntohs(src->len) % 8) != 0) {
-        OFL_LOG_WARN(LOG_MODULE, "Received action length is not a multiple of 64 bits (%u).", ntohs(src->len));
+    if ((ntoh16(src->len) % 8) != 0) {
+        OFL_LOG_WARN(LOG_MODULE, "Received action length is not a multiple of 64 bits (%u).", ntoh16(src->len));
         return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
     }
 
-    switch (ntohs(src->type)) {
+    switch (ntoh16(src->type)) {
         case OFPAT_OUTPUT: {
             struct ofp_action_output *sa;
             struct ofl_action_output *da;
@@ -78,11 +78,11 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
 
             sa = (struct ofp_action_output *)src;
 
-            if (ntohl(sa->port) == 0 ||
-                (ntohl(sa->port) > OFPP_MAX && ntohl(sa->port) < OFPP_IN_PORT) ||
-                ntohl(sa->port) == OFPP_ANY) {
+            if (ntoh32(sa->port) == 0 ||
+                (ntoh32(sa->port) > OFPP_MAX && ntoh32(sa->port) < OFPP_IN_PORT) ||
+                ntoh32(sa->port) == OFPP_ANY) {
                 if (OFL_LOG_IS_WARN_ENABLED(LOG_MODULE)) {
-                    char *ps = ofl_port_to_string(ntohl(sa->port));
+                    char *ps = ofl_port_to_string(ntoh32(sa->port));
                     OFL_LOG_WARN(LOG_MODULE, "Received OUTPUT action has invalid port (%s).", ps);
                     free(ps);
                 }
@@ -90,8 +90,8 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             }
 
             da = (struct ofl_action_output *)malloc(sizeof(struct ofl_action_output));
-            da->port = ntohl(sa->port);
-            da->max_len = ntohs(sa->max_len);
+            da->port = ntoh32(sa->port);
+            da->max_len = ntoh16(sa->max_len);
 
             *len -= sizeof(struct ofp_action_output);
             *dst = (struct ofl_action_header *)da;
@@ -137,7 +137,7 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             break;
         }
 
-        case OFPAT_PUSH_VLAN: 
+        case OFPAT_PUSH_VLAN:
         case OFPAT_PUSH_PBB:
         case OFPAT_PUSH_MPLS: {
             struct ofp_action_push *sa;
@@ -150,34 +150,34 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
 
             sa = (struct ofp_action_push *)src;
 
-            if (((ntohs(src->type) == OFPAT_PUSH_VLAN) &&
-                    (ntohs(sa->ethertype) != ETH_TYPE_VLAN &&
-                     ntohs(sa->ethertype) != ETH_TYPE_VLAN_PBB)) ||
-                ((ntohs(src->type) == OFPAT_PUSH_MPLS) &&
-                    (ntohs(sa->ethertype) != ETH_TYPE_MPLS &&
-                     ntohs(sa->ethertype) != ETH_TYPE_MPLS_MCAST)) ||
-                ((ntohs(src->type) == OFPAT_PUSH_PBB) &&
-                    (ntohs(sa->ethertype) != ETH_TYPE_PBB))) {
-                OFL_LOG_WARN(LOG_MODULE, "Received PUSH_VLAN/MPLS/PBB has invalid eth type. (%u)", ntohs(sa->ethertype));
+            if (((ntoh16(src->type) == OFPAT_PUSH_VLAN) &&
+                    (ntoh16(sa->ethertype) != ETH_TYPE_VLAN &&
+                     ntoh16(sa->ethertype) != ETH_TYPE_VLAN_PBB)) ||
+                ((ntoh16(src->type) == OFPAT_PUSH_MPLS) &&
+                    (ntoh16(sa->ethertype) != ETH_TYPE_MPLS &&
+                     ntoh16(sa->ethertype) != ETH_TYPE_MPLS_MCAST)) ||
+                ((ntoh16(src->type) == OFPAT_PUSH_PBB) &&
+                    (ntoh16(sa->ethertype) != ETH_TYPE_PBB))) {
+                OFL_LOG_WARN(LOG_MODULE, "Received PUSH_VLAN/MPLS/PBB has invalid eth type. (%u)", ntoh16(sa->ethertype));
                 return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_ARGUMENT);
             }
 
             da = (struct ofl_action_push *)malloc(sizeof(struct ofl_action_push));
-            da->ethertype = ntohs(sa->ethertype);
+            da->ethertype = ntoh16(sa->ethertype);
 
             *len -= sizeof(struct ofp_action_push);
             *dst = (struct ofl_action_header *)da;
             break;
         }
 
-        case OFPAT_POP_VLAN: 
+        case OFPAT_POP_VLAN:
         case OFPAT_POP_PBB: {
             //ofp_action_header length was already checked
             *len -= sizeof(struct ofp_action_header);
             *dst = (struct ofl_action_header *)malloc(sizeof(struct ofl_action_header));
             break;
         }
-                
+
         case OFPAT_POP_MPLS: {
             struct ofp_action_pop_mpls *sa;
             struct ofl_action_pop_mpls *da;
@@ -190,7 +190,7 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             sa = (struct ofp_action_pop_mpls *)src;
 
             da = (struct ofl_action_pop_mpls *)malloc(sizeof(struct ofl_action_pop_mpls));
-            da->ethertype = ntohs(sa->ethertype);
+            da->ethertype = ntoh16(sa->ethertype);
 
             *len -= sizeof(struct ofp_action_pop_mpls);
             *dst = (struct ofl_action_header *)da;
@@ -209,7 +209,7 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             sa = (struct ofp_action_set_queue *)src;
 
             da = (struct ofl_action_set_queue *)malloc(sizeof(struct ofl_action_set_queue));
-            da->queue_id = ntohl(sa->queue_id);
+            da->queue_id = ntoh32(sa->queue_id);
 
             *len -= sizeof(struct ofp_action_set_queue);
             *dst = (struct ofl_action_header *)da;
@@ -227,9 +227,9 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
 
             sa = (struct ofp_action_group *)src;
 
-            if (ntohl(sa->group_id) > OFPG_MAX) {
+            if (ntoh32(sa->group_id) > OFPG_MAX) {
                 if (OFL_LOG_IS_WARN_ENABLED(LOG_MODULE)) {
-                    char *gs = ofl_group_to_string(ntohl(sa->group_id));
+                    char *gs = ofl_group_to_string(ntoh32(sa->group_id));
                     OFL_LOG_WARN(LOG_MODULE, "Received GROUP action has invalid group id (%s).", gs);
                     free(gs);
                 }
@@ -237,7 +237,7 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             }
 
             da = (struct ofl_action_group *)malloc(sizeof(struct ofl_action_group));
-            da->group_id = ntohl(sa->group_id);
+            da->group_id = ntoh32(sa->group_id);
 
             *len -= sizeof(struct ofp_action_group);
             *dst = (struct ofl_action_header *)da;
@@ -274,13 +274,13 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             struct ofp_action_set_field *sa;
             struct ofl_action_set_field *da;
             uint8_t *value;
-            
+
             sa = (struct ofp_action_set_field*) src;
             da = (struct ofl_action_set_field *)malloc(sizeof(struct ofl_action_set_field));
             da->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
-            
+
             memcpy(&da->field->header,sa->field,4);
-            da->field->header = ntohl(da->field->header);
+            da->field->header = ntoh32(da->field->header);
             value = (uint8_t *) src + sizeof (struct ofp_action_set_field);
             da->field->value = malloc(OXM_LENGTH(da->field->header));
             switch(OXM_LENGTH(da->field->header)){
@@ -289,17 +289,17 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
                 case 16:
                     memcpy(da->field->value , value, OXM_LENGTH(da->field->header));
                     break;
-                
+
                 case 2:{
-                   uint16_t v = ntohs(*((uint16_t*) value));
+                   uint16_t v = ntoh16(*((uint16_t*) value));
                    memcpy(da->field->value , &v, OXM_LENGTH(da->field->header));
                     break;
                 }
                 case 4:{
-                    uint32_t v; 
-					uint8_t field = OXM_FIELD(da->field->header);					
-					if( field != 11 && field != 12 && field != 22 && field != 23)  
-						v = htonl(*((uint32_t*) value));
+                    uint32_t v;
+					uint8_t field = OXM_FIELD(da->field->header);
+					if( field != 11 && field != 12 && field != 22 && field != 23)
+						v = hton32(*((uint32_t*) value));
 					else v = *((uint32_t*) value);
                     memcpy(da->field->value , &v, OXM_LENGTH(da->field->header));
                     break;
@@ -308,9 +308,9 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
                     uint64_t v = hton64(*((uint64_t*) value));
                     memcpy(da->field->value , &v, OXM_LENGTH(da->field->header));
                     break;
-                }                
+                }
             }
-     	    *len -= ROUND_UP(ntohs(src->len),8);
+     	    *len -= ROUND_UP(ntoh16(src->len),8);
      	    *dst = (struct ofl_action_header *)da;
             break;
 	}
@@ -335,11 +335,11 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
         }
 
         default: {
-            OFL_LOG_WARN(LOG_MODULE, "Received unknown action type (%u).", ntohs(src->type));
+            OFL_LOG_WARN(LOG_MODULE, "Received unknown action type (%u).", ntoh16(src->type));
             return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_TYPE);
         }
     }
-    (*dst)->type = (enum ofp_action_type)ntohs(src->type);
+    (*dst)->type = (enum ofp_action_type)ntoh16(src->type);
 
     return 0;
 }

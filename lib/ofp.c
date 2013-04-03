@@ -154,7 +154,7 @@ put_openflow_xid(size_t openflow_len, uint8_t type, uint32_t xid,
     oh = ofpbuf_put_uninit(buffer, openflow_len);
     oh->version = OFP_VERSION;
     oh->type = type;
-    oh->length = htons(openflow_len);
+    oh->length = hton16(openflow_len);
     oh->xid = xid;
     memset(oh + 1, 0, openflow_len - sizeof *oh);
     return oh;
@@ -166,7 +166,7 @@ void
 update_openflow_length(struct ofpbuf *buffer)
 {
     struct ofp_header *oh = ofpbuf_at_assert(buffer, 0, sizeof *oh);
-    oh->length = htons(buffer->size);
+    oh->length = hton16(buffer->size);
 }
 
 /* Updates the 'len' field of the instruction header in 'buffer' to
@@ -177,7 +177,7 @@ update_instruction_length(struct ofpbuf *buffer, size_t oia_offset)
     struct ofp_header *oh = ofpbuf_at_assert(buffer, 0, sizeof *oh);
     struct ofp_instruction *ih = ofpbuf_at_assert(buffer, oia_offset,
 						  sizeof *ih);
-    ih->len = htons(buffer->size - oia_offset);
+    ih->len = hton16(buffer->size - oia_offset);
 }
 
 struct ofpbuf *
@@ -190,9 +190,9 @@ make_flow_mod(uint8_t command, uint8_t table_id,
     ofm = ofpbuf_put_zeros(out, sizeof *ofm);
     ofm->header.version = OFP_VERSION;
     ofm->header.type = OFPT_FLOW_MOD;
-    ofm->header.length = htons(size);
+    ofm->header.length = hton16(size);
     ofm->cookie = 0;
-    /*TODO fill match     
+    /*TODO fill match
     ofm->match.in_port = flow->in_port;
     memcpy(ofm->match.dl_src, flow->dl_src, sizeof ofm->match.dl_src);
     memcpy(ofm->match.dl_dst, flow->dl_dst, sizeof ofm->match.dl_dst);
@@ -207,7 +207,7 @@ make_flow_mod(uint8_t command, uint8_t table_id,
     ofm->match.tp_dst = flow->tp_dst; */
     ofm->command = command;
     ofm->table_id = table_id;
-    
+
     return out;
 }
 
@@ -220,13 +220,13 @@ make_add_flow(const struct flow *flow, uint32_t buffer_id, uint8_t table_id,
     struct ofpbuf *out = make_flow_mod(OFPFC_ADD, table_id,
 				       flow, instruction_len);
     struct ofp_flow_mod *ofm = out->data;
-    ofm->idle_timeout = htons(idle_timeout);
-    ofm->hard_timeout = htons(OFP_FLOW_PERMANENT);
-    ofm->buffer_id = htonl(buffer_id);
+    ofm->idle_timeout = hton16(idle_timeout);
+    ofm->hard_timeout = hton16(OFP_FLOW_PERMANENT);
+    ofm->buffer_id = hton32(buffer_id);
     /* Use a single apply-actions for now - Jean II */
     oia = ofpbuf_put_zeros(out, sizeof *oia);
-    oia->type = htons(OFPIT_APPLY_ACTIONS);
-    oia->len = htons(instruction_len);
+    oia->type = hton16(OFPIT_APPLY_ACTIONS);
+    oia->len = hton16(instruction_len);
     return out;
 }
 
@@ -237,7 +237,7 @@ make_del_flow(const struct flow *flow, uint8_t table_id)
 {
     struct ofpbuf *out = make_flow_mod(OFPFC_DELETE_STRICT, table_id, flow, 0);
     struct ofp_flow_mod *ofm = out->data;
-    ofm->out_port = htonl(OFPP_ANY);
+    ofm->out_port = hton32(OFPP_ANY);
     return out;
 }
 
@@ -253,9 +253,9 @@ make_add_simple_flow(const struct flow *flow,
 
         buffer = make_add_flow(flow, buffer_id, 0x00, idle_timeout, sizeof *oao);
         oao = ofpbuf_put_zeros(buffer, sizeof *oao);
-        oao->type = htons(OFPAT_OUTPUT);
-        oao->len = htons(sizeof *oao);
-        oao->port = htonl(out_port);
+        oao->type = hton16(OFPAT_OUTPUT);
+        oao->len = hton16(sizeof *oao);
+        oao->port = hton32(out_port);
         return buffer;
     } else {
         return make_add_flow(flow, buffer_id, 0, idle_timeout, 0);
@@ -277,11 +277,11 @@ make_packet_out(const struct ofpbuf *packet, uint32_t buffer_id,
     opo = ofpbuf_put_uninit(out, sizeof *opo);
     opo->header.version = OFP_VERSION;
     opo->header.type = OFPT_PACKET_OUT;
-    opo->header.length = htons(size);
-    opo->header.xid = htonl(0);
-    opo->buffer_id = htonl(buffer_id);
-    opo->in_port = htonl(in_port);
-    opo->actions_len = htons(actions_len);
+    opo->header.length = hton16(size);
+    opo->header.xid = hton32(0);
+    opo->buffer_id = hton32(buffer_id);
+    opo->in_port = hton32(in_port);
+    opo->actions_len = hton16(actions_len);
     ofpbuf_put(out, actions, actions_len);
     if (packet) {
         ofpbuf_put(out, packet->data, packet->size);
@@ -295,9 +295,9 @@ make_unbuffered_packet_out(const struct ofpbuf *packet,
                            uint32_t in_port, uint32_t out_port)
 {
     struct ofp_action_output action;
-    action.type = htons(OFPAT_OUTPUT);
-    action.len = htons(sizeof action);
-    action.port = htonl(out_port);
+    action.type = hton16(OFPAT_OUTPUT);
+    action.len = hton16(sizeof action);
+    action.port = hton32(out_port);
     return make_packet_out(packet, UINT32_MAX, in_port,
                            (struct ofp_action_header *) &action, 1);
 }
@@ -308,9 +308,9 @@ make_buffered_packet_out(uint32_t buffer_id,
 {
     if (out_port != OFPP_ANY) {
         struct ofp_action_output action;
-        action.type = htons(OFPAT_OUTPUT);
-        action.len = htons(sizeof action);
-        action.port = htonl(out_port);
+        action.type = hton16(OFPAT_OUTPUT);
+        action.len = hton16(sizeof action);
+        action.port = hton32(out_port);
         return make_packet_out(NULL, buffer_id, in_port,
                                (struct ofp_action_header *) &action, 1);
     } else {
@@ -328,7 +328,7 @@ make_echo_request(void)
     rq = ofpbuf_put_uninit(out, sizeof *rq);
     rq->version = OFP_VERSION;
     rq->type = OFPT_ECHO_REQUEST;
-    rq->length = htons(sizeof *rq);
+    rq->length = hton16(sizeof *rq);
     rq->xid = alloc_xid();
     return out;
 }
@@ -338,7 +338,7 @@ make_echo_request(void)
 struct ofpbuf *
 make_echo_reply(const struct ofp_header *rq)
 {
-    size_t size = ntohs(rq->length);
+    size_t size = ntoh16(rq->length);
     struct ofpbuf *out = ofpbuf_new(size);
     struct ofp_header *reply = ofpbuf_put(out, rq, size);
     reply->type = OFPT_ECHO_REPLY;
@@ -371,7 +371,7 @@ check_ofp_message(const struct ofp_header *msg, uint8_t type, size_t size)
         return error;
     }
 
-    got_size = ntohs(msg->length);
+    got_size = ntoh16(msg->length);
     if (got_size != size) {
         VLOG_WARN(LOG_MODULE, "received %d message of length %zu (expected %zu)",
                      type, got_size, size);
@@ -379,7 +379,7 @@ check_ofp_message(const struct ofp_header *msg, uint8_t type, size_t size)
     }
 
     return 0;
-} 
+}
 
 /* Checks that 'inst' has type 'type' and that 'inst' is 'size' plus a
  * nonnegative integer multiple of 'array_elt_size' bytes long.  Returns 0 if
@@ -398,13 +398,13 @@ check_ofp_instruction_array(const struct ofp_instruction *inst, uint8_t type,
 
     assert(array_elt_size);
 
-    if (ntohs(inst->type) != type) {
+    if (ntoh16(inst->type) != type) {
         VLOG_WARN(LOG_MODULE, "received bad instruction type %X (expected %X)",
-                     ntohs(inst->type), type);
+                     ntoh16(inst->type), type);
         return ofp_mkerr(OFPET_BAD_INSTRUCTION, OFPBIC_UNSUP_INST);
     }
 
-    got_size = ntohs(inst->len);
+    got_size = ntoh16(inst->len);
     if (got_size < min_size) {
         VLOG_WARN(LOG_MODULE, "received %X instruction of length %zu "
                      "(expected at least %zu)",
@@ -423,7 +423,7 @@ check_ofp_instruction_array(const struct ofp_instruction *inst, uint8_t type,
         *n_array_elts = (got_size - min_size) / array_elt_size;
     }
     return 0;
-} 
+}
 
 
 /* Checks that 'msg' has type 'type' and that 'msg' is 'size' plus a
@@ -449,7 +449,7 @@ check_ofp_message_array(const struct ofp_header *msg, uint8_t type,
         return error;
     }
 
-    got_size = ntohs(msg->length);
+    got_size = ntoh16(msg->length);
     if (got_size < min_size) {
         VLOG_WARN(LOG_MODULE, "received %d message of length %zu "
                      "(expected at least %zu)",
@@ -489,7 +489,7 @@ check_ofp_packet_out(const struct ofp_header *oh, struct ofpbuf *data,
     }
     opo = (const struct ofp_packet_out *) oh;
 
-    actions_len = ntohs(opo->actions_len);
+    actions_len = ntoh16(opo->actions_len);
     if (actions_len > extra) {
         VLOG_WARN(LOG_MODULE, "packet-out claims %u bytes of actions "
                      "but message has room for only %zu bytes",
@@ -522,7 +522,7 @@ flow_stats_first(struct flow_stats_iterator *iter,
                  const struct ofp_multipart_reply *osr)
 {
     iter->pos = osr->body;
-    iter->end = osr->body + (ntohs(osr->header.length)
+    iter->end = osr->body + (ntoh16(osr->header.length)
                              - offsetof(struct ofp_multipart_reply, body));
     return flow_stats_next(iter);
 }
@@ -545,7 +545,7 @@ flow_stats_next(struct flow_stats_iterator *iter)
     }
 
     fs = (const void *) iter->pos;
-    length = ntohs(fs->length);
+    length = ntoh16(fs->length);
     if (length < sizeof *fs) {
         VLOG_WARN_RL(LOG_MODULE, &rl, "flow stats length %zu is shorter than min %zu",
         length, sizeof *fs);
@@ -554,8 +554,8 @@ flow_stats_next(struct flow_stats_iterator *iter)
         VLOG_WARN_RL(LOG_MODULE, &rl, "flow stats length %zu but only %td bytes left",
                      length, bytes_left);
         return NULL;
-    } 
-    /* TODO: Change instructions 
+    }
+    /* TODO: Change instructions
     else if ((length - sizeof *fs) % sizeof fs->instructions[0]) {
         VLOG_WARN_RL(LOG_MODULE, &rl, "flow stats length %zu has %zu bytes "
                      "left over in final action", length,
@@ -576,7 +576,7 @@ check_action_exact_len(const union ofp_action *a, unsigned int len,
 {
     if (len != required_len) {
         VLOG_DBG(LOG_MODULE, "action %u has invalid length %"PRIu16" (must be %u)\n",
-                    a->type, ntohs(a->header.len), required_len);
+                    a->type, ntoh16(a->header.len), required_len);
         return ofp_mkerr(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
     }
     return 0;
@@ -611,7 +611,7 @@ check_output_port(uint32_t port, int max_ports, bool table_allowed)
         VLOG_WARN(LOG_MODULE, "unknown output port %x", port);
         return ofp_mkerr(OFPET_BAD_ACTION, OFPBAC_BAD_OUT_PORT);;
     }
-} 
+}
 
 /* Checks that 'action' is a valid OFPAT_ENQUEUE action, given that the switch
  * will never have more than 'max_ports' ports.  Returns 0 if 'port' is valid,
@@ -629,9 +629,9 @@ check_setqueue_action(const union ofp_action *a, unsigned int len)
 
     oaq = (const struct ofp_action_set_queue *) a;
     return 0;
-} 
+}
 
-static int 
+static int
 check_nicira_action(const union ofp_action *a, unsigned int len)
 {
     const struct nx_action_header *nah;
@@ -642,7 +642,7 @@ check_nicira_action(const union ofp_action *a, unsigned int len)
     }
     nah = (const struct nx_action_header *) a;
 
-    switch (ntohs(nah->subtype)) {
+    switch (ntoh16(nah->subtype)) {
     case NXAST_RESUBMIT:
     case NXAST_SET_TUNNEL:
         return check_action_exact_len(a, len, 16);
@@ -657,7 +657,7 @@ check_action(const union ofp_action *a, unsigned int len, int max_ports,
 {
     int error;
 
-    switch (ntohs(a->type)) {
+    switch (ntoh16(a->type)) {
     case OFPAT_OUTPUT: {
         const struct ofp_action_output *oao;
         error = check_action_exact_len(a, len, 16);
@@ -665,12 +665,12 @@ check_action(const union ofp_action *a, unsigned int len, int max_ports,
             return error;
         }
 	oao = (const struct ofp_action_output *) a;
-        return check_output_port(ntohl(oao->port), max_ports, is_packet_out);
+        return check_output_port(ntoh32(oao->port), max_ports, is_packet_out);
     }
 
-   
+
     case OFPAT_EXPERIMENTER:
-        return (a->experimenter.experimenter == htonl(NX_VENDOR_ID)
+        return (a->experimenter.experimenter == hton32(NX_VENDOR_ID)
                 ? check_nicira_action(a, len)
                 : ofp_mkerr(OFPET_BAD_ACTION, OFPBAC_BAD_EXPERIMENTER));
 
@@ -679,7 +679,7 @@ check_action(const union ofp_action *a, unsigned int len, int max_ports,
 
     default:
         VLOG_WARN(LOG_MODULE, "unknown action type %"PRIu16,
-                ntohs(a->type));
+                ntoh16(a->type));
         return ofp_mkerr(OFPET_BAD_ACTION, OFPBAC_BAD_TYPE);
     }
 }
@@ -691,7 +691,7 @@ validate_actions(const union ofp_action *actions, size_t n_actions,
     const union ofp_action *a;
 
     for (a = actions; a < &actions[n_actions]; ) {
-        unsigned int len = ntohs(a->header.len);
+        unsigned int len = ntoh16(a->header.len);
         unsigned int n_slots = len / ACTION_ALIGNMENT;
         unsigned int slots_left = &actions[n_actions] - a;
         int error;
@@ -724,7 +724,7 @@ validate_actions(const union ofp_action *actions, size_t n_actions,
 bool
 action_outputs_to_port(const union ofp_action *action, uint32_t port)
 {
-    switch (ntohs(action->type)) {
+    switch (ntoh16(action->type)) {
     case OFPAT_OUTPUT: {
         const struct ofp_action_output *oao;
 	oao = (const struct ofp_action_output *) action;
@@ -751,7 +751,7 @@ actions_next(struct actions_iterator *iter)
 {
     if (iter->pos < iter->end) {
         const union ofp_action *a = iter->pos;
-        unsigned int len = ntohs(a->header.len);
+        unsigned int len = ntoh16(a->header.len);
         iter->pos += len / ACTION_ALIGNMENT;
         return a;
     } else {

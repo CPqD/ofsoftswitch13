@@ -93,7 +93,7 @@ uint16_t
 recalc_csum16(uint16_t old_csum, uint16_t old_u16, uint16_t new_u16)
 {
     /* Ones-complement arithmetic is endian-independent, so this code does not
-     * use htons() or ntohs().
+     * use hton16() or ntoh16().
      *
      * See RFC 1624 for formula and explanation. */
     uint16_t hc_complement = ~old_csum;

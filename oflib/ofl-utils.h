@@ -1,5 +1,5 @@
 /* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary
- * Copyright (c) 2012, CPqD, Brazil 
+ * Copyright (c) 2012, CPqD, Brazil
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -100,23 +100,6 @@
 }
 
 
-static inline uint64_t
-hton64(uint64_t n) {
-#if __BYTE_ORDER == __BIG_ENDIAN
-    return n;
-#else
-    return (((uint64_t)htonl(n)) << 32) + htonl(n >> 32);
-#endif
-}
-
-static inline uint64_t
-ntoh64(uint64_t n) {
-#if __BYTE_ORDER == __BIG_ENDIAN
-    return n;
-#else
-    return (((uint64_t)ntohl(n)) << 32) + ntohl(n >> 32);
-#endif
-}
 
 
 #endif /* OFL_UTILS_H */

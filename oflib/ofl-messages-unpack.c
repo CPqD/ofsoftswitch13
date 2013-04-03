@@ -1,5 +1,5 @@
 /* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary
- * Copyright (c) 2012, CPqD, Brazil 
+ * Copyright (c) 2012, CPqD, Brazil
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -65,8 +65,8 @@ ofl_msg_unpack_error(struct ofp_header *src, size_t *len, struct ofl_msg_header 
 
     de = (struct ofl_msg_error *)malloc(sizeof(struct ofl_msg_error));
 
-    de->type = (enum ofp_error_type)ntohs(se->type);
-    de->code = ntohs(se->code);
+    de->type = (enum ofp_error_type)ntoh16(se->type);
+    de->code = ntoh16(se->code);
     de->data_length = *len;
     de->data = *len > 0 ? (uint8_t *)memcpy(malloc(*len), se->data, *len) : NULL;
     *len = 0;
@@ -97,17 +97,17 @@ static ofl_err
 ofl_msg_unpack_role_request(struct ofp_header *src, size_t *len, struct ofl_msg_header **msg) {
     struct ofp_role_request *srl;
     struct ofl_msg_role_request *drl;
-    
+
     if (*len < sizeof(struct ofp_role_request)){
         OFL_LOG_WARN(LOG_MODULE, "Received ROLE message has invalid length (%zu).", *len);
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
-    *len -= sizeof(struct ofp_role_request);    
-    
+    *len -= sizeof(struct ofp_role_request);
+
     srl = (struct ofp_role_request *) src;
     drl = (struct ofl_msg_role_request *) malloc(sizeof(struct ofl_msg_role_request));
-    
-    drl->role = ntohl(srl->role);
+
+    drl->role = ntoh32(srl->role);
     drl->generation_id = ntoh64(srl->generation_id);
 
     *msg = (struct ofl_msg_header *)drl;
@@ -129,11 +129,11 @@ ofl_msg_unpack_features_reply(struct ofp_header *src, size_t *len, struct ofl_ms
     dr = (struct ofl_msg_features_reply *)malloc(sizeof(struct ofl_msg_features_reply));
 
     dr->datapath_id  = ntoh64(sr->datapath_id);
-    dr->n_buffers    = ntohl( sr->n_buffers);
+    dr->n_buffers    = ntoh32( sr->n_buffers);
     dr->n_tables     =  sr->n_tables;
     dr->auxiliary_id = sr->auxiliary_id;
-    dr->capabilities = ntohl( sr->capabilities);
-    
+    dr->capabilities = ntoh32( sr->capabilities);
+
     *msg = (struct ofl_msg_header *)dr;
     return 0;
 }
@@ -154,8 +154,8 @@ ofl_msg_unpack_get_config_reply(struct ofp_header *src, size_t *len, struct ofl_
     dr = (struct ofl_msg_get_config_reply *)malloc(sizeof(struct ofl_msg_get_config_reply));
 
     dr->config = (struct ofl_config *)malloc(sizeof(struct ofl_config));
-    dr->config->miss_send_len = ntohs(sr->miss_send_len);
-    dr->config->flags = ntohs(sr->flags);
+    dr->config->miss_send_len = ntoh16(sr->miss_send_len);
+    dr->config->flags = ntoh16(sr->flags);
 
     *msg = (struct ofl_msg_header *)dr;
     return 0;
@@ -177,26 +177,26 @@ ofl_msg_unpack_set_config(struct ofp_header *src, size_t *len, struct ofl_msg_he
 
      dr->config = (struct ofl_config *)malloc(sizeof(struct ofl_config));
      // TODO Zoltan: validate flags
-     dr->config->miss_send_len = ntohs(sr->miss_send_len);
-     dr->config->flags = ntohs(sr->flags);
+     dr->config->miss_send_len = ntoh16(sr->miss_send_len);
+     dr->config->flags = ntoh16(sr->flags);
 
      *msg = (struct ofl_msg_header *)dr;
      return 0;
 }
 
-static ofl_err 
+static ofl_err
 ofl_msg_unpack_async_config(struct ofp_header *src, size_t *len, struct ofl_msg_header **msg){
     struct ofp_async_config *sac;
     struct ofl_msg_async_config *dac;
     int i;
-    
+
     if (*len < sizeof(struct ofp_async_config)) {
         OFL_LOG_WARN(LOG_MODULE, "Received ASYNC CONFIG message has invalid length (%zu).", *len);
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
-    
+
     *len -= sizeof(struct ofp_async_config);
-    
+
     sac = (struct ofp_async_config*)src;
     dac = (struct ofl_msg_async_config*)malloc(sizeof(struct ofl_msg_async_config));
     dac->config = (struct ofl_async_config*) malloc(sizeof(struct ofl_async_config));
@@ -205,7 +205,7 @@ ofl_msg_unpack_async_config(struct ofp_header *src, size_t *len, struct ofl_msg_
         dac->config->port_status_mask[i] = sac->port_status_mask[i];
         dac->config->flow_removed_mask[i] =  sac->flow_removed_mask[i];
     }
-    
+
     *msg = (struct ofl_msg_header*)dac;
     return 0;
 }
@@ -224,11 +224,11 @@ ofl_msg_unpack_packet_in(struct ofp_header *src, uint8_t* buf, size_t *len, stru
     sp = (struct ofp_packet_in *)src;
 
     /* TODO: Check in_port oxm_field */
-    /*if (ntohl(sp->in_port) == 0 ||
-        (ntohl(sp->in_port) > OFPP_MAX &&
-         ntohl(sp->in_port) != OFPP_LOCAL)) {
+    /*if (ntoh32(sp->in_port) == 0 ||
+        (ntoh32(sp->in_port) > OFPP_MAX &&
+         ntoh32(sp->in_port) != OFPP_LOCAL)) {
         if (OFL_LOG_IS_WARN_ENABLED(LOG_MODULE)) {
-            char *ps = ofl_port_to_string(ntohl(sp->in_port));
+            char *ps = ofl_port_to_string(ntoh32(sp->in_port));
             OFL_LOG_WARN(LOG_MODULE, "Received PACKET_IN message has invalid in_port (%s).", ps);
             free(ps);
         }
@@ -245,15 +245,15 @@ ofl_msg_unpack_packet_in(struct ofp_header *src, uint8_t* buf, size_t *len, stru
     }
     *len -= sizeof(struct ofp_packet_in) - sizeof(struct ofp_match);
     dp = (struct ofl_msg_packet_in *)malloc(sizeof(struct ofl_msg_packet_in));
-    dp->buffer_id = ntohl(sp->buffer_id);
-    dp->total_len = ntohs(sp->total_len);
+    dp->buffer_id = ntoh32(sp->buffer_id);
+    dp->total_len = ntoh16(sp->total_len);
     dp->reason = (enum ofp_packet_in_reason)sp->reason;
     dp->table_id = sp->table_id;
     dp->cookie = ntoh64(sp->cookie);
-    
+
     ptr = buf + (sizeof(struct ofp_packet_in)-4);
     ofl_structs_match_unpack(&(sp->match),ptr, len ,&(dp->match),NULL);
-    
+
     ptr = buf + ROUND_UP(sizeof(struct ofp_packet_in)-4 + dp->match->length,8) + 2;
     /* Minus padding bytes */
     *len -= 2;
@@ -294,10 +294,10 @@ ofl_msg_unpack_flow_removed(struct ofp_header *src,uint8_t *buf, size_t *len, st
 
     dr->stats = (struct ofl_flow_stats *)malloc(sizeof(struct ofl_flow_stats));
     dr->stats->table_id         =        sr->table_id;
-    dr->stats->duration_sec     = ntohl( sr->duration_sec);
-    dr->stats->duration_nsec    = ntohl( sr->duration_nsec);
-    dr->stats->priority         = ntohs(sr->priority);
-    dr->stats->idle_timeout     = ntohs( sr->idle_timeout);
+    dr->stats->duration_sec     = ntoh32( sr->duration_sec);
+    dr->stats->duration_nsec    = ntoh32( sr->duration_nsec);
+    dr->stats->priority         = ntoh16(sr->priority);
+    dr->stats->idle_timeout     = ntoh16( sr->idle_timeout);
     dr->stats->hard_timeout     = 0;
     dr->stats->cookie           = ntoh64(sr->cookie);
     dr->stats->packet_count     = ntoh64(sr->packet_count);
@@ -360,20 +360,20 @@ ofl_msg_unpack_packet_out(struct ofp_header *src, size_t *len, struct ofl_msg_he
 
     sp = (struct ofp_packet_out *)src;
 
-    /*if (ntohl(sp->in_port) == 0 ||
-        (ntohl(sp->in_port) > OFPP_MAX && ntohl(sp->in_port) != OFPP_CONTROLLER)) {
+    /*if (ntoh32(sp->in_port) == 0 ||
+        (ntoh32(sp->in_port) > OFPP_MAX && ntoh32(sp->in_port) != OFPP_CONTROLLER)) {
         if (OFL_LOG_IS_WARN_ENABLED(LOG_MODULE)) {
-            char *ps = ofl_port_to_string(ntohl(sp->in_port));
+            char *ps = ofl_port_to_string(ntoh32(sp->in_port));
             OFL_LOG_WARN(LOG_MODULE, "Received PACKET_OUT message with invalid in_port (%s).", ps);
             free(ps);
         }
         return ofl_error(OFPET_BAD_REQUEST, OFPBAC_BAD_ARGUMENT);
     }*/
 
-    if (ntohl(sp->buffer_id) != 0xffffffff &&
-        *len != sizeof(struct ofp_packet_out) + ntohs(sp->actions_len)) {
+    if (ntoh32(sp->buffer_id) != 0xffffffff &&
+        *len != sizeof(struct ofp_packet_out) + ntoh16(sp->actions_len)) {
         if (OFL_LOG_IS_WARN_ENABLED(LOG_MODULE)) {
-            char *bs = ofl_buffer_to_string(ntohl(sp->buffer_id));
+            char *bs = ofl_buffer_to_string(ntoh32(sp->buffer_id));
             OFL_LOG_WARN(LOG_MODULE, "Received PACKET_OUT message with data and buffer_id (%s).", bs);
             free(bs);
         }
@@ -383,15 +383,15 @@ ofl_msg_unpack_packet_out(struct ofp_header *src, size_t *len, struct ofl_msg_he
 
     dp = (struct ofl_msg_packet_out *)malloc(sizeof(struct ofl_msg_packet_out));
 
-    dp->buffer_id = ntohl(sp->buffer_id);
+    dp->buffer_id = ntoh32(sp->buffer_id);
 
-    if (*len < ntohs(sp->actions_len)) {
+    if (*len < ntoh16(sp->actions_len)) {
         OFL_LOG_WARN(LOG_MODULE, "Received PACKET_OUT message has invalid action length (%zu).", *len);
         free(dp);
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
 
-    error = ofl_utils_count_ofp_actions(&(sp->actions), ntohs(sp->actions_len), &actions_num);
+    error = ofl_utils_count_ofp_actions(&(sp->actions), ntoh16(sp->actions_len), &actions_num);
     if (error) {
         free(dp);
         return error;
@@ -408,10 +408,10 @@ ofl_msg_unpack_packet_out(struct ofp_header *src, size_t *len, struct ofl_msg_he
                                     ofl_actions_free, exp);
             free(dp);
         }
-        act = (struct ofp_action_header *)((uint8_t *)act + ntohs(act->len));
+        act = (struct ofp_action_header *)((uint8_t *)act + ntoh16(act->len));
     }
 
-    data = ((uint8_t *)sp->actions) + ntohs(sp->actions_len);
+    data = ((uint8_t *)sp->actions) + ntoh16(sp->actions_len);
     dp->data_length = *len;
     dp->data = *len > 0 ? (uint8_t *)memcpy(malloc(*len), data, *len) : NULL;
     *len = 0;
@@ -430,7 +430,7 @@ ofl_msg_unpack_flow_mod(struct ofp_header *src,uint8_t* buf, size_t *len, struct
     ofl_err error;
     size_t i;
     int match_pos;
-    
+
     if (*len < (sizeof(struct ofp_flow_mod) - sizeof(struct ofp_match))) {
         OFL_LOG_WARN(LOG_MODULE, "Received FLOW_MOD message has invalid length (%zu).", *len);
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
@@ -444,28 +444,28 @@ ofl_msg_unpack_flow_mod(struct ofp_header *src,uint8_t* buf, size_t *len, struct
     dm->cookie_mask =  ntoh64(sm->cookie_mask);
     dm->table_id =            sm->table_id;
     dm->command =             (enum ofp_flow_mod_command)sm->command;
-    dm->idle_timeout = ntohs( sm->idle_timeout);
-    dm->hard_timeout = ntohs( sm->hard_timeout);
-    dm->priority =     ntohs( sm->priority);
-    dm->buffer_id =    ntohl( sm->buffer_id);
-    dm->out_port =     ntohl( sm->out_port);
-    dm->out_group =    ntohl( sm->out_group);
-    dm->flags =        ntohs( sm->flags);
-    
+    dm->idle_timeout = ntoh16( sm->idle_timeout);
+    dm->hard_timeout = ntoh16( sm->hard_timeout);
+    dm->priority =     ntoh16( sm->priority);
+    dm->buffer_id =    ntoh32( sm->buffer_id);
+    dm->out_port =     ntoh32( sm->out_port);
+    dm->out_group =    ntoh32( sm->out_group);
+    dm->flags =        ntoh16( sm->flags);
+
     match_pos = sizeof(struct ofp_flow_mod) - 4;
     error = ofl_structs_match_unpack(&(sm->match), buf + match_pos, len, &(dm->match), exp);
     if (error) {
         free(dm);
         return error;
     }
-    
+
     error = ofl_utils_count_ofp_instructions((struct ofp_instruction *)(buf + ROUND_UP(match_pos + dm->match->length,8)), *len, &dm->instructions_num);
     if (error) {
         ofl_structs_free_match(dm->match, exp);
         free(dm);
         return error;
     }
-        
+
     dm->instructions = (struct ofl_instruction_header **)malloc(dm->instructions_num * sizeof(struct ofl_instruction_header *));
     inst = (struct ofp_instruction *) (buf + ROUND_UP(match_pos + dm->match->length,8));
     for (i = 0; i < dm->instructions_num; i++) {
@@ -477,7 +477,7 @@ ofl_msg_unpack_flow_mod(struct ofp_header *src,uint8_t* buf, size_t *len, struct
             free(dm);
             return error;
         }
-        inst = (struct ofp_instruction *)((uint8_t *)inst + ntohs(inst->len));
+        inst = (struct ofp_instruction *)((uint8_t *)inst + ntoh16(inst->len));
     }
     *msg = (struct ofl_msg_header *)dm;
     return 0;
@@ -499,20 +499,20 @@ ofl_msg_unpack_group_mod(struct ofp_header *src, size_t *len, struct ofl_msg_hea
 
     sm = (struct ofp_group_mod *)src;
 
-    if (ntohs(sm->command) > OFPGC_DELETE) {
-        OFL_LOG_WARN(LOG_MODULE, "Received GROUP_MOD message with invalid command (%u).", ntohs(sm->command));
+    if (ntoh16(sm->command) > OFPGC_DELETE) {
+        OFL_LOG_WARN(LOG_MODULE, "Received GROUP_MOD message with invalid command (%u).", ntoh16(sm->command));
         return ofl_error(OFPET_BAD_REQUEST, OFPGMFC_BAD_COMMAND);
     }
 
-    if (ntohs(sm->type) > OFPGT_FF && ntohs(sm->type) < 128 /* experimenter */) {
-        OFL_LOG_WARN(LOG_MODULE, "Received GROUP_MOD message with invalid type (%u).", ntohs(sm->type));
+    if (ntoh16(sm->type) > OFPGT_FF && ntoh16(sm->type) < 128 /* experimenter */) {
+        OFL_LOG_WARN(LOG_MODULE, "Received GROUP_MOD message with invalid type (%u).", ntoh16(sm->type));
         return ofl_error(OFPET_BAD_REQUEST, OFPGMFC_BAD_TYPE);
     }
 
-    if (ntohl(sm->group_id) > OFPG_MAX &&
-                       !(ntohs(sm->command) == OFPGC_DELETE && ntohl(sm->group_id) == OFPG_ALL)) {
+    if (ntoh32(sm->group_id) > OFPG_MAX &&
+                       !(ntoh16(sm->command) == OFPGC_DELETE && ntoh32(sm->group_id) == OFPG_ALL)) {
         if (OFL_LOG_IS_WARN_ENABLED(LOG_MODULE)) {
-            char *gs = ofl_group_to_string(ntohl(sm->group_id));
+            char *gs = ofl_group_to_string(ntoh32(sm->group_id));
             OFL_LOG_WARN(LOG_MODULE, "Received GROUP_MOD message with invalid group id (%s).", gs);
             free(gs);
         }
@@ -521,9 +521,9 @@ ofl_msg_unpack_group_mod(struct ofp_header *src, size_t *len, struct ofl_msg_hea
 
     dm = (struct ofl_msg_group_mod *)malloc(sizeof(struct ofl_msg_group_mod));
 
-    dm->command = (enum ofp_group_mod_command)ntohs(sm->command);
+    dm->command = (enum ofp_group_mod_command)ntoh16(sm->command);
     dm->type = sm->type;
-    dm->group_id = ntohl(sm->group_id);
+    dm->group_id = ntoh32(sm->group_id);
 
     error = ofl_utils_count_ofp_buckets(&(sm->buckets), *len, &dm->buckets_num);
     if (error) {
@@ -554,7 +554,7 @@ ofl_msg_unpack_group_mod(struct ofp_header *src, size_t *len, struct ofl_msg_hea
             free(dm);
             return error;
         }
-        bucket = (struct ofp_bucket *)((uint8_t *)bucket + ntohs(bucket->len));
+        bucket = (struct ofp_bucket *)((uint8_t *)bucket + ntoh16(bucket->len));
     }
 
     *msg = (struct ofl_msg_header *)dm;
@@ -576,27 +576,27 @@ ofl_msg_unpack_meter_mod(struct ofp_header *src, size_t *len, struct ofl_msg_hea
 
     sm = (struct ofp_meter_mod *)src;
 
-    if (ntohs(sm->command) > OFPMC_DELETE) {
-        OFL_LOG_WARN(LOG_MODULE, "Received METER_MOD message with invalid command (%u).", ntohs(sm->command));
+    if (ntoh16(sm->command) > OFPMC_DELETE) {
+        OFL_LOG_WARN(LOG_MODULE, "Received METER_MOD message with invalid command (%u).", ntoh16(sm->command));
         return ofl_error(OFPET_BAD_REQUEST, OFPMMFC_BAD_COMMAND);
     }
 
-    if ((ntohs(sm->flags) >> 3) > 1 ) {
-        OFL_LOG_WARN(LOG_MODULE, "Received METER_MOD message with invalid flags(%u).", ntohs(sm->flags));
+    if ((ntoh16(sm->flags) >> 3) > 1 ) {
+        OFL_LOG_WARN(LOG_MODULE, "Received METER_MOD message with invalid flags(%u).", ntoh16(sm->flags));
         return ofl_error(OFPET_BAD_REQUEST, OFPMMFC_BAD_FLAGS);
     }
 
-    if (ntohl(sm->meter_id) > OFPM_MAX &&
-                       !(ntohs(sm->command) == OFPMC_DELETE && ntohl(sm->meter_id) == OFPM_ALL)) {
-       
+    if (ntoh32(sm->meter_id) > OFPM_MAX &&
+                       !(ntoh16(sm->command) == OFPMC_DELETE && ntoh32(sm->meter_id) == OFPM_ALL)) {
+
         return ofl_error(OFPET_METER_MOD_FAILED, OFPMMFC_INVALID_METER);
     }
 
     dm = (struct ofl_msg_meter_mod *)malloc(sizeof(struct ofl_msg_meter_mod));
 
-    dm->command = ntohs(sm->command);
-    dm->flags = ntohs(sm->flags);
-    dm->meter_id = ntohl(sm->meter_id);
+    dm->command = ntoh16(sm->command);
+    dm->flags = ntoh16(sm->flags);
+    dm->meter_id = ntoh32(sm->meter_id);
 
     error = ofl_utils_count_ofp_meter_bands(&(sm->bands), *len, &dm->meter_bands_num);
     if (error) {
@@ -615,7 +615,7 @@ ofl_msg_unpack_meter_mod(struct ofp_header *src, size_t *len, struct ofl_msg_hea
             free(dm);
             return error;
         }
-        band = (struct ofp_meter_band_header *)((uint8_t *)band + ntohs(band->len));
+        band = (struct ofp_meter_band_header *)((uint8_t *)band + ntoh16(band->len));
     }
 
     *msg = (struct ofl_msg_header *)dm;
@@ -634,9 +634,9 @@ ofl_msg_unpack_port_mod(struct ofp_header *src, size_t *len, struct ofl_msg_head
 
     sm = (struct ofp_port_mod *)src;
 
-    /*if (ntohl(sm->port_no) == 0 || ntohl(sm->port_no) > OFPP_MAX) {
+    /*if (ntoh32(sm->port_no) == 0 || ntoh32(sm->port_no) > OFPP_MAX) {
         if (OFL_LOG_IS_WARN_ENABLED(LOG_MODULE)) {
-            char *ps = ofl_port_to_string(ntohl(sm->port_no));
+            char *ps = ofl_port_to_string(ntoh32(sm->port_no));
             OFL_LOG_WARN(LOG_MODULE, "Received PORT_MOD message has invalid in_port (%s).", ps);
             free(ps);
         }
@@ -646,11 +646,11 @@ ofl_msg_unpack_port_mod(struct ofp_header *src, size_t *len, struct ofl_msg_head
 
     dm = (struct ofl_msg_port_mod *)malloc(sizeof(struct ofl_msg_port_mod));
 
-    dm->port_no =   ntohl(sm->port_no);
+    dm->port_no =   ntoh32(sm->port_no);
     memcpy(dm->hw_addr, sm->hw_addr, OFP_ETH_ALEN);
-    dm->config =    ntohl(sm->config);
-    dm->mask =      ntohl(sm->mask);
-    dm->advertise = ntohl(sm->advertise);
+    dm->config =    ntoh32(sm->config);
+    dm->mask =      ntoh32(sm->mask);
+    dm->advertise = ntoh32(sm->advertise);
 
     *msg = (struct ofl_msg_header *)dm;
     return 0;
@@ -671,7 +671,7 @@ ofl_msg_unpack_table_mod(struct ofp_header *src, size_t *len, struct ofl_msg_hea
     dm = (struct ofl_msg_table_mod *)malloc(sizeof(struct ofl_msg_table_mod));
 
     dm->table_id = sm->table_id;
-    dm->config = ntohl(sm->config);
+    dm->config = ntoh32(sm->config);
 
     *msg = (struct ofl_msg_header *)dm;
     return 0;
@@ -696,8 +696,8 @@ ofl_msg_unpack_multipart_request_flow(struct ofp_multipart_request *os, uint8_t*
     dm = (struct ofl_msg_multipart_request_flow *) malloc(sizeof(struct ofl_msg_multipart_request_flow));
 
     dm->table_id = sm->table_id;
-    dm->out_port = ntohl(sm->out_port);
-    dm->out_group = ntohl(sm->out_group);
+    dm->out_port = ntoh32(sm->out_port);
+    dm->out_group = ntoh32(sm->out_group);
     dm->cookie = ntoh64(sm->cookie);
     dm->cookie_mask = ntoh64(sm->cookie_mask);
 
@@ -726,9 +726,9 @@ ofl_msg_unpack_multipart_request_port(struct ofp_multipart_request *os, size_t *
 
     sm = (struct ofp_port_stats_request *)os->body;
 
-    if (ntohl(sm->port_no) == 0 ||
-        (ntohl(sm->port_no) > OFPP_MAX && ntohl(sm->port_no) != OFPP_ANY)) {
-        OFL_LOG_WARN(LOG_MODULE, "Received PORT stats request has invalid port (%u).", ntohl(sm->port_no));
+    if (ntoh32(sm->port_no) == 0 ||
+        (ntoh32(sm->port_no) > OFPP_MAX && ntoh32(sm->port_no) != OFPP_ANY)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received PORT stats request has invalid port (%u).", ntoh32(sm->port_no));
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
 
@@ -736,7 +736,7 @@ ofl_msg_unpack_multipart_request_port(struct ofp_multipart_request *os, size_t *
 
     dm = (struct ofl_msg_multipart_request_port *) malloc(sizeof(struct ofl_msg_multipart_request_port));
 
-    dm->port_no = ntohl(sm->port_no);
+    dm->port_no = ntoh32(sm->port_no);
 
     *msg = (struct ofl_msg_header *)dm;
     return 0;
@@ -757,16 +757,16 @@ ofl_msg_unpack_multipart_request_table_features(struct ofp_multipart_request *os
     ofl_err error;
     uint8_t *features;
     size_t i;
-    
+
     dm = (struct ofl_msg_multipart_request_table_features*) malloc(sizeof(struct ofl_msg_multipart_request_table_features));
     if (!(*len)){
         dm->tables_num = 0;
         dm->table_features = NULL;
-        *msg = (struct ofl_msg_header*) dm;         
+        *msg = (struct ofl_msg_header*) dm;
         return 0;
     }
-    
-    error = ofl_utils_count_ofp_table_features((uint8_t*) os->body, *len, &dm->tables_num);  
+
+    error = ofl_utils_count_ofp_table_features((uint8_t*) os->body, *len, &dm->tables_num);
     if (error) {
         free(dm);
         return error;
@@ -776,10 +776,10 @@ ofl_msg_unpack_multipart_request_table_features(struct ofp_multipart_request *os
 
     for(i = 0; i < dm->tables_num; i++){
         error = ofl_structs_table_features_unpack((struct ofp_table_features*) features, len, &dm->table_features[i] , exp);
-        features += ntohs(((struct ofp_table_features*) features)->length); 
-    }   
+        features += ntoh16(((struct ofp_table_features*) features)->length);
+    }
     *msg = (struct ofl_msg_header *)dm;
-    return 0; 
+    return 0;
 }
 
 static ofl_err
@@ -796,17 +796,17 @@ ofl_msg_unpack_multipart_request_queue(struct ofp_multipart_request *os, size_t 
 
     sm = (struct ofp_queue_stats_request *)os->body;
 
-    if (ntohl(sm->port_no) == 0 ||
-        (ntohl(sm->port_no) > OFPP_MAX && ntohl(sm->port_no) != OFPP_ANY)) {
-        OFL_LOG_WARN(LOG_MODULE, "Received QUEUE stats request has invalid port (%u).", ntohl(sm->port_no));
+    if (ntoh32(sm->port_no) == 0 ||
+        (ntoh32(sm->port_no) > OFPP_MAX && ntoh32(sm->port_no) != OFPP_ANY)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received QUEUE stats request has invalid port (%u).", ntoh32(sm->port_no));
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
     *len -= sizeof(struct ofp_queue_stats_request);
 
     dm = (struct ofl_msg_multipart_request_queue *) malloc(sizeof(struct ofl_msg_multipart_request_queue));
 
-    dm->port_no = ntohl(sm->port_no);
-    dm->queue_id = ntohl(sm->queue_id);
+    dm->port_no = ntoh32(sm->port_no);
+    dm->queue_id = ntoh32(sm->queue_id);
 
     *msg = (struct ofl_msg_header *)dm;
     return 0;
@@ -828,7 +828,7 @@ ofl_msg_unpack_multipart_request_group(struct ofp_multipart_request *os, size_t 
     sm = (struct ofp_group_stats_request *)os->body;
     dm = (struct ofl_msg_multipart_request_group *) malloc(sizeof(struct ofl_msg_multipart_request_group));
 
-    dm->group_id = ntohl(sm->group_id);
+    dm->group_id = ntoh32(sm->group_id);
 
     *msg = (struct ofl_msg_header *)dm;
     return 0;
@@ -850,7 +850,7 @@ ofl_msg_unpack_meter_multipart_request(struct ofp_multipart_request *os, size_t 
     sm = (struct ofp_meter_multipart_request *)os->body;
     dm = (struct ofl_msg_multipart_meter_request *) malloc(sizeof(struct ofl_msg_multipart_meter_request));
 
-    dm->meter_id = ntohl(sm->meter_id);
+    dm->meter_id = ntoh32(sm->meter_id);
 
     *msg = (struct ofl_msg_header *)dm;
     return 0;
@@ -870,7 +870,7 @@ ofl_msg_unpack_multipart_request(struct ofp_header *src,uint8_t *buf, size_t *le
 
     os = (struct ofp_multipart_request *)src;
 
-    switch (ntohs(os->type)) {
+    switch (ntoh16(os->type)) {
         case OFPMP_DESC: {
             error = ofl_msg_unpack_multipart_request_empty(os, len, msg);
             break;
@@ -906,7 +906,7 @@ ofl_msg_unpack_multipart_request(struct ofp_header *src,uint8_t *buf, size_t *le
         }
         case OFPMP_GROUP_FEATURES:{
             error = ofl_msg_unpack_multipart_request_empty(os, len, msg);
-            break;    
+            break;
         }
         case OFPMP_METER:
         case OFPMP_METER_CONFIG:{
@@ -920,7 +920,7 @@ ofl_msg_unpack_multipart_request(struct ofp_header *src,uint8_t *buf, size_t *le
         case OFPMP_PORT_DESC: {
             error = ofl_msg_unpack_multipart_request_empty(os, len, msg);
             break;
-        }        
+        }
         case OFPMP_EXPERIMENTER: {
             if (exp == NULL || exp->stats == NULL || exp->stats->reply_unpack == NULL) {
                 OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER stats request, but no callback was given.");
@@ -940,8 +940,8 @@ ofl_msg_unpack_multipart_request(struct ofp_header *src,uint8_t *buf, size_t *le
     }
 
     ofls = (struct ofl_msg_multipart_request_header *)(*msg);
-    ofls->type = (enum ofp_multipart_types)ntohs(os->type);
-    ofls->flags = ntohs(os->flags);
+    ofls->type = (enum ofp_multipart_types)ntoh16(os->type);
+    ofls->flags = ntoh16(os->flags);
 
     return 0;
 }
@@ -1002,7 +1002,7 @@ ofl_msg_unpack_multipart_reply_flow(struct ofp_multipart_reply *os, uint8_t *buf
             free (dm);
             return error;
         }
-        stat = (struct ofp_flow_stats *)((uint8_t *)stat + ntohs(stat->length));
+        stat = (struct ofp_flow_stats *)((uint8_t *)stat + ntoh16(stat->length));
     }
 
     *msg = (struct ofl_msg_header *)dm;
@@ -1027,7 +1027,7 @@ ofl_msg_unpack_multipart_reply_aggregate(struct ofp_multipart_reply *os, size_t 
 
     dm->packet_count = ntoh64(sm->packet_count);
     dm->byte_count =   ntoh64(sm->byte_count);
-    dm->flow_count =   ntohl( sm->flow_count);
+    dm->flow_count =   ntoh32( sm->flow_count);
 
     *msg = (struct ofl_msg_header *)dm;
     return 0;
@@ -1159,7 +1159,7 @@ ofl_msg_unpack_multipart_reply_group(struct ofp_multipart_reply *os, size_t *len
             free (dm);
             return error;
         }
-        stat = (struct ofp_group_stats *)((uint8_t *)stat + ntohs(stat->length));
+        stat = (struct ofp_group_stats *)((uint8_t *)stat + ntoh16(stat->length));
     }
 
     *msg = (struct ofl_msg_header *)dm;
@@ -1193,7 +1193,7 @@ ofl_msg_unpack_multipart_reply_group_desc(struct ofp_multipart_reply *os, size_t
             free (dm);
             return error;
         }
-        stat = (struct ofp_group_desc_stats *)((uint8_t *)stat + ntohs(stat->length));
+        stat = (struct ofp_group_desc_stats *)((uint8_t *)stat + ntoh16(stat->length));
     }
 
     *msg = (struct ofl_msg_header *)dm;
@@ -1213,12 +1213,12 @@ ofl_msg_unpack_multipart_reply_group_features(struct ofp_multipart_reply *os, si
 
     sm = (struct ofp_group_features_stats *)os->body;
     dm = (struct ofl_msg_multipart_reply_group_features *) malloc(sizeof(struct ofl_msg_multipart_reply_group_features));
-    
-    dm->types = ntohl(sm->types);
-    dm->capabilities = ntohl(sm->capabilities);
+
+    dm->types = ntoh32(sm->types);
+    dm->capabilities = ntoh32(sm->capabilities);
     for(i = 0; i < 4; i++){
-        dm->max_groups[i] = ntohl(sm->max_groups[i]);
-        dm->actions[i] = ntohl(sm->actions[i]);
+        dm->max_groups[i] = ntoh32(sm->max_groups[i]);
+        dm->actions[i] = ntoh32(sm->actions[i]);
     }
 
     *msg = (struct ofl_msg_header *)dm;
@@ -1230,10 +1230,10 @@ ofl_msg_unpack_multipart_reply_table_features(struct ofp_multipart_reply *src, s
     struct ofl_msg_multipart_reply_table_features *dm;
 	int i;
 	ofl_err error;
-	uint8_t *features; 
-	
+	uint8_t *features;
+
     dm = (struct ofl_msg_multipart_reply_table_features*) malloc(sizeof(struct ofl_msg_multipart_reply_table_features) );
-    
+
     error = ofl_utils_count_ofp_table_features((uint8_t*) src->body, *len, &dm->tables_num);
     if (error) {
         free(dm);
@@ -1244,8 +1244,8 @@ ofl_msg_unpack_multipart_reply_table_features(struct ofp_multipart_reply *src, s
 
     for(i = 0; i < dm->tables_num; i++){
         error = ofl_structs_table_features_unpack((struct ofp_table_features*) features, len, &dm->table_features[i] , exp);
-        features += ntohs(((struct ofp_table_features*) features)->length); 
-    }   
+        features += ntoh16(((struct ofp_table_features*) features)->length);
+    }
     *msg = (struct ofl_msg_header *)dm;
     return 0;
 }
@@ -1277,7 +1277,7 @@ ofl_msg_unpack_multipart_reply_meter_stats(struct ofp_multipart_reply *os, size_
             free (dm);
             return error;
         }
-        stat = (struct ofp_meter_stats *)((uint8_t *)stat + ntohs(stat->len));
+        stat = (struct ofp_meter_stats *)((uint8_t *)stat + ntoh16(stat->len));
     }
 
     *msg = (struct ofl_msg_header *)dm;
@@ -1290,18 +1290,18 @@ ofl_msg_unpack_multipart_reply_meter_config(struct ofp_multipart_reply *os, size
     struct ofl_msg_multipart_reply_meter_conf *dm;
     ofl_err error;
     size_t i;
-    
+
     conf = (struct ofp_meter_config*) os->body;
     dm =  (struct ofl_msg_multipart_reply_meter_conf *) malloc(sizeof(struct ofl_msg_multipart_reply_meter_conf));
-   
+
     error = ofl_utils_count_ofp_meter_config(conf, *len, &dm->stats_num);
     if (error) {
         free(dm);
         return error;
-    }    
-    
+    }
+
     dm->stats = (struct ofl_meter_config **)malloc(dm->stats_num * sizeof(struct ofl_meter_config *));
-    
+
     for (i = 0; i < dm->stats_num; i++) {
         error = ofl_structs_meter_config_unpack(conf, len, &(dm->stats[i]));
         if (error) {
@@ -1310,10 +1310,10 @@ ofl_msg_unpack_multipart_reply_meter_config(struct ofp_multipart_reply *os, size
             free (dm);
             return error;
         }
-        conf = (struct ofp_meter_config *)((uint8_t *)conf + ntohs(conf->length));
+        conf = (struct ofp_meter_config *)((uint8_t *)conf + ntoh16(conf->length));
     }
-    
-    
+
+
     *msg = (struct ofl_msg_header*) dm;
     return 0;
 }
@@ -1326,23 +1326,23 @@ ofl_msg_unpack_multipart_reply_port_desc(struct ofp_multipart_reply *src, size_t
 	size_t i;
 	port = (struct ofp_port* )src->body;
 	pd = (struct ofl_msg_multipart_reply_port_desc*) malloc(sizeof(struct ofl_msg_multipart_reply_port_desc));
-    
+
 	error = ofl_utils_count_ofp_ports(port, *len, &pd->stats_num);
     if (error) {
         free(pd);
         return error;
-    }    
-    	
+    }
+
     pd->stats = (struct ofl_port**) malloc(pd->stats_num * sizeof(struct ofl_port));
 	for(i = 0; i < pd->stats_num; i++){
-		error = ofl_structs_port_unpack(port, len, &pd->stats[i]); 
+		error = ofl_structs_port_unpack(port, len, &pd->stats[i]);
         if (error) {
             OFL_UTILS_FREE_ARR_FUN(pd->stats, i,
                                    ofl_structs_free_port);
             free (pd);
             return error;
         }
-        port = (struct ofp_port *)((uint8_t *)port + sizeof(struct ofp_port));		
+        port = (struct ofp_port *)((uint8_t *)port + sizeof(struct ofp_port));
 	}
     *msg = (struct ofl_msg_header *)pd;
     return 0;
@@ -1363,15 +1363,15 @@ ofl_msg_unpack_multipart_reply_meter_features(struct ofp_multipart_reply *os, si
     dst = (struct ofl_msg_multipart_reply_meter_features*) malloc(sizeof(struct ofl_msg_multipart_reply_meter_features));
     dst->features = (struct ofl_meter_features*) malloc(sizeof(struct ofl_meter_features));
 
-    dst->features->max_meter = ntohl(src->max_meter);
-    dst->features->band_types = ntohl(src->band_types);
-    dst->features->capabilities = ntohl(src->capabilities);
+    dst->features->max_meter = ntoh32(src->max_meter);
+    dst->features->band_types = ntoh32(src->band_types);
+    dst->features->capabilities = ntoh32(src->capabilities);
     dst->features->max_bands = src->max_bands;
     dst->features->max_color =  src->max_color;
 
     *msg = (struct ofl_msg_header*) dst;
     return 0;
-}    
+}
 
 static ofl_err
 ofl_msg_unpack_multipart_reply(struct ofp_header *src, uint8_t *buf, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp) {
@@ -1385,7 +1385,7 @@ ofl_msg_unpack_multipart_reply(struct ofp_header *src, uint8_t *buf, size_t *len
     }
     *len -= sizeof(struct ofp_multipart_reply);
     os = (struct ofp_multipart_reply *)src;
-    switch (ntohs(os->type)) {
+    switch (ntoh16(os->type)) {
         case OFPMP_DESC: {
             error = ofl_msg_unpack_reply_desc(os, len, msg);
             break;
@@ -1429,7 +1429,7 @@ ofl_msg_unpack_multipart_reply(struct ofp_header *src, uint8_t *buf, size_t *len
         case OFPMP_METER:{
             error = ofl_msg_unpack_multipart_reply_meter_stats(os, len, msg);
             break;
-        }    
+        }
         case OFPMP_METER_CONFIG:{
             error = ofl_msg_unpack_multipart_reply_meter_config(os, len, msg);
             break;
@@ -1440,7 +1440,7 @@ ofl_msg_unpack_multipart_reply(struct ofp_header *src, uint8_t *buf, size_t *len
         }
 		case OFPMP_PORT_DESC:{
 			error = ofl_msg_unpack_multipart_reply_port_desc(os, len, msg);
-			break;	
+			break;
 		}
         case OFPMP_EXPERIMENTER: {
             if (exp == NULL || exp->stats == NULL || exp->stats->reply_unpack == NULL) {
@@ -1461,8 +1461,8 @@ ofl_msg_unpack_multipart_reply(struct ofp_header *src, uint8_t *buf, size_t *len
     }
 
     ofls = (struct ofl_msg_multipart_reply_header *)(*msg);
-    ofls->type = (enum ofp_multipart_types)ntohs(os->type);
-    ofls->flags = ntohs(os->flags);
+    ofls->type = (enum ofp_multipart_types)ntoh16(os->type);
+    ofls->flags = ntoh16(os->flags);
 
     return 0;
 }
@@ -1479,15 +1479,15 @@ ofl_msg_unpack_queue_get_config_request(struct ofp_header *src, size_t *len, str
 
     sr = (struct ofp_queue_get_config_request *)src;
 
-    if (ntohl(sr->port) == 0 || ntohl(sr->port) > OFPP_ANY) {
-        OFL_LOG_WARN(LOG_MODULE, "Received GET_CONFIG_REQUEST message has invalid port (%u).", ntohl(sr->port));
+    if (ntoh32(sr->port) == 0 || ntoh32(sr->port) > OFPP_ANY) {
+        OFL_LOG_WARN(LOG_MODULE, "Received GET_CONFIG_REQUEST message has invalid port (%u).", ntoh32(sr->port));
         return ofl_error(OFPET_QUEUE_OP_FAILED, OFPQOFC_BAD_PORT);
     }
     *len -= sizeof(struct ofp_queue_get_config_request);
 
     dr = (struct ofl_msg_queue_get_config_request *)malloc(sizeof(struct ofl_msg_queue_get_config_request));
 
-    dr->port = ntohl(sr->port);
+    dr->port = ntoh32(sr->port);
 
     *msg = (struct ofl_msg_header *)dr;
     return 0;
@@ -1510,7 +1510,7 @@ ofl_msg_unpack_queue_get_config_reply(struct ofp_header *src, size_t *len, struc
     sr = (struct ofp_queue_get_config_reply *)src;
     dr = (struct ofl_msg_queue_get_config_reply *)malloc(sizeof(struct ofl_msg_queue_get_config_reply));
 
-    dr->port = ntohl(sr->port);
+    dr->port = ntoh32(sr->port);
 
     error = ofl_utils_count_ofp_packet_queues(&(sr->queues), *len, &dr->queues_num);
     if (error) {
@@ -1528,7 +1528,7 @@ ofl_msg_unpack_queue_get_config_reply(struct ofp_header *src, size_t *len, struc
             free (dr);
             return error;
         }
-        queue = (struct ofp_packet_queue *)((uint8_t *)queue + ntohs(queue->len));
+        queue = (struct ofp_packet_queue *)((uint8_t *)queue + ntoh16(queue->len));
     }
 
     *msg = (struct ofl_msg_header *)dr;
@@ -1567,10 +1567,10 @@ ofl_msg_unpack(uint8_t *buf, size_t buf_len, struct ofl_msg_header **msg, uint32
     }
 
     if (xid != NULL) {
-        *xid = ntohl(oh->xid);
+        *xid = ntoh32(oh->xid);
     }
 
-    if (len != ntohs(oh->length)) {
+    if (len != ntoh16(oh->length)) {
         OFL_LOG_WARN(LOG_MODULE, "Received message length does not match the length field.");
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
@@ -1626,7 +1626,7 @@ ofl_msg_unpack(uint8_t *buf, size_t buf_len, struct ofl_msg_header **msg, uint32
         /* Controller command messages. */
         case OFPT_GET_ASYNC_REQUEST:
             error = ofl_msg_unpack_empty(oh, &len, msg);
-            break;       
+            break;
         case OFPT_GET_ASYNC_REPLY:
         case OFPT_SET_ASYNC:{
             error =  ofl_msg_unpack_async_config(oh, &len, msg);
@@ -1661,7 +1661,7 @@ ofl_msg_unpack(uint8_t *buf, size_t buf_len, struct ofl_msg_header **msg, uint32
         case OFPT_BARRIER_REPLY:
             error = ofl_msg_unpack_empty(oh, &len, msg);
             break;
-        
+
         /* Role messages. */
         case OFPT_ROLE_REQUEST:
         case OFPT_ROLE_REPLY:
@@ -1677,7 +1677,7 @@ ofl_msg_unpack(uint8_t *buf, size_t buf_len, struct ofl_msg_header **msg, uint32
             break;
         case OFPT_METER_MOD:
         	error = ofl_msg_unpack_meter_mod(oh, &len, msg);
-        	break;            
+        	break;
 		default: {
             error = ofl_error(OFPET_BAD_REQUEST, OFPGMFC_BAD_TYPE);
         }
@@ -1687,7 +1687,7 @@ ofl_msg_unpack(uint8_t *buf, size_t buf_len, struct ofl_msg_header **msg, uint32
         if (OFL_LOG_IS_DBG_ENABLED(LOG_MODULE)) {
             char *str = ofl_hex_to_string(buf, buf_len < 1024 ? buf_len : 1024);
 
-            OFL_LOG_DBG(LOG_MODULE, "Error happened after processing %zu bytes of packet.", ntohs(oh->length) - len);
+            OFL_LOG_DBG(LOG_MODULE, "Error happened after processing %zu bytes of packet.", ntoh16(oh->length) - len);
             OFL_LOG_DBG(LOG_MODULE, "\n%s\n", str);
             free(str);
         }
@@ -1702,7 +1702,7 @@ ofl_msg_unpack(uint8_t *buf, size_t buf_len, struct ofl_msg_header **msg, uint32
         if (OFL_LOG_IS_DBG_ENABLED(LOG_MODULE)) {
             char *str = ofl_hex_to_string(buf, buf_len < 1024 ? buf_len : 1024);
 
-            OFL_LOG_DBG(LOG_MODULE, "Error happened after processing %zu bytes of packet.", ntohs(oh->length) - len);
+            OFL_LOG_DBG(LOG_MODULE, "Error happened after processing %zu bytes of packet.", ntoh16(oh->length) - len);
             OFL_LOG_DBG(LOG_MODULE, "\n%s\n", str);
             free(str);
         }

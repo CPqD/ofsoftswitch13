@@ -184,7 +184,7 @@ update_phy_port(struct port_watcher *pw, struct ofp_port *opp,
     struct ofp_port *old;
     uint32_t port_no;
 
-    port_no = ntohl(opp->port_no);
+    port_no = ntoh32(opp->port_no);
     old = lookup_port(pw, port_no);
 
     if (reason == OFPPR_DELETE && old) {
@@ -195,7 +195,7 @@ update_phy_port(struct port_watcher *pw, struct ofp_port *opp,
         /* TODO Zoltan: Temporarily removed when moving to Openflow 1.1 */
     	/*
         if (old) {
-            uint32_t s_mask = htonl(OFPPS_STP_MASK);
+            uint32_t s_mask = hton32(OFPPS_STP_MASK);
             opp->state = (opp->state & ~s_mask) | (old->state & s_mask);
         }
         if (!old || opp_differs(opp, old)) {
@@ -247,29 +247,29 @@ port_watcher_local_packet_cb(struct relay *r, void *pw_)
             pw->datapath_id = osf->datapath_id;
             VLOG_INFO(LOG_MODULE, "Datapath id is %012"PRIx64, ntohll(pw->datapath_id));
         }
-    } 
+    }
     else if (oh->type == OFPT_MULTIPART_REPLY) {
         struct ofp_multipart_reply *repl =  msg->data;
-        if(ntohs(repl->type) == OFPMP_PORT_DESC){
+        if(ntoh16(repl->type) == OFPMP_PORT_DESC){
             bool seen[PORT_ARRAY_SIZE];
             struct ofp_port *p;
             unsigned int port_no;
             size_t n_ports, i;
-            p = (struct ofp_port*) repl->body; 
+            p = (struct ofp_port*) repl->body;
             /* Update each port included in the message.*/
             memset(seen, false, sizeof seen);
             n_ports = ((msg->size - offsetof(struct ofp_multipart_reply, body))
                        / sizeof *p);
             for (i = 0; i < n_ports; i++) {
                 struct ofp_port *opp = &p[i];
-                if (ntohl(opp->port_no) > PORT_ARRAY_SIZE - 1) {
-                    if (ntohl(opp->port_no) <= OFPP_MAX) {
-                        VLOG_WARN(LOG_MODULE, "Port ID %u over limit", ntohl(opp->port_no));
+                if (ntoh32(opp->port_no) > PORT_ARRAY_SIZE - 1) {
+                    if (ntoh32(opp->port_no) <= OFPP_MAX) {
+                        VLOG_WARN(LOG_MODULE, "Port ID %u over limit", ntoh32(opp->port_no));
                     }
                     continue;
                 }
                 update_phy_port(pw, opp, OFPPR_MODIFY);
-                seen[ntohl(opp->port_no)] = true;
+                seen[ntoh32(opp->port_no)] = true;
             }
 
             /* Delete all the ports not included in the message.*/
@@ -284,11 +284,11 @@ port_watcher_local_packet_cb(struct relay *r, void *pw_)
 
             call_local_port_changed_callbacks(pw);
         }
-        else if (ntohs(oh->type) == OFPMP_PORT_STATS
+        else if (ntoh16(oh->type) == OFPMP_PORT_STATS
                && msg->size >= sizeof(struct ofp_port_status)) {
             struct ofp_port_status *ops = msg->data;
             update_phy_port(pw, &ops->desc, ops->reason);
-            if (ops->desc.port_no == htonl(OFPP_LOCAL)) {
+            if (ops->desc.port_no == hton32(OFPP_LOCAL)) {
                 call_local_port_changed_callbacks(pw);
             }
             if (ops->reason == OFPPR_ADD || OFPPR_DELETE) {
@@ -296,9 +296,9 @@ port_watcher_local_packet_cb(struct relay *r, void *pw_)
             }
         }
     }
-    
+
     return false;
-} 
+}
 
 static void
 bring_netdev_up_or_down(const char *name, bool down)
@@ -335,20 +335,20 @@ port_watcher_remote_packet_cb(struct relay *r, void *pw_)
     if (oh->type == OFPT_PORT_MOD
         && msg->size >= sizeof(struct ofp_port_mod)) {
         struct ofp_port_mod *opm = msg->data;
-        uint32_t port_no = ntohl(opm->port_no);
+        uint32_t port_no = ntoh32(opm->port_no);
         struct ofp_port *pw_opp = lookup_port(pw, port_no);
-        if (pw_opp->port_no != htonl(OFPP_ANY)) {
+        if (pw_opp->port_no != hton32(OFPP_ANY)) {
             struct ofp_port old = *pw_opp;
             pw_opp->config = ((pw_opp->config & ~opm->mask)
                               | (opm->config & opm->mask));
             call_port_changed_callbacks(pw, port_no, &old, pw_opp);
-            if (pw_opp->port_no == htonl(OFPP_LOCAL)) {
+            if (pw_opp->port_no == hton32(OFPP_LOCAL)) {
                 call_local_port_changed_callbacks(pw);
             }
 
-            if (opm->mask & htonl(OFPPC_PORT_DOWN)) {
+            if (opm->mask & hton32(OFPPC_PORT_DOWN)) {
                 bring_netdev_up_or_down((const char *) pw_opp->name,
-                                        opm->config & htonl(OFPPC_PORT_DOWN));
+                                        opm->config & hton32(OFPPC_PORT_DOWN));
             }
         }
     }
@@ -380,7 +380,7 @@ port_watcher_periodic_cb(void *pw_)
         rconn_send_with_limit(pw->local_rconn, b, &pw->n_txq, 1);
        /* TODO: Send port desc request?
         b =  make_empty_multipart_request(OFPMP_PORT_DESC, 0x0000);
-        rconn_send_with_limit(pw->local_rconn, b, &pw->n_txq, 1);*/      
+        rconn_send_with_limit(pw->local_rconn, b, &pw->n_txq, 1);*/
         pw->last_feature_request = time_now();
     }
 
@@ -404,8 +404,8 @@ port_watcher_periodic_cb(void *pw_)
         }
 
         new_opp = *opp;
-        set_bit(htonl(OFPPC_PORT_DOWN), ~flags & NETDEV_UP, &new_opp.config);
-        set_bit(htonl(OFPPS_LINK_DOWN), ~flags & NETDEV_CARRIER,
+        set_bit(hton32(OFPPC_PORT_DOWN), ~flags & NETDEV_UP, &new_opp.config);
+        set_bit(hton32(OFPPS_LINK_DOWN), ~flags & NETDEV_CARRIER,
                 &new_opp.state);
         if (opp->config != new_opp.config || opp->state != new_opp.state) {
             struct ofp_port_status *ops;
@@ -413,7 +413,7 @@ port_watcher_periodic_cb(void *pw_)
 
             /* Notify other secchan modules. */
             update_phy_port(pw, &new_opp, OFPPR_MODIFY);
-            if (new_opp.port_no == htonl(OFPP_LOCAL)) {
+            if (new_opp.port_no == hton32(OFPP_LOCAL)) {
                 call_local_port_changed_callbacks(pw);
             }
 
@@ -499,8 +499,8 @@ log_port_status(uint32_t port_no,
             }
         } else {
             struct ds ds = DS_EMPTY_INITIALIZER;
-            uint32_t curr = ntohl(new->curr);
-            uint32_t supported = ntohl(new->supported);
+            uint32_t curr = ntoh32(new->curr);
+            uint32_t supported = ntoh32(new->supported);
             ds_put_format(&ds, "\"%s\", "ETH_ADDR_FMT, new->name,
                           ETH_ADDR_ARGS(new->hw_addr));
             if (curr) {
@@ -542,7 +542,7 @@ uint32_t
 port_watcher_get_config(const struct port_watcher *pw, uint32_t port_no)
 {
     struct ofp_port *p = lookup_port(pw, port_no);
-    return p ? ntohl(p->config) : 0;
+    return p ? ntoh32(p->config) : 0;
 }
 
 const char *
@@ -575,15 +575,15 @@ port_watcher_set_flags(struct port_watcher *pw, uint32_t port_no,
         return;
     }
 
-    if (!((ntohl(p->state) ^ state) & s_mask) 
-            && (!((ntohl(p->config) ^ config) & c_mask))) {
+    if (!((ntoh32(p->state) ^ state) & s_mask)
+            && (!((ntoh32(p->config) ^ config) & c_mask))) {
         return;
     }
     old = *p;
 
     /* Update our idea of the flags. */
-    p->config = htonl((ntohl(p->config) & ~c_mask) | (config & c_mask));
-    p->state = htonl((ntohl(p->state) & ~s_mask) | (state & s_mask));
+    p->config = hton32((ntoh32(p->config) & ~c_mask) | (config & c_mask));
+    p->state = hton32((ntoh32(p->state) & ~s_mask) | (state & s_mask));
     call_port_changed_callbacks(pw, port_no, &old, p);
 
     /* Change the flags in the datapath. */
@@ -591,8 +591,8 @@ port_watcher_set_flags(struct port_watcher *pw, uint32_t port_no,
     opm->port_no = p->port_no;
     memcpy(opm->hw_addr, p->hw_addr, OFP_ETH_ALEN);
     opm->config = p->config;
-    opm->mask = htonl(c_mask);
-    opm->advertise = htonl(0);
+    opm->mask = hton32(c_mask);
+    opm->advertise = hton32(0);
     rconn_send(pw->local_rconn, b, NULL);
 
     /* Notify the controller that the flags changed. */
@@ -608,7 +608,7 @@ port_watcher_is_ready(const struct port_watcher *pw)
     return pw->got_feature_reply;
 }
 
-static struct hook_class port_watcher_hook_class = { 
+static struct hook_class port_watcher_hook_class = {
     port_watcher_local_packet_cb,                        /* local_packet_cb */
     port_watcher_remote_packet_cb,                       /* remote_packet_cb */
     port_watcher_periodic_cb,                            /* periodic_cb */

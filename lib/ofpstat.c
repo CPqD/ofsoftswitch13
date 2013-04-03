@@ -116,8 +116,8 @@ static void
 inc_error_notification(struct ofpstat *ifps, struct ofp_header *hdr)
 {
 	struct ofp_error_msg *errmsg = (struct ofp_error_msg *)hdr;
-	uint16_t errtype = ntohs(errmsg->type);
-	uint16_t errcode = ntohs(errmsg->code);
+	uint16_t errtype = ntoh16(errmsg->type);
+	uint16_t errcode = ntoh16(errmsg->code);
 
 	switch (errtype) {
 	case OFPET_HELLO_FAILED:
@@ -216,7 +216,7 @@ static void
 inc_flow_manipulation(struct ofpstat *ifps, struct ofp_header *hdr)
 {
 	struct ofp_flow_mod *flowmodmsg = (struct ofp_flow_mod *)hdr;
-	uint16_t flowmodops = ntohs(flowmodmsg->command);
+	uint16_t flowmodops = ntoh16(flowmodmsg->command);
 
 	switch (flowmodops) {
 	case OFPFC_ADD:

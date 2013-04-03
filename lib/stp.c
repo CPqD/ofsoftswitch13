@@ -221,7 +221,7 @@ static void stp_send_bpdu(struct stp_port *, const void *, size_t);
  *
  * When the bridge needs to send out a BPDU, it calls 'send_bpdu'.  This
  * callback may be called from stp_tick() or stp_received_bpdu().  The
- * arguments to 'send_bpdu' are an STP BPDU encapsulated in 
+ * arguments to 'send_bpdu' are an STP BPDU encapsulated in
  */
 struct stp *
 stp_create(const char *name, stp_identifier bridge_id,
@@ -558,9 +558,9 @@ stp_received_bpdu(struct stp_port *p, const void *bpdu, size_t bpdu_size)
     }
 
     header = bpdu;
-    if (header->protocol_id != htons(STP_PROTOCOL_ID)) {
+    if (header->protocol_id != hton16(STP_PROTOCOL_ID)) {
         VLOG_WARN(LOG_MODULE, "%s: received BPDU with unexpected protocol ID %"PRIu16,
-                  stp->name, ntohs(header->protocol_id));
+                  stp->name, ntoh16(header->protocol_id));
         return;
     }
     if (header->protocol_version != STP_PROTOCOL_VERSION) {
@@ -722,30 +722,30 @@ stp_transmit_config(struct stp_port *p)
     } else {
         struct stp_config_bpdu config;
         memset(&config, 0, sizeof config);
-        config.header.protocol_id = htons(STP_PROTOCOL_ID);
+        config.header.protocol_id = hton16(STP_PROTOCOL_ID);
         config.header.protocol_version = STP_PROTOCOL_VERSION;
         config.header.bpdu_type = STP_TYPE_CONFIG;
         config.flags = 0;
         if (p->topology_change_ack) {
-            config.flags |= htons(STP_CONFIG_TOPOLOGY_CHANGE_ACK);
+            config.flags |= hton16(STP_CONFIG_TOPOLOGY_CHANGE_ACK);
         }
         if (stp->topology_change) {
-            config.flags |= htons(STP_CONFIG_TOPOLOGY_CHANGE);
+            config.flags |= hton16(STP_CONFIG_TOPOLOGY_CHANGE);
         }
         config.root_id = htonll(stp->designated_root);
-        config.root_path_cost = htonl(stp->root_path_cost);
+        config.root_path_cost = hton32(stp->root_path_cost);
         config.bridge_id = htonll(stp->bridge_id);
-        config.port_id = htons(p->port_id);
+        config.port_id = hton16(p->port_id);
         if (root) {
-            config.message_age = htons(0);
+            config.message_age = hton16(0);
         } else {
-            config.message_age = htons(stp->root_port->message_age_timer.value
+            config.message_age = hton16(stp->root_port->message_age_timer.value
                                        + MESSAGE_AGE_INCREMENT);
         }
-        config.max_age = htons(stp->max_age);
-        config.hello_time = htons(stp->hello_time);
-        config.forward_delay = htons(stp->forward_delay);
-        if (ntohs(config.message_age) < stp->max_age) {
+        config.max_age = hton16(stp->max_age);
+        config.hello_time = hton16(stp->hello_time);
+        config.forward_delay = hton16(stp->forward_delay);
+        if (ntoh16(config.message_age) < stp->max_age) {
             p->topology_change_ack = false;
             p->config_pending = false;
             stp_send_bpdu(p, &config, sizeof config);
@@ -760,13 +760,13 @@ stp_supersedes_port_info(const struct stp_port *p,
 {
     if (ntohll(config->root_id) != p->designated_root) {
         return ntohll(config->root_id) < p->designated_root;
-    } else if (ntohl(config->root_path_cost) != p->designated_cost) {
-        return ntohl(config->root_path_cost) < p->designated_cost;
+    } else if (ntoh32(config->root_path_cost) != p->designated_cost) {
+        return ntoh32(config->root_path_cost) < p->designated_cost;
     } else if (ntohll(config->bridge_id) != p->designated_bridge) {
         return ntohll(config->bridge_id) < p->designated_bridge;
     } else {
         return (ntohll(config->bridge_id) != p->stp->bridge_id
-                || ntohs(config->port_id) <= p->designated_port);
+                || ntoh16(config->port_id) <= p->designated_port);
     }
 }
 
@@ -775,20 +775,20 @@ stp_record_config_information(struct stp_port *p,
                               const struct stp_config_bpdu *config)
 {
     p->designated_root = ntohll(config->root_id);
-    p->designated_cost = ntohl(config->root_path_cost);
+    p->designated_cost = ntoh32(config->root_path_cost);
     p->designated_bridge = ntohll(config->bridge_id);
-    p->designated_port = ntohs(config->port_id);
-    stp_start_timer(&p->message_age_timer, ntohs(config->message_age));
+    p->designated_port = ntoh16(config->port_id);
+    stp_start_timer(&p->message_age_timer, ntoh16(config->message_age));
 }
 
 static void
 stp_record_config_timeout_values(struct stp *stp,
                                  const struct stp_config_bpdu  *config)
 {
-    stp->max_age = ntohs(config->max_age);
-    stp->hello_time = ntohs(config->hello_time);
-    stp->forward_delay = ntohs(config->forward_delay);
-    stp->topology_change = config->flags & htons(STP_CONFIG_TOPOLOGY_CHANGE);
+    stp->max_age = ntoh16(config->max_age);
+    stp->hello_time = ntoh16(config->hello_time);
+    stp->forward_delay = ntoh16(config->forward_delay);
+    stp->topology_change = config->flags & hton16(STP_CONFIG_TOPOLOGY_CHANGE);
 }
 
 static bool
@@ -818,7 +818,7 @@ stp_transmit_tcn(struct stp *stp)
     if (!p) {
         return;
     }
-    tcn_bpdu.header.protocol_id = htons(STP_PROTOCOL_ID);
+    tcn_bpdu.header.protocol_id = hton16(STP_PROTOCOL_ID);
     tcn_bpdu.header.protocol_version = STP_PROTOCOL_VERSION;
     tcn_bpdu.header.bpdu_type = STP_TYPE_TCN;
     stp_send_bpdu(p, &tcn_bpdu, sizeof tcn_bpdu);
@@ -992,11 +992,11 @@ void
 stp_received_config_bpdu(struct stp *stp, struct stp_port *p,
                          const struct stp_config_bpdu *config)
 {
-    if (ntohs(config->message_age) >= ntohs(config->max_age)) {
+    if (ntoh16(config->message_age) >= ntoh16(config->max_age)) {
         VLOG_WARN(LOG_MODULE, "%s: received config BPDU with message age (%u) greater "
                   "than max age (%u)",
                   stp->name,
-                  ntohs(config->message_age), ntohs(config->max_age));
+                  ntoh16(config->message_age), ntoh16(config->max_age));
         return;
     }
     if (p->state != STP_DISABLED) {
@@ -1016,7 +1016,7 @@ stp_received_config_bpdu(struct stp *stp, struct stp_port *p,
             if (p == stp->root_port) {
                 stp_record_config_timeout_values(stp, config);
                 stp_config_bpdu_generation(stp);
-                if (config->flags & htons(STP_CONFIG_TOPOLOGY_CHANGE_ACK)) {
+                if (config->flags & hton16(STP_CONFIG_TOPOLOGY_CHANGE_ACK)) {
                     stp_topology_change_acknowledged(stp);
                 }
             }
@@ -1232,7 +1232,7 @@ stp_send_bpdu(struct stp_port *p, const void *bpdu, size_t bpdu_size)
     /* 802.2 header. */
     memcpy(eth->eth_dst, stp_eth_addr, ETH_ADDR_LEN);
     /* p->stp->send_bpdu() must fill in source address. */
-    eth->eth_type = htons(pkt->size - ETH_HEADER_LEN);
+    eth->eth_type = hton16(pkt->size - ETH_HEADER_LEN);
 
     /* LLC header. */
     llc->llc_dsap = STP_LLC_DSAP;

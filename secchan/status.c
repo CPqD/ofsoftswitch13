@@ -86,8 +86,8 @@ switch_status_remote_packet_cb(struct relay *r, void *ss_)
     }
     request = msg->data;
     if (request->header.type != OFPT_EXPERIMENTER
-        || request->vendor != htonl(NX_VENDOR_ID)
-        || request->subtype != htonl(NXT_STATUS_REQUEST)) {
+        || request->vendor != hton32(NX_VENDOR_ID)
+        || request->subtype != hton32(NXT_STATUS_REQUEST)) {
         return false;
     }
 
@@ -103,8 +103,8 @@ switch_status_remote_packet_cb(struct relay *r, void *ss_)
     }
     reply = make_openflow_xid(sizeof *reply + sr.output.length,
                               OFPT_EXPERIMENTER, request->header.xid, &b);
-    reply->vendor = htonl(NX_VENDOR_ID);
-    reply->subtype = htonl(NXT_STATUS_REPLY);
+    reply->vendor = hton32(NX_VENDOR_ID);
+    reply->subtype = hton32(NXT_STATUS_REPLY);
     memcpy(reply + 1, sr.output.string, sr.output.length);
     retval = rconn_send(rc, b, NULL);
     if (retval && retval != EAGAIN) {

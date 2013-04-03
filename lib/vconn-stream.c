@@ -129,7 +129,7 @@ again:
         want_bytes = sizeof(struct ofp_header) - rx->size;
     } else {
         struct ofp_header *oh = rx->data;
-        size_t length = ntohs(oh->length);
+        size_t length = ntoh16(oh->length);
         if (length < sizeof(struct ofp_header)) {
             VLOG_ERR_RL(LOG_MODULE, &rl, "received too-short ofp_header (%zu bytes)",
                         length);

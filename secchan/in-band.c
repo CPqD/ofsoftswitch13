@@ -153,7 +153,7 @@ in_band_local_packet_cb(struct relay *r, void *in_band_)
     }
     /*TODO: OFP 1.2 change */
     in_port = 0;
-    //in_port = ntohs(opi->in_port);
+    //in_port = ntoh16(opi->in_port);
     get_ofp_packet_payload(opi, &payload);
     flow_extract(&payload, in_port, &flow);
     /* Deal with local stuff. */
@@ -165,26 +165,26 @@ in_band_local_packet_cb(struct relay *r, void *in_band_)
         /* Sent to secure channel. */
         out_port = OFPP_LOCAL;
         in_band_learn_mac(in_band, in_port, eth->eth_src);
-    } else if (eth->eth_type == htons(ETH_TYPE_ARP)
+    } else if (eth->eth_type == hton16(ETH_TYPE_ARP)
                && eth_addr_is_broadcast(eth->eth_dst)
                && is_controller_mac(eth->eth_src, in_band)) {
         /* ARP sent by controller. */
         out_port = OFPP_FLOOD;
     } else if ((is_controller_mac(eth->eth_dst, in_band)
                 || is_controller_mac(eth->eth_src, in_band))
-               && flow.dl_type == htons(ETH_TYPE_IP)
+               && flow.dl_type == hton16(ETH_TYPE_IP)
                && flow.nw_proto == IP_TYPE_TCP
-               && (flow.tp_src == htons(OFP_TCP_PORT)
-                   || flow.tp_src == htons(OFP_SSL_PORT)
-                   || flow.tp_dst == htons(OFP_TCP_PORT)
-                   || flow.tp_dst == htons(OFP_SSL_PORT))) {
+               && (flow.tp_src == hton16(OFP_TCP_PORT)
+                   || flow.tp_src == hton16(OFP_SSL_PORT)
+                   || flow.tp_dst == hton16(OFP_TCP_PORT)
+                   || flow.tp_dst == hton16(OFP_SSL_PORT))) {
         /* Traffic to or from controller.  Switch it by hand. */
         in_band_learn_mac(in_band, in_port, eth->eth_src);
         out_port = mac_learning_lookup(in_band->ml, eth->eth_dst, 0);
     } else {
         const uint8_t *controller_mac;
         controller_mac = get_controller_mac(in_band);
-        if (eth->eth_type == htons(ETH_TYPE_ARP)
+        if (eth->eth_type == hton16(ETH_TYPE_ARP)
             && eth_addr_is_broadcast(eth->eth_dst)
             && is_controller_mac(eth->eth_src, in_band)) {
             /* ARP sent by controller. */
@@ -201,16 +201,16 @@ in_band_local_packet_cb(struct relay *r, void *in_band_)
 
     if (in_port == out_port) {
         /* The input and output port match.  Set up a flow to drop packets. */
-        queue_tx(rc, in_band, make_add_flow(&flow, ntohl(opi->buffer_id), 0x00,
+        queue_tx(rc, in_band, make_add_flow(&flow, ntoh32(opi->buffer_id), 0x00,
                                           in_band->s->max_idle, 0));
     } else if (out_port != OFPP_FLOOD) {
         /* The output port is known, so add a new flow. */
         queue_tx(rc, in_band,
-                 make_add_simple_flow(&flow, ntohl(opi->buffer_id),
+                 make_add_simple_flow(&flow, ntoh32(opi->buffer_id),
                                       out_port, in_band->s->max_idle));
 
         /* If the switch didn't buffer the packet, we need to send a copy. */
-        if (ntohl(opi->buffer_id) == UINT32_MAX) {
+        if (ntoh32(opi->buffer_id) == UINT32_MAX) {
             queue_tx(rc, in_band,
                      make_unbuffered_packet_out(&payload, in_port, out_port));
         }
@@ -218,10 +218,10 @@ in_band_local_packet_cb(struct relay *r, void *in_band_)
         /* We don't know that MAC.  Send along the packet without setting up a
          * flow. */
         struct ofpbuf *b;
-        if (ntohl(opi->buffer_id) == UINT32_MAX) {
+        if (ntoh32(opi->buffer_id) == UINT32_MAX) {
             b = make_unbuffered_packet_out(&payload, in_port, out_port);
         } else {
-            b = make_buffered_packet_out(ntohl(opi->buffer_id),
+            b = make_buffered_packet_out(ntoh32(opi->buffer_id),
                                          in_port, out_port);
         }
         queue_tx(rc, in_band, b);
@@ -261,7 +261,7 @@ void
 get_ofp_packet_payload(struct ofp_packet_in *opi, struct ofpbuf *payload)
 {
     //payload->data = opi->data;
-    //payload->size = ntohs(opi->header.length) - offsetof(struct ofp_packet_in,
+    //payload->size = ntoh16(opi->header.length) - offsetof(struct ofp_packet_in,
       //                                                   data);
 }
 

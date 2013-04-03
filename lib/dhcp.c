@@ -222,7 +222,7 @@ dhcp_msg_put_bool(struct dhcp_msg *msg, int code, bool b_)
 void
 dhcp_msg_put_secs(struct dhcp_msg *msg, int code, uint32_t secs_)
 {
-    uint32_t secs = htonl(secs_);
+    uint32_t secs = hton32(secs_);
     dhcp_msg_put(msg, code, &secs, sizeof secs);
 }
 
@@ -265,7 +265,7 @@ void dhcp_msg_put_uint8_array(struct dhcp_msg *msg, int code,
 void
 dhcp_msg_put_uint16(struct dhcp_msg *msg, int code, uint16_t x_)
 {
-    uint16_t x = htons(x_);
+    uint16_t x = hton16(x_);
     dhcp_msg_put(msg, code, &x, sizeof x);
 }
 
@@ -325,7 +325,7 @@ dhcp_msg_get_secs(const struct dhcp_msg *msg, int code, size_t offset,
     const uint32_t *uint32 = dhcp_msg_get(msg, code, offset * sizeof *uint32,
                                           sizeof *uint32);
     if (uint32) {
-        *out = ntohl(*uint32);
+        *out = ntoh32(*uint32);
         return true;
     } else {
         return false;
@@ -394,7 +394,7 @@ dhcp_msg_get_uint16(const struct dhcp_msg *msg, int code,
     const uint16_t *uint16 = dhcp_msg_get(msg, code, offset * sizeof *uint16,
                                           sizeof *uint16);
     if (uint16) {
-        *out = ntohs(*uint16);
+        *out = ntoh16(*uint16);
         return true;
     } else {
         return false;
@@ -472,13 +472,13 @@ dhcp_option_to_string(const struct dhcp_option *opt, int code, struct ds *ds)
             ds_put_format(ds, "%02"PRIx8, *uint8);
             break;
         case DHCP_ARG_UINT16:
-            ds_put_format(ds, "%"PRIu16, ntohs(*uint16));
+            ds_put_format(ds, "%"PRIu16, ntoh16(*uint16));
             break;
         case DHCP_ARG_UINT32:
-            ds_put_format(ds, "%"PRIu32, ntohl(*uint32));
+            ds_put_format(ds, "%"PRIu32, ntoh32(*uint32));
             break;
         case DHCP_ARG_SECS:
-            put_duration(ds, ntohl(*uint32));
+            put_duration(ds, ntoh32(*uint32));
             break;
         case DHCP_ARG_STRING:
             NOT_REACHED();
@@ -682,9 +682,9 @@ dhcp_parse(struct dhcp_msg *msg, const struct ofpbuf *b_)
 
     dhcp_msg_init(msg);
     msg->op = dhcp->op;
-    msg->xid = ntohl(dhcp->xid);
-    msg->secs = ntohs(dhcp->secs);
-    msg->flags = ntohs(dhcp->flags);
+    msg->xid = ntoh32(dhcp->xid);
+    msg->secs = ntoh16(dhcp->secs);
+    msg->flags = ntoh16(dhcp->flags);
     msg->ciaddr = dhcp->ciaddr;
     msg->yiaddr = dhcp->yiaddr;
     msg->siaddr = dhcp->siaddr;
@@ -693,7 +693,7 @@ dhcp_parse(struct dhcp_msg *msg, const struct ofpbuf *b_)
 
     cookie = ofpbuf_try_pull(&b, sizeof cookie);
     if (cookie) {
-        if (ntohl(*cookie) == DHCP_OPTS_COOKIE) {
+        if (ntoh32(*cookie) == DHCP_OPTS_COOKIE) {
             uint8_t overload;
 
             parse_options(msg, "options", b.data, b.size, 0);
@@ -710,7 +710,7 @@ dhcp_parse(struct dhcp_msg *msg, const struct ofpbuf *b_)
             }
         } else {
             VLOG_DBG_RL(LOG_MODULE, &rl, "bad DHCP options cookie: %08"PRIx32,
-                        ntohl(*cookie));
+                        ntoh32(*cookie));
         }
     } else {
         VLOG_DBG_RL(LOG_MODULE, &rl, "DHCP packet has no options");
@@ -791,7 +791,7 @@ void
 dhcp_assemble(const struct dhcp_msg *msg, struct ofpbuf *b)
 {
     const uint8_t end = DHCP_CODE_END;
-    uint32_t cookie = htonl(DHCP_OPTS_COOKIE);
+    uint32_t cookie = hton32(DHCP_OPTS_COOKIE);
     struct ofpbuf vnd_data;
     struct dhcp_header dhcp;
     int i;
@@ -801,9 +801,9 @@ dhcp_assemble(const struct dhcp_msg *msg, struct ofpbuf *b)
     dhcp.htype = ARP_HRD_ETHERNET;
     dhcp.hlen = ETH_ADDR_LEN;
     dhcp.hops = 0;
-    dhcp.xid = htonl(msg->xid);
-    dhcp.secs = htons(msg->secs);
-    dhcp.flags = htons(msg->flags);
+    dhcp.xid = hton32(msg->xid);
+    dhcp.secs = hton16(msg->secs);
+    dhcp.flags = hton16(msg->flags);
     dhcp.ciaddr = msg->ciaddr;
     dhcp.yiaddr = msg->yiaddr;
     dhcp.siaddr = msg->siaddr;

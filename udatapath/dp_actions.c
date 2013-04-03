@@ -90,7 +90,7 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
             }
             case OXM_OF_ETH_TYPE:{
                 uint16_t *v = (uint16_t*) act->field->value;
-                *v = htons(*v);
+                *v = hton16(*v);
                 memcpy(&pkt->handle_std->proto->eth->eth_type,
                     v, OXM_LENGTH(act->field->header));
                 break;
@@ -98,15 +98,15 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
             case OXM_OF_VLAN_VID:{
                 struct vlan_header *vlan =  pkt->handle_std->proto->vlan;
                 uint16_t v = (*(uint16_t*)act->field->value);
-                vlan->vlan_tci = htons((ntohs(vlan->vlan_tci) & ~VLAN_VID_MASK)
+                vlan->vlan_tci = hton16((ntoh16(vlan->vlan_tci) & ~VLAN_VID_MASK)
                                                 | (v & VLAN_VID_MASK));
                 break;
             }
             case OXM_OF_VLAN_PCP:{
                 struct vlan_header *vlan = pkt->handle_std->proto->vlan;
 
-                vlan->vlan_tci = (vlan->vlan_tci & ~htons(VLAN_PCP_MASK))
-                                | htons(*act->field->value << VLAN_PCP_SHIFT);
+                vlan->vlan_tci = (vlan->vlan_tci & ~hton16(VLAN_PCP_MASK))
+                                | hton16(*act->field->value << VLAN_PCP_SHIFT);
                 break;
             }
             case OXM_OF_IP_DSCP:{
@@ -139,15 +139,15 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 if (pkt->handle_std->proto->tcp != NULL) {
                     struct tcp_header *tcp = pkt->handle_std->proto->tcp;
                     tcp->tcp_csum = recalc_csum32(tcp->tcp_csum,
-                        ipv4->ip_src,htonl(*((uint32_t*) act->field->value)));
+                        ipv4->ip_src,hton32(*((uint32_t*) act->field->value)));
                 } else if (pkt->handle_std->proto->udp != NULL) {
                     struct udp_header *udp = pkt->handle_std->proto->udp;
                     udp->udp_csum = recalc_csum32(udp->udp_csum,
-                        ipv4->ip_src, htonl(*((uint32_t*) act->field->value)));
+                        ipv4->ip_src, hton32(*((uint32_t*) act->field->value)));
                 }
 
                 ipv4->ip_csum = recalc_csum32(ipv4->ip_csum, ipv4->ip_src,
-                                     htonl(*((uint32_t*) act->field->value)));
+                                     hton32(*((uint32_t*) act->field->value)));
 
                 ipv4->ip_src = *((uint32_t*) act->field->value);
                 break;
@@ -159,15 +159,15 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 if (pkt->handle_std->proto->tcp != NULL) {
                     struct tcp_header *tcp = pkt->handle_std->proto->tcp;
                     tcp->tcp_csum = recalc_csum32(tcp->tcp_csum,
-                        ipv4->ip_dst, htonl(*((uint32_t*) act->field->value)));
+                        ipv4->ip_dst, hton32(*((uint32_t*) act->field->value)));
                 } else if (pkt->handle_std->proto->udp != NULL) {
                     struct udp_header *udp = pkt->handle_std->proto->udp;
                     udp->udp_csum = recalc_csum32(udp->udp_csum,
-                        ipv4->ip_dst, htonl(*((uint32_t*) act->field->value)));
+                        ipv4->ip_dst, hton32(*((uint32_t*) act->field->value)));
                 }
 
                 ipv4->ip_csum = recalc_csum32(ipv4->ip_csum, ipv4->ip_dst,
-                                    htonl(*((uint32_t*) act->field->value)));
+                                    hton32(*((uint32_t*) act->field->value)));
 
                 ipv4->ip_dst = *((uint32_t*) act->field->value);
                 break;
@@ -175,49 +175,49 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
             case OXM_OF_TCP_SRC:{
                 struct tcp_header *tcp = pkt->handle_std->proto->tcp;
                 uint16_t *v = (uint16_t*) act->field->value;
-                *v = htons(*v);
+                *v = hton16(*v);
                 memcpy(&tcp->tcp_src, v, OXM_LENGTH(act->field->header));
                 tcp->tcp_csum = recalc_csum16(tcp->tcp_csum, tcp->tcp_src,
-                                    htons(*((uint16_t*) act->field->value)));
+                                    hton16(*((uint16_t*) act->field->value)));
                 break;
             }
             case OXM_OF_TCP_DST:{
                 struct tcp_header *tcp = pkt->handle_std->proto->tcp;
                 uint16_t *v = (uint16_t*) act->field->value;
-                *v = htons(*v);
+                *v = hton16(*v);
                 memcpy(&tcp->tcp_dst, v, OXM_LENGTH(act->field->header));
                 tcp->tcp_csum = recalc_csum16(tcp->tcp_csum, tcp->tcp_dst,
-                                    htons(*((uint16_t*) act->field->value)));
+                                    hton16(*((uint16_t*) act->field->value)));
                 break;
             }
             case OXM_OF_UDP_SRC:{
                 struct udp_header *udp = pkt->handle_std->proto->udp;
                 uint16_t *v = (uint16_t*) act->field->value;
-                *v = htons(*v);
+                *v = hton16(*v);
                 memcpy(&udp->udp_src, v, OXM_LENGTH(act->field->header));
                 udp->udp_csum = recalc_csum16(udp->udp_csum, udp->udp_dst,
-                                     htons(*((uint16_t*) act->field->value)));
+                                     hton16(*((uint16_t*) act->field->value)));
                 break;
             }
             case OXM_OF_UDP_DST:{
                 struct udp_header *udp = pkt->handle_std->proto->udp;
                 uint16_t *v = (uint16_t*) act->field->value;
-                *v = htons(*v);
+                *v = hton16(*v);
                 memcpy(&udp->udp_dst, v, OXM_LENGTH(act->field->header));
                 udp->udp_csum = recalc_csum16(udp->udp_csum, udp->udp_dst,
-                                     htons(*((uint16_t*) act->field->value)));
+                                     hton16(*((uint16_t*) act->field->value)));
                 break;
             }
             case OXM_OF_SCTP_SRC:{
                 uint16_t *v = (uint16_t*) act->field->value;
-                *v = htons(*v);
+                *v = hton16(*v);
                 memcpy(&pkt->handle_std->proto->sctp->sctp_src,
                     v, OXM_LENGTH(act->field->header));
                 break;
             }
             case OXM_OF_SCTP_DST:{
                 uint16_t *v = (uint16_t*) act->field->value;
-                *v = htons(*v);
+                *v = hton16(*v);
                 memcpy(&pkt->handle_std->proto->sctp->sctp_dst,
                     v, OXM_LENGTH(act->field->header));
                 break;
@@ -267,7 +267,7 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                                             pkt->handle_std->proto->ipv6;
                 uint32_t v = *((uint32_t*) act->field->value);
                 ipv6->ipv6_ver_tc_fl  = (ipv6->ipv6_ver_tc_fl  &
-                    ~ntohl(IPV6_FLABEL_MASK)) | ntohl(v & IPV6_FLABEL_MASK);
+                    ~ntoh32(IPV6_FLABEL_MASK)) | ntoh32(v & IPV6_FLABEL_MASK);
                 break;
             }
             /*IPV6 Neighbor Discovery */
@@ -314,25 +314,25 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
             case OXM_OF_MPLS_LABEL:{
                 struct mpls_header *mpls = pkt->handle_std->proto->mpls;
                 uint32_t v = *((uint32_t*) act->field->value);
-                mpls->fields = (mpls->fields & ~ntohl(MPLS_LABEL_MASK)) |
-                ntohl((v << MPLS_LABEL_SHIFT) & MPLS_LABEL_MASK);
+                mpls->fields = (mpls->fields & ~ntoh32(MPLS_LABEL_MASK)) |
+                ntoh32((v << MPLS_LABEL_SHIFT) & MPLS_LABEL_MASK);
                 break;
             }
             case OXM_OF_MPLS_TC:{
                 struct mpls_header *mpls = pkt->handle_std->proto->mpls;
-                mpls->fields = (mpls->fields & ~ntohl(MPLS_TC_MASK))
-                | ntohl((*act->field->value << MPLS_TC_SHIFT) & MPLS_TC_MASK);
+                mpls->fields = (mpls->fields & ~ntoh32(MPLS_TC_MASK))
+                | ntoh32((*act->field->value << MPLS_TC_SHIFT) & MPLS_TC_MASK);
             }
             case OXM_OF_MPLS_BOS:{
                 struct mpls_header *mpls = pkt->handle_std->proto->mpls;
-                mpls->fields = (mpls->fields & ~ntohl(MPLS_S_MASK))
-                | ntohl((*act->field->value << MPLS_S_SHIFT) & MPLS_S_MASK);
+                mpls->fields = (mpls->fields & ~ntoh32(MPLS_S_MASK))
+                | ntoh32((*act->field->value << MPLS_S_SHIFT) & MPLS_S_MASK);
             }
             case OXM_OF_PBB_ISID :{
                 struct pbb_header *pbb = pkt->handle_std->proto->pbb;
                 uint32_t v = *((uint32_t*) act->field->value);
-                pbb->id = (pbb->id & ~ntohl(PBB_ISID_MASK)) |
-                                                ntohl(v & IPV6_FLABEL_MASK);
+                pbb->id = (pbb->id & ~ntoh32(PBB_ISID_MASK)) |
+                                                ntoh32(v & IPV6_FLABEL_MASK);
             }
             default:
                 VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to set unknow field.");
@@ -350,13 +350,13 @@ copy_ttl_out(struct packet *pkt, struct ofl_action_header *act UNUSED) {
     if (pkt->handle_std->proto->mpls != NULL) {
         struct mpls_header *mpls = pkt->handle_std->proto->mpls;
 
-        if ((ntohl(mpls->fields) & MPLS_S_MASK) == 0) {
+        if ((ntoh32(mpls->fields) & MPLS_S_MASK) == 0) {
             // There is an inner MPLS header
             struct mpls_header *in_mpls = (struct mpls_header *)
                                            ((uint8_t *)mpls + MPLS_HEADER_LEN);
 
-            mpls->fields = (mpls->fields & ~htonl(MPLS_TTL_MASK)) |
-                                      (in_mpls->fields & htonl(MPLS_TTL_MASK));
+            mpls->fields = (mpls->fields & ~hton32(MPLS_TTL_MASK)) |
+                                      (in_mpls->fields & hton32(MPLS_TTL_MASK));
 
         } else if (pkt->buffer->size >= ETH_HEADER_LEN +
                                            MPLS_HEADER_LEN + IP_HEADER_LEN) {
@@ -364,8 +364,8 @@ copy_ttl_out(struct packet *pkt, struct ofl_action_header *act UNUSED) {
             struct ip_header *ipv4 = (struct ip_header *)
                                         ((uint8_t *)mpls + MPLS_HEADER_LEN);
 
-            mpls->fields = (mpls->fields & ~htonl(MPLS_TTL_MASK)) |
-                                htonl((uint32_t)ipv4->ip_ttl & MPLS_TTL_MASK);
+            mpls->fields = (mpls->fields & ~hton32(MPLS_TTL_MASK)) |
+                                hton32((uint32_t)ipv4->ip_ttl & MPLS_TTL_MASK);
 
         } else {
             VLOG_WARN_RL(LOG_MODULE, &rl,
@@ -384,13 +384,13 @@ copy_ttl_in(struct packet *pkt, struct ofl_action_header *act UNUSED) {
     if (pkt->handle_std->proto->mpls != NULL) {
         struct mpls_header *mpls = pkt->handle_std->proto->mpls;
 
-        if ((ntohl(mpls->fields) & MPLS_S_MASK) == 0) {
+        if ((ntoh32(mpls->fields) & MPLS_S_MASK) == 0) {
             // There is an inner MPLS header
             struct mpls_header *in_mpls = (struct mpls_header *)
                                         ((uint8_t *)mpls + MPLS_HEADER_LEN);
 
-            in_mpls->fields = (in_mpls->fields & ~htonl(MPLS_TTL_MASK))
-                                    | (mpls->fields & htonl(MPLS_TTL_MASK));
+            in_mpls->fields = (in_mpls->fields & ~hton32(MPLS_TTL_MASK))
+                                    | (mpls->fields & hton32(MPLS_TTL_MASK));
 
         } else if (pkt->buffer->size >= ETH_HEADER_LEN +
                                             MPLS_HEADER_LEN + IP_HEADER_LEN) {
@@ -398,10 +398,10 @@ copy_ttl_in(struct packet *pkt, struct ofl_action_header *act UNUSED) {
             struct ip_header *ipv4 = (struct ip_header *)
                                         ((uint8_t *)mpls + MPLS_HEADER_LEN);
 
-            uint8_t new_ttl = (ntohl(mpls->fields) & MPLS_TTL_MASK) >>
+            uint8_t new_ttl = (ntoh32(mpls->fields) & MPLS_TTL_MASK) >>
                                                                 MPLS_TTL_SHIFT;
-            uint16_t old_val = htons((ipv4->ip_proto) + (ipv4->ip_ttl<<8));
-            uint16_t new_val = htons((ipv4->ip_proto) + (new_ttl<<8));
+            uint16_t old_val = hton16((ipv4->ip_proto) + (ipv4->ip_ttl<<8));
+            uint16_t new_val = hton16((ipv4->ip_proto) + (new_ttl<<8));
             ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val);
             ipv4->ip_ttl = new_ttl;
 
@@ -471,11 +471,11 @@ push_vlan(struct packet *pkt, struct ofl_action_push *act) {
 
         if (new_snap != NULL) {
             push_vlan->vlan_next_type = new_snap->snap_type;
-            new_snap->snap_type = ntohs(act->ethertype);
-            new_eth->eth_type = htons(ntohs(new_eth->eth_type) + VLAN_HEADER_LEN);
+            new_snap->snap_type = ntoh16(act->ethertype);
+            new_eth->eth_type = hton16(ntoh16(new_eth->eth_type) + VLAN_HEADER_LEN);
         } else {
             push_vlan->vlan_next_type = new_eth->eth_type;
-            new_eth->eth_type = ntohs(act->ethertype);
+            new_eth->eth_type = ntoh16(act->ethertype);
         }
 
         // TODO Zoltan: This could be faster if VLAN match is updated
@@ -500,7 +500,7 @@ pop_vlan(struct packet *pkt, struct ofl_action_header *act UNUSED) {
 
         if (eth_snap != NULL) {
             eth_snap->snap_type = vlan->vlan_next_type;
-            eth->eth_type = htons(ntohs(eth->eth_type) - VLAN_HEADER_LEN);
+            eth->eth_type = hton16(ntoh16(eth->eth_type) - VLAN_HEADER_LEN);
         } else {
             eth->eth_type = vlan->vlan_next_type;
         }
@@ -528,8 +528,8 @@ set_mpls_ttl(struct packet *pkt, struct ofl_action_mpls_ttl *act) {
     if (pkt->handle_std->proto->mpls != NULL) {
         struct mpls_header *mpls = pkt->handle_std->proto->mpls;
 
-        mpls->fields = (mpls->fields & ~ntohl(MPLS_TTL_MASK)) |
-                    ntohl((act->mpls_ttl << MPLS_TTL_SHIFT) & MPLS_TTL_MASK);
+        mpls->fields = (mpls->fields & ~ntoh32(MPLS_TTL_MASK)) |
+                    ntoh32((act->mpls_ttl << MPLS_TTL_SHIFT) & MPLS_TTL_MASK);
 
     } else {
         VLOG_WARN_RL(LOG_MODULE, &rl,
@@ -544,10 +544,10 @@ dec_mpls_ttl(struct packet *pkt, struct ofl_action_header *act UNUSED) {
     if (pkt->handle_std->proto->mpls != NULL) {
         struct mpls_header *mpls = pkt->handle_std->proto->mpls;
 
-        uint32_t ttl = ntohl(mpls->fields) & MPLS_TTL_MASK;
+        uint32_t ttl = ntoh32(mpls->fields) & MPLS_TTL_MASK;
 
         if (ttl > 0) { ttl--; }
-        mpls->fields = (mpls->fields & ~ntohl(MPLS_TTL_MASK)) | htonl(ttl);
+        mpls->fields = (mpls->fields & ~ntoh32(MPLS_TTL_MASK)) | hton32(ttl);
 
     } else {
         VLOG_WARN_RL(LOG_MODULE, &rl,
@@ -613,24 +613,24 @@ push_mpls(struct packet *pkt, struct ofl_action_push *act) {
         }
 
         if (new_mpls != NULL) {
-            push_mpls->fields = new_mpls->fields & ~htonl(MPLS_S_MASK);
+            push_mpls->fields = new_mpls->fields & ~hton32(MPLS_S_MASK);
         } else if (ipv4 != NULL) {
             // copy IP TTL to MPLS TTL (rest is zero), and set S bit
-            push_mpls->fields = htonl((uint32_t)ipv4->ip_ttl &
-                                        MPLS_TTL_MASK) | htonl(MPLS_S_MASK);
+            push_mpls->fields = hton32((uint32_t)ipv4->ip_ttl &
+                                        MPLS_TTL_MASK) | hton32(MPLS_S_MASK);
         } else if (ipv6 != NULL) {
             // copy IP HOP LIMIT to MPLS TTL (rest is zero), and set S bit
-            push_mpls->fields = htonl((uint32_t)ipv6->ipv6_hop_limit &
-                                            MPLS_TTL_MASK) | htonl(MPLS_S_MASK);
+            push_mpls->fields = hton32((uint32_t)ipv6->ipv6_hop_limit &
+                                            MPLS_TTL_MASK) | hton32(MPLS_S_MASK);
         }
         else {
-            push_mpls->fields = htonl(MPLS_S_MASK);
+            push_mpls->fields = hton32(MPLS_S_MASK);
         }
 
         if (new_snap != NULL) {
-            new_snap->snap_type = ntohs(act->ethertype);
+            new_snap->snap_type = ntoh16(act->ethertype);
         } else {
-            new_eth->eth_type = ntohs(act->ethertype);
+            new_eth->eth_type = ntoh16(act->ethertype);
         }
 
         pkt->handle_std->valid = false;
@@ -652,11 +652,11 @@ pop_mpls(struct packet *pkt, struct ofl_action_pop_mpls *act) {
         size_t move_size;
 
         if (vlan_last != NULL) {
-            vlan_last->vlan_next_type = htons(act->ethertype);
+            vlan_last->vlan_next_type = hton16(act->ethertype);
         } else if (snap != NULL) {
-            snap->snap_type = htons(act->ethertype);
+            snap->snap_type = hton16(act->ethertype);
         } else {
-            eth->eth_type = htons(act->ethertype);
+            eth->eth_type = hton16(act->ethertype);
         }
 
         move_size = (uint8_t *)mpls - (uint8_t *)eth;
@@ -668,7 +668,7 @@ pop_mpls(struct packet *pkt, struct ofl_action_pop_mpls *act) {
 
         if (snap != NULL) {
             struct eth_header *new_eth = (struct eth_header *)(pkt->buffer->data);
-            new_eth->eth_type = htons(ntohs(new_eth->eth_type) + MPLS_HEADER_LEN);
+            new_eth->eth_type = hton16(ntoh16(new_eth->eth_type) + MPLS_HEADER_LEN);
         }
 
         //TODO Zoltan: revalidating might not be necessary at all cases
@@ -738,17 +738,17 @@ push_pbb(struct packet *pkt, struct ofl_action_push *act) {
         push_pbb->id = vlan == NULL
                        ? push_pbb->id
                        : push_pbb->id & (((uint32_t)
-                            (vlan->vlan_tci & ~htonl(VLAN_PCP_MASK)) )<< 16);
+                            (vlan->vlan_tci & ~hton32(VLAN_PCP_MASK)) )<< 16);
         memcpy(push_pbb->c_eth_dst,eth,ETH_HEADER_LEN);
 
         if (new_snap != NULL) {
 
             push_pbb->pbb_next_type = new_snap->snap_type;
-            new_snap->snap_type = ntohs(act->ethertype);
-            new_eth->eth_type = htons(ntohs(new_eth->eth_type) + PBB_HEADER_LEN);
+            new_snap->snap_type = ntoh16(act->ethertype);
+            new_eth->eth_type = hton16(ntoh16(new_eth->eth_type) + PBB_HEADER_LEN);
         } else {
             push_pbb->pbb_next_type = new_eth->eth_type;
-            new_eth->eth_type = ntohs(act->ethertype);
+            new_eth->eth_type = ntoh16(act->ethertype);
         }
 
         pkt->handle_std->valid = false;
@@ -804,8 +804,8 @@ set_nw_ttl(struct packet *pkt, struct ofl_action_set_nw_ttl *act) {
     if (pkt->handle_std->proto->ipv4 != NULL) {
         struct ip_header *ipv4 = pkt->handle_std->proto->ipv4;
 
-        uint16_t old_val = htons((ipv4->ip_proto) + (ipv4->ip_ttl<<8));
-        uint16_t new_val = htons((ipv4->ip_proto) + (act->nw_ttl<<8));
+        uint16_t old_val = hton16((ipv4->ip_proto) + (ipv4->ip_ttl<<8));
+        uint16_t new_val = hton16((ipv4->ip_proto) + (act->nw_ttl<<8));
         ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val);
         ipv4->ip_ttl = act->nw_ttl;
     } else {
@@ -825,8 +825,8 @@ dec_nw_ttl(struct packet *pkt, struct ofl_action_header *act UNUSED) {
 
         if (ipv4->ip_ttl > 0) {
             uint8_t new_ttl = ipv4->ip_ttl - 1;
-            uint16_t old_val = htons((ipv4->ip_proto) + (ipv4->ip_ttl<<8));
-            uint16_t new_val = htons((ipv4->ip_proto) + (new_ttl<<8));
+            uint16_t old_val = hton16((ipv4->ip_proto) + (ipv4->ip_ttl<<8));
+            uint16_t new_val = hton16((ipv4->ip_proto) + (new_ttl<<8));
             ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val);
             ipv4->ip_ttl = new_ttl;
         }

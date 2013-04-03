@@ -1,4 +1,4 @@
-/* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary 
+/* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary
  * Copyright (c) 2012, CPqD, Brazil
  * All rights reserved.
  *
@@ -33,6 +33,7 @@
 #include <string.h>
 #include <netinet/in.h>
 #include "ofl.h"
+#include "ofl-utils.h"
 #include "ofl-actions.h"
 #include "ofl-log.h"
 
@@ -48,7 +49,7 @@ ofl_actions_free(struct ofl_action_header *act, struct ofl_exp *exp) {
             free(a->field);
             free(a);
             return;
-            break;        
+            break;
         }
         case OFPAT_OUTPUT:
         case OFPAT_COPY_TTL_OUT:
@@ -92,12 +93,12 @@ ofl_utils_count_ofp_actions(void *data, size_t data_len, size_t *count) {
     /* this is needed so that buckets are handled correctly */
     while (data_len >= sizeof(struct ofp_action_header) -4 ) {
         act = (struct ofp_action_header *)d;
-        if (data_len < ntohs(act->len) || ntohs(act->len) < sizeof(struct ofp_action_header) - 4) {
+        if (data_len < ntoh16(act->len) || ntoh16(act->len) < sizeof(struct ofp_action_header) - 4) {
             OFL_LOG_WARN(LOG_MODULE, "Received action has invalid length.");
             return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
         }
-        data_len -= ntohs(act->len);
-        d += ntohs(act->len);
+        data_len -= ntoh16(act->len);
+        d += ntoh16(act->len);
         (*count)++;
     }
 

@@ -58,8 +58,8 @@ ofl_msg_pack_error(struct ofl_msg_error *msg, uint8_t **buf, size_t *buf_len) {
     *buf     = (uint8_t *)malloc(*buf_len);
 
     err = (struct ofp_error_msg *)(*buf);
-    err->type = htons(msg->type);
-    err->code = htons(msg->code);
+    err->type = hton16(msg->type);
+    err->code = hton16(msg->code);
     memcpy(err->data, msg->data, msg->data_length);
     return 0;
 }
@@ -86,7 +86,7 @@ ofl_msg_pack_role_request(struct ofl_msg_role_request *msg, uint8_t **buf, size_
         *buf     = (uint8_t *)malloc(*buf_len);
 
         req = (struct ofp_role_request *)(*buf);
-        req->role =  htonl(msg->role);
+        req->role =  hton32(msg->role);
         memset(req->pad,0,sizeof(req->pad));
         req->generation_id = hton64(msg->generation_id);
 
@@ -102,11 +102,11 @@ ofl_msg_pack_features_reply(struct ofl_msg_features_reply *msg, uint8_t **buf, s
 
     features = (struct ofp_switch_features *)(*buf);
     features->datapath_id  = hton64(msg->datapath_id);
-    features->n_buffers    = htonl( msg->n_buffers);
+    features->n_buffers    = hton32( msg->n_buffers);
     features->n_tables     =        msg->n_tables;
     features->auxiliary_id = msg->auxiliary_id;
     memset(features->pad, 0x00, 2);
-    features->capabilities = htonl( msg->capabilities);
+    features->capabilities = hton32( msg->capabilities);
     features->reserved = 0x00000000;
 
     return 0;
@@ -120,8 +120,8 @@ ofl_msg_pack_get_config_reply(struct ofl_msg_get_config_reply *msg, uint8_t **bu
     *buf     = (uint8_t *)malloc(*buf_len);
 
     config = (struct ofp_switch_config *)(*buf);
-    config->flags         = htons(msg->config->flags);
-    config->miss_send_len = htons(msg->config->miss_send_len);
+    config->flags         = hton16(msg->config->flags);
+    config->miss_send_len = hton16(msg->config->miss_send_len);
 
     return 0;
 }
@@ -134,8 +134,8 @@ ofl_msg_pack_set_config(struct ofl_msg_set_config *msg, uint8_t **buf, size_t *b
     *buf     = (uint8_t *)malloc(*buf_len);
 
     config = (struct ofp_switch_config *)(*buf);
-    config->miss_send_len = htons(msg->config->miss_send_len);
-    config->flags = htons(msg->config->flags);
+    config->miss_send_len = hton16(msg->config->miss_send_len);
+    config->flags = hton16(msg->config->flags);
 
     return 0;
 }
@@ -148,8 +148,8 @@ ofl_msg_pack_packet_in(struct ofl_msg_packet_in *msg, uint8_t **buf, size_t *buf
     *buf_len = sizeof(struct ofp_packet_in) + ROUND_UP(msg->match->length - 4 ,8) + msg->data_length + 2;
     *buf     = (uint8_t *)malloc(*buf_len);
     packet_in = (struct ofp_packet_in *)(*buf);
-    packet_in->buffer_id   = htonl(msg->buffer_id);
-    packet_in->total_len   = htons(msg->total_len);
+    packet_in->buffer_id   = hton32(msg->buffer_id);
+    packet_in->total_len   = hton16(msg->total_len);
     packet_in->reason      =       msg->reason;
     packet_in->table_id    =       msg->table_id;
     packet_in->cookie      = hton64(msg->cookie);
@@ -178,12 +178,12 @@ ofl_msg_pack_flow_removed(struct ofl_msg_flow_removed *msg, uint8_t **buf, size_
 
     ofr = (struct ofp_flow_removed *)(*buf);
     ofr->cookie        = hton64(msg->stats->cookie);
-    ofr->priority      = htons(msg->stats->priority);
+    ofr->priority      = hton16(msg->stats->priority);
     ofr->reason        =        msg->reason;
     ofr->table_id      =        msg->stats->table_id;
-    ofr->duration_sec  = htonl( msg->stats->duration_sec);
-    ofr->duration_nsec = htonl( msg->stats->duration_nsec);
-    ofr->idle_timeout  = htons( msg->stats->idle_timeout);
+    ofr->duration_sec  = hton32( msg->stats->duration_sec);
+    ofr->duration_nsec = hton32( msg->stats->duration_nsec);
+    ofr->idle_timeout  = hton16( msg->stats->idle_timeout);
     ofr->packet_count  = hton64(msg->stats->packet_count);
     ofr->byte_count    = hton64(msg->stats->byte_count);
 
@@ -223,9 +223,9 @@ ofl_msg_pack_packet_out(struct ofl_msg_packet_out *msg, uint8_t **buf, size_t *b
     *buf     = (uint8_t *)malloc(*buf_len);
 
     packet_out = (struct ofp_packet_out *)(*buf);
-    packet_out->buffer_id   = htonl(msg->buffer_id);
-    packet_out->in_port     = htonl(msg->in_port);
-    packet_out->actions_len = htons(act_len);
+    packet_out->buffer_id   = hton32(msg->buffer_id);
+    packet_out->in_port     = hton32(msg->in_port);
+    packet_out->actions_len = hton16(act_len);
     memset(packet_out->pad, 0x00, 6);
 
     ptr = (*buf) + sizeof(struct ofp_packet_out);
@@ -257,13 +257,13 @@ ofl_msg_pack_flow_mod(struct ofl_msg_flow_mod *msg, uint8_t **buf, size_t *buf_l
     flow_mod->cookie_mask  = hton64(msg->cookie_mask);
     flow_mod->table_id     =        msg->table_id;
     flow_mod->command      =        msg->command;
-    flow_mod->idle_timeout = htons( msg->idle_timeout);
-    flow_mod->hard_timeout = htons( msg->hard_timeout);
-    flow_mod->priority     = htons( msg->priority);
-    flow_mod->buffer_id    = htonl( msg->buffer_id);
-    flow_mod->out_port     = htonl( msg->out_port);
-    flow_mod->out_group    = htonl( msg->out_group);
-    flow_mod->flags        = htons( msg->flags);
+    flow_mod->idle_timeout = hton16( msg->idle_timeout);
+    flow_mod->hard_timeout = hton16( msg->hard_timeout);
+    flow_mod->priority     = hton16( msg->priority);
+    flow_mod->buffer_id    = hton32( msg->buffer_id);
+    flow_mod->out_port     = hton32( msg->out_port);
+    flow_mod->out_group    = hton32( msg->out_group);
+    flow_mod->flags        = hton16( msg->flags);
     memset(flow_mod->pad, 0x00, 2);
 
     ptr  = (*buf) + sizeof(struct ofp_flow_mod)- 4;
@@ -286,10 +286,10 @@ ofl_msg_pack_group_mod(struct ofl_msg_group_mod *msg, uint8_t **buf, size_t *buf
     *buf     = (uint8_t *)malloc(*buf_len);
 
     group_mod = (struct ofp_group_mod *)(*buf);
-    group_mod->command  = htons(msg->command);
+    group_mod->command  = hton16(msg->command);
     group_mod->type     =       msg->type;
     group_mod->pad = 0x00;
-    group_mod->group_id = htonl(msg->group_id);
+    group_mod->group_id = hton32(msg->group_id);
 
     ptr = (*buf) + sizeof(struct ofp_group_mod);
 
@@ -308,13 +308,13 @@ ofl_msg_pack_port_mod(struct ofl_msg_port_mod *msg, uint8_t **buf, size_t *buf_l
     *buf     = (uint8_t *)malloc(*buf_len);
 
     port_mod = (struct ofp_port_mod *)(*buf);
-    port_mod->port_no   = htonl(msg->port_no);
+    port_mod->port_no   = hton32(msg->port_no);
     memset(port_mod->pad, 0x00, 4);
     memcpy(&(port_mod->hw_addr), &(msg->hw_addr), OFP_ETH_ALEN);
     memset(port_mod->pad2, 0x00, 2);
-    port_mod->config    = htonl(msg->config);
-    port_mod->mask      = htonl(msg->mask);
-    port_mod->advertise = htonl(msg->advertise);
+    port_mod->config    = hton32(msg->config);
+    port_mod->mask      = hton32(msg->mask);
+    port_mod->advertise = hton32(msg->advertise);
     memset(port_mod->pad3, 0x00, 4);
 
     return 0;
@@ -330,7 +330,7 @@ ofl_msg_pack_table_mod(struct ofl_msg_table_mod *msg, uint8_t **buf, size_t *buf
     table_mod = (struct ofp_table_mod *)(*buf);
     table_mod->table_id =       msg->table_id;
     memset(table_mod->pad, 0x00, 3);
-    table_mod->config   = htonl(msg->config);
+    table_mod->config   = hton32(msg->config);
 
     return 0;
 }
@@ -345,9 +345,9 @@ ofl_msg_pack_meter_mod(struct ofl_msg_meter_mod *msg, uint8_t ** buf, size_t *bu
     *buf = malloc(*buf_len);
 
     meter_mod = (struct ofp_meter_mod*) (*buf);
-    meter_mod->command = htons(msg->command);
-    meter_mod->flags = htons(msg->flags);
-    meter_mod->meter_id = ntohl(msg->meter_id);
+    meter_mod->command = hton16(msg->command);
+    meter_mod->flags = hton16(msg->flags);
+    meter_mod->meter_id = ntoh32(msg->meter_id);
 
     ptr = (*buf) + sizeof(struct ofp_meter_mod);
     for (i=0; i < msg->meter_bands_num; i++) {
@@ -386,8 +386,8 @@ ofl_msg_pack_multipart_request_flow(struct ofl_msg_multipart_request_flow *msg, 
     stats = (struct ofp_flow_stats_request *)req->body;
     stats->table_id    =        msg->table_id;
     memset(stats->pad, 0x00, 3);
-    stats->out_port    = htonl( msg->out_port);
-    stats->out_group   = htonl( msg->out_group);
+    stats->out_port    = hton32( msg->out_port);
+    stats->out_group   = hton32( msg->out_group);
     memset(stats->pad2, 0x00, 4);
     stats->cookie      = hton64(msg->cookie);
     stats->cookie_mask = hton64(msg->cookie_mask);
@@ -408,7 +408,7 @@ ofl_msg_pack_multipart_request_port(struct ofl_msg_multipart_request_port *msg, 
 
     req = (struct ofp_multipart_request *)(*buf);
     stats = (struct ofp_port_stats_request *)req->body;
-    stats->port_no = htonl(msg->port_no);
+    stats->port_no = hton32(msg->port_no);
     memset(stats->pad, 0x00, 4);
 
     return 0;
@@ -424,8 +424,8 @@ ofl_msg_pack_multipart_request_queue(struct ofl_msg_multipart_request_queue *msg
 
     req = (struct ofp_multipart_request *)(*buf);
     stats = (struct ofp_queue_stats_request *)req->body;
-    stats->port_no = htonl(msg->port_no);
-    stats->queue_id = htonl(msg->queue_id);
+    stats->port_no = hton32(msg->port_no);
+    stats->queue_id = hton32(msg->queue_id);
 
     return 0;
 }
@@ -440,7 +440,7 @@ ofl_msg_pack_multipart_request_group(struct ofl_msg_multipart_request_group *msg
 
     req = (struct ofp_multipart_request *)(*buf);
     stats = (struct ofp_group_stats_request *)req->body;
-    stats->group_id = htonl(msg->group_id);
+    stats->group_id = hton32(msg->group_id);
     memset(stats->pad, 0x00, 4);
 
     return 0;
@@ -478,7 +478,7 @@ ofl_msg_pack_meter_multipart_request(struct ofl_msg_multipart_meter_request *msg
 
     req = (struct ofp_multipart_request*) (*buf);
     stats = (struct ofp_meter_multipart_request*) req->body;
-    stats->meter_id = htonl(msg->meter_id);
+    stats->meter_id = hton32(msg->meter_id);
     memset(stats->pad, 0x00, 4);
 
     return 0;
@@ -571,8 +571,8 @@ ofl_msg_pack_multipart_request(struct ofl_msg_multipart_request_header *msg, uin
 
     req = (struct ofp_multipart_request *)(*buf);
 
-    req->type  = htons(msg->type);
-    req->flags = htons(msg->flags);
+    req->type  = hton16(msg->type);
+    req->flags = hton16(msg->flags);
     memset(req->pad, 0x00, 4);
 
     return 0;
@@ -631,7 +631,7 @@ ofl_msg_pack_multipart_reply_aggregate(struct ofl_msg_multipart_reply_aggregate 
     stats = (struct ofp_aggregate_stats_reply *)resp->body;
     stats->packet_count = hton64(msg->packet_count);
     stats->byte_count   = hton64(msg->byte_count);
-    stats->flow_count   = htonl( msg->flow_count);
+    stats->flow_count   = hton32( msg->flow_count);
     memset(stats->pad, 0x00, 4);
 
     return 0;
@@ -739,11 +739,11 @@ ofl_msg_pack_multipart_reply_group_features(struct ofl_msg_multipart_reply_group
 
     resp = (struct ofp_multipart_reply *)(*buf);
     stats = (struct ofp_group_features_stats *)resp->body;
-    stats->types = htonl(msg->types);
-    stats->capabilities = htonl(msg->capabilities);
+    stats->types = hton32(msg->types);
+    stats->capabilities = hton32(msg->capabilities);
     for(i = 0; i < 4; i++){
-        stats->max_groups[i] = htonl(msg->max_groups[i]);
-        stats->actions[i] = htonl(msg->actions[i]);
+        stats->max_groups[i] = hton32(msg->max_groups[i]);
+        stats->actions[i] = hton32(msg->actions[i]);
     }
 
     return 0;
@@ -834,9 +834,9 @@ ofl_msg_pack_multipart_reply_meter_features(struct ofl_msg_multipart_reply_meter
     *buf     = (uint8_t *)malloc(*buf_len);
     resp = (struct ofp_multipart_reply *)(*buf);
     feat = (struct ofp_meter_features *)resp->body;
-    feat->max_meter = htonl(msg->features->max_meter);
-    feat->band_types = htonl(msg->features->band_types);
-    feat->capabilities = htonl(msg->features->capabilities);
+    feat->max_meter = hton32(msg->features->max_meter);
+    feat->band_types = hton32(msg->features->band_types);
+    feat->capabilities = hton32(msg->features->capabilities);
     feat->max_bands = msg->features->max_bands;
     feat->max_color = msg->features->max_color;
     memset(feat->pad, 0x0, 2);
@@ -925,8 +925,8 @@ ofl_msg_pack_multipart_reply(struct ofl_msg_multipart_reply_header *msg, uint8_t
         return error;
     }
     resp = (struct ofp_multipart_reply *)(*buf);
-    resp->type  = htons(msg->type);
-    resp->flags = htons(msg->flags);
+    resp->type  = hton16(msg->type);
+    resp->flags = hton16(msg->flags);
     memset(resp->pad, 0x00, 4);
 
     return 0;
@@ -940,7 +940,7 @@ ofl_msg_pack_queue_get_config_request(struct ofl_msg_queue_get_config_request *m
     *buf     = (uint8_t *)malloc(*buf_len);
 
     req = (struct ofp_queue_get_config_request *)(*buf);
-    req->port = htonl(msg->port);
+    req->port = hton32(msg->port);
     memset(req->pad, 0x00, 4);
 
     return 0;
@@ -956,7 +956,7 @@ ofl_msg_pack_queue_get_config_reply(struct ofl_msg_queue_get_config_reply *msg, 
     *buf     = (uint8_t *)malloc(*buf_len);
 
     resp = (struct ofp_queue_get_config_reply *)(*buf);
-    resp->port = htonl(msg->port);
+    resp->port = hton32(msg->port);
     memset(resp->pad, 0x00, 4);
 
     data = (uint8_t *)resp->queues;
@@ -1121,8 +1121,8 @@ ofl_msg_pack(struct ofl_msg_header *msg, uint32_t xid, uint8_t **buf, size_t *bu
     oh = (struct ofp_header *)(*buf);
     oh->version =        OFP_VERSION;
     oh->type    =        msg->type;
-    oh->length  = htons(*buf_len);
-    oh->xid     = htonl(xid);
+    oh->length  = hton16(*buf_len);
+    oh->xid     = hton32(xid);
 
     return 0;
 }

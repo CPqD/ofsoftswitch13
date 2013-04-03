@@ -135,7 +135,7 @@ static int
 ipv6_eh_match(uint8_t *a, uint8_t *b) {
     uint16_t *a1 = (uint16_t *) a;
     uint16_t *b1 = (uint16_t *) b;
-    return ((*a1 & ntohs(*b1)) == *a1);
+    return ((*a1 & ntoh16(*b1)) == *a1);
 }
 
 bool
