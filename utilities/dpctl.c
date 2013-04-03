@@ -1276,7 +1276,7 @@ parse_match(char *str, struct ofl_match_header **match) {
             }
             else {
                 if (mask == NULL)
-                    ofl_structs_match_put32(m, OXM_OF_IPV4_SRC,nw_src);
+                    ofl_structs_match_put32(m, OXM_OF_IPV4_SRC, nw_src);
                 else
                     ofl_structs_match_put32m(m, OXM_OF_IPV4_SRC_W, nw_src, *mask);
             }
@@ -2505,12 +2505,8 @@ parse_nw_addr(char *str, uint32_t *addr, uint32_t **mask) {
     uint32_t netmask;
     char *saveptr = NULL;
 
-    if (sscanf(str, "%"SCNu8".%"SCNu8".%"SCNu8".%"SCNu8,
-               &a[0], &a[1], &a[2], &a[3]) == 4) {
-            *addr = (a[3] << 24) | (a[2] << 16) | (a[1] << 8) | a[0];
-    }
-    else {
-        return -1;
+    if(!inet_pton(AF_INET, str, addr)){
+         return -1;
     }
     strtok_r(str, MASK_SEP, &saveptr);
     if(strcmp(saveptr,"") == 0){

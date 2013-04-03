@@ -19,6 +19,8 @@
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <inttypes.h>
+#include <netinet/in.h>
+
 
 enum byte_order{
 
@@ -39,11 +41,10 @@ ntohll(uint64_t n)
 }
 
 
-
 /* These macros may substitute for hton16(), hton32(), and htonll() in contexts
  * where function calls are not allowed, such as case labels.  They should not
  * be used elsewhere because all of them evaluate their argument many times. */
-#ifdef WORDS_BIGENDIAN
+#if __BYTE_ORDER == __BIG_ENDIAN
 #define CONSTANT_HTONS(VALUE) ((uint16_t) (VALUE))
 #define CONSTANT_HTONL(VALUE) ((uint32_t) (VALUE))
 #define CONSTANT_HTONLL(VALUE) ((uint64_t) (VALUE))

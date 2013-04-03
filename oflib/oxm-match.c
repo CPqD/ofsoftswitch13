@@ -146,7 +146,6 @@ oxm_prereqs_ok(const struct oxm_field *field, const struct ofl_match *rule)
 
     struct ofl_match_tlv *omt = NULL;
 
-
     /*Check ICMP type*/
     if (field->header == OXM_OF_IPV6_ND_SLL || field->header == OXM_OF_IPV6_ND_TARGET ){
         bool found =  false;
@@ -179,7 +178,6 @@ oxm_prereqs_ok(const struct oxm_field *field, const struct ofl_match *rule)
         bool found =  false;
         HMAP_FOR_EACH_WITH_HASH (omt, struct ofl_match_tlv, hmap_node, hash_int(OXM_OF_IP_PROTO, 0),
             &rule->match_fields) {
-
             uint8_t ip_proto;
             memcpy(&ip_proto,omt->value, sizeof(uint8_t));
             if (field->nw_proto != ip_proto)
@@ -198,9 +196,14 @@ oxm_prereqs_ok(const struct oxm_field *field, const struct ofl_match *rule)
               &rule->match_fields) {
               uint16_t eth_type;
               memcpy(&eth_type, omt->value, sizeof(uint16_t));
-              if (field->dl_type[0] == hton16(eth_type)) {
+              #if __BYTE_ORDER == __BIG_ENDIAN
+                printf("BIGG \n");
+              #endif
+              printf("%x %x\n\n ", field->dl_type[0], eth_type);
+
+              if (field->dl_type[0] == eth_type) {
                 return true;
-              } else if (field->dl_type[1] && field->dl_type[1] ==  hton16(eth_type)) {
+              } else if (field->dl_type[1] && field->dl_type[1] ==  eth_type) {
                 return true;
               }
         }
@@ -767,8 +770,9 @@ int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt){
                     memcpy(&value, oft->value,sizeof(uint32_t));
 					if(!has_mask)
 						if (oft->header == OXM_OF_IPV4_DST || oft->header == OXM_OF_IPV4_SRC
-							||oft->header == OXM_OF_ARP_SPA || oft->header == OXM_OF_ARP_TPA)
-							oxm_put_32(buf,oft->header, value);
+							||oft->header == OXM_OF_ARP_SPA || oft->header == OXM_OF_ARP_TPA){
+                            oxm_put_32(buf,oft->header, value);
+                        }
 						else
 							oxm_put_32(buf,oft->header, hton32(value));
                     else {
