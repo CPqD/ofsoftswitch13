@@ -33,7 +33,7 @@
 #define OFL_UTILS_H 1
 
 
-#include <netinet/in.h>
+
 
 
 /* Given an array of pointers _elem_, and the number of elements in the array

@@ -41,6 +41,7 @@
 #include <stdlib.h>
 #include "dynamic-string.h"
 #include "ofpbuf.h"
+#include "util.h"
 
 #define LOG_MODULE VLM_dhcp
 #include "vlog.h"

@@ -41,6 +41,7 @@
 #include "ofl-messages.h"
 #include "ofl-log.h"
 #include "openflow/openflow.h"
+#include "lib/util.h"
 
 #define LOG_MODULE ofl_act_p
 OFL_LOG_INIT(LOG_MODULE)

@@ -41,6 +41,7 @@
 #include "ofpbuf.h"
 #include "openflow/openflow.h"
 #include "packets.h"
+#include "util.h"
 
 #include "vlog.h"
 #define THIS_MODULE VLM_flow

@@ -41,6 +41,7 @@
 #include "ofl-utils.h"
 #include "ofl-log.h"
 #include "ofl-packets.h"
+#include "lib/util.h"
 
 
 #define LOG_MODULE ofl_str_p

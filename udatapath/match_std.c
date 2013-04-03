@@ -33,6 +33,7 @@
 #include "lib/hash.h"
 #include "oflib/oxm-match.h"
 #include "match_std.h"
+#include "util.h"
 
 /* Two matches overlap, if there exists a packet,
    which both match structures match on. */

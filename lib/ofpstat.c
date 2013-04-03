@@ -35,6 +35,7 @@
 
 #include "openflow/openflow.h"
 #include "ofpstat.h"
+#include "util.h"
 
 #define INC_IFP_STAT(ifps, tag) do {++(ifps)->tag;} while (0)
 

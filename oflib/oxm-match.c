@@ -59,6 +59,7 @@
 #include "unaligned.h"
 #include "byte-order.h"
 #include "../include/openflow/openflow.h"
+#include "lib/util.h"
 
 #define LOG_MODULE VLM_oxm_match
 #include "vlog.h"

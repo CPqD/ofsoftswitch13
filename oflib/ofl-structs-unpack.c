@@ -41,6 +41,7 @@
 #include "ofl-log.h"
 #include "oxm-match.h"
 #include "openflow/openflow.h"
+#include "lib/util.h"
 
 #define LOG_MODULE ofl_str_u
 OFL_LOG_INIT(LOG_MODULE)

@@ -42,6 +42,8 @@
 #include <string.h>
 #include "compiler.h"
 
+#include <netinet/in.h>
+
 #ifndef va_copy
 #ifdef __va_copy
 #define va_copy __va_copy
@@ -126,22 +128,58 @@ bool str_to_ullong(const char *, int base, unsigned long long *);
 #endif
 
 
-inline uint16_t
-hton16(uint16_t n);
+static inline uint16_t
+hton16(uint16_t n) {
+#if __BYTE_ORDER == __BIG_ENDIAN
+    return n;
+#else
+    return htons(n);
+#endif
+}
 
-inline uint16_t
-ntoh16(uint16_t n);
+static inline uint16_t
+ntoh16(uint16_t n) {
+#if __BYTE_ORDER == __BIG_ENDIAN
+    return n;
+#else
+    return ntohs(n);
+#endif
+}
 
-inline uint32_t
-hton32(uint32_t n);
+static inline uint32_t
+hton32(uint32_t n) {
+#if __BYTE_ORDER == __BIG_ENDIAN
+    return n;
+#else
+    return htonl(n);
+#endif
+}
 
-inline uint32_t
-ntoh32(uint32_t n);
+static inline uint32_t
+ntoh32(uint32_t n) {
+#if __BYTE_ORDER == __BIG_ENDIAN
+    return n;
+#else
+    return ntohl(n);
+#endif
+}
 
-inline uint64_t
-hton64(uint64_t n);
+static inline uint64_t
+hton64(uint64_t n) {
+#if __BYTE_ORDER == __BIG_ENDIAN
+    return n;
+#else
+    return (((uint64_t)hton32(n)) << 32) + hton32(n >> 32);
+#endif
+}
 
-inline uint64_t
-ntoh64(uint64_t n);
+static inline uint64_t
+ntoh64(uint64_t n) {
+#if __BYTE_ORDER == __BIG_ENDIAN
+    return n;
+#else
+    return (((uint64_t)ntoh32(n)) << 32) + ntoh32(n >> 32);
+#endif
+}
 
 #endif /* util.h */

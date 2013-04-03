@@ -19,6 +19,7 @@
 
 #include <stdint.h>
 #include "byte-order.h"
+#include "util.h"
 
 /* Public API. */
 static inline uint16_t get_unaligned_u16(const uint16_t *);

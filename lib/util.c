@@ -38,7 +38,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <netinet/in.h>
+
 
 const char *program_name;
 
@@ -297,55 +297,3 @@ str_to_ullong(const char *s, int base, unsigned long long *ull)
     return str_to_llong(s, base, (long long *) ull);
 }
 
-inline uint16_t
-hton16(uint16_t n) {
-#if __BYTE_ORDER == __BIG_ENDIAN
-    return n;
-#else
-    return htons(n);
-#endif
-}
-
-inline uint16_t
-ntoh16(uint16_t n) {
-#if __BYTE_ORDER == __BIG_ENDIAN
-    return n;
-#else
-    return ntohs(n);
-#endif
-}
-inline uint32_t
-hton32(uint32_t n) {
-#if __BYTE_ORDER == __BIG_ENDIAN
-    return n;
-#else
-    return htonl(n);
-#endif
-}
-
-inline uint32_t
-ntoh32(uint32_t n) {
-#if __BYTE_ORDER == __BIG_ENDIAN
-    return n;
-#else
-    return ntohl(n);
-#endif
-}
-
-inline uint64_t
-hton64(uint64_t n) {
-#if __BYTE_ORDER == __BIG_ENDIAN
-    return n;
-#else
-    return (((uint64_t)hton32(n)) << 32) + hton32(n >> 32);
-#endif
-}
-
-inline uint64_t
-ntoh64(uint64_t n) {
-#if __BYTE_ORDER == __BIG_ENDIAN
-    return n;
-#else
-    return (((uint64_t)ntoh32(n)) << 32) + ntoh32(n >> 32);
-#endif
-}

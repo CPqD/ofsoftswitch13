@@ -41,6 +41,7 @@
 #include "compiler.h"
 
 #include "lib/hash.h"
+#include "lib/util.h"
 #include "oflib/oxm-match.h"
 
 

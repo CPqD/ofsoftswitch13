@@ -36,6 +36,7 @@
 #include "ofl-utils.h"
 #include "ofl-actions.h"
 #include "ofl-log.h"
+#include "lib/util.h"
 
 #define LOG_MODULE ofl_act
 OFL_LOG_INIT(LOG_MODULE)

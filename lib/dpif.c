@@ -50,6 +50,7 @@
 #include "packets.h"
 #include "util.h"
 #include "xtoxll.h"
+#include "util.h"
 
 #include "vlog.h"
 #define LOG_MODULE VLM_dpif

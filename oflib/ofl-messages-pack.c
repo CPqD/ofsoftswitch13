@@ -38,6 +38,7 @@
 #include "ofl-log.h"
 #include "ofl-utils.h"
 #include "openflow/openflow.h"
+#include "lib/util.h"
 
 #define UNUSED __attribute__((__unused__))
 

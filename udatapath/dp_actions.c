@@ -44,6 +44,7 @@
 #include "util.h"
 #include "oflib/oxm-match.h"
 #include "hash.h"
+#include "util.h"
 
 #define LOG_MODULE VLM_dp_acts
 

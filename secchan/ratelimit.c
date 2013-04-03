@@ -44,6 +44,7 @@
 #include "status.h"
 #include "timeval.h"
 #include "vconn.h"
+#include "../lib/util.h"
 
 struct rate_limiter {
     const struct settings *s;

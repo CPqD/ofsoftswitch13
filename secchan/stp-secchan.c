@@ -46,6 +46,7 @@
 #include "stp.h"
 #include "timeval.h"
 #include "vlog.h"
+#include "../lib/util.h"
 
 #define LOG_MODULE VLM_stp_secchan
 

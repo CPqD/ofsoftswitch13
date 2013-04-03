@@ -50,6 +50,7 @@
 #include "timeval.h"
 #include "xtoxll.h"
 #include "vlog.h"
+#include "lib/util.h"
 
 #define LOG_MODULE VLM_port_watcher
 
