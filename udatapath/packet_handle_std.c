@@ -66,6 +66,7 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
         handle->valid = true;
 
         protocol_reset(handle->proto);
+        ofl_structs_match_init(m);
 
         m->header.type = OFPMT_OXM;
         ofl_structs_match_put32(m, OXM_OF_IN_PORT, pkt->in_port);
@@ -368,6 +369,9 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
                 ofl_structs_match_put_ipv6(m, OXM_OF_IPV6_ND_TARGET,
                         nd->target_addr.s6_addr);
 
+                if (pkt->buffer->size < offset + IPV6_ND_OPT_HD_LEN){
+                    return;
+                }
                 opt = (struct ipv6_nd_options_hd*)((uint8_t *)
                                                 pkt->buffer->data + offset);
                 if(opt->type == ND_OPT_SLL){
@@ -414,8 +418,6 @@ packet_handle_std_create(struct packet *pkt) {
 	struct packet_handle_std *handle = xmalloc(sizeof(struct packet_handle_std));
 	handle->proto = xmalloc(sizeof(struct protocols_std));
 	handle->pkt = pkt;
-
-	hmap_init(&handle->match.match_fields);
 
 	handle->valid = false;
 	packet_handle_std_validate(handle);
