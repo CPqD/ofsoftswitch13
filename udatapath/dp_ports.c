@@ -426,7 +426,7 @@ new_port(struct datapath *dp, struct sw_port *port, uint32_t port_no,
             {{.type = OFPT_PORT_STATUS},
              .reason = OFPPR_ADD, .desc = port->conf};
 
-    dp_send_message(dp, (struct ofl_msg_header *)&msg, NULL/*sender*/);
+        dp_send_message(dp, (struct ofl_msg_header *)&msg, NULL/*sender*/);
     }
 
     return 0;
@@ -672,6 +672,13 @@ dp_ports_handle_port_mod(struct datapath *dp, struct ofl_msg_port_mod *msg,
         p->conf->config &= ~msg->mask;
         p->conf->config |= msg->config & msg->mask;
     }
+
+    /*Notify all controllers that the port status has changed*/
+    struct ofl_msg_port_status rep_msg =
+            {{.type = OFPT_PORT_STATUS},
+             .reason = OFPPR_MODIFY, .desc = p->conf};
+
+    dp_send_message(dp, (struct ofl_msg_header *)&rep_msg, NULL/*sender*/);
 
     ofl_msg_free((struct ofl_msg_header *)msg, dp->exp);
     return 0;

@@ -97,6 +97,8 @@ make_openflow(size_t openflow_len, uint8_t type, struct ofpbuf **bufferp)
     return put_openflow_xid(openflow_len, type, alloc_xid(), *bufferp);
 }
 
+
+
 /* Allocates and stores in '*bufferp' a new ofpbuf with a size of
  * 'openflow_len', starting with an OpenFlow header with the given 'type' and
  * transaction id 'xid'.  Allocated bytes beyond the header, if any, are
@@ -262,7 +264,22 @@ make_add_simple_flow(const struct flow *flow,
     }
 }
 
+struct ofpbuf *
+make_port_desc_request(void){
 
+    struct ofp_multipart_request *desc;
+    struct ofpbuf *out = ofpbuf_new(sizeof *desc);
+    desc = ofpbuf_put_uninit(out, sizeof *desc);
+    desc->header.version = OFP_VERSION;
+    desc->header.type = OFPT_MULTIPART_REQUEST;
+    desc->header.length = htons(sizeof *desc);
+    desc->header.xid = alloc_xid();
+    desc->type = htons(OFPMP_PORT_DESC);
+    desc->flags = 0x0000;
+    memset(desc->pad, 0x0, 4);
+    return out;
+
+}
 
 struct ofpbuf *
 make_packet_out(const struct ofpbuf *packet, uint32_t buffer_id,

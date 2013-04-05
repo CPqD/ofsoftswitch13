@@ -285,8 +285,14 @@ port_watcher_local_packet_cb(struct relay *r, void *pw_)
 
             call_local_port_changed_callbacks(pw);
         }
+<<<<<<< HEAD
         else if (ntoh16(oh->type) == OFPMP_PORT_STATS
                && msg->size >= sizeof(struct ofp_port_status)) {
+=======
+        else if ((ntohs(oh->type) == OFPMP_PORT_STATS ||
+                ntohs(oh->type) == OFPT_PORT_STATUS)
+                && msg->size >= sizeof(struct ofp_port_status)) {
+>>>>>>> 361ef6f... Send port desc request from secchan to update the port watcher.
             struct ofp_port_status *ops = msg->data;
             update_phy_port(pw, &ops->desc, ops->reason);
             if (ops->desc.port_no == hton32(OFPP_LOCAL)) {
@@ -379,9 +385,15 @@ port_watcher_periodic_cb(void *pw_)
         struct ofpbuf *b;
         make_openflow(sizeof(struct ofp_header), OFPT_FEATURES_REQUEST, &b);
         rconn_send_with_limit(pw->local_rconn, b, &pw->n_txq, 1);
+<<<<<<< HEAD
        /* TODO: Send port desc request?
         b =  make_empty_multipart_request(OFPMP_PORT_DESC, 0x0000);
         rconn_send_with_limit(pw->local_rconn, b, &pw->n_txq, 1);*/
+=======
+       /* Send port desc request */
+        b =  make_port_desc_request();
+        rconn_send_with_limit(pw->local_rconn, b, &pw->n_txq, 1);
+>>>>>>> 361ef6f... Send port desc request from secchan to update the port watcher.
         pw->last_feature_request = time_now();
     }
 
@@ -391,7 +403,6 @@ port_watcher_periodic_cb(void *pw_)
         struct ofp_port new_opp;
         enum netdev_flags flags;
         int retval;
-
         opp = shash_find_data(&pw->port_by_name, name);
         if (!opp) {
             continue;
@@ -414,7 +425,12 @@ port_watcher_periodic_cb(void *pw_)
 
             /* Notify other secchan modules. */
             update_phy_port(pw, &new_opp, OFPPR_MODIFY);
+<<<<<<< HEAD
             if (new_opp.port_no == hton32(OFPP_LOCAL)) {
+=======
+
+            if (new_opp.port_no == htonl(OFPP_LOCAL)) {
+>>>>>>> 361ef6f... Send port desc request from secchan to update the port watcher.
                 call_local_port_changed_callbacks(pw);
             }
 
@@ -576,8 +592,13 @@ port_watcher_set_flags(struct port_watcher *pw, uint32_t port_no,
         return;
     }
 
+<<<<<<< HEAD
     if (!((ntoh32(p->state) ^ state) & s_mask)
             && (!((ntoh32(p->config) ^ config) & c_mask))) {
+=======
+    if (!((ntohl(p->state) ^ state) & s_mask)
+            && (!((ntohl(p->config) ^ config) & c_mask))) {
+>>>>>>> 361ef6f... Send port desc request from secchan to update the port watcher.
         return;
     }
     old = *p;
