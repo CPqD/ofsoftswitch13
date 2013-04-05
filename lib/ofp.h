@@ -83,6 +83,8 @@ struct ofpbuf *make_add_simple_flow(const struct flow *,
                                     uint32_t buffer_id, uint32_t out_port,
                                     uint16_t max_idle);
 
+struct ofpbuf * make_port_desc_request(void);
+
 struct ofpbuf *make_packet_out(const struct ofpbuf *packet, uint32_t buffer_id,
                                uint32_t in_port,
                                const struct ofp_action_header *,

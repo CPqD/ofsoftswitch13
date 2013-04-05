@@ -97,6 +97,8 @@ make_openflow(size_t openflow_len, uint8_t type, struct ofpbuf **bufferp)
     return put_openflow_xid(openflow_len, type, alloc_xid(), *bufferp);
 }
 
+
+
 /* Allocates and stores in '*bufferp' a new ofpbuf with a size of
  * 'openflow_len', starting with an OpenFlow header with the given 'type' and
  * transaction id 'xid'.  Allocated bytes beyond the header, if any, are
@@ -192,7 +194,7 @@ make_flow_mod(uint8_t command, uint8_t table_id,
     ofm->header.type = OFPT_FLOW_MOD;
     ofm->header.length = htons(size);
     ofm->cookie = 0;
-    /*TODO fill match     
+    /*TODO fill match
     ofm->match.in_port = flow->in_port;
     memcpy(ofm->match.dl_src, flow->dl_src, sizeof ofm->match.dl_src);
     memcpy(ofm->match.dl_dst, flow->dl_dst, sizeof ofm->match.dl_dst);
@@ -207,7 +209,7 @@ make_flow_mod(uint8_t command, uint8_t table_id,
     ofm->match.tp_dst = flow->tp_dst; */
     ofm->command = command;
     ofm->table_id = table_id;
-    
+
     return out;
 }
 
@@ -262,7 +264,22 @@ make_add_simple_flow(const struct flow *flow,
     }
 }
 
+struct ofpbuf *
+make_port_desc_request(void){
 
+    struct ofp_multipart_request *desc;
+    struct ofpbuf *out = ofpbuf_new(sizeof *desc);
+    desc = ofpbuf_put_uninit(out, sizeof *desc);
+    desc->header.version = OFP_VERSION;
+    desc->header.type = OFPT_MULTIPART_REQUEST;
+    desc->header.length = htons(sizeof *desc);
+    desc->header.xid = alloc_xid();
+    desc->type = htons(OFPMP_PORT_DESC);
+    desc->flags = 0x0000;
+    memset(desc->pad, 0x0, 4);
+    return out;
+
+}
 
 struct ofpbuf *
 make_packet_out(const struct ofpbuf *packet, uint32_t buffer_id,
@@ -379,7 +396,7 @@ check_ofp_message(const struct ofp_header *msg, uint8_t type, size_t size)
     }
 
     return 0;
-} 
+}
 
 /* Checks that 'inst' has type 'type' and that 'inst' is 'size' plus a
  * nonnegative integer multiple of 'array_elt_size' bytes long.  Returns 0 if
@@ -423,7 +440,7 @@ check_ofp_instruction_array(const struct ofp_instruction *inst, uint8_t type,
         *n_array_elts = (got_size - min_size) / array_elt_size;
     }
     return 0;
-} 
+}
 
 
 /* Checks that 'msg' has type 'type' and that 'msg' is 'size' plus a
@@ -554,8 +571,8 @@ flow_stats_next(struct flow_stats_iterator *iter)
         VLOG_WARN_RL(LOG_MODULE, &rl, "flow stats length %zu but only %td bytes left",
                      length, bytes_left);
         return NULL;
-    } 
-    /* TODO: Change instructions 
+    }
+    /* TODO: Change instructions
     else if ((length - sizeof *fs) % sizeof fs->instructions[0]) {
         VLOG_WARN_RL(LOG_MODULE, &rl, "flow stats length %zu has %zu bytes "
                      "left over in final action", length,
@@ -611,7 +628,7 @@ check_output_port(uint32_t port, int max_ports, bool table_allowed)
         VLOG_WARN(LOG_MODULE, "unknown output port %x", port);
         return ofp_mkerr(OFPET_BAD_ACTION, OFPBAC_BAD_OUT_PORT);;
     }
-} 
+}
 
 /* Checks that 'action' is a valid OFPAT_ENQUEUE action, given that the switch
  * will never have more than 'max_ports' ports.  Returns 0 if 'port' is valid,
@@ -629,9 +646,9 @@ check_setqueue_action(const union ofp_action *a, unsigned int len)
 
     oaq = (const struct ofp_action_set_queue *) a;
     return 0;
-} 
+}
 
-static int 
+static int
 check_nicira_action(const union ofp_action *a, unsigned int len)
 {
     const struct nx_action_header *nah;
@@ -668,7 +685,7 @@ check_action(const union ofp_action *a, unsigned int len, int max_ports,
         return check_output_port(ntohl(oao->port), max_ports, is_packet_out);
     }
 
-   
+
     case OFPAT_EXPERIMENTER:
         return (a->experimenter.experimenter == htonl(NX_VENDOR_ID)
                 ? check_nicira_action(a, len)

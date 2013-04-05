@@ -247,7 +247,7 @@ port_watcher_local_packet_cb(struct relay *r, void *pw_)
             pw->datapath_id = osf->datapath_id;
             VLOG_INFO(LOG_MODULE, "Datapath id is %012"PRIx64, ntohll(pw->datapath_id));
         }
-    } 
+    }
     else if (oh->type == OFPT_MULTIPART_REPLY) {
         struct ofp_multipart_reply *repl =  msg->data;
         if(ntohs(repl->type) == OFPMP_PORT_DESC){
@@ -255,7 +255,7 @@ port_watcher_local_packet_cb(struct relay *r, void *pw_)
             struct ofp_port *p;
             unsigned int port_no;
             size_t n_ports, i;
-            p = (struct ofp_port*) repl->body; 
+            p = (struct ofp_port*) repl->body;
             /* Update each port included in the message.*/
             memset(seen, false, sizeof seen);
             n_ports = ((msg->size - offsetof(struct ofp_multipart_reply, body))
@@ -284,8 +284,9 @@ port_watcher_local_packet_cb(struct relay *r, void *pw_)
 
             call_local_port_changed_callbacks(pw);
         }
-        else if (ntohs(oh->type) == OFPMP_PORT_STATS
-               && msg->size >= sizeof(struct ofp_port_status)) {
+        else if ((ntohs(oh->type) == OFPMP_PORT_STATS ||
+                ntohs(oh->type) == OFPT_PORT_STATUS)
+                && msg->size >= sizeof(struct ofp_port_status)) {
             struct ofp_port_status *ops = msg->data;
             update_phy_port(pw, &ops->desc, ops->reason);
             if (ops->desc.port_no == htonl(OFPP_LOCAL)) {
@@ -296,9 +297,9 @@ port_watcher_local_packet_cb(struct relay *r, void *pw_)
             }
         }
     }
-    
+
     return false;
-} 
+}
 
 static void
 bring_netdev_up_or_down(const char *name, bool down)
@@ -378,9 +379,9 @@ port_watcher_periodic_cb(void *pw_)
         struct ofpbuf *b;
         make_openflow(sizeof(struct ofp_header), OFPT_FEATURES_REQUEST, &b);
         rconn_send_with_limit(pw->local_rconn, b, &pw->n_txq, 1);
-       /* TODO: Send port desc request?
-        b =  make_empty_multipart_request(OFPMP_PORT_DESC, 0x0000);
-        rconn_send_with_limit(pw->local_rconn, b, &pw->n_txq, 1);*/      
+       /* Send port desc request */
+        b =  make_port_desc_request();
+        rconn_send_with_limit(pw->local_rconn, b, &pw->n_txq, 1);
         pw->last_feature_request = time_now();
     }
 
@@ -390,7 +391,6 @@ port_watcher_periodic_cb(void *pw_)
         struct ofp_port new_opp;
         enum netdev_flags flags;
         int retval;
-
         opp = shash_find_data(&pw->port_by_name, name);
         if (!opp) {
             continue;
@@ -413,6 +413,7 @@ port_watcher_periodic_cb(void *pw_)
 
             /* Notify other secchan modules. */
             update_phy_port(pw, &new_opp, OFPPR_MODIFY);
+
             if (new_opp.port_no == htonl(OFPP_LOCAL)) {
                 call_local_port_changed_callbacks(pw);
             }
@@ -575,7 +576,7 @@ port_watcher_set_flags(struct port_watcher *pw, uint32_t port_no,
         return;
     }
 
-    if (!((ntohl(p->state) ^ state) & s_mask) 
+    if (!((ntohl(p->state) ^ state) & s_mask)
             && (!((ntohl(p->config) ^ config) & c_mask))) {
         return;
     }
@@ -608,7 +609,7 @@ port_watcher_is_ready(const struct port_watcher *pw)
     return pw->got_feature_reply;
 }
 
-static struct hook_class port_watcher_hook_class = { 
+static struct hook_class port_watcher_hook_class = {
     port_watcher_local_packet_cb,                        /* local_packet_cb */
     port_watcher_remote_packet_cb,                       /* remote_packet_cb */
     port_watcher_periodic_cb,                            /* periodic_cb */
