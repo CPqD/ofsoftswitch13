@@ -1,5 +1,5 @@
 /* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary
- * Copyright (c) 2012, CPqD, Brazil 
+ * Copyright (c) 2012, CPqD, Brazil
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -67,7 +67,7 @@ static uint16_t
 gcd(uint16_t a, uint16_t b);
 
 static bool
-bucket_is_alive(struct ofl_bucket *bucket);
+bucket_is_alive(struct ofl_bucket *bucket, struct datapath *dp);
 
 static void
 init_select_group(struct group_entry *entry, struct ofl_msg_group_mod *mod);
@@ -84,7 +84,7 @@ group_entry_create(struct datapath *dp, struct group_table *table, struct ofl_ms
     struct group_entry *entry;
     size_t i;
     uint64_t now;
-    
+
     now = time_msec();
     entry = xmalloc(sizeof(struct group_entry));
 
@@ -365,8 +365,14 @@ group_entry_del_flow_ref(struct group_entry *entry, struct flow_entry *fe) {
 
 /* Returns true if the bucket is alive. */
 static bool
-bucket_is_alive(struct ofl_bucket *bucket UNUSED) {
-    // TODO Zoltan: Implement port up/down detection
+bucket_is_alive(struct ofl_bucket *bucket, struct datapath *dp) {
+    struct sw_port *p =  dp_ports_lookup(dp, bucket->watch_port);
+
+    if((p->conf->config & OFPPC_PORT_DOWN) ||
+        (p->conf->state & OFPPS_LINK_DOWN)){
+        return false;
+    }
+    // TODO Zoltan: Implement link up/down detection
     return true;
 }
 
@@ -437,7 +443,7 @@ select_from_ff_group(struct group_entry *entry) {
     size_t i;
 
     for (i=0; i<entry->desc->buckets_num; i++) {
-        if (bucket_is_alive(entry->desc->buckets[i])) {
+        if (bucket_is_alive(entry->desc->buckets[i], entry->dp)) {
             return i;
         }
     }

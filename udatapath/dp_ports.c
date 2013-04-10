@@ -363,7 +363,7 @@ new_port(struct datapath *dp, struct sw_port *port, uint32_t port_no,
     memcpy(port->conf->hw_addr, netdev_get_etheraddr(netdev), ETH_ADDR_LEN);
     port->conf->name       = strcpy(xmalloc(strlen(netdev_name) + 1), netdev_name);
     port->conf->config     = 0x00000000;
-    port->conf->state      = 0x00000000;
+    port->conf->state      = 0x00000000 | OFPPS_LIVE;
     port->conf->curr       = netdev_get_features(netdev, NETDEV_FEAT_CURRENT);
     port->conf->advertised = netdev_get_features(netdev, NETDEV_FEAT_ADVERTISED);
     port->conf->supported  = netdev_get_features(netdev, NETDEV_FEAT_SUPPORTED);
@@ -588,7 +588,6 @@ dp_ports_output(struct datapath *dp, struct ofpbuf *buffer, uint32_t out_port,
     /* Fall through to software controlled ports if not HW port */
 #endif
     if (p != NULL && p->netdev != NULL) {
-
         if (!(p->conf->config & OFPPC_PORT_DOWN)) {
             /* avoid the queue lookup for best-effort traffic */
             if (queue_id == 0) {
