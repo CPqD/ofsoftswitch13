@@ -160,7 +160,9 @@ flow_table_delete(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool s
     struct flow_entry *entry, *next;
 
     LIST_FOR_EACH_SAFE (entry, next, struct flow_entry, match_node, &table->match_entries) {
-        if (flow_entry_matches(entry, mod, strict, true/*check_cookie*/)) {
+        if ((mod->out_port == OFPP_ANY || flow_entry_has_out_port(entry, mod->out_port)) &&
+            (mod->out_group == OFPG_ANY || flow_entry_has_out_group(entry, mod->out_group)) &&
+            flow_entry_matches(entry, mod, strict, true/*check_cookie*/)) {
              flow_entry_remove(entry, OFPRR_DELETE);
         }
     }
