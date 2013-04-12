@@ -1093,7 +1093,6 @@ ofl_structs_meter_band_unpack(struct ofp_meter_band_header *src, size_t *len, st
 		OFL_LOG_WARN(LOG_MODULE, "Received meter band is too short (%zu).", *len);
 		return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
 	}
-	mb = (struct ofl_meter_band_header *) malloc(sizeof(struct ofl_meter_band_header));
 	switch (ntohs(src->type)){
 		case OFPMBT_DROP:{
 			struct ofl_meter_band_drop *b = (struct ofl_meter_band_drop *)malloc(sizeof(struct ofl_meter_band_drop));
