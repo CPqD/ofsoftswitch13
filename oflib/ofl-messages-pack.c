@@ -1108,6 +1108,7 @@ ofl_msg_pack(struct ofl_msg_header *msg, uint32_t xid, uint8_t **buf, size_t *bu
         case OFPT_ROLE_REQUEST:
         case OFPT_ROLE_REPLY:
             error = ofl_msg_pack_role_request((struct ofl_msg_role_request*)msg, buf, buf_len);
+            break;
         default: {
             OFL_LOG_WARN(LOG_MODULE, "Trying to pack unknown message type.");
             error = -1;
