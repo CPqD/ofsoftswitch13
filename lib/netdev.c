@@ -992,6 +992,7 @@ netdev_recv(struct netdev *netdev, struct ofpbuf *buffer)
             for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
                 struct tpacket_auxdata *aux;
                 struct vlan_tag *tag;
+
                 buffer->size += n_bytes;
 
                 if (cmsg->cmsg_len < CMSG_LEN(sizeof(struct tpacket_auxdata)) ||
@@ -1002,6 +1003,7 @@ netdev_recv(struct netdev *netdev, struct ofpbuf *buffer)
                 aux = (struct tpacket_auxdata *)CMSG_DATA(cmsg);
                 if (aux->tp_vlan_tci == 0)
                   continue;
+                buffer->size += + sizeof(struct vlan_tag);
                 buffer->data = (uint8_t *)(buffer->data) - VLAN_HEADER_LEN;
                 memmove(buffer->data,(uint8_t*)buffer->data + VLAN_HEADER_LEN, ETH_ALEN * 2);
                 tag = (struct vlan_tag *)((uint8_t*)buffer->data + ETH_ALEN * 2);

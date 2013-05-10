@@ -81,6 +81,7 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
         {
             struct ip_header *ipv4;
             struct mpls_header *mpls;
+            struct vlan_header *vlan;
             uint8_t* tmp;
             size_t i;
             
@@ -179,6 +180,22 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 iter->header == OXM_OF_ARP_SPA || iter->header == OXM_OF_ARP_TPA   ||
                 iter->header == OXM_OF_ARP_SHA || iter->header == OXM_OF_ARP_THA) {
                 memcpy(((uint8_t*)pkt->buffer->data + iter->pos) , act->field->value , OXM_LENGTH(iter->header));
+                pkt->handle_std->valid = false;
+                return;
+            }
+            if (iter->header == OXM_OF_VLAN_VID){
+                uint16_t vlan_id =  *((uint16_t*) act->field->value);
+                vlan = pkt->handle_std->proto->vlan;
+                vlan->vlan_tci = htons((ntohs(vlan->vlan_tci) & ~VLAN_VID_MASK) | (vlan_id & VLAN_VID_MASK));
+                memcpy(((uint8_t*)pkt->buffer->data + iter->pos) , &vlan->vlan_tci , OXM_LENGTH(iter->header));
+                pkt->handle_std->valid = false;
+                return;
+            }            
+            if (iter->header == OXM_OF_VLAN_PCP){
+                uint8_t vlan_pcp =  *((uint8_t*) act->field->value);
+                vlan = pkt->handle_std->proto->vlan;
+                vlan->vlan_tci = htons((ntohs(vlan->vlan_tci) & ~VLAN_PCP_MASK) | ((vlan_pcp << VLAN_PCP_SHIFT) & VLAN_PCP_MASK));
+                memcpy(((uint8_t*)pkt->buffer->data + iter->pos) , &vlan->vlan_tci , OXM_LENGTH(iter->header));
                 pkt->handle_std->valid = false;
                 return;
             }
