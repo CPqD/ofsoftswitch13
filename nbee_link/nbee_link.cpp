@@ -126,7 +126,8 @@ int nblink_add_entry_hmap(struct ofpbuf * pktin, struct hmap * pktout ,struct pa
         } 
         /* Do not insert VLAN ethertypes*/
         uint16_t *eth_type = (uint16_t*) malloc(sizeof(uint16_t));
-        memcpy(eth_type,pktout_field->value, Size);        
+        memcpy(eth_type, pktout_field->value, Size);
+        printf("Eth type %x\n", ntohs(*eth_type));       
         if(*eth_type == htons(ETH_TYPE_VLAN) || *eth_type == htons(ETH_TYPE_SVLAN) ||
            *eth_type == htons(ETH_TYPE_VLAN_QinQ) || *eth_type == htons(ETH_TYPE_VLAN_PBB_B)){
             free(eth_type);
@@ -354,7 +355,8 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
             proto_done = false;
             string protocol_Name (proto->Name);
             string field_Name (field->Name);
-
+            printf("Proto Name %s %d\n", proto->Name,protocol_Name.compare("vlan") );
+            
             if (protocol_Name.compare("ethernet") == 0 && pkt_proto->eth == NULL)
             {
                 pkt_proto->eth = (struct eth_header *) ( (uint8_t*) pktin->data + proto->Position);
@@ -366,9 +368,14 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
                 nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_ETH_TYPE);
 
             }
-            else if ((protocol_Name.compare("vlan") == 0 || protocol_Name.compare("pbb_b") == 0) && pkt_proto->vlan == NULL)
+            else if ((protocol_Name.compare("vlan") == 0 || protocol_Name.compare("pbb_b") == 0))
             {
-                pkt_proto->vlan = (struct vlan_header *) ((uint8_t*)  pktin->data + proto->Position);
+                if(pkt_proto->vlan_last == NULL){
+                    pkt_proto->vlan = pkt_proto->vlan_last = (struct vlan_header *) ((uint8_t*)  pktin->data + proto->Position);
+                }
+                else{
+                    pkt_proto->vlan_last = (struct vlan_header *) ((uint8_t*)  pktin->data + proto->Position);
+                }
                 PDMLReader->GetPDMLField(proto->Name, (char*) "pri", proto->FirstField, &field);
                 nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_VLAN_PCP);
                 PDMLReader->GetPDMLField(proto->Name, (char*) "vlanid", proto->FirstField, &field);
@@ -538,7 +545,7 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
             
             }
             proto = proto->NextProto;
-
+    
         }
 
 	return 1;
