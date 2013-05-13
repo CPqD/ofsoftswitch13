@@ -127,7 +127,6 @@ int nblink_add_entry_hmap(struct ofpbuf * pktin, struct hmap * pktout ,struct pa
         /* Do not insert VLAN ethertypes*/
         uint16_t *eth_type = (uint16_t*) malloc(sizeof(uint16_t));
         memcpy(eth_type, pktout_field->value, Size);
-        printf("Eth type %x\n", ntohs(*eth_type));       
         if(*eth_type == htons(ETH_TYPE_VLAN) || *eth_type == htons(ETH_TYPE_SVLAN) ||
            *eth_type == htons(ETH_TYPE_VLAN_QinQ) || *eth_type == htons(ETH_TYPE_VLAN_PBB_B)){
             free(eth_type);
@@ -193,7 +192,7 @@ int nblink_extract_proto_fields(struct ofpbuf * pktin, _nbPDMLField * field, str
         else if (header == OXM_OF_VLAN_PCP){
             uint16_t m_value;   
             sscanf(field->Value, "%hx", &m_value);
-            m_value = (m_value  & VLAN_PCP_MASK) >> VLAN_PCP_SHIFT;      
+            m_value = (m_value  & VLAN_PCP_MASK) >> VLAN_PCP_SHIFT; 
             memcpy(pktout_field->value, &m_value, field->Size);
         }
         else if(header == OXM_OF_IP_DSCP){
@@ -355,7 +354,6 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
             proto_done = false;
             string protocol_Name (proto->Name);
             string field_Name (field->Name);
-            printf("Proto Name %s %d\n", proto->Name,protocol_Name.compare("vlan") );
             
             if (protocol_Name.compare("ethernet") == 0 && pkt_proto->eth == NULL)
             {
@@ -372,16 +370,18 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct hmap * pktout,
             {
                 if(pkt_proto->vlan_last == NULL){
                     pkt_proto->vlan = pkt_proto->vlan_last = (struct vlan_header *) ((uint8_t*)  pktin->data + proto->Position);
+                    PDMLReader->GetPDMLField(proto->Name, (char*) "pri", proto->FirstField, &field);
+                    nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_VLAN_PCP);
+                    PDMLReader->GetPDMLField(proto->Name, (char*) "vlanid", proto->FirstField, &field);
+                    nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_VLAN_VID);
+                    PDMLReader->GetPDMLField(proto->Name, (char*) "type", proto->FirstField, &field);
+                    nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_ETH_TYPE);
                 }
                 else{
                     pkt_proto->vlan_last = (struct vlan_header *) ((uint8_t*)  pktin->data + proto->Position);
+                    PDMLReader->GetPDMLField(proto->Name, (char*) "type", proto->FirstField, &field);
+                    nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_ETH_TYPE);
                 }
-                PDMLReader->GetPDMLField(proto->Name, (char*) "pri", proto->FirstField, &field);
-                nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_VLAN_PCP);
-                PDMLReader->GetPDMLField(proto->Name, (char*) "vlanid", proto->FirstField, &field);
-                nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_VLAN_VID);
-                PDMLReader->GetPDMLField(proto->Name, (char*) "type", proto->FirstField, &field);
-                nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_ETH_TYPE);
                 
             }
             else if (protocol_Name.compare("mpls") == 0 && pkt_proto->mpls == NULL)
