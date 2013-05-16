@@ -26,6 +26,9 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
+ * The code to recalculate the ip checksum when the ip tos is changed was taken from
+ * ofss switch https://github.com/TrafficLab/ofss.
+ * Credits: Zoltán Lajos Kis
  */
 
 #include <netinet/in.h>
@@ -87,72 +90,61 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
             
             /* TODO: Checksum for SCTP and ICMP */
             if (iter->header == OXM_OF_IPV4_SRC || iter->header == OXM_OF_IPV4_DST 
-                || iter->header == OXM_OF_IP_DSCP || iter->header == OXM_OF_IP_ECN)
-            {
-                uint16_t *aux_old ;
-                aux_old = (uint16_t *)malloc(sizeof(uint16_t));
-                memcpy(aux_old, ((uint8_t*)pkt->buffer->data + iter->pos - 1) , (2 * OXM_LENGTH(iter->header)));
-                if (iter->header == OXM_OF_IP_DSCP)
-                {
-                    uint8_t* aux;
-                    aux = (uint8_t *)malloc(OXM_LENGTH(iter->header));
-                    memcpy(aux,((uint8_t*)pkt->buffer->data + iter->pos) , OXM_LENGTH(iter->header));
-                    *aux = *aux ^ ((*act->field->value) << 2 );
-                    memcpy(((uint8_t*)pkt->buffer->data + iter->pos) , aux , OXM_LENGTH(iter->header));
-                    free(aux);
-                }
-                else if (iter->header == OXM_OF_IP_ECN)
-                {
-                    memcpy(((uint8_t*)pkt->buffer->data + iter->pos) , act->field->value , OXM_LENGTH(iter->header));
-                }
-                else 
-                {
-                    memcpy(((uint8_t*)pkt->buffer->data + iter->pos) , act->field->value , OXM_LENGTH(iter->header));
-                }
-
-                // update TCP/UDP checksum
+                || iter->header == OXM_OF_IP_DSCP || iter->header == OXM_OF_IP_ECN){
                 ipv4 = pkt->handle_std->proto->ipv4;
-                if (pkt->handle_std->proto->tcp != NULL) {
-                    struct tcp_header *tcp = pkt->handle_std->proto->tcp;
-                    if (iter->header == OXM_OF_IPV4_SRC)
-                    {
-                        tcp->tcp_csum = recalc_csum16(tcp->tcp_csum, ipv4->ip_src,htonl(*((uint32_t*) act->field->value)));
-                    }
-                    else if (iter->header == OXM_OF_IPV4_DST)
-                    {
-                        tcp->tcp_csum = recalc_csum16(tcp->tcp_csum, ipv4->ip_dst,htonl(*((uint32_t*) act->field->value)));
-                    }
-                } else if (pkt->handle_std->proto->udp != NULL) {
-                    struct udp_header *udp = pkt->handle_std->proto->udp;
-                    if (iter->header == OXM_OF_IPV4_SRC)
-                    {
-                        udp->udp_csum = recalc_csum32(udp->udp_csum, ipv4->ip_src, htonl(*((uint32_t*) act->field->value)));
-                    }
-                    else if (iter->header == OXM_OF_IPV4_DST)
-                    {
-                        udp->udp_csum = recalc_csum32(udp->udp_csum, ipv4->ip_dst, htonl(*((uint32_t*) act->field->value)));
-                    }
+                if (iter->header == OXM_OF_IP_DSCP){
+                     uint8_t tos = (ipv4->ip_tos & ~IP_DSCP_MASK) |
+                               (*act->field->value << 2);
+                     /*Code from oss switch. Credits to Zoltá Lajos Kis*/           
+                     uint16_t old_value = (ipv4->ip_tos << 8) + ipv4->ip_ihl_ver;
+                     uint16_t new_value = (tos << 8) + ipv4->ip_ihl_ver;
+                     ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_value, new_value);
+                     ipv4->ip_tos = tos;                              
                 }
+                else if (iter->header == OXM_OF_IP_ECN){
+                    uint8_t tos = (ipv4->ip_tos & ~IP_ECN_MASK) |
+                               (*act->field->value & IP_ECN_MASK);
+                    /*Code from oss switch. Credits to Zoltá Lajos Kis*/
+                    uint16_t old_value = (ipv4->ip_tos << 8) + ipv4->ip_ihl_ver;
+                    uint16_t new_value = (tos << 8) + ipv4->ip_ihl_ver;
+                    ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_value, new_value);
 
-                if (iter->header == OXM_OF_IP_DSCP || iter->header == OXM_OF_IP_ECN)
-                {
-                    uint16_t *aux ;
-                    aux = (uint16_t *)malloc(sizeof(uint16_t));
-                    memcpy(aux, ((uint8_t*)pkt->buffer->data + iter->pos - 1) , (2 * OXM_LENGTH(iter->header)));
-                    ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, *aux_old, *aux);
-                    free(aux);
+                    ipv4->ip_tos = tos;
                 }
-                else if (iter->header == OXM_OF_IPV4_SRC)
-                {
-                    ipv4->ip_csum = recalc_csum32(ipv4->ip_csum, ipv4->ip_src, htonl(*((uint32_t*) act->field->value)));
+                else if (iter->header == OXM_OF_IPV4_SRC){
+                    /*Reconstruct TCP or UDP checksum*/
+                    if (pkt->handle_std->proto->tcp != NULL) {
+                    struct tcp_header *tcp = pkt->handle_std->proto->tcp;
+                    tcp->tcp_csum = recalc_csum32(tcp->tcp_csum,
+                        ipv4->ip_src,htonl(*((uint32_t*) act->field->value)));
+                    } else if (pkt->handle_std->proto->udp != NULL) {
+                        struct udp_header *udp = pkt->handle_std->proto->udp;
+                        udp->udp_csum = recalc_csum32(udp->udp_csum,
+                            ipv4->ip_src, htonl(*((uint32_t*) act->field->value)));
+                    }
+                    ipv4->ip_csum = recalc_csum32(ipv4->ip_csum, ipv4->ip_src,
+                                     htonl(*((uint32_t*) act->field->value)));
+                    ipv4->ip_src = *((uint32_t*) act->field->value);
                 }
-                else 
-                { 
-                    ipv4->ip_csum = recalc_csum32(ipv4->ip_csum, ipv4->ip_dst, htonl(*((uint32_t*) act->field->value)));
-                }  
+                else {
+                    /*Reconstruct TCP or UDP checksum*/
+                    if (pkt->handle_std->proto->tcp != NULL) {
+                        struct tcp_header *tcp = pkt->handle_std->proto->tcp;
+                        tcp->tcp_csum = recalc_csum32(tcp->tcp_csum,
+                            ipv4->ip_dst, htonl(*((uint32_t*) act->field->value)));
+                    } else if (pkt->handle_std->proto->udp != NULL) {
+                        struct udp_header *udp = pkt->handle_std->proto->udp;
+                        udp->udp_csum = recalc_csum32(udp->udp_csum,
+                            ipv4->ip_dst, htonl(*((uint32_t*) act->field->value)));
+                    }
+
+                    ipv4->ip_csum = recalc_csum32(ipv4->ip_csum, ipv4->ip_dst,
+                                        htonl(*((uint32_t*) act->field->value)));
+
+                    ipv4->ip_dst = *((uint32_t*) act->field->value);
+                }
                 pkt->handle_std->valid = false;
                 packet_handle_std_validate(pkt->handle_std);
-                free(aux_old);
                 return;        	       
             }
             if (iter->header == OXM_OF_TCP_SRC)
