@@ -420,6 +420,10 @@ ofl_error_code_print(FILE *stream, uint16_t type, uint16_t code) {
                 case (OFPBMC_BAD_WILDCARDS) :    { fprintf(stream, "BAD_WILDCARDS"); return; }
                 case (OFPBMC_BAD_FIELD) :        { fprintf(stream, "BAD_FIELD"); return; }
                 case (OFPBMC_BAD_VALUE) :        { fprintf(stream, "BAD_VALUE"); return; }
+                case (OFPBMC_BAD_MASK) :         { fprintf(stream, "BAD_MASK"); return; }
+                case (OFPBMC_BAD_PREREQ) :       { fprintf(stream, "BAD_PREREQ"); return; }
+                case (OFPBMC_DUP_FIELD) :        { fprintf(stream, "DUP_FIELD"); return; }
+                case (OFPBMC_EPERM) :            { fprintf(stream, "PERMISSION ERROR"); return; }
             }
             break;
         }

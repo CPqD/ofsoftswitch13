@@ -165,13 +165,18 @@ oxm_prereqs_ok(const struct oxm_field *field, const struct ofl_match *rule)
     struct ofl_match_tlv *omt = NULL;
 
     /*Check for IP_PROTO */
-    if (field->nw_proto)
+    if (field->nw_proto){
+        bool ip_proto_found = false;
         HMAP_FOR_EACH_WITH_HASH (omt, struct ofl_match_tlv, hmap_node, hash_int(OXM_OF_IP_PROTO, 0),
             &rule->match_fields) {
             uint8_t ip_proto;
             memcpy(&ip_proto,omt->value, sizeof(uint8_t));
             if (field->nw_proto != ip_proto)
                 return false;
+            ip_proto_found = true;    
+        }
+        if(!ip_proto_found)
+            return false;
     }
 
     /* Check for eth_type */
