@@ -149,6 +149,15 @@ action_set_write_action(struct action_set *set,
 
     LIST_FOR_EACH(entry, struct action_set_entry, node, &set->actions) {
         if (entry->action->type == new_entry->action->type) {
+            if(entry->action->type == OFPAT_SET_FIELD){
+                struct ofl_action_set_field *new_act = 
+                        (struct ofl_action_set_field*) new_entry->action;
+                struct ofl_action_set_field *act = 
+                            (struct ofl_action_set_field *) entry->action;
+                if(act->field->header != new_act->field->header){
+                    continue;
+                }     
+            } 
             /* replace same type of action */
             list_replace(&new_entry->node, &entry->node);
             /* NOTE: action in entry must not be freed, as it is owned by the
