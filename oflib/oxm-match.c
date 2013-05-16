@@ -227,22 +227,22 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
     switch (f->index) {
         case OFI_OXM_OF_IN_PORT: {
             uint32_t* in_port = (uint32_t*) value;
-            ofl_structs_match_put32(match, f->header, htonl(*in_port));
+            ofl_structs_match_put32(match, f->header, ntohl(*in_port));
             return 0;
         }
         case OFI_OXM_OF_IN_PHY_PORT:{
             /* Check for inport presence */
             if (check_present_prereq(match,OXM_OF_IN_PORT))
-                ofl_structs_match_put32(match, f->header, htonl(*((uint32_t*) value)));
+                ofl_structs_match_put32(match, f->header, ntohl(*((uint32_t*) value)));
             else return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_PREREQ);
 
         }
         case OFI_OXM_OF_METADATA:{
-            ofl_structs_match_put64(match, f->header, hton64(*((uint64_t*) value)));
+            ofl_structs_match_put64(match, f->header, ntoh64(*((uint64_t*) value)));
             return 0;
         }
         case OFI_OXM_OF_METADATA_W:{
-            ofl_structs_match_put64m(match, f->header,hton64(*((uint64_t*) value)),hton64(*((uint64_t*) mask)));
+            ofl_structs_match_put64m(match, f->header, ntoh64(*((uint64_t*) value)),hton64(*((uint64_t*) mask)));
             return 0;
         }
         /* Ethernet header. */
