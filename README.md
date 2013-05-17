@@ -126,9 +126,10 @@ code from the original Stanford switch).
 
 # Acknowledgments
 
-This project is supported by Ericsson Innovation Center in Brazil.
+###This project is supported by Ericsson Innovation Center in Brazil.
+Maintained by CPqD in technical collaboration with Ericsson Research.
 
-Contributions:
+**Contributions:**
 
 Zoltán Lajos Kis, ofsoftswitch 1.1 implementation and guidance for OpenFlow spec related subjects.
 
@@ -143,6 +144,11 @@ yu-iwata, fixed flow deletion without matchin out_port.
 Yuval Adler, bug fixes related to matching on vlan and ethertype.
 
 Hiroyasu OHYAMA, correct URL of NetBee Library.
+
+... 
+
+*"Your name here" -- please, let us*
+*know if we forgot to add your name to the list of contributors!*
 
 # Contact
 E-mail: Eder Leao Fernandes (ederlf@cpqd.com.br)
