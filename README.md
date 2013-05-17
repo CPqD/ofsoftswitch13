@@ -125,10 +125,15 @@ OpenFlow 1.3 Software Switch is released under the BSD license (BSD-like for
 code from the original Stanford switch).
 
 # Acknowledgments
-We would like to thank:
-Zoltán Lajos Kis from Ericsson Traffic Lab, for his really helpful contribution on solving questions about the spec.
 
-Khai Nguyen Dinh and Thanh Le Dinh from Applistar, for contributions on meter features.
+Contributions:
+Zoltán Lajos Kis, ofsoftswitch 1.1 implementation and guidance for OpenFlow spec related subjects.
+Jean Tourrilhes, lots of critical memory bug fixes on table features.
+Khai Nguyen Dinh and Thanh Le Dinh, contributions on meter features.
+Rich Lane, added the right compiler linker.
+yu-iwata, fixed flow deletion without matchin out_port.
+Yuval Adler, bug fixes related to matching on vlan and ethertype.
+Hiroyasu OHYAMA, correct URL of NetBee Library.
 
 # Contact
 E-mail: Eder Leao Fernandes (ederlf@cpqd.com.br)
