@@ -126,7 +126,7 @@ code from the original Stanford switch).
 
 # Acknowledgments
 
-###This project is supported by Ericsson Innovation Center in Brazil.
+This project is supported by Ericsson Innovation Center in Brazil.
 Maintained by CPqD in technical collaboration with Ericsson Research.
 
 **Contributions:**
