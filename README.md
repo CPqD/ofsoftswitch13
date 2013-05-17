@@ -126,7 +126,10 @@ code from the original Stanford switch).
 
 # Acknowledgments
 
+This project is supported by Ericsson Innovation Center in Brazil.
+
 Contributions:
+
 Zoltán Lajos Kis, ofsoftswitch 1.1 implementation and guidance for OpenFlow spec related subjects.
 Jean Tourrilhes, lots of critical memory bug fixes on table features.
 Khai Nguyen Dinh and Thanh Le Dinh, contributions on meter features.
