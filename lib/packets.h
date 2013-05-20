@@ -219,13 +219,7 @@ BUILD_ASSERT_DECL(VLAN_ETH_HEADER_LEN == sizeof(struct vlan_eth_header));
 #define IP_TYPE_UDP   17
 #define IP_TYPE_SCTP 132
 
-#define IPV6_TYPE_HBH 0
-#define IPV6_TYPE_DOH 60
-#define IPV6_TYPE_RH  43
-#define IPV6_TYPE_FH  44
-#define IPV6_TYPE_AH  51
-#define IPV6_TYPE_ESP 50
-#define IPV6_NO_NEXT_HEADER 59
+
 
 #define IP_VERSION 4
 
@@ -252,11 +246,24 @@ struct ip_header {
 };
 BUILD_ASSERT_DECL(IP_HEADER_LEN == sizeof(struct ip_header));
 
-#define IPV6_HEADER_LEN 44
+#define IPV6_TYPE_HBH 0
+#define IPV6_TYPE_DOH 60
+#define IPV6_TYPE_RH  43
+#define IPV6_TYPE_FH  44
+#define IPV6_TYPE_AH  51
+#define IPV6_TYPE_ESP 50
+#define IPV6_TYPE_ICMPV6   58
+#define IPV6_NO_NEXT_HEADER 59
+
+#define IPV6_VER(ipv6_ver_tc_fl) ((ipv6_ver_tc_fl) >> 28)
+#define IPV6_TC(ipv6_ver_tc_fl) ((ipv6_ver_tc_fl) & 0xff00000)
+#define IPV6_FLABEL(ipv6_ver_tc_fl) ((ipv6_ver_tc_fl) & 0xffff)
+
+#define IPV6_FLABEL_MASK 0xfffff
+
+#define IPV6_HEADER_LEN 40
 struct ipv6_header {
-    uint8_t ipv6_ver;
-    uint8_t ipv6_tc;
-    uint32_t ipv6_fl;
+    uint32_t ipv6_ver_tc_fl;
     uint16_t ipv6_pay_len;
     uint8_t  ipv6_next_hd;
     uint8_t ipv6_hop_limit;
@@ -274,6 +281,8 @@ enum ipv6_ext_hdr_order_T1 {
     ESP = 1 << 5,
 };
 
+#define ICMPV6_NEIGHSOL 135
+#define ICMPV6_NEIGHADV 136
 
 #define ICMP_HEADER_LEN 4
 struct icmp_header {
@@ -282,6 +291,22 @@ struct icmp_header {
     uint16_t icmp_csum;
 };
 BUILD_ASSERT_DECL(ICMP_HEADER_LEN == sizeof(struct icmp_header));
+
+
+#define ND_OPT_SLL 1
+#define ND_OPT_TLL 2
+
+#define IPV6_ND_HEADER_LEN 20
+struct ipv6_nd_header{
+    uint32_t reserved;
+    struct in6_addr target_addr;
+};
+
+#define IPV6_ND_OPT_HD_LEN 2
+struct ipv6_nd_options_hd{
+    uint8_t type;
+    uint8_t length;
+};
 
 #define UDP_HEADER_LEN 8
 struct udp_header {
@@ -352,6 +377,7 @@ struct qtag_prefix {
 };
 
 #define PBB_HEADER_LEN 18
+#define PBB_ISID_MASK 0xffffff
 
 struct pbb_header {
     uint32_t id; /* Service Instance Identifier */
@@ -411,7 +437,6 @@ protocol_reset(struct protocols_std *proto) {
     proto->icmp      = NULL;
     proto->pbb       = NULL;
 }
-
 
 
 #endif /* packets.h */

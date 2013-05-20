@@ -104,12 +104,10 @@ send_packet_to_controller(struct pipeline *pl, struct packet *pkt, uint8_t table
         msg.data_length = pkt->buffer->size;
     }
 
-    m = xmalloc (sizeof(struct ofl_match));
-    ofl_structs_match_init(m);
+    m = &pkt->handle_std->match;
     /* In this implementation the fields in_port and in_phy_port
         always will be the same, because we are not considering logical
         ports                                 */
-    ofl_structs_match_convert_pktf2oflm(&pkt->handle_std->match.match_fields, m);
     msg.match = (struct ofl_match_header*)m;
     dp_send_message(pl->dp, (struct ofl_msg_header *)&msg, NULL);
     ofl_structs_free_match((struct ofl_match_header* ) m, NULL);
@@ -480,13 +478,13 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
             }
             case OFPIT_WRITE_METADATA: {
                 struct ofl_instruction_write_metadata *wi = (struct ofl_instruction_write_metadata *)inst;
-                struct  packet_fields *f;
+                struct  ofl_match_tlv *f;
 
                 /* NOTE: Hackish solution. If packet had multiple handles, metadata
                  *       should be updated in all. */
                 packet_handle_std_validate((*pkt)->handle_std);
                 /* Search field on the description of the packet. */
-                HMAP_FOR_EACH_WITH_HASH(f,struct packet_fields,
+                HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
                     hmap_node, hash_int(OXM_OF_METADATA,0), &(*pkt)->handle_std->match.match_fields){
                     uint64_t *metadata = (uint64_t*) f->value;
                     *metadata = (*metadata & ~wi->metadata_mask) | (wi->metadata & wi->metadata_mask);

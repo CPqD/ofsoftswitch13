@@ -155,7 +155,7 @@ ofl_msg_pack_packet_in(struct ofl_msg_packet_in *msg, uint8_t **buf, size_t *buf
     packet_in->cookie      = hton64(msg->cookie);
 
     ptr = (*buf) + (sizeof(struct ofp_packet_in) - 4);
-    ofl_structs_match_pack(msg->match,&(packet_in->match),ptr, NETWORK_ORDER, NULL);
+    ofl_structs_match_pack(msg->match,&(packet_in->match),ptr, NULL);
     ptr = (*buf) + ROUND_UP((sizeof(struct ofp_packet_in)-4) + msg->match->length,8);
     /*padding bytes*/
 
@@ -189,7 +189,7 @@ ofl_msg_pack_flow_removed(struct ofl_msg_flow_removed *msg, uint8_t **buf, size_
 
     ptr = (*buf) + (sizeof(struct ofp_flow_removed) - 4);
 
-    ofl_structs_match_pack(msg->stats->match, &(ofr->match),ptr, HOST_ORDER, exp);
+    ofl_structs_match_pack(msg->stats->match, &(ofr->match),ptr, exp);
 
     return 0;
 }
@@ -267,7 +267,7 @@ ofl_msg_pack_flow_mod(struct ofl_msg_flow_mod *msg, uint8_t **buf, size_t *buf_l
     memset(flow_mod->pad, 0x00, 2);
 
     ptr  = (*buf) + sizeof(struct ofp_flow_mod)- 4;
-    ofl_structs_match_pack(msg->match, &(flow_mod->match), ptr, HOST_ORDER, exp);
+    ofl_structs_match_pack(msg->match, &(flow_mod->match), ptr, exp);
     /* We advance counting the padded bytes */
     ptr = (*buf) + ROUND_UP(sizeof(struct ofp_flow_mod)- 4 + msg->match->length,8);
     for (i=0; i<msg->instructions_num; i++) {
@@ -393,7 +393,7 @@ ofl_msg_pack_multipart_request_flow(struct ofl_msg_multipart_request_flow *msg, 
     stats->cookie_mask = hton64(msg->cookie_mask);
 
     ptr = (*buf) + sizeof(struct ofp_multipart_request) + sizeof(struct ofp_flow_stats_request);
-    ofl_structs_match_pack(msg->match, &(stats->match),ptr, HOST_ORDER, exp);
+    ofl_structs_match_pack(msg->match, &(stats->match),ptr, exp);
 
     return 0;
 }

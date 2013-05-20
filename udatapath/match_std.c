@@ -33,7 +33,6 @@
 #include "lib/hash.h"
 #include "oflib/oxm-match.h"
 #include "match_std.h"
-#include "nbee_link/nbee_link.h"
 
 
 /* Two matches overlap, if there exists a packet,
@@ -59,7 +58,7 @@ static int
 pkt_match_16(uint8_t *a, uint8_t *b) {
     uint16_t *a1 = (uint16_t *) a;
     uint16_t *b1 = (uint16_t *) b;
-    return ((*a1 ^ ntohs(*b1)) == 0);
+    return ((*a1 ^ *b1) == 0);
 }
 
 
@@ -79,7 +78,7 @@ pkt_mask16(uint8_t *a, uint8_t *am, uint8_t *b) {
     uint16_t *b1 = (uint16_t *) b;
     uint16_t *mask = (uint16_t *) am;
 
-    return (((~*mask) & (*a1 ^ ntohs(*b1))) == 0);
+    return (((~*mask) & (*a1 ^ *b1)) == 0);
 }
 
 /* Returns true if two values of 16 bit size match, considering their masks. */
@@ -98,7 +97,7 @@ static int
 pkt_match_32(uint8_t *a, uint8_t *b) {
     uint32_t *a1 = (uint32_t *) a;
     uint32_t *b1 = (uint32_t *) b;
-    return ((*a1 ^ ntohl(*b1)) == 0);
+    return ((*a1 ^ *b1) == 0);
 }
 
 /*Returns true if two values of 32 bit size match . */
@@ -116,7 +115,7 @@ pkt_mask32(uint8_t *a, uint8_t *am, uint8_t *b) {
     uint32_t *b1 = (uint32_t *) b;
     uint32_t *mask = (uint32_t *) am;
 
-    return (((*mask & *a1) ^ (*mask & ntohll(*b1))) == 0);
+    return (((*mask & *a1) ^ (*mask & *b1)) == 0);
 }
 
 /*Returns true if two values of 32 bit size match, considering their masks. */
@@ -135,7 +134,7 @@ pkt_64(uint8_t *a, uint8_t *b) {
     uint64_t *a1 = (uint64_t *) a;
     uint64_t *b1 = (uint64_t *) b;
 
-    return ((*a1 ^ ntohll(*b1)) == 0);
+    return ((*a1 ^ *b1) == 0);
 }
 
 /* Returns true if two values of 64 bits size match*/
@@ -154,7 +153,7 @@ pkt_mask64(uint8_t *a,uint8_t *am, uint8_t *b) {
     uint64_t *b1 = (uint64_t *) b;
     uint64_t *mask = (uint64_t *) am;
 
-    return (((*mask & *a1) ^ (*mask & ntohll(*b1))) == 0);
+    return (((*mask & *a1) ^ (*mask & *b1)) == 0);
 }
 
 /* Returns true if two values of 64 bits size match, considering their masks.*/
@@ -193,14 +192,14 @@ static int
 ipv6_eh_match(uint8_t *a, uint8_t *b) {
     uint16_t *a1 = (uint16_t *) a;
     uint16_t *b1 = (uint16_t *) b;
-    return ((*a1 & ntohs(*b1)) == *a1);
+    return ((*a1 & *b1) == *a1);
 }
 
 bool
 packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
 
     struct ofl_match_tlv *f;
-    struct packet_fields *packet_f;
+    struct ofl_match_tlv *packet_f;
     bool ret = false;
 
     if (flow_match->header.length == 0){
@@ -211,7 +210,7 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
     HMAP_FOR_EACH(f, struct ofl_match_tlv, hmap_node, &flow_match->match_fields){
         /* Check if the field is present in the packet */
         // HMAP_FOR_EACH_WITH_HASH(packet_f, struct packet_fields, hmap_node, hash_int(f->header, 0), &packet->match_fields){
-        HMAP_FOR_EACH(packet_f, struct packet_fields, hmap_node, &packet->match_fields){
+        HMAP_FOR_EACH(packet_f, struct ofl_match_tlv, hmap_node, &packet->match_fields){
             if (OXM_TYPE(f->header) == OXM_TYPE(packet_f->header)) {
                 int field_len =  OXM_LENGTH(f->header);
                 bool has_mask = OXM_HASMASK(f->header);
