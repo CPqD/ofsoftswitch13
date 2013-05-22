@@ -177,9 +177,10 @@
 			<case value="0x800"> <nextproto proto="#ip"/> </case>
 	        <case value="0x86DD"> <nextproto proto="#ipv6"/> </case>
 			<case value="0x8100"> <nextproto proto="#vlan"/> </case>
+			<case value="0x88A8"> <nextproto proto="#vlan"/> </case>
 			<case value="0x8847" comment="mpls-unicast"> <nextproto proto="#mpls"/> </case>
 			<case value="0x8848" comment="mpls-multicast"> <nextproto proto="#mpls"/> </case>
-			<case value="0x88A8"> <nextproto proto="#pbb"/> </case>
+			<case value="0x88E7"> <nextproto proto="#pbb"/> </case>
 		</switch>
 	</encapsulation>
 
@@ -222,9 +223,9 @@
 			<case value="0x800"> <nextproto proto="#ip"/> </case>
 			<case value="0x806"> <nextproto proto="#arp"/> </case>
 			<case value="0x8100"> <nextproto proto="#vlan" comment="Standard 802.1Q in 802.1Q encapsulation"/> </case>
-			<case value="0x9100"> <nextproto proto="#vlan" comment="802.1Q in 802.1Q encapsulation used by Cisco"/> </case>
+                        <case value="0x88A8"> <nextproto proto="#vlan" comment="Shortest path Bridge"/> </case>		
 			<case value="0x86DD"> <nextproto proto="#ipv6"/> </case>
-			<case value="0x88A8"> <nextproto proto="#pbb" comment="802.1ad encapsulation"/> </case>
+			<case value="0x88E7"> <nextproto proto="#pbb" comment="802.1ad encapsulation"/> </case>
 		</switch>
 	</encapsulation>
 
@@ -1161,10 +1162,11 @@
 			<case value="0" maxvalue="1500"> <nextproto proto="#llc"/> </case>
 			<case value="0x800"> <nextproto proto="#ip"/> </case>
 			<case value="0x806"> <nextproto proto="#arp"/> </case>
+			<case value="0x88A8"> <nextproto proto="#vlan" comment="Shortest path bridge"/> </case>
 			<case value="0x8100"> <nextproto proto="#vlan" comment="Standard 802.1Q in 802.1Q encapsulation"/> </case>
 			<case value="0x9100"> <nextproto proto="#vlan" comment="802.1Q in 802.1Q encapsulation used by Cisco"/> </case>
 			<case value="0x86DD"> <nextproto proto="#ipv6"/> </case>
-			<case value="0x88A8"> <nextproto proto="#pbb" comment="802.1ad encapsulation"/> </case>
+			<case value="0x88E7"> <nextproto proto="#pbb" comment="802.1ad encapsulation"/> </case>
 		</switch>
 	</encapsulation>
 	<visualization>

@@ -116,26 +116,7 @@ int nblink_add_entry_hmap(struct ofpbuf * pktin, struct hmap * pktout ,struct of
 * This will add a field entry to the hash map structure.
 */
 {
-    struct ofl_match_tlv *iter;
 
-    if(pktout_field->header == OXM_OF_ETH_TYPE){
-        /*If Ethertype is already present we should not insert the next*/
-        HMAP_FOR_EACH_WITH_HASH(iter, struct ofl_match_tlv, hmap_node, hash_int(OXM_OF_ETH_TYPE, 0), pktout)
-        {
-            return 0;
-        }
-        /* Do not insert VLAN ethertypes*/
-        uint16_t *eth_type = (uint16_t*) malloc(sizeof(uint16_t));
-        memcpy(eth_type, pktout_field->value, Size);
-        if(*eth_type == htons(ETH_TYPE_VLAN) || *eth_type == htons(ETH_TYPE_SVLAN) ||
-           *eth_type == htons(ETH_TYPE_VLAN_QinQ) || *eth_type == htons(ETH_TYPE_VLAN_PBB_B)){
-            free(eth_type);
-            return 0;
-        }
-        free(eth_type);
-    }
-    /* Creating new hash map entry */
-    hmap_insert_fast(pktout, &pktout_field->hmap_node, hash_int(pktout_field->header, 0));
 
     return 0;
 }
@@ -315,7 +296,20 @@ int nblink_extract_proto_fields(struct ofpbuf * pktin, _nbPDMLField * field, str
             }
             case 2:{
                 uint16_t m_value = *((uint16_t*)((uint8_t*)pktin->data + field->Position));
-                m_value =  ntohs(m_value);
+                m_value =  ntohs(m_value);  
+                struct ofl_match_tlv *iter;
+                if(header == OXM_OF_ETH_TYPE){
+                    /*If Ethertype is already present we should not insert the next*/
+                    HMAP_FOR_EACH_WITH_HASH(iter, struct ofl_match_tlv, hmap_node, hash_int(OXM_OF_ETH_TYPE, 0), &pktout->match_fields)
+                    {
+                        return 0;
+                    }
+                    /* Do not insert VLAN ethertypes*/
+                    if(m_value == ETH_TYPE_VLAN || m_value == ETH_TYPE_SVLAN ||
+                       m_value == ETH_TYPE_VLAN_QinQ || m_value == ETH_TYPE_VLAN_PBB_B){
+                        return 0;
+                    }
+                }
                 ofl_structs_match_put16(pktout, header, m_value);
                 break;
             }
@@ -392,6 +386,7 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct ofl_match * pk
             proto_done = false;
             string protocol_Name (proto->Name);
             string field_Name (field->Name);
+                printf("Field value %s\n", proto->Name );
 
             /* Copying data from the packet */
 
