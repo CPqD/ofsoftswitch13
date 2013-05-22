@@ -386,7 +386,6 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct ofl_match * pk
             proto_done = false;
             string protocol_Name (proto->Name);
             string field_Name (field->Name);
-                printf("Field value %s\n", proto->Name );
 
             /* Copying data from the packet */
 

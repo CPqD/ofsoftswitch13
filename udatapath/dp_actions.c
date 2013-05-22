@@ -142,15 +142,15 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 if (pkt->handle_std->proto->tcp != NULL) {
                     struct tcp_header *tcp = pkt->handle_std->proto->tcp;
                     tcp->tcp_csum = recalc_csum32(tcp->tcp_csum,
-                        ipv4->ip_src,htonl(*((uint32_t*) act->field->value)));
+                        ipv4->ip_src, *((uint32_t*) act->field->value));
                 } else if (pkt->handle_std->proto->udp != NULL) {
                     struct udp_header *udp = pkt->handle_std->proto->udp;
                     udp->udp_csum = recalc_csum32(udp->udp_csum,
-                        ipv4->ip_src, htonl(*((uint32_t*) act->field->value)));
+                        ipv4->ip_src, *((uint32_t*) act->field->value));
                 }
 
                 ipv4->ip_csum = recalc_csum32(ipv4->ip_csum, ipv4->ip_src,
-                                     htonl(*((uint32_t*) act->field->value)));
+                                     *((uint32_t*) act->field->value));
 
                 ipv4->ip_src = *((uint32_t*) act->field->value);
                 break;
@@ -162,15 +162,15 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 if (pkt->handle_std->proto->tcp != NULL) {
                     struct tcp_header *tcp = pkt->handle_std->proto->tcp;
                     tcp->tcp_csum = recalc_csum32(tcp->tcp_csum,
-                        ipv4->ip_dst, htonl(*((uint32_t*) act->field->value)));
+                        ipv4->ip_dst, *((uint32_t*) act->field->value));
                 } else if (pkt->handle_std->proto->udp != NULL) {
                     struct udp_header *udp = pkt->handle_std->proto->udp;
                     udp->udp_csum = recalc_csum32(udp->udp_csum,
-                        ipv4->ip_dst, htonl(*((uint32_t*) act->field->value)));
+                        ipv4->ip_dst, *((uint32_t*) act->field->value));
                 }
 
                 ipv4->ip_csum = recalc_csum32(ipv4->ip_csum, ipv4->ip_dst,
-                                    htonl(*((uint32_t*) act->field->value)));
+                                    *((uint32_t*) act->field->value));
 
                 ipv4->ip_dst = *((uint32_t*) act->field->value);
                 break;
@@ -959,7 +959,6 @@ dp_actions_output_port(struct packet *pkt, uint32_t out_port, uint32_t out_queue
         }
         case (OFPP_CONTROLLER): {
             struct ofl_msg_packet_in msg;
-            //ruct ofl_match *m;
             msg.header.type = OFPT_PACKET_IN;
             msg.total_len   = pkt->buffer->size;
             msg.reason = OFPR_ACTION;
@@ -981,15 +980,11 @@ dp_actions_output_port(struct packet *pkt, uint32_t out_port, uint32_t out_queue
             if (!pkt->handle_std->valid){
                 packet_handle_std_validate(pkt->handle_std);
             }
-            //m = &pkt->handle_std->match;
             //ofl_structs_match_init(m);
             /* In this implementation the fields in_port and in_phy_port
                 always will be the same, because we are not considering logical
                 ports*/
-            struct ofl_match_tlv * iter, *next;
-
             msg.match = (struct ofl_match_header*) &pkt->handle_std->match;
-            struct ofl_match *m = (struct ofl_match*)msg.match;
             dp_send_message(pkt->dp, (struct ofl_msg_header *)&msg, NULL);
             //ofl_structs_free_match((struct ofl_match_header* ) m, NULL);
             break;
