@@ -1,5 +1,5 @@
 /* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary
- * Copyright (c) 2012, CPqD, Brazil  
+ * Copyright (c) 2012, CPqD, Brazil
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -53,6 +53,8 @@ struct packet_handle_std {
    bool                        valid; /* Set to true if the handler data is valid.
                                            if false, it is revalidated before
                                            executing any methods. */
+   bool						   table_miss; /*Packet was matched
+   											against table miss flow*/
 };
 
 /* Creates a handler */

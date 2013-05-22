@@ -961,7 +961,7 @@ dp_actions_output_port(struct packet *pkt, uint32_t out_port, uint32_t out_queue
             struct ofl_msg_packet_in msg;
             msg.header.type = OFPT_PACKET_IN;
             msg.total_len   = pkt->buffer->size;
-            msg.reason = OFPR_ACTION;
+            msg.reason = pkt->handle_std->table_miss? OFPR_NO_MATCH:OFPR_ACTION;
             msg.table_id = pkt->table_id;
             msg.data        = pkt->buffer->data;
             msg.cookie = cookie;
@@ -976,17 +976,14 @@ dp_actions_output_port(struct packet *pkt, uint32_t out_port, uint32_t out_queue
                 msg.data_length =  pkt->buffer->size;
             }
 
-
             if (!pkt->handle_std->valid){
                 packet_handle_std_validate(pkt->handle_std);
             }
-            //ofl_structs_match_init(m);
             /* In this implementation the fields in_port and in_phy_port
                 always will be the same, because we are not considering logical
                 ports*/
             msg.match = (struct ofl_match_header*) &pkt->handle_std->match;
             dp_send_message(pkt->dp, (struct ofl_msg_header *)&msg, NULL);
-            //ofl_structs_free_match((struct ofl_match_header* ) m, NULL);
             break;
         }
         case (OFPP_FLOOD):

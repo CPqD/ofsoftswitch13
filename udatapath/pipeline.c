@@ -77,7 +77,12 @@ pipeline_create(struct datapath *dp) {
     return pl;
 }
 
+static bool
+is_table_miss(struct flow_entry *entry){
 
+    return ((entry->stats->priority) == 0 && (entry->match->length <= 4));
+
+}
 
 /* Sends a packet to the controller in a packet_in message */
 static void
@@ -152,7 +157,7 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
                 VLOG_DBG_RL(LOG_MODULE, &rl, "found matching entry: %s.", m);
                 free(m);
             }
-
+            pkt->handle_std->table_miss = is_table_miss(entry);
             execute_entry(pl, entry, &next_table, &pkt);
             /* Packet could be destroyed by a meter instruction */
             if (!pkt)
@@ -445,6 +450,7 @@ pipeline_timeout(struct pipeline *pl) {
     }
 }
 
+
 /* Executes the instructions associated with a flow entry */
 static void
 execute_entry(struct pipeline *pl, struct flow_entry *entry,
@@ -518,3 +524,4 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
         }
     }
 }
+
