@@ -263,6 +263,9 @@ dp_ports_run(struct datapath *dp) {
             buffer = ofpbuf_new_with_headroom(hard_header + mtu, headroom);
         }
         error = netdev_recv(p->netdev, buffer);
+        if (error == ENETDOWN){
+            VLOG_ERR(LOG_MODULE, "Não tenho nada mas tô aqui...");
+        }
         if (!error) {
             p->stats->rx_packets++;
             p->stats->rx_bytes += buffer->size;
@@ -270,6 +273,9 @@ dp_ports_run(struct datapath *dp) {
             process_buffer(dp, p, buffer);
             buffer = NULL;
         } else if (error != EAGAIN) {
+            if(error == ENETDOWN){
+                p->conf->state = OFPPS_LINK_DOWN;
+            }
             VLOG_ERR_RL(LOG_MODULE, &rl, "error receiving data from %s: %s",
                         netdev_get_name(p->netdev), strerror(error));
         }

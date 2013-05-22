@@ -511,8 +511,6 @@ oxm_entry_ok(const void *p, unsigned int match_len)
     memcpy(&header, p, 4);
     header = ntohl(header);
     payload_len = OXM_LENGTH(header);
-    VLOG_DBG(LOG_MODULE, "oxm_entry %08"PRIx32" to be decoded "
-                    " with length == %"PRIu32"", OXM_FIELD(header), OXM_LENGTH(header));
     if (!payload_len) {
         VLOG_DBG(LOG_MODULE, "oxm_entry %08"PRIx32" has invalid payload "
                     "length 0", header);
