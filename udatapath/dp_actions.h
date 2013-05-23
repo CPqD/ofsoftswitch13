@@ -70,4 +70,9 @@ dp_actions_list_has_out_group(size_t actions_num, struct ofl_action_header **act
 ofl_err
 dp_actions_validate(struct datapath *dp, size_t actions_num, struct ofl_action_header **actions);
 
+/* Validates the set of set_field actions, checking if the pre requisites are present in the match. Returns and Openlow
+ * error if the actions are invalid. */
+ofl_err
+dp_actions_check_set_field_req(struct ofl_msg_flow_mod *msg, size_t actions_num, struct ofl_action_header **actions);
+
 #endif /* DP_ACTIONS_H */

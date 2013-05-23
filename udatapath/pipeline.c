@@ -223,6 +223,10 @@ pipeline_handle_flow_mod(struct pipeline *pl, struct ofl_msg_flow_mod *msg,
             if (error) {
                 return error;
             }
+            error = dp_actions_check_set_field_req(msg, ia->actions_num, ia->actions);
+            if (error) {
+                return error;
+            }
         }
     }
 

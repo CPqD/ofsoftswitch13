@@ -179,38 +179,37 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 struct tcp_header *tcp = pkt->handle_std->proto->tcp;
                 uint16_t *v = (uint16_t*) act->field->value;
                 *v = htons(*v);
+                tcp->tcp_csum = recalc_csum16(tcp->tcp_csum, tcp->tcp_src,*v);
                 memcpy(&tcp->tcp_src, v, OXM_LENGTH(act->field->header));
-                tcp->tcp_csum = recalc_csum16(tcp->tcp_csum, tcp->tcp_src,
-                                    htons(*((uint16_t*) act->field->value)));
+
                 break;
             }
             case OXM_OF_TCP_DST:{
                 struct tcp_header *tcp = pkt->handle_std->proto->tcp;
                 uint16_t *v = (uint16_t*) act->field->value;
                 *v = htons(*v);
+                tcp->tcp_csum = recalc_csum16(tcp->tcp_csum, tcp->tcp_dst,*v);
                 memcpy(&tcp->tcp_dst, v, OXM_LENGTH(act->field->header));
-                tcp->tcp_csum = recalc_csum16(tcp->tcp_csum, tcp->tcp_dst,
-                                    htons(*((uint16_t*) act->field->value)));
+
                 break;
             }
             case OXM_OF_UDP_SRC:{
                 struct udp_header *udp = pkt->handle_std->proto->udp;
                 uint16_t *v = (uint16_t*) act->field->value;
                 *v = htons(*v);
+                udp->udp_csum = recalc_csum16(udp->udp_csum, udp->udp_dst, *v);
                 memcpy(&udp->udp_src, v, OXM_LENGTH(act->field->header));
-                udp->udp_csum = recalc_csum16(udp->udp_csum, udp->udp_dst,
-                                     htons(*((uint16_t*) act->field->value)));
                 break;
             }
             case OXM_OF_UDP_DST:{
                 struct udp_header *udp = pkt->handle_std->proto->udp;
                 uint16_t *v = (uint16_t*) act->field->value;
                 *v = htons(*v);
+                udp->udp_csum = recalc_csum16(udp->udp_csum, udp->udp_dst, *v);
                 memcpy(&udp->udp_dst, v, OXM_LENGTH(act->field->header));
-                udp->udp_csum = recalc_csum16(udp->udp_csum, udp->udp_dst,
-                                     htons(*((uint16_t*) act->field->value)));
                 break;
             }
+            /*TODO recalculate SCTP checksum*/
             case OXM_OF_SCTP_SRC:{
                 uint16_t *v = (uint16_t*) act->field->value;
                 *v = htons(*v);
@@ -1058,5 +1057,29 @@ dp_actions_validate(struct datapath *dp, size_t actions_num, struct ofl_action_h
         }
     }
 
+    return 0;
+}
+
+ofl_err
+dp_actions_check_set_field_req(struct ofl_msg_flow_mod *msg, size_t actions_num, struct ofl_action_header **actions){
+    size_t i;
+
+    for (i=0; i < actions_num; i++) {
+        if (actions[i]->type == OFPAT_SET_FIELD) {
+            struct ofl_action_set_field *as = (struct ofl_action_set_field*)actions[i];
+            struct oxm_field  *f;
+
+            f = oxm_field_lookup(as->field->header);
+
+            /*There is no match field, so the prerequisites are not present*/
+            if (msg->match->length == 0 && f->dl_type[0] != 0)
+                return ofl_error(OFPET_BAD_ACTION, OFPBAC_MATCH_INCONSISTENT);
+
+            if(!oxm_prereqs_ok(f, (struct ofl_match*) msg->match)) {
+                return ofl_error(OFPET_BAD_ACTION, OFPBAC_MATCH_INCONSISTENT);
+            }
+
+        }
+    }
     return 0;
 }
