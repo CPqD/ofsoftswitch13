@@ -57,6 +57,7 @@
 #include "ofpbuf.h"
 #include "oflib/ofl-structs.h"
 #include "oflib/ofl-utils.h"
+#include "oflib/ofl-print.h"
 #include "unaligned.h"
 #include "byte-order.h"
 #include "../include/openflow/openflow.h"
@@ -76,26 +77,9 @@ static const uint8_t eth_mcast_1[ETH_ADDR_LEN]
 static const uint8_t eth_mcast_0[ETH_ADDR_LEN]
     = {0xfe, 0xff, 0xff, 0xff, 0xff, 0xff};
 
-/* For each OXM_* field, define OFI_OXM_* as consecutive integers starting from
- * zero. */
-enum oxm_field_index {
-#define DEFINE_FIELD(HEADER,DL_TYPES, NW_PROTO, MASKABLE) \
-        OFI_OXM_##HEADER,
-#include "oxm-match.def"
-    N_OXM_FIELDS
-};
-
-struct oxm_field {
-    struct hmap_node hmap_node;
-    enum oxm_field_index index;       /* OFI_* value. */
-    uint32_t header;                  /* OXM_* value. */
-    uint16_t dl_type[N_OXM_DL_TYPES]; /* dl_type prerequisites. */
-    uint8_t nw_proto;                 /* nw_proto prerequisite, if nonzero. */
-    bool maskable;                    /* Writable with OXAST_REG_{MOVE,LOAD}? */
-};
 
 /* All the known fields. */
-static struct oxm_field oxm_fields[N_OXM_FIELDS] = {
+struct oxm_field oxm_fields[N_OXM_FIELDS] = {
 #define DEFINE_FIELD(HEADER, DL_TYPES, NW_PROTO, MASKABLE)     \
     { HMAP_NODE_NULL_INITIALIZER, OFI_OXM_##HEADER, OXM_##HEADER, \
         DL_CONVERT DL_TYPES, NW_PROTO, MASKABLE },
@@ -134,16 +118,30 @@ oxm_field_lookup(uint32_t header)
     struct oxm_field *f;
 
     oxm_init();
-
-    HMAP_FOR_EACH_WITH_HASH(f, struct oxm_field, hmap_node ,hash_int(header, 0),
-                             &all_oxm_fields) {
+    HMAP_FOR_EACH_WITH_HASH(f, struct oxm_field, hmap_node, hash_int(header, 0),
+                            &all_oxm_fields) {
         if (f->header == header) {
             return f;
         }
     }
-
     return NULL;
 }
+
+
+struct ofl_match_tlv *
+oxm_match_lookup(uint32_t header, const struct ofl_match *omt)
+{
+    struct ofl_match_tlv *f;
+
+    HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv, hmap_node, hash_int(header, 0),
+    					    &omt->match_fields) {
+        if (f->header == header) {
+            return f;
+        }
+    }
+    return NULL;
+}
+
 
 static bool
 check_present_prereq(const struct ofl_match *match, uint32_t header){
@@ -242,7 +240,7 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
             return 0;
         }
         case OFI_OXM_OF_METADATA_W:{
-            ofl_structs_match_put64m(match, f->header, ntoh64(*((uint64_t*) value)),hton64(*((uint64_t*) mask)));
+            ofl_structs_match_put64m(match, f->header, ntoh64(*((uint64_t*) value)), ntoh64(*((uint64_t*) mask)));
             return 0;
         }
         /* Ethernet header. */
@@ -432,7 +430,8 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
  /*hmap_insert(match_dst, &f->hmap_node,
                 hash_int(f->header, 0));               */
 
-/* ox_pull_match() and helpers. */
+
+/* oxm_pull_match() and helpers. */
 
 
 /* Puts the match in a hash_map structure */
@@ -443,8 +442,8 @@ oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len)
     uint32_t header;
     uint8_t *p;
     p = ofpbuf_try_pull(buf, match_len);
-    VLOG_DBG(LOG_MODULE, "oxm_match length %u, max "
-                    "length %d", match_len, buf->size);
+    // VLOG_DBG(LOG_MODULE, "oxm_match length %u, max "
+    //                "length %d", match_len, buf->size);
 
     if (!p) {
         VLOG_DBG_RL(LOG_MODULE,&rl, "oxm_match length %u, rounded up to a "
@@ -453,7 +452,10 @@ oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len)
 
         return ofp_mkerr(OFPET_BAD_MATCH, OFPBRC_BAD_LEN);
     }
+
+    /* Initialize the match hashmap */
     ofl_structs_match_init(match_dst);
+
     while ((header = oxm_entry_ok(p, match_len)) != 0) {
 
         unsigned length = OXM_LENGTH(header);
@@ -511,8 +513,8 @@ oxm_entry_ok(const void *p, unsigned int match_len)
     memcpy(&header, p, 4);
     header = ntohl(header);
     payload_len = OXM_LENGTH(header);
-    VLOG_DBG(LOG_MODULE, "oxm_entry %08"PRIx32" to be decoded "
-                    " with length == %"PRIu32"", OXM_FIELD(header), OXM_LENGTH(header));
+    // VLOG_DBG(LOG_MODULE, "oxm_entry %08"PRIx32" to be decoded "
+    //          "with length == %"PRIu32"", OXM_FIELD(header), OXM_LENGTH(header));
     if (!payload_len) {
         VLOG_DBG(LOG_MODULE, "oxm_entry %08"PRIx32" has invalid payload "
                     "length 0", header);
