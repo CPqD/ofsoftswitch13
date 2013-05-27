@@ -150,6 +150,12 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
         table         = next_table;
         next_table    = NULL;
 
+        // EEDBEH: additional printout to debug table lookup
+        if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
+            char *m = ofl_structs_match_to_string((struct ofl_match_header*)&(pkt->handle_std->match), pkt->dp->exp);
+            VLOG_DBG_RL(LOG_MODULE, &rl, "searching table entry for packet match: %s.", m);
+            free(m);
+        }
         entry = flow_table_lookup(table, pkt);
         if (entry != NULL) {
 	        if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {

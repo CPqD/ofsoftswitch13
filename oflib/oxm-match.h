@@ -54,7 +54,6 @@
 #include "packets.h"
 #include "../oflib/ofl-structs.h"
 
-
 #define OXM_HEADER__(VENDOR, FIELD, HASMASK, LENGTH) \
     (((VENDOR) << 16) | ((FIELD) << 9) | ((HASMASK) << 8) | (LENGTH))
 #define OXM_HEADER(VENDOR, FIELD, LENGTH) \
@@ -311,9 +310,8 @@ oxm_pull_match(struct ofpbuf * buf, struct ofl_match *match_dst, int match_len);
 
 int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt);
 
-char *oxm_match_to_string(const uint8_t *, unsigned int match_len);
-
-int oxm_match_from_string(const char *, struct ofpbuf *);
+struct ofl_match_tlv *
+oxm_match_lookup(uint32_t header, const struct ofl_match *omt);
 
 uint32_t oxm_entry_ok(const void *, unsigned int );
 

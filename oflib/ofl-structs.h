@@ -774,8 +774,17 @@ ofl_structs_match_to_string(struct ofl_match_header *match, struct ofl_exp *exp)
 void
 ofl_structs_match_print(FILE *stream, struct ofl_match_header *match, struct ofl_exp *exp);
 
+char *
+ofl_structs_oxm_tlv_to_string(struct ofl_match_tlv *f);
+
 void
-print_oxm_tlv(FILE *stream, struct ofl_match_tlv *f, size_t *size);
+ofl_structs_oxm_tlv_print(FILE *stream, struct ofl_match_tlv *f);
+
+char *
+ofl_structs_oxm_match_to_string(struct ofl_match *m);
+
+void
+ofl_structs_oxm_match_print(FILE *stream, const struct ofl_match *omt);
 
 char *
 ofl_structs_config_to_string(struct ofl_config *c);

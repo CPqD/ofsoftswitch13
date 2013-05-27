@@ -50,7 +50,6 @@
 void
 packet_handle_std_validate(struct packet_handle_std *handle) {
 
-    struct ofl_match_tlv * pktout_inport, *pktout_metadata;
     if(handle->valid)
         return;
     struct ofl_match_tlv * iter, *next;
@@ -158,15 +157,14 @@ packet_handle_std_match(struct packet_handle_std *handle, struct ofl_match *matc
 }
 
 
-/* TODO Denicol: From this point on, work to be done */
 
-/* If pointer is not null, returns str; otherwise returns an empty string.
+/* If pointer is not null, returns str; otherwise returns an empty string. */
 static inline const char *
 pstr(void *ptr, const char *str) {
     return (ptr == NULL) ? "" : str;
 }
 
- Prints the names of protocols that are available in the given protocol stack.
+/* Prints the names of protocols that are available in the given protocol stack. */
 
 static void
 proto_print(FILE *stream, struct protocols_std *p) {
@@ -196,7 +194,7 @@ packet_handle_std_print(FILE *stream, struct packet_handle_std *handle) {
     proto_print(stream, handle->proto);
 
     fprintf(stream, ", match=");
-    ofl_structs_match_print(stream, (struct ofl_match_header *)(handle->match), handle->pkt->dp->exp);
+    ofl_structs_match_print(stream, (struct ofl_match_header *)(&handle->match), handle->pkt->dp->exp);
     fprintf(stream, "\"}");
 }
-*/
+

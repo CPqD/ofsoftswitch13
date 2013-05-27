@@ -57,6 +57,7 @@
 #include "ofpbuf.h"
 #include "oflib/ofl-structs.h"
 #include "oflib/ofl-utils.h"
+#include "oflib/ofl-print.h"
 #include "unaligned.h"
 #include "byte-order.h"
 #include "../include/openflow/openflow.h"
@@ -115,14 +116,27 @@ oxm_field_lookup(uint32_t header)
     struct oxm_field *f;
 
     oxm_init();
-
-    HMAP_FOR_EACH_WITH_HASH(f, struct oxm_field, hmap_node ,hash_int(header, 0),
-                             &all_oxm_fields) {
+    HMAP_FOR_EACH_WITH_HASH(f, struct oxm_field, hmap_node, hash_int(header, 0),
+                            &all_oxm_fields) {
         if (f->header == header) {
             return f;
         }
     }
+    return NULL;
+}
 
+
+struct ofl_match_tlv *
+oxm_match_lookup(uint32_t header, const struct ofl_match *omt)
+{
+    struct ofl_match_tlv *f;
+
+    HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv, hmap_node, hash_int(header, 0),
+    					    &omt->match_fields) {
+        if (f->header == header) {
+            return f;
+        }
+    }
     return NULL;
 }
 
@@ -252,7 +266,7 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
             return 0;
         }
         case OFI_OXM_OF_METADATA_W:{
-            ofl_structs_match_put64m(match, f->header, ntoh64(*((uint64_t*) value)),hton64(*((uint64_t*) mask)));
+            ofl_structs_match_put64m(match, f->header, ntoh64(*((uint64_t*) value)), ntoh64(*((uint64_t*) mask)));
             return 0;
         }
         /* Ethernet header. */
@@ -442,7 +456,8 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
  /*hmap_insert(match_dst, &f->hmap_node,
                 hash_int(f->header, 0));               */
 
-/* ox_pull_match() and helpers. */
+
+/* oxm_pull_match() and helpers. */
 
 
 /* Puts the match in a hash_map structure */
@@ -453,8 +468,6 @@ oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len)
     uint32_t header;
     uint8_t *p;
     p = ofpbuf_try_pull(buf, match_len);
-    VLOG_DBG(LOG_MODULE, "oxm_match length %u, max "
-                    "length %d", match_len, buf->size);
 
     if (!p) {
         VLOG_DBG_RL(LOG_MODULE,&rl, "oxm_match length %u, rounded up to a "
@@ -463,7 +476,10 @@ oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len)
 
         return ofp_mkerr(OFPET_BAD_MATCH, OFPBRC_BAD_LEN);
     }
+
+    /* Initialize the match hashmap */
     ofl_structs_match_init(match_dst);
+
     while ((header = oxm_entry_ok(p, match_len)) != 0) {
 
         unsigned length = OXM_LENGTH(header);
