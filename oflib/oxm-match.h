@@ -54,26 +54,6 @@
 #include "packets.h"
 #include "../oflib/ofl-structs.h"
 
-/* For each OXM_* field, define OFI_OXM_* as consecutive integers starting from
- * zero. */
-enum oxm_field_index {
-#define DEFINE_FIELD(HEADER,DL_TYPES, NW_PROTO, MASKABLE) \
-        OFI_OXM_##HEADER,
-#include "oxm-match.def"
-    N_OXM_FIELDS
-};
-
-struct oxm_field {
-    struct hmap_node hmap_node;
-    enum oxm_field_index index;       /* OFI_* value. */
-    uint32_t header;                  /* OXM_* value. */
-    uint16_t dl_type[N_OXM_DL_TYPES]; /* dl_type prerequisites. */
-    uint8_t nw_proto;                 /* nw_proto prerequisite, if nonzero. */
-    bool maskable;                    /* Writable with OXAST_REG_{MOVE,LOAD}? */
-};
-
-extern struct oxm_field oxm_fields[];
-
 #define OXM_HEADER__(VENDOR, FIELD, HASMASK, LENGTH) \
     (((VENDOR) << 16) | ((FIELD) << 9) | ((HASMASK) << 8) | (LENGTH))
 #define OXM_HEADER(VENDOR, FIELD, LENGTH) \
@@ -300,12 +280,38 @@ extern struct oxm_field oxm_fields[];
 /* IPv4 TTL */
 #define OXM_OF_IPV4_TTL OXM_HEADER (0x0002, 81, 1)
 
+enum oxm_field_index {
+#define DEFINE_FIELD(HEADER,DL_TYPES, NW_PROTO, MASKABLE) \
+        OFI_OXM_##HEADER,
+#include "oxm-match.def"
+    NUM_OXM_FIELDS = 56
+};
+
+struct oxm_field {
+    struct hmap_node hmap_node;
+    enum oxm_field_index index;       /* OFI_* value. */
+    uint32_t header;                  /* OXM_* value. */
+    uint16_t dl_type[N_OXM_DL_TYPES]; /* dl_type prerequisites. */
+    uint8_t nw_proto;                 /* nw_proto prerequisite, if nonzero. */
+    bool maskable;                    /* Writable with OXAST_REG_{MOVE,LOAD}? */
+};
+
+/* All the known fields. */
+extern struct oxm_field all_fields[NUM_OXM_FIELDS];
+
+struct oxm_field *
+oxm_field_lookup(uint32_t header);
+
+bool
+oxm_prereqs_ok(const struct oxm_field *field, const struct ofl_match *rule);
+
 int
 oxm_pull_match(struct ofpbuf * buf, struct ofl_match *match_dst, int match_len);
 
 int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt);
 
-struct ofl_match_tlv *oxm_match_lookup(uint32_t header, const struct ofl_match *omt);
+struct ofl_match_tlv *
+oxm_match_lookup(uint32_t header, const struct ofl_match *omt);
 
 uint32_t oxm_entry_ok(const void *, unsigned int );
 

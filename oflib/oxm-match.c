@@ -77,9 +77,7 @@ static const uint8_t eth_mcast_1[ETH_ADDR_LEN]
 static const uint8_t eth_mcast_0[ETH_ADDR_LEN]
     = {0xfe, 0xff, 0xff, 0xff, 0xff, 0xff};
 
-
-/* All the known fields. */
-struct oxm_field oxm_fields[N_OXM_FIELDS] = {
+struct oxm_field all_fields[NUM_OXM_FIELDS] = {
 #define DEFINE_FIELD(HEADER, DL_TYPES, NW_PROTO, MASKABLE)     \
     { HMAP_NODE_NULL_INITIALIZER, OFI_OXM_##HEADER, OXM_##HEADER, \
         DL_CONVERT DL_TYPES, NW_PROTO, MASKABLE },
@@ -96,8 +94,8 @@ oxm_init(void)
     if (hmap_is_empty(&all_oxm_fields)) {
         int i;
 
-        for (i = 0; i < N_OXM_FIELDS; i++) {
-            struct oxm_field *f = &oxm_fields[i];
+        for (i = 0; i < NUM_OXM_FIELDS; i++) {
+            struct oxm_field *f = &all_fields[i];
             hmap_insert(&all_oxm_fields, &f->hmap_node,
                         hash_int(f->header, 0));
         }
@@ -112,7 +110,7 @@ oxm_init(void)
     }
 }
 
-static const struct oxm_field *
+struct oxm_field *
 oxm_field_lookup(uint32_t header)
 {
     struct oxm_field *f;
@@ -156,24 +154,51 @@ check_present_prereq(const struct ofl_match *match, uint32_t header){
     return false;
 }
 
-static bool
+bool
 oxm_prereqs_ok(const struct oxm_field *field, const struct ofl_match *rule)
 {
 
     struct ofl_match_tlv *omt = NULL;
 
+    /*Check ICMP type*/
+    if (field->header == OXM_OF_IPV6_ND_SLL || field->header == OXM_OF_IPV6_ND_TARGET ){
+        bool found =  false;
+        HMAP_FOR_EACH_WITH_HASH (omt, struct ofl_match_tlv, hmap_node, hash_int(OXM_OF_ICMPV6_TYPE, 0),
+              &rule->match_fields) {
+            if (*omt->value != ICMPV6_NEIGHSOL){
+                return false;
+            }
+            found = true;
+        }
+        if(!found)
+            return false;
+    }
+    /*Check ICMP type*/
+    if (field->header == OXM_OF_IPV6_ND_TLL || field->header == OXM_OF_IPV6_ND_TARGET){
+        bool found =  false;
+        HMAP_FOR_EACH_WITH_HASH (omt, struct ofl_match_tlv, hmap_node, hash_int(OXM_OF_ICMPV6_TYPE, 0),
+              &rule->match_fields) {
+            if (*omt->value != ICMPV6_NEIGHADV){
+                return false;
+            }
+            found = true;
+        }
+        if(!found)
+            return false;
+    }
+
     /*Check for IP_PROTO */
     if (field->nw_proto){
-        bool ip_proto_found = false;
+        bool found =  false;
         HMAP_FOR_EACH_WITH_HASH (omt, struct ofl_match_tlv, hmap_node, hash_int(OXM_OF_IP_PROTO, 0),
             &rule->match_fields) {
             uint8_t ip_proto;
             memcpy(&ip_proto,omt->value, sizeof(uint8_t));
             if (field->nw_proto != ip_proto)
                 return false;
-            ip_proto_found = true;
+            found = true;
         }
-        if(!ip_proto_found)
+        if(!found)
             return false;
     }
 
@@ -192,6 +217,7 @@ oxm_prereqs_ok(const struct oxm_field *field, const struct ofl_match *rule)
               }
         }
     }
+
     return false;
 }
 
@@ -422,7 +448,7 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
         case OFI_OXM_OF_IPV6_EXTHDR_W:
             ofl_structs_match_put16m(match, f->header, ntohs(*((uint16_t*) value)),ntohs(*((uint16_t*) mask)));
             return 0;
-        case N_OXM_FIELDS:
+        case NUM_OXM_FIELDS:
             NOT_REACHED();
     }
     NOT_REACHED();
@@ -442,8 +468,6 @@ oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len)
     uint32_t header;
     uint8_t *p;
     p = ofpbuf_try_pull(buf, match_len);
-    // VLOG_DBG(LOG_MODULE, "oxm_match length %u, max "
-    //                "length %d", match_len, buf->size);
 
     if (!p) {
         VLOG_DBG_RL(LOG_MODULE,&rl, "oxm_match length %u, rounded up to a "
@@ -513,8 +537,6 @@ oxm_entry_ok(const void *p, unsigned int match_len)
     memcpy(&header, p, 4);
     header = ntohl(header);
     payload_len = OXM_LENGTH(header);
-    // VLOG_DBG(LOG_MODULE, "oxm_entry %08"PRIx32" to be decoded "
-    //          "with length == %"PRIu32"", OXM_FIELD(header), OXM_LENGTH(header));
     if (!payload_len) {
         VLOG_DBG(LOG_MODULE, "oxm_entry %08"PRIx32" has invalid payload "
                     "length 0", header);

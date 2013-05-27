@@ -198,8 +198,8 @@ ofl_structs_oxm_match_print(FILE *stream, const struct ofl_match *omt) {
 	fprintf(stream, "oxm{");
 	if (size > 0) {
 		/* Iterate over all possible OXM fields in their natural order */
-		for (i = 0; i<N_OXM_FIELDS; i++) {
-			f = oxm_match_lookup(oxm_fields[i].header, omt);
+		for (i = 0; i<NUM_OXM_FIELDS; i++) {
+			f = oxm_match_lookup(all_fields[i].header, omt);
 			if (f != NULL) {
 				/* Field present: print it */
 				ofl_structs_oxm_tlv_print(stream, f);

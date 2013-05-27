@@ -400,6 +400,10 @@ ofl_error_code_print(FILE *stream, uint16_t type, uint16_t code) {
                 case (OFPBAC_BAD_OUT_GROUP) :         { fprintf(stream, "BAD_OUT_GROUP"); return; }
                 case (OFPBAC_UNSUPPORTED_ORDER) :     { fprintf(stream, "UNSUPPORTED_ORDER"); return; }
                 case (OFPBAC_BAD_TAG) :               { fprintf(stream, "BAD_TAG"); return; }
+                case (OFPBAC_MATCH_INCONSISTENT):     { fprintf(stream, "MATCH_INCONSISTENT"); return;}
+                case (OFPBAC_BAD_SET_TYPE):           { fprintf(stream, "BAD_SET_TYPE"); return;}
+                case (OFPBAC_BAD_SET_LEN):            { fprintf(stream, "BAD_SET_LEN"); return;}
+                case (OFPBAC_BAD_SET_ARGUMENT):       { fprintf(stream, "BAD_SET_ARGUMENT"); return;}
             }
             break;
         }
