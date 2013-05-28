@@ -50,39 +50,39 @@ ofl_utils_count_ofp_table_features_properties(void *data, size_t data_len, size_
 
     struct ofp_table_feature_prop_header *prop;
     uint8_t *d;
-    
+
     d = (uint8_t*) data;
-    *count = 0;    
+    *count = 0;
     while (data_len >= sizeof(struct ofp_table_feature_prop_header)){
         prop = (struct ofp_table_feature_prop_header *) d;
         if (data_len < ntohs(prop->length) || ntohs(prop->length) < sizeof(struct ofp_table_feature_prop_header) ){
              OFL_LOG_WARN(LOG_MODULE, "Received property has invalid length (prop->length=%d, data_len=%d).", ntohs(prop->length), (int) data_len);
-             return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_LEN); 
+             return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_LEN);
         }
         data_len -= ROUND_UP(ntohs(prop->length), 8);
-        d += ROUND_UP(ntohs(prop->length), 8);  
+        d += ROUND_UP(ntohs(prop->length), 8);
         (*count)++;
-    } 
-    return 0; 
+    }
+    return 0;
 }
 
 ofl_err
 ofl_utils_count_ofp_table_features(void *data, size_t data_len, size_t *count){
     struct ofp_table_features *feature;
     uint8_t *d;
-    
+
     d = (uint8_t*) data;
     *count = 0;
     while (data_len >= sizeof(struct ofp_table_features)){
         feature = (struct ofp_table_features *) d;
         if (data_len < ntohs(feature->length) || ntohs(feature->length) < sizeof(struct ofp_table_features) ){
              OFL_LOG_WARN(LOG_MODULE, "Received feature has invalid length (feat->length=%d, data_len=%d).");
-             return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_LEN); 
+             return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_LEN);
         }
         data_len -= ntohs(feature->length);
-        d += ntohs(feature->length);  
+        d += ntohs(feature->length);
         (*count)++;
-    } 
+    }
     return 0;
 }
 
@@ -101,7 +101,7 @@ ofl_utils_count_ofp_instructions(void *data, size_t data_len, size_t *count) {
         if (data_len < ntohs(inst->len) || ntohs(inst->len) < sizeof(struct ofp_instruction) - 4) {
             OFL_LOG_WARN(LOG_MODULE, "Received instruction has invalid length.");
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
-                    
+
         }
         data_len -= ntohs(inst->len);
         d += ntohs(inst->len);
@@ -145,11 +145,11 @@ ofl_utils_count_ofp_meter_bands(void *data, size_t data_len, size_t *count) {
     d = (uint8_t *)data;
     *count = 0;
 
-    while (data_len >= sizeof(struct ofp_bucket)) {
+    while (data_len >= sizeof(struct ofp_meter_band_header)) {
         mb = (struct ofp_meter_band_header *)d;
 
         if (data_len < ntohs(mb->len) || ntohs(mb->len) < sizeof(struct ofp_meter_band_header)) {
-            OFL_LOG_WARN(LOG_MODULE, "Received bucket has invalid length.");
+            OFL_LOG_WARN(LOG_MODULE, "Received meter band has invalid length.");
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
         }
         data_len -= ntohs(mb->len);
@@ -406,7 +406,7 @@ ofl_structs_free_instruction(struct ofl_instruction_header *inst, struct ofl_exp
 }
 
 void ofl_structs_free_meter_bands(struct ofl_meter_band_header *meter_band){
-    free(meter_band);            
+    free(meter_band);
 }
 
 void
@@ -414,18 +414,18 @@ ofl_structs_free_meter_band_stats(struct ofl_meter_band_stats* s){
     free(s);
  }
 
-void 
+void
 ofl_structs_free_meter_stats(struct ofl_meter_stats *stats){
     OFL_UTILS_FREE_ARR_FUN(stats->band_stats, stats->meter_bands_num,
                             ofl_structs_free_meter_band_stats);
-    free(stats);   
+    free(stats);
 }
 
-void 
+void
 ofl_structs_free_meter_config(struct ofl_meter_config *conf){
     OFL_UTILS_FREE_ARR_FUN(conf->bands, conf->meter_bands_num,
                             ofl_structs_free_meter_bands);
-    free(conf);   
+    free(conf);
 }
 
 void
@@ -500,15 +500,15 @@ ofl_structs_free_table_properties(struct ofl_table_feature_prop_header *prop, st
             break;
         }
         case (OFPTFPT_APPLY_SETFIELD):
-        case (OFPTFPT_APPLY_SETFIELD_MISS):        
+        case (OFPTFPT_APPLY_SETFIELD_MISS):
         case (OFPTFPT_WRITE_SETFIELD):
-        case (OFPTFPT_WRITE_SETFIELD_MISS):        
+        case (OFPTFPT_WRITE_SETFIELD_MISS):
         case (OFPTFPT_WILDCARDS):
         case (OFPTFPT_MATCH):{
             struct ofl_table_feature_prop_oxm *oxm = (struct ofl_table_feature_prop_oxm *)prop;
             free(oxm->oxm_ids);
             break;
-        }                   
+        }
     }
     free(prop);
 }
@@ -528,7 +528,7 @@ ofl_structs_free_match(struct ofl_match_header *match, struct ofl_exp *exp) {
                 free(m);
             }
             else free(match);
-            
+
             break;
         }
         default: {
