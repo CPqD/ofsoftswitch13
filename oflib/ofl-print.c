@@ -1,5 +1,5 @@
 /* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary
- * Copyright (c) 2012, CPqD, Brazil
+ * Copyright (c) 2012, CPqD, Brazil 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -81,15 +81,16 @@ ofl_ipv6_ext_hdr_to_string(uint16_t ext_hdr){
 void
 ofl_ipv6_ext_hdr_print(FILE *stream, uint16_t ext_hdr) {
 
-    if (ext_hdr & OFPIEH_NONEXT) {   fprintf(stream, "no_next\\"); }
-    if (ext_hdr & OFPIEH_ESP) {      fprintf(stream, "esp\\"); }
-    if (ext_hdr & OFPIEH_AUTH) {     fprintf(stream, "auth\\"); }
-    if (ext_hdr & OFPIEH_DEST) {     fprintf(stream, "dest\\"); }
-    if (ext_hdr & OFPIEH_FRAG) {     fprintf(stream, "frag\\"); }
-    if (ext_hdr & OFPIEH_ROUTER){    fprintf(stream, "router\\"); }
-    if (ext_hdr & OFPIEH_HOP) {      fprintf(stream, "hop\\"); }
-    if (ext_hdr & OFPIEH_UNREP) {    fprintf(stream, "unreq\\"); }
-    if (ext_hdr & OFPIEH_UNSEQ) {    fprintf(stream, "unseq\\"); }
+	if (ext_hdr != 0) fprintf(stream, "|");
+    if (ext_hdr & OFPIEH_NONEXT) {   fprintf(stream, "no_next|"); }
+    if (ext_hdr & OFPIEH_ESP) {      fprintf(stream, "esp|"); }
+    if (ext_hdr & OFPIEH_AUTH) {     fprintf(stream, "auth|"); }
+    if (ext_hdr & OFPIEH_DEST) {     fprintf(stream, "dest|"); }
+    if (ext_hdr & OFPIEH_FRAG) {     fprintf(stream, "frag|"); }
+    if (ext_hdr & OFPIEH_ROUTER){    fprintf(stream, "router|"); }
+    if (ext_hdr & OFPIEH_HOP) {      fprintf(stream, "hop|"); }
+    if (ext_hdr & OFPIEH_UNREP) {    fprintf(stream, "unreq|"); }
+    if (ext_hdr & OFPIEH_UNSEQ) {    fprintf(stream, "unseq|"); }
 }
 
 char *
@@ -266,11 +267,12 @@ ofl_oxm_type_print(FILE *stream, uint32_t type){
     case OXM_OF_PBB_ISID:           {fprintf(stream, "pbb_isid"); return; }
     case OXM_OF_TUNNEL_ID:          {fprintf(stream, "tunnel_id"); return; }
     case OXM_OF_IPV6_EXTHDR:        {fprintf(stream, "ipv6_exthdr"); return; }
-    default: {                       fprintf(stream, "?(%d)", type); return; }
+    default: {                       fprintf(stream, "?(%d)", type); return; }    
     }
 
 
 }
+
 
 char *
 ofl_instruction_type_to_string(uint16_t type) {
@@ -533,7 +535,7 @@ ofl_message_type_print(FILE *stream, uint16_t type) {
 		case OFPT_GET_ASYNC_REQUEST:        { fprintf(stream, "get_async_req"); return;}
 		case OFPT_GET_ASYNC_REPLY:          { fprintf(stream, "get_async_rep"); return;}
 		case OFPT_SET_ASYNC:                { fprintf(stream, "set_async"); return;}
-		case OFPT_METER_MOD:				{ fprintf(stream, "meter_mod"); return;}
+		case OFPT_METER_MOD:				{ fprintf(stream, "meter_mod"); return;}  
 		case OFPT_ROLE_REQUEST:             { fprintf(stream, "role_request"); return;}
 		case OFPT_ROLE_REPLY:               { fprintf(stream, "role_reply"); return;}
 		default: {                            fprintf(stream, "?(%u)", type); return; }
@@ -603,7 +605,7 @@ ofl_flow_removed_reason_print(FILE *stream, uint8_t reason) {
         case (OFPRR_HARD_TIMEOUT): { fprintf(stream, "hard"); return; }
         case (OFPRR_DELETE):       { fprintf(stream, "del"); return; }
         case (OFPRR_GROUP_DELETE): { fprintf(stream, "group"); return; }
-        case (OFPRR_METER_DELETE): { fprintf(stream, "meter"); return; }
+        case (OFPRR_METER_DELETE): { fprintf(stream, "meter"); return; }        
         default:                   { fprintf(stream, "?(%u)", reason); return; }
     }
 }
@@ -695,8 +697,8 @@ ofl_meter_mod_command_print(FILE *stream, uint16_t command){
 	switch(command){
 		case (OFPMC_ADD): {    fprintf(stream, "add"); return; }
 		case (OFPMC_MODIFY): { fprintf(stream, "mod"); return; }
-		case (OFPMC_DELETE): { fprintf(stream, "del"); return; }
-		default: { fprintf(stream, "?(%u)", command); return;}
+		case (OFPMC_DELETE): { fprintf(stream, "del"); return; } 
+		default: { fprintf(stream, "?(%u)", command); return;}			
 	}
 }
 
@@ -716,10 +718,10 @@ ofl_meter_band_type_print(FILE *stream, uint16_t type) {
     switch (type) {
         case OFPMBT_DROP:        {    fprintf(stream, "drop"); return; }
         case OFPMBT_DSCP_REMARK: {    fprintf(stream, "dscp_remark"); return; }
-        case OFPMBT_EXPERIMENTER: {    fprintf(stream, "exp"); return; }
+        case OFPMBT_EXPERIMENTER: {    fprintf(stream, "exp"); return; }  
         default: {                   fprintf(stream, "?(%u)", type); return; }
-    }
-}
+    }              
+}        
 
 
 char *
@@ -770,13 +772,13 @@ ofl_stats_type_print(FILE *stream, uint16_t type) {
         case (OFPMP_METER):         { fprintf(stream, "mstats"); return; }
         case (OFPMP_METER_CONFIG):  { fprintf(stream, "mconf"); return; }
         case (OFPMP_METER_FEATURES):{ fprintf(stream, "mfeat"); return; }
-        case (OFPMP_PORT_DESC):     { fprintf(stream, "port-desc"); return; }
+        case (OFPMP_PORT_DESC):     { fprintf(stream, "port-desc"); return; }   
         case (OFPMP_EXPERIMENTER):  { fprintf(stream, "exp"); return; }
         default: {                    fprintf(stream, "?(%u)", type); return; }
     }
 }
 
-void
+void 
 ofl_properties_type_print(FILE *stream, uint16_t type){
     switch(type){
         case (OFPTFPT_INSTRUCTIONS):        { fprintf(stream, "instructions"); return; }
@@ -795,7 +797,7 @@ ofl_properties_type_print(FILE *stream, uint16_t type){
         case (OFPTFPT_APPLY_SETFIELD_MISS):{ fprintf(stream, "apply_setfield_miss"); return; }
         case (OFPTFPT_EXPERIMENTER):        { fprintf(stream, "experimenter"); return; }
         case (OFPTFPT_EXPERIMENTER_MISS):   { fprintf(stream, "experimenter_miss"); return; }
-        default: {                            fprintf(stream, "?(%u)", type); return; }
+        default: {                            fprintf(stream, "?(%u)", type); return; }            
     }
 }
 
@@ -807,88 +809,88 @@ ofl_async_packet_in(FILE *stream, uint32_t packet_in_mask){
     fprintf(stream, "packet_in(" );
     if(packet_in_mask &  (1 << 0)){
        fprintf(stream, "no_match");
-       e = true;
+       e = true; 
     }
     if(packet_in_mask & ((1 << 1))){
         if(e)
             fprintf(stream,", ");
         fprintf(stream, "action");
-        e = true;
+        e = true;  
     }
     if(packet_in_mask & ((1 << 2))){
         if(e)
-            fprintf(stream,", ");
+            fprintf(stream,", ");    
         fprintf(stream, "invalid_ttl");
         e = true;
     }
     if (!e)
-        fprintf(stream, "none");
+        fprintf(stream, "none"); 
     fprintf(stream, ")" );
 }
 
 void
 ofl_async_port_status(FILE *stream, uint32_t port_status_mask){
     bool e = false;
-
+    
     fprintf(stream, "port_status(" );
     if(port_status_mask&  (1 << 0)){
         fprintf(stream, "add");
-        e = true;
-    }
+        e = true;   
+    }    
     if(port_status_mask & ((1 << 1))){
         if(e)
-            fprintf(stream,", ");
-        fprintf(stream, "delete");
+            fprintf(stream,", ");        
+        fprintf(stream, "delete"); 
         e = true;
-    }
+    }               
     if(port_status_mask & ((1 << 2))){
         if(e)
-            fprintf(stream,", ");
+            fprintf(stream,", ");     
         fprintf(stream, "modify");
         e = true;
     }
     if (!e)
         fprintf(stream, "none");
-     fprintf(stream, ")" );
+     fprintf(stream, ")" );            
 }
 
 void
 ofl_async_flow_removed(FILE *stream, uint32_t flow_rem_mask){
     bool e = false;
-
-    fprintf(stream, "flow_removed(" );
+    
+    fprintf(stream, "flow_removed(" );    
     if(flow_rem_mask &  (1 << 0)){
         fprintf(stream, "idle_timeout");
-        e = true;
-    }
+        e = true;   
+    }        
     if(flow_rem_mask & ((1 << 1))){
         if(e)
-            fprintf(stream,", ");
-        fprintf(stream, "hard_timeout");
-        e = true;
+            fprintf(stream,", ");      
+        fprintf(stream, "hard_timeout"); 
+        e = true;           
     }
     if(flow_rem_mask & ((1 << 2))){
         if(e)
-            fprintf(stream,", ");
+            fprintf(stream,", ");      
         fprintf(stream, "delete");
         e = true;
-    }
+    }        
     if(flow_rem_mask & ((1 << 3))){
         if(e)
-            fprintf(stream,", ");
+            fprintf(stream,", ");        
         fprintf(stream, "group delete");
         e = true;
-     }
+     }   
     if(flow_rem_mask & ((1 << 4))){
         if(e)
-            fprintf(stream,", ");
-        fprintf(stream, "meter delete");
+            fprintf(stream,", ");       
+        fprintf(stream, "meter delete");        
         e = true;
     }
     if (!e)
-        fprintf(stream, "none");
+        fprintf(stream, "none"); 
 
-    fprintf(stream, ")" );
+    fprintf(stream, ")" );          
 }
 
 char *

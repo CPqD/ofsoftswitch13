@@ -37,6 +37,7 @@
 
 #include "ofl.h"
 #include "ofl-print.h"
+#include "ofl-structs.h"
 #include "ofl-actions.h"
 #include "ofl-packets.h"
 #include "../oflib/oxm-match.h"
@@ -83,8 +84,7 @@ ofl_action_print(FILE *stream, struct ofl_action_header *act, struct ofl_exp *ex
             size_t size;
             struct ofl_action_set_field *a = (struct ofl_action_set_field *)act;
             fprintf(stream, "{field:");
-            size = 4 + OXM_LENGTH(a->field->header);
-            print_oxm_tlv(stream, a->field, &size);
+            ofl_structs_oxm_tlv_print(stream, a->field);
             fprintf(stream, "}");
             break;
         }

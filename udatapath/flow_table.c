@@ -307,7 +307,7 @@ flow_table_create_property(struct ofl_table_feature_prop_header **prop, enum ofp
             int i;
             oxm_capabilities = xmalloc(sizeof(struct ofl_table_feature_prop_oxm));
             oxm_capabilities->header.type = type;
-            oxm_capabilities->oxm_num = N_OXM_FIELDS;
+            oxm_capabilities->oxm_num = NUM_OXM_FIELDS;
             oxm_capabilities->oxm_ids = oxm_ids;
             oxm_capabilities->header.length = ofl_structs_table_features_properties_ofp_len(&oxm_capabilities->header, NULL);             
             *prop =  (struct ofl_table_feature_prop_header*) oxm_capabilities;

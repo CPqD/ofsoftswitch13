@@ -39,7 +39,8 @@
 
 #define FLOW_TABLE_MAX_ENTRIES 1024
 #define TABLE_FEATURES_NUM 14
-#define N_OXM_FIELDS 40
+// EEDJAS: N_OXM_FIELDS is an enum value exported by oxm-match.h via ofl-structs.h
+// #define N_OXM_FIELDS 40
 #define N_INSTRUCTIONS 6
 #define N_ACTIONS 16
 #define N_WILDCARDED 16
