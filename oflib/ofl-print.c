@@ -344,6 +344,7 @@ ofl_error_type_print(FILE *stream, uint16_t type) {
         case (OFPET_GROUP_MOD_FAILED): {     fprintf(stream, "GROUP_MOD_FAILED"); return; }
         case (OFPET_PORT_MOD_FAILED): {      fprintf(stream, "PORT_MOD_FAILED"); return; }
         case (OFPET_TABLE_MOD_FAILED): {     fprintf(stream, "TABLE_MOD_FAILED"); return; }
+        case (OFPET_METER_MOD_FAILED): {     fprintf(stream, "METER_MOD_FAILED"); return; }
         case (OFPET_QUEUE_OP_FAILED): {      fprintf(stream, "QUEUE_OP_FAILED"); return; }
         case (OFPET_SWITCH_CONFIG_FAILED): { fprintf(stream, "SWITCH_CONFIG_FAILED"); return; }
         default: {                           fprintf(stream, "?(%u)", type); return; }
@@ -470,6 +471,22 @@ ofl_error_code_print(FILE *stream, uint16_t type, uint16_t code) {
             switch (code) {
                 case (OFPTMFC_BAD_TABLE) :     { fprintf(stream, "BAD_TABLE"); return; }
                 case (OFPTMFC_BAD_CONFIG) :    { fprintf(stream, "BAD_CONFIG"); return; }
+            }
+            break;
+        }
+        case (OFPET_METER_MOD_FAILED): {
+            switch (code) {
+                case (OFPMMFC_METER_EXISTS) :   { fprintf(stream, "METER_EXISTS"); return; }
+                case (OFPMMFC_INVALID_METER) :  { fprintf(stream, "INVALID_METER"); return; }
+                case (OFPMMFC_UNKNOWN_METER) :  { fprintf(stream, "UNKNOWN_METER"); return; }
+                case (OFPMMFC_BAD_COMMAND) :    { fprintf(stream, "BAD_COMMAND"); return; }
+                case (OFPMMFC_BAD_FLAGS) :      { fprintf(stream, "BAD_FLAGS"); return; }
+                case (OFPMMFC_BAD_RATE) :       { fprintf(stream, "BAD_RATE"); return; }
+                case (OFPMMFC_BAD_BURST) :      { fprintf(stream, "BAD_BURST"); return; }
+                case (OFPMMFC_BAD_BAND) :       { fprintf(stream, "BAD_BAND"); return; }
+                case (OFPMMFC_BAD_BAND_VALUE) : { fprintf(stream, "BAD_BAND_VALUE"); return; }
+                case (OFPMMFC_OUT_OF_METERS) :  { fprintf(stream, "OUT_OF_METERS"); return; }
+                case (OFPMMFC_OUT_OF_BANDS) :   { fprintf(stream, "OUT_OF_BANDS"); return; }
             }
             break;
         }
