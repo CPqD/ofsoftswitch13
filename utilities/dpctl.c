@@ -617,7 +617,7 @@ flow_mod(struct vconn *vconn, int argc, char *argv[]) {
             j = 2;
         }
         else {
-            if(msg.command == OFPFC_DELETE)
+            if(msg.command == OFPFC_DELETE || argc == 2)
                 inst_num = 0;
             else {
                 inst_num = argc - 1;
@@ -2016,7 +2016,7 @@ parse_inst(char *str, struct ofl_instruction_header **inst) {
         if (strncmp(str, inst_names[i].name, strlen(inst_names[i].name)) == 0) {
 
             s = str + strlen(inst_names[i].name);
-
+	    printf("%s\n", str);
             if (strncmp(s, KEY_VAL2, strlen(KEY_VAL2)) != 0) {
                 ofp_fatal(0, "Error parsing instruction: %s.", str);
             }
