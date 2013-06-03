@@ -283,6 +283,11 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             da->field->header = ntohl(da->field->header);
             value = (uint8_t *) src + sizeof (struct ofp_action_set_field);
             da->field->value = malloc(OXM_LENGTH(da->field->header));
+            /*TODO: need to check if other fields are valid */
+            if(da->field->header == OXM_OF_IN_PORT || da->field->header == OXM_OF_IN_PHY_PORT
+                                    || da->field->header == OXM_OF_METADATA){
+                return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_SET_TYPE);
+            }
             switch(OXM_LENGTH(da->field->header)){
                 case 1:
                 case 6:
@@ -297,10 +302,10 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
                 }
                 case 4:{
                     uint32_t v; 
-					uint8_t field = OXM_FIELD(da->field->header);					
-					if( field != 11 && field != 12 && field != 22 && field != 23)  
-						v = htonl(*((uint32_t*) value));
-					else v = *((uint32_t*) value);
+		    uint8_t field = OXM_FIELD(da->field->header);					
+		    if( field != 11 && field != 12 && field != 22 && field != 23)  
+		        v = htonl(*((uint32_t*) value));
+		    else v = *((uint32_t*) value);
                     memcpy(da->field->value , &v, OXM_LENGTH(da->field->header));
                     break;
                 }
