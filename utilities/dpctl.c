@@ -2318,6 +2318,13 @@ parse_band_args(char *str, struct ofl_msg_meter_mod *m, struct ofl_meter_band_he
             }
             else ofp_fatal(0, "Error parsing burst size. Meter flags should contain %x.", OFPMF_BURST);
         }
+        if (strncmp(token, BAND_PREC_LEVEL KEY_VAL, strlen(BAND_PREC_LEVEL KEY_VAL)) == 0) {
+           struct ofl_meter_band_dscp_remark *d = (struct ofl_meter_band_dscp_remark*) b;
+            if (parse8(token + strlen(BAND_PREC_LEVEL KEY_VAL), NULL, 0, UINT8_MAX, &d->prec_level)) {
+                    ofp_fatal(0, "Error parsing band rate: %s.", token);
+            }    
+            continue;                        
+        }
          ofp_fatal(0, "Error parsing band arg: %s.", token);
     }
 }
