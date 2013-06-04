@@ -497,7 +497,7 @@ ofl_structs_flow_stats_unpack(struct ofp_flow_stats *src, uint8_t *buf, size_t *
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
 
-    if (src->table_id == 0xff) {
+    if (src->table_id >= PIPELINE_TABLES) {
         if (OFL_LOG_IS_WARN_ENABLED(LOG_MODULE)) {
             char *ts = ofl_table_to_string(src->table_id);
             OFL_LOG_WARN(LOG_MODULE, "Received flow stats has invalid table_id (%s).", ts);

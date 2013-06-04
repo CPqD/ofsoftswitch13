@@ -38,8 +38,6 @@
 #include "oflib/ofl.h"
 #include "oflib/ofl-messages.h"
 
-/* Number of tables in the pipeline */
-#define PIPELINE_TABLES 64 
 
 struct sender;
 

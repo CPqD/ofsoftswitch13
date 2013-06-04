@@ -232,16 +232,16 @@ ofl_msg_unpack_packet_in(struct ofp_header *src, uint8_t* buf, size_t *len, stru
             OFL_LOG_WARN(LOG_MODULE, "Received PACKET_IN message has invalid in_port (%s).", ps);
             free(ps);
         }
-        return ofl_error(OFPET_BAD_REQUEST, OFPBAC_BAD_ARGUMENT);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_PORT);
     }*/
 
-    if (sp->table_id == 0xff) {
+    if (sp->table_id == PIPELINE_TABLES) {
         if (OFL_LOG_IS_WARN_ENABLED(LOG_MODULE)) {
             char *ts = ofl_table_to_string(sp->table_id);
             OFL_LOG_WARN(LOG_MODULE, "Received PACKET_IN has invalid table_id (%s).", ts);
             free(ts);
         }
-        return ofl_error(OFPET_BAD_REQUEST, OFPBAC_BAD_ARGUMENT);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
     }
     *len -= sizeof(struct ofp_packet_in) - sizeof(struct ofp_match);
     dp = (struct ofl_msg_packet_in *)malloc(sizeof(struct ofl_msg_packet_in));
@@ -279,13 +279,13 @@ ofl_msg_unpack_flow_removed(struct ofp_header *src,uint8_t *buf, size_t *len, st
 
     sr = (struct ofp_flow_removed *)src ;
 
-    if (sr->table_id == 0xff) {
+    if (sr->table_id == PIPELINE_TABLES) {
         if (OFL_LOG_IS_WARN_ENABLED(LOG_MODULE)) {
             char *ts = ofl_table_to_string(sr->table_id);
             OFL_LOG_WARN(LOG_MODULE, "Received FLOW_REMOVED message has invalid table_id (%s).", ts);
             free(ts);
         }
-        return ofl_error(OFPET_BAD_REQUEST, OFPBAC_BAD_ARGUMENT);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
     }
     *len -=  sizeof(struct ofp_flow_removed) - sizeof(struct ofp_match) ;
 
@@ -367,7 +367,7 @@ ofl_msg_unpack_packet_out(struct ofp_header *src, size_t *len, struct ofl_msg_he
             OFL_LOG_WARN(LOG_MODULE, "Received PACKET_OUT message with invalid in_port (%s).", ps);
             free(ps);
         }
-        return ofl_error(OFPET_BAD_REQUEST, OFPBAC_BAD_ARGUMENT);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_PORT);
     }*/
 
     if (ntohl(sp->buffer_id) != 0xffffffff &&
@@ -435,10 +435,16 @@ ofl_msg_unpack_flow_mod(struct ofp_header *src,uint8_t* buf, size_t *len, struct
         OFL_LOG_WARN(LOG_MODULE, "Received FLOW_MOD message has invalid length (%zu).", *len);
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
+
     *len -= (sizeof(struct ofp_flow_mod) - sizeof(struct ofp_match));
 
     sm = (struct ofp_flow_mod *)src;
     dm = (struct ofl_msg_flow_mod *)malloc(sizeof(struct ofl_msg_flow_mod));
+
+    if (sm->table_id >= PIPELINE_TABLES) {
+        OFL_LOG_WARN(LOG_MODULE, "Received FLOW_MOD message has invalid table id (%zu).", sm->table_id );
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
+    } 
 
     dm->cookie =       ntoh64(sm->cookie);
     dm->cookie_mask =  ntoh64(sm->cookie_mask);
@@ -640,7 +646,7 @@ ofl_msg_unpack_port_mod(struct ofp_header *src, size_t *len, struct ofl_msg_head
             OFL_LOG_WARN(LOG_MODULE, "Received PORT_MOD message has invalid in_port (%s).", ps);
             free(ps);
         }
-        return ofl_error(OFPET_BAD_REQUEST, OFPBAC_BAD_ARGUMENT);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_PORT);
     }*/
     *len -= sizeof(struct ofp_port_mod);
 
@@ -669,6 +675,10 @@ ofl_msg_unpack_table_mod(struct ofp_header *src, size_t *len, struct ofl_msg_hea
 
     sm = (struct ofp_table_mod *)src;
     dm = (struct ofl_msg_table_mod *)malloc(sizeof(struct ofl_msg_table_mod));
+    if (sm->table_id >= PIPELINE_TABLES) {
+        OFL_LOG_WARN(LOG_MODULE, "Received FLOW_MOD message has invalid table id (%zu).", sm->table_id );
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
+    }
 
     dm->table_id = sm->table_id;
     dm->config = ntohl(sm->config);
@@ -694,6 +704,11 @@ ofl_msg_unpack_multipart_request_flow(struct ofp_multipart_request *os, uint8_t*
 
     sm = (struct ofp_flow_stats_request *)os->body;
     dm = (struct ofl_msg_multipart_request_flow *) malloc(sizeof(struct ofl_msg_multipart_request_flow));
+
+    if (sm->table_id >= PIPELINE_TABLES) {
+         OFL_LOG_WARN(LOG_MODULE, "Received FLOW_MOD message has invalid table id (%zu).", sm->table_id );
+         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
+    }
 
     dm->table_id = sm->table_id;
     dm->out_port = ntohl(sm->out_port);

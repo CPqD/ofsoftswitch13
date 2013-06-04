@@ -233,7 +233,7 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
                     OFL_LOG_WARN(LOG_MODULE, "Received GROUP action has invalid group id (%s).", gs);
                     free(gs);
                 }
-                return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_ARGUMENT);
+                return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_OUT_GROUP);
             }
 
             da = (struct ofl_action_group *)malloc(sizeof(struct ofl_action_group));
