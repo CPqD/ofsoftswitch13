@@ -193,10 +193,10 @@ void
 ofl_structs_oxm_match_print(FILE *stream, const struct ofl_match *omt) {
 	struct ofl_match_tlv   *f;
 	int 					i;
-	size_t 					size = hmap_count(&omt->match_fields);
+	size_t 					size = omt->header.length;
 
 	fprintf(stream, "oxm{");
-	if (size > 0) {
+	if (size > 4) {
 		/* Iterate over all possible OXM fields in their natural order */
 		for (i = 0; i<NUM_OXM_FIELDS; i++) {
 			f = oxm_match_lookup(all_fields[i].header, omt);
