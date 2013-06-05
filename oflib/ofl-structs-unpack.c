@@ -73,7 +73,7 @@ ofl_structs_instructions_unpack(struct ofp_instruction *src, size_t *len, struct
 
             si = (struct ofp_instruction_goto_table *)src;
 
-            if (si->table_id == 0xff) {
+            if (si->table_id >= PIPELINE_TABLES) {
                 if (OFL_LOG_IS_WARN_ENABLED(LOG_MODULE)) {
                     char *ts = ofl_table_to_string(si->table_id);
                     OFL_LOG_WARN(LOG_MODULE, "Received GOTO_TABLE instruction has invalid table_id (%s).", ts);

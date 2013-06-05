@@ -95,6 +95,7 @@ ofl_structs_instruction_print(FILE *stream, struct ofl_instruction_header *inst,
     switch(inst->type) {
         case (OFPIT_GOTO_TABLE): {
             struct ofl_instruction_goto_table *i = (struct ofl_instruction_goto_table*)inst;
+            
             fprintf(stream, "{table=\"%u\"}", i->table_id);
 
             break;
@@ -193,10 +194,14 @@ void
 ofl_structs_oxm_match_print(FILE *stream, const struct ofl_match *omt) {
 	struct ofl_match_tlv   *f;
 	int 					i;
-	size_t 					size = omt->header.length;
-
+	size_t 					size;
+	
+	if(omt->header.length > 4)
+	    size = hmap_count(&omt->match_fields);
+	else size = 0;
+	
 	fprintf(stream, "oxm{");
-	if (size > 4) {
+	if (size) {
 		/* Iterate over all possible OXM fields in their natural order */
 		for (i = 0; i<NUM_OXM_FIELDS; i++) {
 			f = oxm_match_lookup(all_fields[i].header, omt);

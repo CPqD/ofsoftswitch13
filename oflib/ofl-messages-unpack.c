@@ -279,7 +279,7 @@ ofl_msg_unpack_flow_removed(struct ofp_header *src,uint8_t *buf, size_t *len, st
 
     sr = (struct ofp_flow_removed *)src ;
 
-    if (sr->table_id == PIPELINE_TABLES) {
+    if (sr->table_id >= PIPELINE_TABLES) {
         if (OFL_LOG_IS_WARN_ENABLED(LOG_MODULE)) {
             char *ts = ofl_table_to_string(sr->table_id);
             OFL_LOG_WARN(LOG_MODULE, "Received FLOW_REMOVED message has invalid table_id (%s).", ts);
@@ -441,7 +441,8 @@ ofl_msg_unpack_flow_mod(struct ofp_header *src,uint8_t* buf, size_t *len, struct
     sm = (struct ofp_flow_mod *)src;
     dm = (struct ofl_msg_flow_mod *)malloc(sizeof(struct ofl_msg_flow_mod));
 
-    if (sm->table_id >= PIPELINE_TABLES) {
+    if (sm->table_id >= PIPELINE_TABLES && ((sm->command != OFPFC_DELETE
+    || sm->command != OFPFC_DELETE_STRICT) && sm->table_id != OFPTT_ALL)) {
         OFL_LOG_WARN(LOG_MODULE, "Received FLOW_MOD message has invalid table id (%zu).", sm->table_id );
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
     } 
@@ -676,7 +677,7 @@ ofl_msg_unpack_table_mod(struct ofp_header *src, size_t *len, struct ofl_msg_hea
     sm = (struct ofp_table_mod *)src;
     dm = (struct ofl_msg_table_mod *)malloc(sizeof(struct ofl_msg_table_mod));
     if (sm->table_id >= PIPELINE_TABLES) {
-        OFL_LOG_WARN(LOG_MODULE, "Received FLOW_MOD message has invalid table id (%zu).", sm->table_id );
+        OFL_LOG_WARN(LOG_MODULE, "Received TABLE_MOD message has invalid table id (%zu).", sm->table_id );
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
     }
 
@@ -705,8 +706,8 @@ ofl_msg_unpack_multipart_request_flow(struct ofp_multipart_request *os, uint8_t*
     sm = (struct ofp_flow_stats_request *)os->body;
     dm = (struct ofl_msg_multipart_request_flow *) malloc(sizeof(struct ofl_msg_multipart_request_flow));
 
-    if (sm->table_id >= PIPELINE_TABLES) {
-         OFL_LOG_WARN(LOG_MODULE, "Received FLOW_MOD message has invalid table id (%zu).", sm->table_id );
+    if (sm->table_id != OFPTT_ALL && sm->table_id >= PIPELINE_TABLES) {
+         OFL_LOG_WARN(LOG_MODULE, "Received MULTIPART REQUEST FLOW message has invalid table id (%zu).", sm->table_id );
          return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
     }
 

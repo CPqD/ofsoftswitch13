@@ -615,17 +615,21 @@ flow_mod(struct vconn *vconn, int argc, char *argv[]) {
         if (argc > 2){
             inst_num = argc - 2;
             j = 2;
+            parse_match(argv[1], &(msg.match));
         }
         else {
-            if(msg.command == OFPFC_DELETE || argc == 2)
+            if(msg.command == OFPFC_DELETE)
                 inst_num = 0;
             else {
-                inst_num = argc - 1;
-                j = 1;
+                parse_match(argv[1], &(msg.match));
+                if(msg.match->length <=4){
+                    inst_num = argc - 1;
+                    j = 1;
+                }
             }
         }
-        parse_match(argv[1], &(msg.match));
-
+        
+        
         msg.instructions_num = inst_num;
         msg.instructions = xmalloc(sizeof(struct ofl_instruction_header *) * inst_num);
 
