@@ -82,6 +82,7 @@
 //       response, barrier resp., or the error
 #define XID   0xf0ff00f0
 
+static uint32_t global_xid = XID;
 
 struct command {
     char *name;
@@ -205,13 +206,13 @@ static struct ofl_exp dpctl_exp =
 
 static void
 dpctl_transact(struct vconn *vconn, struct ofl_msg_header *req,
-                              struct ofl_msg_header **repl) {
+	       struct ofl_msg_header **repl, uint32_t *repl_xid_p) {
     struct ofpbuf *ofpbufreq, *ofpbufrepl;
     uint8_t *bufreq;
     size_t bufreq_size;
     int error;
 
-    error = ofl_msg_pack(req, XID, &bufreq, &bufreq_size, &dpctl_exp);
+    error = ofl_msg_pack(req, global_xid, &bufreq, &bufreq_size, &dpctl_exp);
     if (error) {
         ofp_fatal(0, "Error packing request.");
     }
@@ -223,7 +224,7 @@ dpctl_transact(struct vconn *vconn, struct ofl_msg_header *req,
     if (error) {
         ofp_fatal(0, "Error during transaction.");
     }
-    error = ofl_msg_unpack(ofpbufrepl->data, ofpbufrepl->size, repl, NULL /*xid_ptr*/, &dpctl_exp);
+    error = ofl_msg_unpack(ofpbufrepl->data, ofpbufrepl->size, repl, repl_xid_p, &dpctl_exp);
 
     if (error) {
         ofp_fatal(0, "Error unpacking reply.");
@@ -241,14 +242,15 @@ static void
 dpctl_transact_and_print(struct vconn *vconn, struct ofl_msg_header *req,
                                         struct ofl_msg_header **repl) {
     struct ofl_msg_header *reply;
+    uint32_t repl_xid;
     char *str;
 
     str = ofl_msg_to_string(req, &dpctl_exp);
-    printf("\nSENDING:\n%s\n\n", str);
+    printf("\nSENDING (xid=0x%X):\n%s\n\n", global_xid, str);
     free(str);
-    dpctl_transact(vconn, req, &reply);
+    dpctl_transact(vconn, req, &reply, &repl_xid);
     str = ofl_msg_to_string(reply, &dpctl_exp);
-    printf("\nRECEIVED:\n%s\n\n", str);
+    printf("\nRECEIVED (xid=0x%X):\n%s\n\n", repl_xid, str);
     free(str);
 
     if (repl != NULL) {
@@ -261,12 +263,13 @@ dpctl_transact_and_print(struct vconn *vconn, struct ofl_msg_header *req,
 static void
 dpctl_barrier(struct vconn *vconn) {
     struct ofl_msg_header *reply;
+    uint32_t repl_xid;
     char *str;
 
     struct ofl_msg_header req =
             {.type = OFPT_BARRIER_REQUEST};
 
-    dpctl_transact(vconn, &req, &reply);
+    dpctl_transact(vconn, &req, &reply, &repl_xid);
 
     if (reply->type == OFPT_BARRIER_REPLY) {
         str = ofl_msg_to_string(reply, &dpctl_exp);
@@ -274,7 +277,7 @@ dpctl_barrier(struct vconn *vconn) {
         free(str);
     } else {
         str = ofl_msg_to_string(reply, &dpctl_exp);
-        printf("\nRECEIVED:\n%s\n\n", str);
+        printf("\nRECEIVED (xid=0x%X):\n%s\n\n", repl_xid, str);
         free(str);
     }
 
@@ -287,7 +290,7 @@ dpctl_send(struct vconn *vconn, struct ofl_msg_header *msg) {
     size_t buf_size;
     int error;
 
-    error = ofl_msg_pack(msg, XID, &buf, &buf_size, &dpctl_exp);
+    error = ofl_msg_pack(msg, global_xid, &buf, &buf_size, &dpctl_exp);
     if (error) {
         ofp_fatal(0, "Error packing request.");
     }
@@ -308,7 +311,7 @@ static void
 dpctl_send_and_print(struct vconn *vconn, struct ofl_msg_header *msg) {
     char *str;
     str = ofl_msg_to_string(msg, &dpctl_exp);
-    printf("\nSENDING:\n%s\n\n", str);
+    printf("\nSENDING (xid=0x%X):\n%s\n\n", global_xid, str);
     free(str);
 
     dpctl_send(vconn, msg);
@@ -319,6 +322,7 @@ ping(struct vconn *vconn, int argc, char *argv[]) {
     uint16_t payload_size = 0;
     size_t times = 0, i;
     struct ofl_msg_echo *reply;
+    uint32_t repl_xid;
 
     struct ofl_msg_echo req =
             {{.type = OFPT_ECHO_REQUEST},
@@ -349,7 +353,7 @@ ping(struct vconn *vconn, int argc, char *argv[]) {
         random_bytes(req.data, payload_size);
 
         gettimeofday(&start, NULL);
-        dpctl_transact(vconn, (struct ofl_msg_header *)&req, (struct ofl_msg_header **)&reply);
+        dpctl_transact(vconn, (struct ofl_msg_header *)&req, (struct ofl_msg_header **)&reply, &repl_xid);
         gettimeofday(&end, NULL);
 
         if ((req.data_length != reply->data_length) ||
@@ -1002,6 +1006,7 @@ parse_options(int argc, char *argv[])
         {"strict", no_argument, 0, OPT_STRICT},
         {"help", no_argument, 0, 'h'},
         {"version", no_argument, 0, 'V'},
+        {"xid", required_argument, 0, 'x'},
         VCONN_SSL_LONG_OPTIONS
         {0, 0, 0, 0},
     };
@@ -1037,6 +1042,10 @@ parse_options(int argc, char *argv[])
 
         case 'v':
             vlog_set_verbosity(optarg);
+            break;
+
+        case 'x':
+            global_xid = strtoul(optarg, NULL, 0);
             break;
 
         VCONN_SSL_OPTION_HANDLERS
