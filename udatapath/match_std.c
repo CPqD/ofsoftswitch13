@@ -35,11 +35,6 @@
 #include "oflib/oxm-match.h"
 #include "match_std.h"
 
-#include "vlog.h"
-#define LOG_MODULE VLM_pipeline
-static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(60, 60);
-
-
 /* Returns true if two 8 bit values match */
 static inline bool
 match_8(uint8_t *a, uint8_t *b) {
@@ -171,7 +166,6 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
         }
 
         char *f_str = ofl_structs_oxm_tlv_to_string(f);
-        VLOG_DBG_RL(LOG_MODULE, &rl, "Checking for field %s.", f_str);
         free(f_str);
 
         /* Lookup the packet header */
@@ -180,10 +174,8 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
         	if (f->header==OXM_OF_VLAN_VID &&
         			*((uint16_t *) f->value)==OFPVID_NONE) {
         		/* There is no VLAN tag, as required */
-                VLOG_DBG_RL(LOG_MODULE, &rl, "No VLAN tag in packet: match");
         		continue;
         	}
-            VLOG_DBG_RL(LOG_MODULE, &rl, "Field not found in packet: no match");
         	return false;
         }
 
