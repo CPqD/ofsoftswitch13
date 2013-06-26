@@ -368,7 +368,7 @@ static bool
 bucket_is_alive(struct ofl_bucket *bucket, struct datapath *dp) {
     struct sw_port *p =  dp_ports_lookup(dp, bucket->watch_port);
 
-    if((p->conf->config & OFPPC_PORT_DOWN) ||
+    if(bucket->watch_port == OFPP_ANY || (p->conf->config & OFPPC_PORT_DOWN) ||
         (p->conf->state & OFPPS_LINK_DOWN)){
         return false;
     }
