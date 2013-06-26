@@ -327,7 +327,6 @@ meter_table_handle_features_request(struct meter_table *table,
                                          };   
     dp_send_message(table->dp, (struct ofl_msg_header *)&reply, sender);
 
-    free(reply.features);
     ofl_msg_free((struct ofl_msg_header *)msg, table->dp->exp);
     return 0;                                                
                                   

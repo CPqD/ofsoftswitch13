@@ -157,6 +157,8 @@ ofl_msg_free_multipart_reply(struct ofl_msg_multipart_reply_header *msg, struct 
             break;
         }
         case OFPMP_METER_FEATURES:{
+            struct ofl_msg_multipart_reply_meter_features *feat = (struct ofl_msg_multipart_reply_meter_features *)msg;
+            free(feat->features);
             break;
         }
         case OFPMP_GROUP_DESC: {
