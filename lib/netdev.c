@@ -34,7 +34,7 @@
  *
  * The modification includes code from libpcap; the copyright notice for that
  * code is
- /*
+ *
  *  pcap-linux.c: Packet capture interface to the Linux kernel
  *
  *  Copyright (c) 2000 Torsten Landschoff <torsten@debian.org>
