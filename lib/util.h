@@ -40,6 +40,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include "config.h"
 #include "compiler.h"
 
 #ifndef va_copy
