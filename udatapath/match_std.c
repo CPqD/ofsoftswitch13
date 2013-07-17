@@ -52,7 +52,6 @@ static inline bool
 match_16(uint8_t *a, uint8_t *b) {
     uint16_t *a1 = (uint16_t *) a;
     uint16_t *b1 = (uint16_t *) b;
-
     return (*a1 == *b1);
 }
 
@@ -142,7 +141,7 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
     bool has_mask;
     int field_len;
     int packet_header;
-    uint8_t *flow_val, *flow_mask=0;
+    uint8_t *flow_val, *flow_mask= NULL;
     uint8_t *packet_val;
 
     if (flow_match->header.length == 0){
@@ -196,14 +195,15 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
                 switch (packet_header) {
                     case OXM_OF_VLAN_VID: {
                         /* Special handling for VLAN ID */
-                        uint16_t flow_vlan_id = *((uint16_t *) flow_val);
-                        if (flow_vlan_id == OFPVID_NONE) {
+                        uint16_t *flow_vlan_id = (uint16_t*) flow_val;
+                        if (*flow_vlan_id == OFPVID_NONE) {
                             /* Packet has a VLAN tag when none should be there */
                             return false;
-                        } else if (flow_vlan_id == OFPVID_PRESENT) {
+                        } else if (*flow_vlan_id == OFPVID_PRESENT) {
                             /* Any VLAN ID is acceptable. No further checks */
                         } else {
                             /* Check the VLAN ID */
+                            *flow_vlan_id &= VLAN_VID_MASK; 
                             if (!match_16(flow_val, packet_val))
                                 return false;
                         }

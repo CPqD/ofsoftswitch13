@@ -608,10 +608,9 @@ flow_mod(struct vconn *vconn, int argc, char *argv[]) {
              .instructions = NULL};
 
     parse_flow_mod_args(argv[0], &msg);
-
     if (argc > 1) {
         size_t i, j;
-        size_t inst_num;
+        size_t inst_num = 0;
         if (argc > 2){
             inst_num = argc - 2;
             j = 2;
@@ -621,18 +620,23 @@ flow_mod(struct vconn *vconn, int argc, char *argv[]) {
             if(msg.command == OFPFC_DELETE)
                 inst_num = 0;
             else {
-                parse_match(argv[1], &(msg.match));
-                if(msg.match->length <=4){
+                /*We copy the value because we don't know if
+                it is an instruction or match.
+                If the match is empty, the argv is modified
+                causing errors to instructions parsing*/
+                char *cpy = malloc(strlen(argv[1]));
+                memcpy(cpy, argv[1], strlen(argv[1])); 
+                parse_match(cpy, &(msg.match));
+                free(cpy);
+                if(msg.match->length <= 4){
                     inst_num = argc - 1;
                     j = 1;
                 }
             }
         }
-        
-        
+
         msg.instructions_num = inst_num;
         msg.instructions = xmalloc(sizeof(struct ofl_instruction_header *) * inst_num);
-
         for (i=0; i < inst_num; i++) {
             parse_inst(argv[j+i], &(msg.instructions[i]));
         }
@@ -1096,7 +1100,7 @@ parse_match(char *str, struct ofl_match_header **match) {
     char *token, *saveptr = NULL;
     struct ofl_match *m = xmalloc(sizeof(struct ofl_match));
     ofl_structs_match_init(m);
-
+    
     for (token = strtok_r(str, KEY_SEP, &saveptr); token != NULL; token = strtok_r(NULL, KEY_SEP, &saveptr)) {
          if (strncmp(token, "apply", strlen("apply")) == 0 ||  strncmp(token, "write", strlen("write")) == 0 ) {
                 break;
@@ -1538,7 +1542,7 @@ parse_match(char *str, struct ofl_match_header **match) {
         }
         ofp_fatal(0, "Error parsing match arg: %s.", token);
     }
-
+    
     (*match) = (struct ofl_match_header *)m;
 }
 
@@ -1985,9 +1989,10 @@ parse_actions(char *str, size_t *acts_num, struct ofl_action_header ***acts) {
     size_t i;
     bool found;
     struct ofl_action_header *act = NULL;
-
+    
     for (token = strtok_r(str, KEY_SEP, &saveptr); token != NULL; token = strtok_r(NULL, KEY_SEP, &saveptr)) {
         found = false;
+        
         for (i=0; i<NUM_ELEMS(action_names); i++) {
             if (strncmp(token, action_names[i].name, strlen(action_names[i].name)) == 0) {
                 s = token + strlen(action_names[i].name);
@@ -2016,12 +2021,10 @@ static void
 parse_inst(char *str, struct ofl_instruction_header **inst) {
     size_t i;
     char *s;
-
     for (i=0; i<NUM_ELEMS(inst_names); i++) {
         if (strncmp(str, inst_names[i].name, strlen(inst_names[i].name)) == 0) {
 
             s = str + strlen(inst_names[i].name);
-	    printf("%s\n", str);
             if (strncmp(s, KEY_VAL2, strlen(KEY_VAL2)) != 0) {
                 ofp_fatal(0, "Error parsing instruction: %s.", str);
             }
