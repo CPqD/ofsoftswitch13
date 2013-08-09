@@ -467,10 +467,10 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct ofl_match * pk
             }
             else if (protocol_Name.compare("ipv6") == 0 && pkt_proto->ipv6 == NULL)
             {
+                _nbPDMLField * ip_proto = NULL;
                 pkt_proto->ipv6 = (struct ipv6_header *) ((uint8_t*) pktin->data + proto->Position);
                 PDMLReader->GetPDMLField(proto->Name, (char*) "flabel", proto->FirstField, &field);
                 nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_IPV6_FLABEL);
-                PDMLReader->GetPDMLField(proto->Name, (char*) "nexthdr", proto->FirstField, &field);
                 /*Initialize extension header OXM */
                 struct ofl_match_tlv * EH_field;
                 uint16_t bit_field = OFPIEH_NONEXT;
@@ -493,32 +493,49 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct ofl_match * pk
                     *ext_hdrs = *ext_hdrs;
                 }
 
-
-
                 hmap_insert_fast(&pktout->match_fields, &EH_field->hmap_node,
                             hash_int(EH_field->header, 0));
-
-                nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_IP_PROTO);
                 PDMLReader->GetPDMLField(proto->Name, (char*) "src", proto->FirstField, &field);
                 nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_IPV6_SRC);
                 PDMLReader->GetPDMLField(proto->Name, (char*) "dst", proto->FirstField, &field);
                 nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_IPV6_DST);
 
+                PDMLReader->GetPDMLField(proto->Name, (char*) "nexthdr", proto->FirstField, &ip_proto);
 
-                if (PDMLReader->GetPDMLField(proto->Name, (char*) "HBH", proto->FirstField, &field) == nbSUCCESS)
+                if (PDMLReader->GetPDMLField(proto->Name, (char*) "HBH", proto->FirstField, &field) == nbSUCCESS){                    
                     nblink_extract_exthdr_fields(pktin, pktout, OFPIEH_HOP, field, &destination_num);
-                if(PDMLReader->GetPDMLField(proto->Name, (char*) "FH", proto->FirstField, &field) == nbSUCCESS)
+                    if(!field->NextField)
+                        ip_proto = field->FirstChild;                    
+                }
+                if(PDMLReader->GetPDMLField(proto->Name, (char*) "FH", proto->FirstField, &field) == nbSUCCESS){
                     nblink_extract_exthdr_fields(pktin, pktout, OFPIEH_FRAG, field, &destination_num);
-                if(PDMLReader->GetPDMLField(proto->Name, (char*) "AH",proto->FirstField, &field) == nbSUCCESS)
+                    if(!field->NextField)
+                        ip_proto = field->FirstChild;
+                }
+                if(PDMLReader->GetPDMLField(proto->Name, (char*) "AH",proto->FirstField, &field) == nbSUCCESS){
                     nblink_extract_exthdr_fields(pktin, pktout, OFPIEH_AUTH, field, &destination_num);
-                if(PDMLReader->GetPDMLField(proto->Name, (char*) "DOH", proto->FirstField, &field) == nbSUCCESS)
+                    if(!field->NextField)
+                        ip_proto = field->FirstChild;
+                }
+                if(PDMLReader->GetPDMLField(proto->Name, (char*) "DOH", proto->FirstField, &field) == nbSUCCESS){                   
                     nblink_extract_exthdr_fields(pktin, pktout, OFPIEH_DEST, field, &destination_num);
-                if(PDMLReader->GetPDMLField(proto->Name, (char*) "RH", proto->FirstField, &field) == nbSUCCESS)
+                    if(!field->NextField)
+                        ip_proto = field->FirstChild;
+                }
+                if(PDMLReader->GetPDMLField(proto->Name, (char*) "RH", proto->FirstField, &field) == nbSUCCESS){
                     nblink_extract_exthdr_fields(pktin, pktout, OFPIEH_ROUTER, field, &destination_num);
-                if(PDMLReader->GetPDMLField(proto->Name, (char*) "ESP", proto->FirstField, &field) == nbSUCCESS)
+                    if(!field->NextField)
+                        ip_proto = field->FirstChild;
+                }
+                if(PDMLReader->GetPDMLField(proto->Name, (char*) "ESP", proto->FirstField, &field) == nbSUCCESS){                    
                     nblink_extract_exthdr_fields(pktin, pktout, OFPIEH_ESP, field, &destination_num);
+                    if(!field->NextField)
+                        ip_proto = field->FirstChild;
+                }                
+                if (ip_proto){
+                    nblink_extract_proto_fields(pktin, ip_proto, pktout, OXM_OF_IP_PROTO);
+                }
             }
-
             if (protocol_Name.compare("tcp") == 0 && pkt_proto->tcp == NULL)
             {
                 pkt_proto->tcp = (struct tcp_header *) ((uint8_t*) pktin->data + proto->Position);
@@ -571,7 +588,7 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct ofl_match * pk
             {
             // This is necessary for Protocols with a Block as a first "field" on NetBee,
             // for instance the "vlan" protocol (see NetPDL for further details).
-                field = field->FirstChild;
+                field = field->FirstChild;            
             }
             if (field->NextField == NULL && field->ParentField != NULL)
             // If we are under a block with no more fields, return to the block and move on.
