@@ -586,7 +586,7 @@ dp_handle_set_desc(struct datapath *dp, struct ofl_exp_openflow_msg_set_dp_desc 
 static ofl_err
 dp_check_generation_id(struct datapath *dp, uint64_t new_gen_id){
 
-    if(dp->generation_id >= 0  && ((uint64_t)(dp->generation_id - new_gen_id) < 0) )
+    if(dp->generation_id >= 0  && ((uint64_t)(new_gen_id - dp->generation_id) < 0) )
         return ofl_error(OFPET_ROLE_REQUEST_FAILED, OFPRRFC_STALE);
     else dp->generation_id = new_gen_id;
     return 0;
@@ -596,10 +596,12 @@ dp_check_generation_id(struct datapath *dp, uint64_t new_gen_id){
 ofl_err
 dp_handle_role_request(struct datapath *dp, struct ofl_msg_role_request *msg,
                                             const struct sender *sender) {
-    uint32_t role = msg->role; 
+    uint32_t role = msg->role;
+    uint64_t generation_id = msg->generation_id; 
     switch (msg->role) {
         case OFPCR_ROLE_NOCHANGE:{
             role = sender->remote->role;
+            generation_id = dp->generation_id;
             break;
         }
         case OFPCR_ROLE_EQUAL: {
@@ -641,7 +643,7 @@ dp_handle_role_request(struct datapath *dp, struct ofl_msg_role_request *msg,
     struct ofl_msg_role_request reply =
         {{.type = OFPT_ROLE_REPLY},
             .role = role,
-            .generation_id = msg->generation_id};
+            .generation_id = generation_id};
 
     dp_send_message(dp, (struct ofl_msg_header *)&reply, sender);
     }
