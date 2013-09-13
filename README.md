@@ -50,10 +50,10 @@ The switch makes use of the NetBee library to parse packets, so we need to insta
     $ sudo ldconfig
     ```
 
-7. Put the folder `nbeesrc/include` in the `/usr/include`
+7. Put the contens of folder `nbeesrc/include` in the `/usr/include`
 
     ```
-    $ sudo cp -R ../include /usr/include
+    $ sudo cp -R ../include/* /usr/include/
     ```
 
 ## Building
