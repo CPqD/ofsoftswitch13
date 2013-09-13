@@ -235,14 +235,19 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 pkt->handle_std->proto->icmp->icmp_code = *act->field->value;
                 break;
             }
-            case OXM_OF_ARP_OP:
+            case OXM_OF_ARP_OP: {
+                pkt->handle_std->proto->arp->ar_op = htons(*((uint16_t*) act->field->value));
+                break;
+            }
             case OXM_OF_ARP_SPA:{
                 pkt->handle_std->proto->arp->ar_spa = *((uint32_t*)
                                                             act->field->value);
+                break;
             }
             case OXM_OF_ARP_TPA:{
                  pkt->handle_std->proto->arp->ar_tpa = *((uint32_t*)
                                                             act->field->value);
+                 break;
             }
             case OXM_OF_ARP_SHA:{
                 memcpy(pkt->handle_std->proto->arp->ar_sha,
@@ -252,17 +257,17 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
             case OXM_OF_ARP_THA:{
                 memcpy(pkt->handle_std->proto->arp->ar_tha,
                         act->field->value, OXM_LENGTH(act->field->header));
-                        break;
+                break;
             }
             case OXM_OF_IPV6_SRC:{
                 memcpy(&pkt->handle_std->proto->ipv6->ipv6_src,
                         act->field->value, OXM_LENGTH(act->field->header));
-                        break;
+                break;
             }
             case OXM_OF_IPV6_DST:{
                 memcpy(&pkt->handle_std->proto->ipv6->ipv6_dst,
                         act->field->value, OXM_LENGTH(act->field->header));
-                        break;
+                break;
             }
             case OXM_OF_IPV6_FLABEL:{
                 struct ipv6_header *ipv6 = (struct ipv6_header*)
@@ -311,7 +316,8 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 if(opt->type == ND_OPT_TLL){
                     memcpy(data + offset, act->field->value,
                                     OXM_LENGTH(act->field->header));
-                }                break;
+                }                
+                break;
             }
             case OXM_OF_MPLS_LABEL:{
                 struct mpls_header *mpls = pkt->handle_std->proto->mpls;
@@ -324,17 +330,20 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 struct mpls_header *mpls = pkt->handle_std->proto->mpls;
                 mpls->fields = (mpls->fields & ~ntohl(MPLS_TC_MASK))
                 | ntohl((*act->field->value << MPLS_TC_SHIFT) & MPLS_TC_MASK);
+                break;
             }
             case OXM_OF_MPLS_BOS:{
                 struct mpls_header *mpls = pkt->handle_std->proto->mpls;
                 mpls->fields = (mpls->fields & ~ntohl(MPLS_S_MASK))
                 | ntohl((*act->field->value << MPLS_S_SHIFT) & MPLS_S_MASK);
+                break;
             }
             case OXM_OF_PBB_ISID :{
                 struct pbb_header *pbb = pkt->handle_std->proto->pbb;
                 uint32_t v = *((uint32_t*) act->field->value);
                 pbb->id = (pbb->id & ~ntohl(PBB_ISID_MASK)) |
                                                 ntohl(v & PBB_ISID_MASK);
+                break;
             }
             default:
                 VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to set unknow field.");
