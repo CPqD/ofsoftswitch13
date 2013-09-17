@@ -20,7 +20,7 @@ The switch makes use of the NetBee library to parse packets, so we need to insta
 1. Install the following packages:
 
     ```
-    $ sudo apt-get install cmake libpcap-dev libxerces-c2-dev libpcre3-dev flex bison pkg-config autoconf libtool
+    $ sudo apt-get install cmake libpcap-dev libxerces-c2-dev libpcre3-dev flex bison pkg-config autoconf libtool libboost-dev
     ```
 
 2. Download and unpack the source code from: http://www.nbee.org/download/nbeesrc-12-05-16.php
