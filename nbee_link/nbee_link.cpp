@@ -276,6 +276,12 @@ int nblink_extract_proto_fields(struct ofpbuf * pktin, _nbPDMLField * field, str
             m_value = (m_value & MPLS_S_MASK) >> MPLS_S_SHIFT;
             ofl_structs_match_put8(pktout, header, m_value);
         }
+        else if (header == OXM_OF_PBB_ISID){
+            uint32_t m_value;
+            sscanf(field->Value, "%x", &m_value);
+            m_value = (m_value & PBB_ISID_MASK);
+            ofl_structs_match_put32(pktout, header, m_value);        
+        }
         /*TODO: Add IPV6_FLABEL_SHIFT to lib/packets.h*/
         /*else if (header == OXM_OF_IPV6_FLABEL){
             uint32_t m_value;
@@ -400,7 +406,7 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct ofl_match * pk
                 nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_ETH_TYPE);
 
             }
-            else if ((protocol_Name.compare("vlan") == 0 || protocol_Name.compare("pbb_b") == 0))
+            else if ((protocol_Name.compare("vlan") == 0))
             {
                 if(pkt_proto->vlan_last == NULL){
                     pkt_proto->vlan = pkt_proto->vlan_last = (struct vlan_header *) ((uint8_t*)  pktin->data + proto->Position);
@@ -443,7 +449,7 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct ofl_match * pk
                 nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_ARP_TPA);
 
             }
-            else if (protocol_Name.compare("pbb_s") == 0 && pkt_proto->pbb == NULL)
+            else if (protocol_Name.compare("pbb") == 0 && pkt_proto->pbb == NULL)
             {
                 pkt_proto->pbb = (struct pbb_header *) ((uint8_t*) pktin->data + proto->Position);
                 PDMLReader->GetPDMLField(proto->Name, (char*) "isid", proto->FirstField, &field);

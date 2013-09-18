@@ -1151,7 +1151,7 @@
 			-->
 			<field type="bit" name="prio" longname="Priority" mask="0xE000" size="2" showtemplate="FieldDec"/>
 			<field type="bit" name="dei" longname="Drop Eligibility" mask="0x1000" size="2" showtemplate="FieldDec"/>
-			<field type="bit" name="isid" longname="{0x8000 37} I-SID" mask="0x0FFF" size="2" showtemplate="FieldDec"/>
+			<field type="bit" name="isid" longname="{0x8000 37} I-SID" mask="0x0FFF" size="4" showtemplate="FieldDec"/>
 			
 			<field type="fixed" name="type" longname="{0x8000 5} Type" size="2" showtemplate="eth.typelength"/>
 		</fields>
