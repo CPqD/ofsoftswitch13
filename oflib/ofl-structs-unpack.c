@@ -1146,7 +1146,8 @@ ofl_structs_oxm_match_unpack(struct ofp_match* src, uint8_t* buf, size_t *len, s
      }
     else {
 		 m->header.length = 0;
-		 m->header.type = ntohs(src->type);	
+		 m->header.type = ntohs(src->type);
+         m->match_fields = (struct hmap) HMAP_INITIALIZER(&m->match_fields);	
 	}
     ofpbuf_delete(b);    
     *dst = m;
@@ -1158,9 +1159,7 @@ ofl_structs_match_unpack(struct ofp_match *src,uint8_t * buf, size_t *len, struc
 
     switch (ntohs(src->type)) {
         case (OFPMT_OXM): {
-
-             return ofl_structs_oxm_match_unpack(src, buf, len, (struct ofl_match**) dst );       
-            
+             return ofl_structs_oxm_match_unpack(src, buf, len, (struct ofl_match**) dst );               
         }
         default: {
             if (exp == NULL || exp->match == NULL || exp->match->unpack == NULL) {

@@ -501,6 +501,7 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct ofl_match * pk
 
                 hmap_insert_fast(&pktout->match_fields, &EH_field->hmap_node,
                             hash_int(EH_field->header, 0));
+                pktout->header.length += 6;
                 PDMLReader->GetPDMLField(proto->Name, (char*) "src", proto->FirstField, &field);
                 nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_IPV6_SRC);
                 PDMLReader->GetPDMLField(proto->Name, (char*) "dst", proto->FirstField, &field);
