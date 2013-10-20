@@ -1005,7 +1005,6 @@ netdev_recv(struct netdev *netdev, struct ofpbuf *buffer)
                   continue;
                 /* VLAN tag found. Shift MAC addresses down and insert VLAN tag */
                 /* Create headroom for the VLAN tag */
-                ofpbuf_reserve(buffer, VLAN_HEADER_LEN);
                 ofpbuf_push_uninit(buffer, VLAN_HEADER_LEN);
                 memmove(buffer->data, (uint8_t*)buffer->data+VLAN_HEADER_LEN, ETH_ALEN * 2);
                 tag = (struct vlan_tag *)((uint8_t*)buffer->data + ETH_ALEN * 2);
