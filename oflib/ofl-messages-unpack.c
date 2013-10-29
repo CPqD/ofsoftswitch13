@@ -384,7 +384,7 @@ ofl_msg_unpack_packet_out(struct ofp_header *src, size_t *len, struct ofl_msg_he
     dp = (struct ofl_msg_packet_out *)malloc(sizeof(struct ofl_msg_packet_out));
 
     dp->buffer_id = ntohl(sp->buffer_id);
-
+    dp->in_port = ntohl(sp->in_port);	
     if (*len < ntohs(sp->actions_len)) {
         OFL_LOG_WARN(LOG_MODULE, "Received PACKET_OUT message has invalid action length (%zu).", *len);
         free(dp);
