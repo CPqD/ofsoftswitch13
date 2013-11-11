@@ -100,17 +100,23 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
             }
             case OXM_OF_VLAN_VID:{
                 struct vlan_header *vlan =  pkt->handle_std->proto->vlan;
-                uint16_t v = (*(uint16_t*)act->field->value);
-                vlan->vlan_tci = htons((ntohs(vlan->vlan_tci) & ~VLAN_VID_MASK)
-                                                | (v & VLAN_VID_MASK));
+                /* VLAN existence is no guaranteed by match prerquisite*/
+                if(vlan != NULL){
+                    uint16_t v = (*(uint16_t*)act->field->value);
+                    vlan->vlan_tci = htons((ntohs(vlan->vlan_tci) & ~VLAN_VID_MASK)
+                                                    | (v & VLAN_VID_MASK));
+                    
+                }
                 break;
             }
             case OXM_OF_VLAN_PCP:{
                 struct vlan_header *vlan = pkt->handle_std->proto->vlan;
-
-                vlan->vlan_tci = (vlan->vlan_tci & ~htons(VLAN_PCP_MASK))
-                                | htons(*act->field->value << VLAN_PCP_SHIFT);
-                break;
+                /* VLAN existence is no guaranteed by match prerquisite*/
+                if(vlan != NULL){
+                    vlan->vlan_tci = (vlan->vlan_tci & ~htons(VLAN_PCP_MASK))
+                                    | htons(*act->field->value << VLAN_PCP_SHIFT);
+                    break;
+                }
             }
             case OXM_OF_IP_DSCP:{
                 struct ip_header *ipv4 =  pkt->handle_std->proto->ipv4;
