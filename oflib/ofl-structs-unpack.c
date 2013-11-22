@@ -192,6 +192,9 @@ ofl_structs_instructions_unpack(struct ofp_instruction *src, size_t *len, struct
             }
             break;
         }
+        default:
+            OFL_LOG_WARN(LOG_MODULE, "The received instruction type (%zu) is invalid.", ntohs(src->type));
+            return ofl_error(OFPET_BAD_INSTRUCTION, OFPBIC_UNKNOWN_INST);
     }
 
     // must set type before check, so free works correctly

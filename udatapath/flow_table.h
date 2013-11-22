@@ -37,7 +37,7 @@
 #include "timeval.h"
 
 
-#define FLOW_TABLE_MAX_ENTRIES 1024
+#define FLOW_TABLE_MAX_ENTRIES 4096
 #define TABLE_FEATURES_NUM 14
 // EEDJAS: N_OXM_FIELDS is an enum value exported by oxm-match.h via ofl-structs.h
 // #define N_OXM_FIELDS 40
