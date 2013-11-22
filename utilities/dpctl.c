@@ -1660,6 +1660,7 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
             else {
                 act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
                 act->field->header = OXM_OF_VLAN_VID;
+                *dl_vlan = *dl_vlan | OFPVID_PRESENT;
                 act->field->value = (uint8_t*) dl_vlan;
             }
         return 0;
