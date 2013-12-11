@@ -628,7 +628,7 @@ enum ofp_capabilities {
     OFPC_IP_REASM = 1 << 5,    /* Can reassemble IP fragments. */
     OFPC_QUEUE_STATS = 1 << 6, /* Queue statistics. */
     OFPC_PORT_BLOCKED = 1 << 8, /* Switch will block looping ports. */
-	OFPC_TABLE_STATEFULL = 1 << 9
+	OFPC_TABLE_STATEFUL = 1 << 9
 };
 
 /* Switch configuration. */
@@ -676,7 +676,7 @@ enum ofp_table_config {
                                            pipeline (OpenFlow 1.0 behavior). */
     OFPTC_TABLE_MISS_DROP = 1 << 1,     /* Drop the packet. */
     OFPTC_TABLE_MISS_MASK = 3,
-    OFPTC_TABLE_STATEFULL = 1 << 4
+    OFPTC_TABLE_STATEFUL = 1 << 4
 };
 
 #define OFP_DEFAULT_PRIORITY 0x8000

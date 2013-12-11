@@ -152,7 +152,7 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
         table         = next_table;
         next_table    = NULL;
 		
-		if (table->features->config & OFPC_TABLE_STATEFULL) {
+		if (table->features->config & OFPC_TABLE_STATEFUL) {
 			state_entry = state_table_lookup(table->state_table, pkt);
 			state_table_write_metadata(state_entry, pkt);
 		}
