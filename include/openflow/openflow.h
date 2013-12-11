@@ -93,6 +93,41 @@ enum ofp_type {
     OFPT_SET_ASYNC = 28, /* Controller/switch message */
     /* Meters and rate limiters configuration messages. */
     OFPT_METER_MOD = 29, /* Controller/switch message */
+	OFPT_STATE_MOD = 30, /* Controller/switch message */
+};
+
+/*
+	OFPT_STATE_MOD
+*/
+#define OFPSC_MAX_FIELD_COUNT 6
+#define OFPSC_MAX_KEY_LEN 48
+
+struct ofp_state_mod {
+    struct ofp_header header;
+    uint64_t cookie;
+    uint64_t cookie_mask;
+    uint8_t table_id;
+    uint8_t command;
+    //uint8_t pad[];
+	uint8_t payload[];
+};
+
+struct ofp_state_entry {
+    uint32_t key_len;
+    uint32_t state;
+    uint8_t key[OFPSC_MAX_KEY_LEN];
+};
+
+struct ofp_extraction {
+    uint32_t field_count;
+    uint8_t fields[OFPSC_MAX_FIELD_COUNT];
+};
+
+enum ofp_state_mod_command {
+	OFPSC_SET_L_EXTRACTOR = 0,
+	OFPSC_SET_U_EXTRACTOR,
+	OFPSC_ADD_FLOW_STATE,	
+	OFPSC_DEL_FLOW_STATE
 };
 
 /* OFPT_HELLO.  This message has an empty body, but implementations must
@@ -369,6 +404,8 @@ enum ofp_instruction_type {
     OFPIT_CLEAR_ACTIONS = 5,    /* Clears all actions from the datapath
                                    action set */
     OFPIT_METER = 6,            /* Apply meter (rate limiter) */
+    OFPIT_SET_STATE = 7,		/* Write the next state field for use later in
+								pipeline */
                                    
     OFPIT_EXPERIMENTER = 0xFFFF /* Experimenter instruction */
 };
@@ -432,6 +469,13 @@ struct ofp_instruction_meter {
 };
 OFP_ASSERT(sizeof(struct ofp_instruction_meter) == 8);
 
+/* Instruction structure for OFPIT_SET_STATE */
+struct ofp_instruction_set_state {
+    uint16_t type; /* OFPIT_SET_STATE */
+    uint16_t len;  /* Length is 8. */
+    uint32_t state; /* Meter instance. */
+};
+OFP_ASSERT(sizeof(struct ofp_instruction_set_state) == 8);
 
 enum ofp_action_type {
     OFPAT_OUTPUT = 0,        /* Output to switch port. */
@@ -583,7 +627,8 @@ enum ofp_capabilities {
     OFPC_GROUP_STATS = 1 << 3, /* Group statistics. */
     OFPC_IP_REASM = 1 << 5,    /* Can reassemble IP fragments. */
     OFPC_QUEUE_STATS = 1 << 6, /* Queue statistics. */
-    OFPC_PORT_BLOCKED = 1 << 8 /* Switch will block looping ports. */
+    OFPC_PORT_BLOCKED = 1 << 8, /* Switch will block looping ports. */
+	OFPC_TABLE_STATEFULL = 1 << 9
 };
 
 /* Switch configuration. */
@@ -630,7 +675,8 @@ enum ofp_table_config {
     OFPTC_TABLE_MISS_CONTINUE = 1 << 0, /* Continue to the next table in the
                                            pipeline (OpenFlow 1.0 behavior). */
     OFPTC_TABLE_MISS_DROP = 1 << 1,     /* Drop the packet. */
-    OFPTC_TABLE_MISS_MASK = 3
+    OFPTC_TABLE_MISS_MASK = 3,
+    OFPTC_TABLE_STATEFULL = 1 << 4
 };
 
 #define OFP_DEFAULT_PRIORITY 0x8000

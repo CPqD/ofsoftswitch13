@@ -35,6 +35,7 @@
 #include "oflib/ofl-structs.h"
 #include "pipeline.h"
 #include "timeval.h"
+#include "state_table.h"
 
 
 #define FLOW_TABLE_MAX_ENTRIES 4096
@@ -60,6 +61,7 @@ struct flow_table {
                                                 ordered by their timeout times. */
     struct list               idle_entries;   /* unordered list of entries with
                                                 idle timeout. */
+    struct state_table	      *state_table;
 };
 
 extern uint32_t oxm_ids[];

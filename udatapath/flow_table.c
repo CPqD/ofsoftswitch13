@@ -383,6 +383,8 @@ flow_table_create(struct datapath *dp, uint8_t table_id) {
     list_init(&table->hard_entries);
     list_init(&table->idle_entries);
 
+    table->state_table = state_table_create();
+
     return table;
 }
 
@@ -395,6 +397,7 @@ flow_table_destroy(struct flow_table *table) {
     }
     free(table->features);
     free(table->stats);
+    state_table_destroy(table->state_table);
     free(table);
 }
 

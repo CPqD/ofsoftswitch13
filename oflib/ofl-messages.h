@@ -473,6 +473,31 @@ struct ofl_msg_queue_get_config_reply {
 };
 
 
+/************************
+ * state mod messages
+ ************************/
+struct ofl_msg_state_mod {
+    struct ofl_msg_header header;   /* OFPT_STATE_MOD */
+    uint64_t cookie;
+    uint64_t cookie_mask;
+    uint8_t table_id;
+    uint8_t command;
+    //uint8_t pad[];
+	uint8_t payload[];
+};
+
+struct ofl_msg_state_entry {
+    uint32_t key_len;
+    uint32_t state;
+    uint8_t key[OFPSC_MAX_KEY_LEN];
+};
+
+struct ofl_msg_extraction {
+    uint32_t field_count;
+    uint8_t fields[OFPSC_MAX_FIELD_COUNT];
+};
+
+
 
 /****************************************************************************
  * Functions for (un)packing message structures

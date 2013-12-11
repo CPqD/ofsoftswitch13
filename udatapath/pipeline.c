@@ -51,6 +51,7 @@
 #include "hash.h"
 #include "oflib/oxm-match.h"
 #include "vlog.h"
+#include "state_table.h"
 
 
 #define LOG_MODULE VLM_pipeline
@@ -143,20 +144,28 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
     next_table = pl->tables[0];
     while (next_table != NULL) {
         struct flow_entry *entry;
+		struct state_entry *state_entry;
 
         VLOG_DBG_RL(LOG_MODULE, &rl, "trying table %u.", next_table->stats->table_id);
 
         pkt->table_id = next_table->stats->table_id;
         table         = next_table;
         next_table    = NULL;
+		
+		if (table->features->config & OFPC_TABLE_STATEFULL) {
+			state_entry = state_table_lookup(table->state_table, pkt);
+			state_table_write_metadata(state_entry, pkt);
+		}
 
-        // EEDBEH: additional printout to debug table lookup
-        if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
-            char *m = ofl_structs_match_to_string((struct ofl_match_header*)&(pkt->handle_std->match), pkt->dp->exp);
-            VLOG_DBG_RL(LOG_MODULE, &rl, "searching table entry for packet match: %s.", m);
-            free(m);
-        }
-        entry = flow_table_lookup(table, pkt);
+		// EEDBEH: additional printout to debug table lookup
+		if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
+			char *m = ofl_structs_match_to_string((struct ofl_match_header*)&(pkt->handle_std->match), pkt->dp->exp);
+			VLOG_DBG_RL(LOG_MODULE, &rl, "searching table entry for packet match: %s.", m);
+			free(m);
+		}
+
+		entry = flow_table_lookup(table, pkt);
+
         if (entry != NULL) {
 	        if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
                 char *m = ofl_structs_flow_stats_to_string(entry->stats, pkt->dp->exp);
@@ -197,6 +206,36 @@ int inst_compare(const void *inst1, const void *inst2){
         return i1->type > i2->type;
 
     return i1->type < i2->type;
+}
+
+ofl_err
+pipeline_handle_state_mod(struct pipeline *pl, struct ofl_msg_state_mod *msg,
+                                                const struct sender *sender) {
+    ofl_err error;
+	struct state_table *st = pl->tables[msg->table_id]->state_table;
+
+	if (msg->command == OFPSC_SET_L_EXTRACTOR || msg->command == OFPSC_SET_U_EXTRACTOR) {
+		struct ofl_msg_extraction *p = (struct ofl_msg_extraction *) msg->payload;	
+
+		int update = 0;
+		if (msg->command == OFPSC_SET_U_EXTRACTOR) 
+			update == 1;
+
+		state_table_set_extractor(st, (struct key_extractor *)p, update);
+	}
+	else if (msg->command == OFPSC_ADD_FLOW_STATE) {
+		struct ofl_msg_state_entry *p = (struct ofl_msg_state_entry *) msg->payload;
+		
+		state_table_set_state(st, NULL, p->state, p->key, p->key_len);
+	}
+	else if (msg->command == OFPSC_DEL_FLOW_STATE) {
+		struct ofl_msg_state_entry *p = (struct ofl_msg_state_entry *) msg->payload;
+		state_table_del_state(st, p->key, p->key_len);
+	}
+	else
+		return 1;
+
+	return 0;
 }
 
 ofl_err
@@ -524,14 +563,20 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
             }
             case OFPIT_METER: {
             	struct ofl_instruction_meter *im = (struct ofl_instruction_meter *)inst;
-                meter_table_apply(pl->dp->meters, pkt , im->meter_id);
+                meter_table_apply(pl->dp->meters, pkt, im->meter_id);
                 break;
             }
             case OFPIT_EXPERIMENTER: {
                 dp_exp_inst((*pkt), (struct ofl_instruction_experimenter *)inst);
                 break;
             }
+            case OFPIT_SET_STATE: {
+                struct ofl_instruction_set_state *wns = (struct ofl_instruction_set_state *)inst;
+				struct state_table *st = pl->tables[(*pkt)->table_id]->state_table;
+                printf("executing instruction NEXT STATE\n");
+				state_table_set_state(st, *pkt, wns->state, NULL, 0);
+				break;
+	    	}
         }
     }
 }
-

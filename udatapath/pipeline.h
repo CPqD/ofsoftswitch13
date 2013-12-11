@@ -98,6 +98,11 @@ pipeline_handle_stats_request_aggregate(struct pipeline *pl,
                                   const struct sender *sender);
 
 
+/* Handles a state_mod message */
+ofl_err
+pipeline_handle_state_mod(struct pipeline *pl, struct ofl_msg_state_mod *msg,
+                         const struct sender *sender);
+
 /* Commands pipeline to check if any flow in any table is timed out. */
 void
 pipeline_timeout(struct pipeline *pl);
