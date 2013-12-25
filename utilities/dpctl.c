@@ -1814,7 +1814,7 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
     }
     if (strncmp(token, MATCH_TP_DST KEY_VAL2, strlen(MATCH_TP_DST KEY_VAL2)) == 0) {
         uint16_t* tp_dst = xmalloc(2);
-        if (parse16(token + strlen(MATCH_TP_SRC KEY_VAL2), NULL, 0, 0xffff, tp_dst)) {
+        if (parse16(token + strlen(MATCH_TP_DST KEY_VAL2), NULL, 0, 0xffff, tp_dst)) {
             ofp_fatal(0, "Error parsing tcp_src: %s.", token);
         }else{
             act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
