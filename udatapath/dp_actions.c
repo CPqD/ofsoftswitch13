@@ -183,36 +183,34 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
             }
             case OXM_OF_TCP_SRC:{
                 struct tcp_header *tcp = pkt->handle_std->proto->tcp;
-                uint16_t *v = (uint16_t*) act->field->value;
-                *v = htons(*v);
-                tcp->tcp_csum = recalc_csum16(tcp->tcp_csum, tcp->tcp_src,*v);
-                memcpy(&tcp->tcp_src, v, OXM_LENGTH(act->field->header));
+                uint16_t v = htons(*(uint16_t*) act->field->value);
+                tcp->tcp_csum = recalc_csum16(tcp->tcp_csum, tcp->tcp_src, v);
+                memcpy(&tcp->tcp_src, &v, OXM_LENGTH(act->field->header));
 
                 break;
             }
             case OXM_OF_TCP_DST:{
                 struct tcp_header *tcp = pkt->handle_std->proto->tcp;
-                uint16_t *v = (uint16_t*) act->field->value;
-                *v = htons(*v);
-                tcp->tcp_csum = recalc_csum16(tcp->tcp_csum, tcp->tcp_dst,*v);
-                memcpy(&tcp->tcp_dst, v, OXM_LENGTH(act->field->header));
+                uint16_t v = htons(*(uint16_t*) act->field->value);
+                tcp->tcp_csum = recalc_csum16(tcp->tcp_csum, tcp->tcp_dst, v);
+                memcpy(&tcp->tcp_dst, &v, OXM_LENGTH(act->field->header));
 
                 break;
             }
             case OXM_OF_UDP_SRC:{
                 struct udp_header *udp = pkt->handle_std->proto->udp;
-                uint16_t *v = (uint16_t*) act->field->value;
-                *v = htons(*v);
-                udp->udp_csum = recalc_csum16(udp->udp_csum, udp->udp_dst, *v);
-                memcpy(&udp->udp_src, v, OXM_LENGTH(act->field->header));
+                uint16_t v = htons(*(uint16_t*) act->field->value);
+                udp->udp_csum = recalc_csum16(udp->udp_csum, udp->udp_src, v);
+                memcpy(&udp->udp_src, &v, OXM_LENGTH(act->field->header));
+
                 break;
             }
             case OXM_OF_UDP_DST:{
                 struct udp_header *udp = pkt->handle_std->proto->udp;
-                uint16_t *v = (uint16_t*) act->field->value;
-                *v = htons(*v);
-                udp->udp_csum = recalc_csum16(udp->udp_csum, udp->udp_dst, *v);
-                memcpy(&udp->udp_dst, v, OXM_LENGTH(act->field->header));
+                uint16_t v = htons(*(uint16_t*) act->field->value);
+                udp->udp_csum = recalc_csum16(udp->udp_csum, udp->udp_dst, v);
+                memcpy(&udp->udp_dst, &v, OXM_LENGTH(act->field->header));
+
                 break;
             }
             /*TODO recalculate SCTP checksum*/
