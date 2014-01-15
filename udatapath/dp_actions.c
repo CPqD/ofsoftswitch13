@@ -122,9 +122,9 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 struct ip_header *ipv4 =  pkt->handle_std->proto->ipv4;
                 uint8_t tos = (ipv4->ip_tos & ~IP_DSCP_MASK) |
                                (*act->field->value << 2);
-
-                ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, (uint16_t)
-                                                (ipv4->ip_tos), (uint16_t)tos);
+                uint16_t old_val = htons((ipv4->ip_ihl_ver << 8) + ipv4->ip_tos);
+                uint16_t new_val = htons((ipv4->ip_ihl_ver << 8) + tos);
+                ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val);
                 ipv4->ip_tos = tos;
                 break;
             }
@@ -132,8 +132,9 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 struct ip_header *ipv4 =  pkt->handle_std->proto->ipv4;
                 uint8_t tos = (ipv4->ip_tos & ~IP_ECN_MASK) |
                                (*act->field->value & IP_ECN_MASK);
-                ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, (uint16_t)
-                                                (ipv4->ip_tos), (uint16_t)tos);
+                uint16_t old_val = htons((ipv4->ip_ihl_ver << 8) + ipv4->ip_tos);
+                uint16_t new_val = htons((ipv4->ip_ihl_ver << 8) + tos);
+                ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val);
                 ipv4->ip_tos = tos;
                 break;
             }
