@@ -231,8 +231,8 @@ meter_entry_apply(struct meter_entry *entry, struct packet **pkt){
 				struct ip_header *ipv4 = (*pkt)->handle_std->proto->ipv4;
 				uint8_t new_dscp = (ipv4->ip_tos >> 5) - band_header->prec_level;
 				uint8_t new_tos = (new_dscp << 5 ) | (ipv4->ip_tos & 0x1f);
-				uint16_t old_val = htons((ipv4->ip_ihl_ver >> 8) + ipv4->ip_tos);
-				uint16_t new_val = htons((ipv4->ip_ihl_ver >> 8) + new_tos);
+				uint16_t old_val = htons((ipv4->ip_ihl_ver << 8) + ipv4->ip_tos);
+				uint16_t new_val = htons((ipv4->ip_ihl_ver << 8) + new_tos);
 				ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val);
 				ipv4->ip_tos = new_tos;
 				break;
