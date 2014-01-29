@@ -83,6 +83,9 @@ void
 flow_entry_replace_instructions(struct flow_entry *entry,
                                       size_t instructions_num,
                                       struct ofl_instruction_header **instructions);
+void
+flow_entry_modify_stats(struct flow_entry *entry,
+			struct ofl_msg_flow_mod *mod);
 
 /* Checks if the entry should time out because of its idle timeout. If so, the
  * packet is freed, flow removed message is generated, and true is returned. */

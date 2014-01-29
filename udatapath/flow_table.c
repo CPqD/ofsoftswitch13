@@ -159,6 +159,7 @@ flow_table_modify(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool s
     LIST_FOR_EACH (entry, struct flow_entry, match_node, &table->match_entries) {
         if (flow_entry_matches(entry, mod, strict, true/*check_cookie*/)) {
             flow_entry_replace_instructions(entry, mod->instructions_num, mod->instructions);
+	    flow_entry_modify_stats(entry, mod);
             *insts_kept = true;
         }
     }
