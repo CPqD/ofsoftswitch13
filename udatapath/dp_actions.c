@@ -561,13 +561,16 @@ push_mpls(struct packet *pkt, struct ofl_action_push *act) {
     if (pkt->handle_std->proto->eth != NULL) {
         struct eth_header  *eth,  *new_eth;
         struct snap_header *snap, *new_snap;
+        struct vlan_header *vlan, *new_vlan;
         struct mpls_header *mpls, *new_mpls, *push_mpls;
-        struct ip_header *ipv4;
-        struct ipv6_header *ipv6;
+        struct ip_header *ipv4, *new_ipv4;
+        struct ipv6_header *ipv6, *new_ipv6;
         size_t eth_size;
+        size_t head_offset;
 
         eth = pkt->handle_std->proto->eth;
         snap = pkt->handle_std->proto->eth_snap;
+        vlan = pkt->handle_std->proto->vlan_last;
         mpls = pkt->handle_std->proto->mpls;
         ipv4 = pkt->handle_std->proto->ipv4;
         ipv6 = pkt->handle_std->proto->ipv6;
@@ -576,19 +579,24 @@ push_mpls(struct packet *pkt, struct ofl_action_push *act) {
                    ? ETH_HEADER_LEN
                    : ETH_HEADER_LEN + LLC_HEADER_LEN + SNAP_HEADER_LEN;
 
+        head_offset = vlan == NULL ? eth_size
+              : (uint8_t *)vlan - (uint8_t *)eth + VLAN_HEADER_LEN;
+
         if (ofpbuf_headroom(pkt->buffer) >= MPLS_HEADER_LEN) {
             // there is available space in headroom, move eth backwards
             pkt->buffer->data = (uint8_t *)(pkt->buffer->data) - MPLS_HEADER_LEN;
             pkt->buffer->size += MPLS_HEADER_LEN;
 
-            memmove(pkt->buffer->data, eth, eth_size);
-
+            memmove(pkt->buffer->data, eth, head_offset);
             new_eth = (struct eth_header *)(pkt->buffer->data);
             new_snap = snap == NULL ? NULL
-                                   : (struct snap_header *)((uint8_t *)new_eth
-                                        + ETH_HEADER_LEN + MPLS_HEADER_LEN + LLC_HEADER_LEN);
-            push_mpls = (struct mpls_header *)((uint8_t *)new_eth + eth_size);
+                    : (struct snap_header *)((uint8_t *)snap - MPLS_HEADER_LEN);
+            new_vlan = vlan == NULL ? NULL
+                    : (struct vlan_header *)((uint8_t *)vlan - MPLS_HEADER_LEN);
+            push_mpls = (struct mpls_header *)((uint8_t *)new_eth + head_offset);
             new_mpls = mpls;
+            new_ipv4 = ipv4;
+            new_ipv6 = ipv6;
 
         } else {
             // not enough headroom, use tailroom of the packet
@@ -598,39 +606,51 @@ push_mpls(struct packet *pkt, struct ofl_action_push *act) {
 
             new_eth = (struct eth_header *)(pkt->buffer->data);
             new_snap = snap == NULL ? NULL
-                                   : (struct snap_header *)((uint8_t *)new_eth
-                                        + ETH_HEADER_LEN + MPLS_HEADER_LEN + LLC_HEADER_LEN);
-            push_mpls = (struct mpls_header *)((uint8_t *)new_eth + ETH_HEADER_LEN);
+                    : (struct snap_header *)((uint8_t *)snap - (uint8_t *)eth + (uint8_t *)new_eth);
+            new_vlan = vlan == NULL ? NULL
+                    : (struct vlan_header *)((uint8_t *)vlan - (uint8_t *)eth + (uint8_t *)new_eth);
+            push_mpls = (struct mpls_header *)((uint8_t *)new_eth + head_offset);
 
             // push data to create space for new MPLS
             memmove((uint8_t *)push_mpls + MPLS_HEADER_LEN, push_mpls,
-                    pkt->buffer->size - ETH_HEADER_LEN);
+                    pkt->buffer->size - head_offset);
 
-           new_mpls = mpls == NULL ? NULL
-              : (struct mpls_header *)((uint8_t *)push_mpls + MPLS_HEADER_LEN);
+            new_mpls = mpls == NULL ? NULL
+                    : (struct mpls_header *)((uint8_t *)push_mpls + MPLS_HEADER_LEN);
+            // Note: if ipv4 was not null, then there was no MPLS header in 1.1
+            new_ipv4 = ipv4 == NULL ? NULL
+                    : (struct ip_header *)((uint8_t *)push_mpls + MPLS_HEADER_LEN);
+            new_ipv6 = ipv6 == NULL ? NULL
+                    : (struct ip_header *)((uint8_t *)push_mpls + MPLS_HEADER_LEN);
         }
 
         if (new_mpls != NULL) {
             push_mpls->fields = new_mpls->fields & ~htonl(MPLS_S_MASK);
-        } else if (ipv4 != NULL) {
+        } else if (new_ipv4 != NULL) {
             // copy IP TTL to MPLS TTL (rest is zero), and set S bit
-            push_mpls->fields = htonl((uint32_t)ipv4->ip_ttl & MPLS_TTL_MASK) | htonl(MPLS_S_MASK);
-        } else if (ipv6 != NULL) {
+            push_mpls->fields = htonl((uint32_t)new_ipv4->ip_ttl & MPLS_TTL_MASK) | htonl(MPLS_S_MASK);
+        } else if (new_ipv6 != NULL) {
             // copy IP HOP LIMIT to MPLS TTL (rest is zero), and set S bit
-            push_mpls->fields = htonl((uint32_t)ipv6->ipv6_hop_limit & MPLS_TTL_MASK) | htonl(MPLS_S_MASK);
-        }
-        else {
+            push_mpls->fields = htonl((uint32_t)new_ipv6->ipv6_hop_limit & MPLS_TTL_MASK) | htonl(MPLS_S_MASK);
+        } else {
             push_mpls->fields = htonl(MPLS_S_MASK);
         }
 
-        if (new_snap != NULL) {
-            new_snap->snap_type = ntohs(act->ethertype);
+        if (new_vlan != NULL) {
+            new_vlan->vlan_next_type = htons(act->ethertype);
+        } else if (new_snap != NULL) {
+            new_snap->snap_type = htons(act->ethertype);
         } else {
-            new_eth->eth_type = ntohs(act->ethertype);
+            new_eth->eth_type = htons(act->ethertype);
         }
 
-        pkt->handle_std->valid = false;
+        if (new_snap != NULL) {
+            new_eth->eth_type = htons(ntohs(new_eth->eth_type) + MPLS_HEADER_LEN);
+        }
 
+        // in 1.1 all proto but eth and mpls will be hidden,
+        // so revalidating won't be a tedious work (probably)
+        pkt->handle_std->valid = false;
     } else {
         VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute PUSH_MPLS action on packet with no eth.");
     }
