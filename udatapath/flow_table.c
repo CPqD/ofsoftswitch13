@@ -55,20 +55,29 @@ uint32_t  oxm_ids[]={OXM_OF_IN_PORT,OXM_OF_IN_PHY_PORT,OXM_OF_METADATA,OXM_OF_ET
                         OXM_OF_IPV6_ND_TLL, OXM_OF_MPLS_LABEL, OXM_OF_MPLS_TC, OXM_OF_MPLS_BOS, OXM_OF_PBB_ISID,
                         OXM_OF_TUNNEL_ID, OXM_OF_IPV6_EXTHDR};
 
+#define NUM_OXM_IDS     (sizeof(oxm_ids) / sizeof(uint32_t))
+/* Do *NOT* use N_OXM_FIELDS, it's ligically wrong and can run over
+ * the oxm_ids array. Jean II */
+
 uint32_t wildcarded[] = {OXM_OF_METADATA, OXM_OF_ETH_DST, OXM_OF_ETH_SRC, OXM_OF_VLAN_VID, OXM_OF_IPV4_SRC,
                                OXM_OF_IPV4_DST, OXM_OF_ARP_SPA, OXM_OF_ARP_TPA, OXM_OF_ARP_SHA, OXM_OF_ARP_THA, OXM_OF_IPV6_SRC,
                                OXM_OF_IPV6_DST , OXM_OF_IPV6_FLABEL, OXM_OF_PBB_ISID, OXM_OF_TUNNEL_ID, OXM_OF_IPV6_EXTHDR};                        
 
+#define NUM_WILD_IDS    (sizeof(wildcarded) / sizeof(uint32_t))
 
 struct ofl_instruction_header instructions[] = { {OFPIT_GOTO_TABLE}, 
                   {OFPIT_WRITE_METADATA },{OFPIT_WRITE_ACTIONS},{OFPIT_APPLY_ACTIONS},
                   {OFPIT_CLEAR_ACTIONS},{OFPIT_METER}} ;
+
+#define N_INSTRUCTIONS  (sizeof(instructions) / sizeof(struct ofl_instruction_header))
 
 struct ofl_action_header actions[] = { {OFPAT_OUTPUT, 4}, 
                   {OFPAT_COPY_TTL_OUT, 4},{OFPAT_COPY_TTL_IN, 4},{OFPAT_SET_MPLS_TTL, 4},
                   {OFPAT_DEC_MPLS_TTL, 4},{OFPAT_PUSH_VLAN, 4},{OFPAT_POP_VLAN, 4}, {OFPAT_PUSH_MPLS, 4},
                   {OFPAT_POP_MPLS, 4},{OFPAT_SET_QUEUE, 4}, {OFPAT_GROUP, 4}, {OFPAT_SET_NW_TTL, 4}, {OFPAT_DEC_NW_TTL, 4}, 
                   {OFPAT_SET_FIELD, 4}, {OFPAT_PUSH_PBB, 4}, {OFPAT_POP_PBB, 4} } ;
+
+#define N_ACTIONS       (sizeof(actions) / sizeof(struct ofl_action_header))
 
 /* When inserting an entry, this function adds the flow entry to the list of
  * hard and idle timeout entries, if appropriate. */
@@ -307,7 +316,7 @@ flow_table_create_property(struct ofl_table_feature_prop_header **prop, enum ofp
             int i;
             oxm_capabilities = xmalloc(sizeof(struct ofl_table_feature_prop_oxm));
             oxm_capabilities->header.type = type;
-            oxm_capabilities->oxm_num = NUM_OXM_FIELDS;
+            oxm_capabilities->oxm_num = NUM_OXM_IDS;
             oxm_capabilities->oxm_ids = oxm_ids;
             oxm_capabilities->header.length = ofl_structs_table_features_properties_ofp_len(&oxm_capabilities->header, NULL);             
             *prop =  (struct ofl_table_feature_prop_header*) oxm_capabilities;
@@ -317,7 +326,7 @@ flow_table_create_property(struct ofl_table_feature_prop_header **prop, enum ofp
             struct ofl_table_feature_prop_oxm *oxm_capabilities;
             oxm_capabilities = xmalloc(sizeof(struct ofl_table_feature_prop_oxm)); 
             oxm_capabilities->header.type = type;
-            oxm_capabilities->oxm_num = N_WILDCARDED;
+            oxm_capabilities->oxm_num = NUM_WILD_IDS;
             oxm_capabilities->oxm_ids = wildcarded;
             oxm_capabilities->header.length = ofl_structs_table_features_properties_ofp_len(&oxm_capabilities->header, NULL);                         
             *prop =  (struct ofl_table_feature_prop_header*) oxm_capabilities;
