@@ -2111,7 +2111,7 @@ parse_flow_stat_args(char *str, struct ofl_msg_multipart_request_flow *req) {
             continue;
         }
         if (strncmp(token, FLOW_MOD_COOKIE_MASK KEY_VAL, strlen(FLOW_MOD_COOKIE_MASK KEY_VAL)) == 0) {
-            if (sscanf(token, FLOW_MOD_COOKIE_MASK KEY_VAL "0x%"SCNx64"", &(req->cookie)) != 1) {
+            if (sscanf(token, FLOW_MOD_COOKIE_MASK KEY_VAL "0x%"SCNx64"", &(req->cookie_mask)) != 1) {
                 ofp_fatal(0, "Error parsing flow_stat cookie mask: %s.", token);
             }
             continue;
@@ -2160,7 +2160,7 @@ parse_flow_mod_args(char *str, struct ofl_msg_flow_mod *req) {
             continue;
         }
         if (strncmp(token, FLOW_MOD_COOKIE_MASK KEY_VAL, strlen(FLOW_MOD_COOKIE_MASK KEY_VAL)) == 0) {
-            if (sscanf(token, FLOW_MOD_COOKIE_MASK KEY_VAL "0x%"SCNx64"", &(req->cookie)) != 1) {
+            if (sscanf(token, FLOW_MOD_COOKIE_MASK KEY_VAL "0x%"SCNx64"", &(req->cookie_mask)) != 1) {
                 ofp_fatal(0, "Error parsing flow_mod cookie mask: %s.", token);
             }
             continue;
