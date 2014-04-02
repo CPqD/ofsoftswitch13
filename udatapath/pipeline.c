@@ -62,11 +62,97 @@ static void
 execute_entry(struct pipeline *pl, struct flow_entry *entry,
               struct flow_table **table, struct packet **pkt);
 
+struct pipeline *pipeline_create(struct datapath *dp) {
+    struct pipeline *pl;
+    int i;
+    printf("here is the create pipeline\n");
+
+    // hardcoded statefull table init 
+    // in table 0 set OFPCT_TABLE_STATEFULL 
+    pl = xmalloc(sizeof(struct pipeline));
+
+    for (i=0; i<PIPELINE_TABLES; i++)
+    {
+        pl->tables[i] = flow_table_create(dp, i);
+
+    }
+    pl->dp = dp;
+
+    nblink_initialize();
+
+    //Haniehs' added lines
+    if (pl->tables[0])
+    {
+        
+        pl->tables[0]->features->config=OFPTC_TABLE_STATEFUL;
+	
+	struct state_table *stable = pl->tables[0]->state_table;
+        struct key_extractor *kext;
+        kext= xmalloc(sizeof(struct key_extractor));
+	kext->field_count=1;
+//	kext->fields[0]=OXM_OF_IPV4_SRC;
+	kext->fields[0]=OXM_OF_ETH_SRC;
+//	printf("key field extractor is %d \n",kext->fields[0]);	
+	int update;
+        for (update=0;update<2;++update)
+	{
+	    state_table_set_extractor(stable,kext,update);
+	}
+	int number_flow_entry=0;
+	for(number_flow_entry;number_flow_entry<2;number_flow_entry++)
+	{
+		ofl_err error=0;
+		bool match_kept = false;
+		bool insts_kept = false;
+		struct ofl_msg_flow_mod *msg=xmalloc(sizeof(struct ofl_msg_flow_mod));
+		struct ofl_match *m = xmalloc(sizeof(struct ofl_match));
+		ofl_structs_match_init(m);	
+
+		msg->table_id=0;
+		msg->command=OFPFC_ADD;
+		
+		uint64_t metadata=number_flow_entry;
+		ofl_structs_match_put64(m, OXM_OF_METADATA, metadata);
+		msg-> match = (struct ofl_match_header *)m;
+	//	printf("match header is %d \n", msg->match->type);
+		
+		msg->instructions_num=1;
+		msg->instructions=xmalloc(sizeof(struct ofl_instruction_header *) * msg->instructions_num);	
+		struct ofl_instruction_set_state  *i = xmalloc(sizeof(struct ofl_instruction_set_state ));
+		i->header.type = OFPIT_SET_STATE;
+		i->state=number_flow_entry+1;
+		msg->instructions[0]= (struct ofl_instruction_header *)i;
+	//	printf("msg instruction type should be the following %d \n",msg->instructions[0]->type);	
+		
+		msg->hard_timeout=OFP_FLOW_PERMANENT;
+		msg->idle_timeout=OFP_FLOW_PERMANENT;
+		msg->priority = OFP_DEFAULT_PRIORITY;
+
+		
+		error=flow_table_flow_mod(pl->tables[0],msg,&match_kept,&insts_kept);     
+		if (error){
+			printf("error for flow mod\n");
+		}
+		else{
+			ofl_msg_free_flow_mod(msg, !match_kept, !insts_kept, pl->dp->exp);
+			printf("free flow mod msg\n");
+		}
+	}	
+}
+
+    // set lookup and update extractors via function state_table_set_extractor 
+    // add 2 flow entries. 1 for default state, 1 for state = 1 
+   
+    return pl;
+} 
+/* replaced with upper func. instructions*/
+/*******
 struct pipeline *
 pipeline_create(struct datapath *dp) {
     struct pipeline *pl;
     int i;
 
+    printf("here is the create pipeline\n");
     pl = xmalloc(sizeof(struct pipeline));
     for (i=0; i<PIPELINE_TABLES; i++) {
         pl->tables[i] = flow_table_create(dp, i);
@@ -77,18 +163,22 @@ pipeline_create(struct datapath *dp) {
 
     return pl;
 }
+*/
 
 static bool
 is_table_miss(struct flow_entry *entry){
 
+    //printf("here is table miss\n");
     return ((entry->stats->priority) == 0 && (entry->match->length <= 4));
 
 }
+
 
 /* Sends a packet to the controller in a packet_in message */
 static void
 send_packet_to_controller(struct pipeline *pl, struct packet *pkt, uint8_t table_id, uint8_t reason) {
 
+    printf("here is send packet to controller\n");
     struct ofl_msg_packet_in msg;
     struct ofl_match *m;
     msg.header.type = OFPT_PACKET_IN;
@@ -123,6 +213,8 @@ void
 pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
     struct flow_table *table, *next_table;
 
+
+    //printf("here is pipeline processing packet\n");
     if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
         char *pkt_str = packet_to_string(pkt);
         VLOG_DBG_RL(LOG_MODULE, &rl, "processing packet: %s", pkt_str);
@@ -144,7 +236,7 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
     next_table = pl->tables[0];
     while (next_table != NULL) {
         struct flow_entry *entry;
-		struct state_entry *state_entry;
+	struct state_entry *state_entry;
 
         VLOG_DBG_RL(LOG_MODULE, &rl, "trying table %u.", next_table->stats->table_id);
 
@@ -152,15 +244,19 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
         table         = next_table;
         next_table    = NULL;
 		
-		if (table->features->config & OFPC_TABLE_STATEFUL) {
+    		//printf("before controlling the table feature config\n");
+		if (table->features->config &OFPTC_TABLE_STATEFUL) {
+			
 			state_entry = state_table_lookup(table->state_table, pkt);
 			state_table_write_metadata(state_entry, pkt);
 		}
 
+    		//printf("after statetable entry\n");
 		// EEDBEH: additional printout to debug table lookup
 		if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
 			char *m = ofl_structs_match_to_string((struct ofl_match_header*)&(pkt->handle_std->match), pkt->dp->exp);
 			VLOG_DBG_RL(LOG_MODULE, &rl, "searching table entry for packet match: %s.", m);
+			printf("searching table entry for pkt match\n");
 			free(m);
 		}
 
@@ -171,7 +267,9 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
                 char *m = ofl_structs_flow_stats_to_string(entry->stats, pkt->dp->exp);
                 VLOG_DBG_RL(LOG_MODULE, &rl, "found matching entry: %s.", m);
                 free(m);
-            }
+		printf("find matching entry\n");
+            } 
+
             pkt->handle_std->table_miss = is_table_miss(entry);
             execute_entry(pl, entry, &next_table, &pkt);
             /* Packet could be destroyed by a meter instruction */
@@ -191,6 +289,7 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
 			/* OpenFlow 1.3 default behavior on a table miss */
 			VLOG_DBG_RL(LOG_MODULE, &rl, "No matching entry found. Dropping packet.");
 			packet_destroy(pkt);
+			printf("No matching entry found. Dropping packet.\n");
 			return;
         }
     }
@@ -199,6 +298,7 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
 
 static
 int inst_compare(const void *inst1, const void *inst2){
+    printf("here is comparing priority instructions\n");
     struct ofl_instruction_header * i1 = *(struct ofl_instruction_header **) inst1;
     struct ofl_instruction_header * i2 = *(struct ofl_instruction_header **) inst2;
     if ((i1->type == OFPIT_APPLY_ACTIONS && i2->type == OFPIT_CLEAR_ACTIONS) ||
@@ -211,6 +311,7 @@ int inst_compare(const void *inst1, const void *inst2){
 ofl_err
 pipeline_handle_state_mod(struct pipeline *pl, struct ofl_msg_state_mod *msg,
                                                 const struct sender *sender) {
+    printf("here is handle state mod func\n");
     ofl_err error;
 	struct state_table *st = pl->tables[msg->table_id]->state_table;
 
@@ -241,6 +342,7 @@ pipeline_handle_state_mod(struct pipeline *pl, struct ofl_msg_state_mod *msg,
 ofl_err
 pipeline_handle_flow_mod(struct pipeline *pl, struct ofl_msg_flow_mod *msg,
                                                 const struct sender *sender) {
+    printf("here is handle flow mod func\n");
     /* Note: the result of using table_id = 0xff is undefined in the spec.
      *       for now it is accepted for delete commands, meaning to delete
      *       from all tables */
@@ -324,6 +426,7 @@ pipeline_handle_table_mod(struct pipeline *pl,
                           struct ofl_msg_table_mod *msg,
                           const struct sender *sender) {
 
+    printf("here is handle table mod func\n");
     if(sender->remote->role == OFPCR_ROLE_SLAVE)
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_IS_SLAVE);
 
@@ -346,6 +449,7 @@ pipeline_handle_stats_request_flow(struct pipeline *pl,
                                    struct ofl_msg_multipart_request_flow *msg,
                                    const struct sender *sender) {
 
+    printf("here is handle statistic request flow\n");
     struct ofl_flow_stats **stats = xmalloc(sizeof(struct ofl_flow_stats *));
     size_t stats_size = 1;
     size_t stats_num = 0;
@@ -379,6 +483,7 @@ ofl_err
 pipeline_handle_stats_request_table(struct pipeline *pl,
                                     struct ofl_msg_multipart_request_header *msg UNUSED,
                                     const struct sender *sender) {
+    printf("here is handle statistic request table\n");
     struct ofl_table_stats **stats;
     size_t i;
 
@@ -407,6 +512,7 @@ ofl_err
 pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
                                     struct ofl_msg_multipart_request_header *msg,
                                     const struct sender *sender) {
+    printf("here is handle statistic request table feature\n");
     size_t i, j;
     struct ofl_table_features **features;
     struct ofl_msg_multipart_request_table_features *feat =
@@ -448,6 +554,7 @@ ofl_err
 pipeline_handle_stats_request_aggregate(struct pipeline *pl,
                                   struct ofl_msg_multipart_request_flow *msg,
                                   const struct sender *sender) {
+    printf("here is handle statistic request aggregatation\n");
     struct ofl_msg_multipart_reply_aggregate reply =
             {{{.type = OFPT_MULTIPART_REPLY},
               .type = OFPMP_AGGREGATE, .flags = 0x0000},
@@ -480,6 +587,7 @@ pipeline_destroy(struct pipeline *pl) {
     struct flow_table *table;
     int i;
 
+    printf("here is handle destroy pipeline\n");
     for (i=0; i<PIPELINE_TABLES; i++) {
         table = pl->tables[i];
         if (table != NULL) {
@@ -494,6 +602,7 @@ void
 pipeline_timeout(struct pipeline *pl) {
     int i;
 
+    printf("here is handle timeout pipeline\n");
     for (i = 0; i < PIPELINE_TABLES; i++) {
         flow_table_timeout(pl->tables[i]);
     }
@@ -513,6 +622,7 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
             Write-Metadata
             Goto-Table
     */
+    printf("here is handle execution of intruction for each flow entry\n");
     size_t i;
     struct ofl_instruction_header *inst;
 
@@ -572,10 +682,10 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
             }
             case OFPIT_SET_STATE: {
                 struct ofl_instruction_set_state *wns = (struct ofl_instruction_set_state *)inst;
-				struct state_table *st = pl->tables[(*pkt)->table_id]->state_table;
+		struct state_table *st = pl->tables[(*pkt)->table_id]->state_table;
                 printf("executing instruction NEXT STATE\n");
-				state_table_set_state(st, *pkt, wns->state, NULL, 0);
-				break;
+		state_table_set_state(st, *pkt, wns->state, NULL, 0);
+		break;
 	    	}
         }
     }
