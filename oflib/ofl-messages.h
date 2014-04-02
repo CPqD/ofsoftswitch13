@@ -481,7 +481,8 @@ struct ofl_msg_state_mod {
     uint64_t cookie;
     uint64_t cookie_mask;
     uint8_t table_id;
-    uint8_t command;
+    // uint8_t command;
+    enum ofp_state_mod_command command;
     //uint8_t pad[];
 	uint8_t payload[];
 };
