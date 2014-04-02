@@ -109,19 +109,20 @@ struct ofp_state_mod {
     uint8_t table_id;
     uint8_t command;
     //uint8_t pad[];
-	uint8_t payload[];
+    uint8_t payload[];
+    //uint8_t *payload;
 };
 
 struct ofp_state_entry {
     uint32_t key_len;
-//    uint32_t state;
-    uint64_t state;
+    uint32_t state;
+   // uint64_t state;
     uint8_t key[OFPSC_MAX_KEY_LEN];
 };
 
 struct ofp_extraction {
     uint32_t field_count;
-    uint8_t fields[OFPSC_MAX_FIELD_COUNT];
+    uint32_t fields[OFPSC_MAX_FIELD_COUNT];
 };
 
 enum ofp_state_mod_command {
@@ -474,11 +475,11 @@ OFP_ASSERT(sizeof(struct ofp_instruction_meter) == 8);
 struct ofp_instruction_set_state {
     uint16_t type; /* OFPIT_SET_STATE */
     uint16_t len;  /* Length is 8. */
-    //uint32_t state; /* Meter instance. */
-    uint64_t state;
+    uint32_t state; /* Meter instance. */
+    //uint64_t state;
 };
-//OFP_ASSERT(sizeof(struct ofp_instruction_set_state) == 8);
-OFP_ASSERT(sizeof(struct ofp_instruction_set_state) == 16);
+OFP_ASSERT(sizeof(struct ofp_instruction_set_state) == 8);
+//OFP_ASSERT(sizeof(struct ofp_instruction_set_state) == 16);
 
 enum ofp_action_type {
     OFPAT_OUTPUT = 0,        /* Output to switch port. */
@@ -631,7 +632,7 @@ enum ofp_capabilities {
     OFPC_IP_REASM = 1 << 5,    /* Can reassemble IP fragments. */
     OFPC_QUEUE_STATS = 1 << 6, /* Queue statistics. */
     OFPC_PORT_BLOCKED = 1 << 8, /* Switch will block looping ports. */
-    OFPC_TABLE_STATEFUL = 1 << 9  /* because is goes upon 32 bit */
+    OFPC_TABLE_STATEFULL = 1 << 9  /* support stateful feature */
 };
 
 /* Switch configuration. */
@@ -1559,6 +1560,7 @@ enum ofp_error_type {
     OFPET_ROLE_REQUEST_FAILED = 11,  /* Controller Role request failed. */
     OFPET_METER_MOD_FAILED = 12,     /* Error in meter. */
     OFPET_TABLE_FEATURES_FAILED = 13, /* Setting table features failed. */
+    OFPET_STATE_MOD_FAILED=14,
     OFPET_EXPERIMENTER = 0xffff      /* Experimenter error messages. */
 };
 

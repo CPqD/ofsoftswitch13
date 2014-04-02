@@ -1,4 +1,4 @@
-/* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary
+/*
  * Copyright (c) 2012, CPqD, Brazil 
  * All rights reserved.
  *
@@ -69,7 +69,7 @@ handle_control_barrier_request(struct datapath *dp,
 static ofl_err
 handle_control_features_request(struct datapath *dp,
           struct ofl_msg_header *msg, const struct sender *sender) {
-
+    printf("capabilities:%d \n",DP_SUPPORTED_CAPABILITIES);
     struct ofl_msg_features_reply reply =
             {{.type = OFPT_FEATURES_REPLY},
              .datapath_id  = dp->id,
@@ -272,7 +272,6 @@ handle_control_msg(struct datapath *dp, struct ofl_msg_header *msg,
         VLOG_DBG_RL(LOG_MODULE, &rl, "received control msg: %.400s", msg_str);
         free(msg_str);
     }
-
     /* NOTE: It is assumed that if a handler returns with error, it did not use
              any part of the control message, thus it can be freed up.
              If no error is returned however, the message must be freed inside
@@ -323,9 +322,10 @@ handle_control_msg(struct datapath *dp, struct ofl_msg_header *msg,
         case OFPT_FLOW_MOD: {
             return pipeline_handle_flow_mod(dp->pipeline, (struct ofl_msg_flow_mod *)msg, sender);
         }
-		case OFPT_STATE_MOD: {
+	case OFPT_STATE_MOD: {
+    	   // printf("here is state mod control msg type\n");
             return pipeline_handle_state_mod(dp->pipeline, (struct ofl_msg_state_mod *)msg, sender);
-		}
+	}
         case OFPT_GROUP_MOD: {
             return group_table_handle_group_mod(dp->groups, (struct ofl_msg_group_mod *)msg, sender);
         }

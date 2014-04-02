@@ -52,6 +52,8 @@
 #include "group_table.h"
 #include "meter_table.h"
 #include "oflib/ofl.h"
+#include "oflib/ofl-print.h"
+#include "oflib/ofl-log.h"
 #include "oflib-exp/ofl-exp.h"
 #include "oflib-exp/ofl-exp-nicira.h"
 #include "oflib/ofl-messages.h"
@@ -65,7 +67,6 @@
 #include "rconn.h"
 #include "stp.h"
 #include "vconn.h"
-
 #define LOG_MODULE VLM_dp
 
 static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(60, 60);
@@ -199,8 +200,11 @@ dp_run(struct datapath *dp) {
     dp_ports_run(dp);
 
     /* Talk to remotes. */
+   VLOG_WARN_RL(LOG_MODULE, &rl, "before remote run list");
     LIST_FOR_EACH_SAFE (r, rn, struct remote, node, &dp->remotes) {
         remote_run(dp, r);
+   VLOG_WARN_RL(LOG_MODULE, &rl, "after remote run remote run list");
+   // printf("here is create list for remote run\n");
     }
 
     for (i = 0; i < dp->n_listeners; ) {
@@ -234,16 +238,24 @@ dp_run(struct datapath *dp) {
 static void
 remote_run(struct datapath *dp, struct remote *r)
 {
+   VLOG_WARN_RL(LOG_MODULE, &rl, "remote run before calling remote rconn run"); 
     remote_rconn_run(dp, r, MAIN_CONNECTION);
 
+   VLOG_WARN_RL(LOG_MODULE, &rl, "remote run after calling remote rconn run"); 
     if (!rconn_is_alive(r->rconn)) {
+    VLOG_WARN_RL(LOG_MODULE, &rl, "remote run after calling rconn and before remote destroy "); 
         remote_destroy(r);
+       VLOG_WARN_RL(LOG_MODULE, &rl, "after remote destroy"); 
         return;
     }
 
-    if (r->rconn_aux == NULL || !rconn_is_alive(r->rconn_aux))
+    VLOG_WARN_RL(LOG_MODULE, &rl, "remote run after calling rconn and remote destroy "); 
+    if (r->rconn_aux == NULL || !rconn_is_alive(r->rconn_aux)){
+	VLOG_WARN_RL(LOG_MODULE, &rl, "remote run after calling rconn and remote destroy ");
         return;
+	}
 
+    VLOG_WARN_RL(LOG_MODULE, &rl, "remote run with PTIN connection"); 
     remote_rconn_run(dp, r, PTIN_CONNECTION);
 }
 
@@ -252,7 +264,7 @@ remote_rconn_run(struct datapath *dp, struct remote *r, uint8_t conn_id) {
     struct rconn *rconn;
     ofl_err error;
     size_t i;
-
+   // printf("here is remot rconn run is called\n");
     if (conn_id == MAIN_CONNECTION)
         rconn = r->rconn;
     else if (conn_id == PTIN_CONNECTION)
@@ -274,16 +286,19 @@ remote_rconn_run(struct datapath *dp, struct remote *r, uint8_t conn_id) {
                 struct sender sender = {.remote = r, .conn_id = conn_id};
 
                 error = ofl_msg_unpack(buffer->data, buffer->size, &msg, &(sender.xid), dp->exp);
-
+        	VLOG_WARN_RL(LOG_MODULE, &rl, "after msg unpack!");
                 if (!error) {
                     error = handle_control_msg(dp, msg, &sender);
-
+        	    VLOG_WARN_RL(LOG_MODULE, &rl, "no error in msg unpack msg unpack!");
                     if (error) {
+                    	VLOG_WARN_RL(LOG_MODULE,&rl, "before ofl msg free ");
                         ofl_msg_free(msg, dp->exp);
+                	VLOG_WARN_RL(LOG_MODULE,&rl, "error in hanle control msg ");
                     }
                 }
 
                 if (error) {
+                VLOG_WARN_RL(LOG_MODULE,&rl, "error in msg free ");
                     struct ofl_msg_error err =
                             {{.type = OFPT_ERROR},
                              .type = ofl_error_type(error),
@@ -291,11 +306,14 @@ remote_rconn_run(struct datapath *dp, struct remote *r, uint8_t conn_id) {
                              .data_length = buffer->size,
                              .data        = buffer->data};
                     dp_send_message(dp, (struct ofl_msg_header *)&err, &sender);
+                    VLOG_WARN_RL(LOG_MODULE,&rl, "after dp send message ");
                 }
 
                 ofpbuf_delete(buffer);
+                VLOG_WARN_RL(LOG_MODULE,&rl, "after buffer delete free ");
             }
         } else {
+                    VLOG_WARN_RL(LOG_MODULE,&rl, "else of cb dump ");
             if (r->n_txq < TXQ_LIMIT) {
                 int error = r->cb_dump(dp, r->cb_aux);
                 if (error <= 0) {
@@ -311,6 +329,7 @@ remote_rconn_run(struct datapath *dp, struct remote *r, uint8_t conn_id) {
             }
         }
     }
+                    VLOG_WARN_RL(LOG_MODULE,&rl, "last line of rcoonnn ");
 }
 
 static void

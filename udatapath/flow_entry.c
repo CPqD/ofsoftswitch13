@@ -199,7 +199,6 @@ static void
 init_group_refs(struct flow_entry *entry) {
     struct group_ref_entry *e;
     size_t i,j;
-
     for (i=0; i<entry->stats->instructions_num; i++) {
         if (entry->stats->instructions[i]->type == OFPIT_APPLY_ACTIONS ||
             entry->stats->instructions[i]->type == OFPIT_WRITE_ACTIONS) {

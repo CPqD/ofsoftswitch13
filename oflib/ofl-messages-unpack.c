@@ -1,4 +1,4 @@
-/* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary
+/*
  * Copyright (c) 2012, CPqD, Brazil 
  * All rights reserved.
  *
@@ -423,7 +423,7 @@ ofl_msg_unpack_packet_out(struct ofp_header *src, size_t *len, struct ofl_msg_he
 
 
 static ofl_err
-ofl_msg_unpack_flow_mod(struct ofp_header *src,uint8_t* buf, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp) {
+ofl_msg_unpack_flow_mod(struct ofp_header *src,uint8_t* buf, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp ) {
     struct ofp_flow_mod *sm;
     struct ofl_msg_flow_mod *dm;
     struct ofp_instruction *inst;
@@ -1561,6 +1561,71 @@ ofl_msg_unpack_empty(struct ofp_header *src UNUSED, size_t *len, struct ofl_msg_
     return 0;
 }
 
+static ofl_err
+ofl_structs_extraction_unpack(struct ofp_extraction *src, size_t *len, struct ofl_msg_extraction **dst) {
+    struct ofl_msg_extraction *extract=(struct ofl_msg_extraction *)dst;
+    int error=0;
+    int i;
+    if(*len < (1+ntohl(src->field_count))*sizeof(uint32_t))
+    { //control of struct ofp_extraction length.
+       OFL_LOG_WARN(LOG_MODULE, "Received state mod extraction is too short (%zu).", *len);
+       printf("STATE MODE received extraction struct is too short %zu\n" ,*len);
+       return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+    }
+    extract->field_count=ntohl(src->field_count);
+    printf("field count is %d\n",extract->field_count);
+    for (i=0;i<extract->field_count;i++)
+    {
+        extract->fields[i]=ntohl(src->fields[i]);
+    }
+    *len -= ((1+ntohl(src->field_count))*sizeof(uint32_t));
+    printf("fields array %02x \n.", extract->fields[0]);
+    return 0;
+}
+
+static ofl_err
+ofl_msg_unpack_state_mod(struct ofp_header *src, size_t *len, struct ofl_msg_header **msg) {
+    struct ofp_state_mod *sm;
+    struct ofl_msg_state_mod *dm;
+    ofl_err error;
+    size_t i;
+    int state_entry_pos;
+   
+    
+    if (*len < sizeof(struct ofp_state_mod)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received STATE_MOD message has invalid length (%zu).", *len);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+    sm = (struct ofp_state_mod *)src;
+    dm = (struct ofl_msg_state_mod *)malloc(sizeof(struct ofl_msg_state_mod));
+    
+    if (sm->table_id >= PIPELINE_TABLES) {
+        OFL_LOG_WARN(LOG_MODULE, "Received STATE_MOD message has invalid table id (%zu).", sm->table_id );
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
+    } 
+    *len -= sizeof(struct ofp_header);
+    dm->cookie =       ntoh64(sm->cookie);
+    dm->cookie_mask =  ntoh64(sm->cookie_mask);
+    dm->table_id =            sm->table_id;
+    dm->command =             (enum ofp_state_mod_command)sm->command;
+    
+    *len -= (2*sizeof(uint64_t)+2*sizeof(uint8_t)); //size of ofp_state_mod without payload
+    printf(" STATE MODE before command len entry is %zu \n" ,*len);
+
+    if (dm->command == OFPSC_ADD_FLOW_STATE || dm->command == OFPSC_DEL_FLOW_STATE){
+	state_entry_pos = sizeof(struct ofp_state_mod);
+   } 
+    else if(dm->command ==OFPSC_SET_L_EXTRACTOR || dm->command == OFPSC_SET_U_EXTRACTOR){
+	error = ofl_structs_extraction_unpack(&(sm->payload), len,&(dm->payload));
+    	if (error) {
+            free(dm);
+            return error;
+    	}
+
+    }
+    *msg = (struct ofl_msg_header *)dm;
+    return 0;
+}
 
 ofl_err
 ofl_msg_unpack(uint8_t *buf, size_t buf_len, struct ofl_msg_header **msg, uint32_t *xid, struct ofl_exp *exp) {
@@ -1654,6 +1719,12 @@ ofl_msg_unpack(uint8_t *buf, size_t buf_len, struct ofl_msg_header **msg, uint32
         case OFPT_FLOW_MOD:
             error = ofl_msg_unpack_flow_mod(oh,buf, &len, msg, exp);
             break;
+        case OFPT_STATE_MOD:{
+   //	    printf("here is unpack state %d\n",len); 
+            error = ofl_msg_unpack_state_mod(oh, &len, msg);
+            OFL_LOG_WARN(LOG_MODULE, "payload is directy.");
+            break;
+	}
         case OFPT_GROUP_MOD:
             error = ofl_msg_unpack_group_mod(oh, &len, msg, exp);
             break;
@@ -1725,6 +1796,7 @@ ofl_msg_unpack(uint8_t *buf, size_t buf_len, struct ofl_msg_header **msg, uint32
     }
 
     (*msg)->type = (enum ofp_type)oh->type;
-
+   // printf ("msg unpack has been done\n");
+    OFL_LOG_WARN(LOG_MODULE, "msg type has been done");
     return 0;
 }

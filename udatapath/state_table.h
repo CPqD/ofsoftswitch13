@@ -11,13 +11,15 @@
 
 struct key_extractor {
 	uint32_t    				field_count;
-	uint8_t 					fields[MAX_EXTRACTION_FIELD_COUNT];
+//	uint8_t 					fields[MAX_EXTRACTION_FIELD_COUNT];
+	uint32_t 					fields[MAX_EXTRACTION_FIELD_COUNT];
 };
 
 struct state_entry {
     struct hmap_node 			hmap_node;
-	uint8_t						key[MAX_STATE_KEY_LEN];
-	uint32_t					state;
+    uint8_t				key[MAX_STATE_KEY_LEN];
+    //uint32_t				state;
+    uint64_t 				state;
 };
 
 struct state_table {

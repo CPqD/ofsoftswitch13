@@ -124,6 +124,7 @@ utilities/ofp-discover.o
 utilities/ofp-kill.o
 utilities/ofp-parse-leaks
 utilities/vlogconf.o
+cscope.out
 
 *~
 .*.swp

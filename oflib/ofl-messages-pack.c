@@ -99,7 +99,7 @@ ofl_msg_pack_features_reply(struct ofl_msg_features_reply *msg, uint8_t **buf, s
 
     *buf_len = sizeof(struct ofp_switch_features);
     *buf     = (uint8_t *)malloc(*buf_len);
-
+	printf("feature replyyyyyyyyyyy\n");
     features = (struct ofp_switch_features *)(*buf);
     features->datapath_id  = hton64(msg->datapath_id);
     features->n_buffers    = htonl( msg->n_buffers);

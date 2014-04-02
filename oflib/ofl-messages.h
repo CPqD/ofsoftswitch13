@@ -485,6 +485,7 @@ struct ofl_msg_state_mod {
     enum ofp_state_mod_command command;
     //uint8_t pad[];
 	uint8_t payload[];
+//	uint8_t *payload;
 };
 
 struct ofl_msg_state_entry {
@@ -495,7 +496,7 @@ struct ofl_msg_state_entry {
 
 struct ofl_msg_extraction {
     uint32_t field_count;
-    uint8_t fields[OFPSC_MAX_FIELD_COUNT];
+    uint32_t fields[OFPSC_MAX_FIELD_COUNT];
 };
 
 

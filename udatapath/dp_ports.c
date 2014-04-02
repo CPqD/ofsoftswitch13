@@ -219,7 +219,7 @@ process_buffer(struct datapath *dp, struct sw_port *p, struct ofpbuf *buffer) {
         ofpbuf_delete(buffer);
         return;
     }
-
+    //printf("run dp pkt through pipeline (copy buffer to pkt)\n"); 
     // packet takes ownership of ofpbuf buffer
     pkt = packet_create(dp, p->stats->port_no, buffer, false);
     pipeline_process_packet(dp->pipeline, pkt);

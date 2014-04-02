@@ -182,7 +182,7 @@ ofl_structs_instructions_unpack(struct ofp_instruction *src, size_t *len, struct
         case OFPIT_SET_STATE: {
             struct ofp_instruction_set_state *si;
             struct ofl_instruction_set_state *di;
-            
+            printf ("here is set state unpack case\n"); 
             if (ilen < sizeof(struct ofp_instruction_set_state)) {
                 OFL_LOG_WARN(LOG_MODULE, "Received set state instruction has invalid length (%zu).", *len);
                 return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
