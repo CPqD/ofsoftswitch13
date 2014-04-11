@@ -64,7 +64,7 @@ static inline bool
 match_mask16(uint8_t *a, uint8_t *am, uint8_t *b) {
     uint16_t *a1 = (uint16_t *) a;
     uint16_t *b1 = (uint16_t *) b;
-    uint16_t *mask = (uint16_t*) am;
+    uint16_t *mask = (uint16_t *) am;
     return (((*mask) & (*a1 ^ *b1)) == 0);
 }
 
@@ -95,7 +95,7 @@ static inline bool
 match_mask32(uint8_t *a, uint8_t *am, uint8_t *b) {
     uint32_t *a1 = (uint32_t *) a;
     uint32_t *b1 = (uint32_t *) b;
-    uint32_t *mask = (uint32_t*) am;
+    uint32_t *mask = (uint32_t *) am;
     return (((*mask) & (*a1 ^ *b1)) == 0);
 }
 
@@ -126,8 +126,8 @@ static inline bool
 match_mask64(uint8_t *a, uint8_t *am, uint8_t *b) {
     uint64_t *a1 = (uint64_t *) a;
     uint64_t *b1 = (uint64_t *) b;
-    uint64_t mask =  *((uint64_t*) am);    
-    return (((mask) & (*a1 ^ *b1)) == 0);
+    uint64_t *mask = (uint64_t *) am;
+    return (((*mask) & (*a1 ^ *b1)) == 0);
 }
 
 /* Returns true if two 128 bit values match */
@@ -311,7 +311,7 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
 
 static inline bool
 strict_mask8(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
-    return ((am[0] == bm[0]) && ((a[0] ^ b[0]) & ~am[0])) == 0;
+    return ((am[0] == bm[0]) && ((a[0] ^ b[0]) & am[0])) == 0;
 }
 
 static inline bool
@@ -320,7 +320,7 @@ strict_mask16(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
     uint16_t *b1 = (uint16_t *) b;
     uint16_t *mask_a = (uint16_t *) am;
     uint16_t *mask_b = (uint16_t *) bm;
-    return ((*mask_a == *mask_b) && ((*a1 ^ *b1) & ~(*mask_a))) == 0;
+    return ((*mask_a == *mask_b) && ((*a1 ^ *b1) & (*mask_a))) == 0;
 }
 
 static inline bool
@@ -335,7 +335,7 @@ strict_mask32(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
     uint32_t *b1 = (uint32_t *) b;
     uint32_t *mask_a = (uint32_t *) am;
     uint32_t *mask_b = (uint32_t *) bm;
-    return ((*mask_a == *mask_b) && ((*a1 ^ *b1) & ~(*mask_a))) == 0;
+    return ((*mask_a == *mask_b) && ((*a1 ^ *b1) & (*mask_a))) == 0;
 }
 
 static inline bool
@@ -359,7 +359,7 @@ strict_mask64(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
     uint64_t *b1 = (uint64_t *) b;
     uint64_t *mask_a = (uint64_t *) am;
     uint64_t *mask_b = (uint64_t *) bm;
-    return ((*mask_a == *mask_b) && ((*a1 ^ *b1) & ~(*mask_a))) == 0;
+    return ((*mask_a == *mask_b) && ((*a1 ^ *b1) & (*mask_a))) == 0;
 }
 
 static inline bool
@@ -708,7 +708,7 @@ match_std_nonstrict(struct ofl_match *a, struct ofl_match *b)
 static inline bool
 incompatible_8(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
 
-    return (( ~(*am|*bm) & (*a^*b) ) != 0);
+    return (( (*am&*a) ^ (*bm&*b) ) != 0);
 }
 
 static inline bool
@@ -718,7 +718,7 @@ incompatible_16(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
     uint16_t *mask_a = (uint16_t *) am;
     uint16_t *mask_b = (uint16_t *) bm;
 
-    return (( ~(*mask_a|*mask_b) & (*a1^*b1) ) != 0);
+    return (( (*mask_a&*a1) ^ (*mask_b&*b1) ) != 0);
 }
 
 static inline bool
@@ -728,7 +728,7 @@ incompatible_32(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
     uint32_t *mask_a = (uint32_t *) am;
     uint32_t *mask_b = (uint32_t *) bm;
 
-    return (( ~(*mask_a|*mask_b) & (*a1^*b1) ) != 0);
+    return (( (*mask_a&*a1)^(*mask_b&*b1) ) != 0);
 }
 
 static inline bool
@@ -744,7 +744,7 @@ incompatible_64(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
     uint64_t *mask_a = (uint64_t *) am;
     uint64_t *mask_b = (uint64_t *) bm;
 
-    return (( ~(*mask_a|*mask_b) & (*a1^*b1) ) != 0);
+    return (( (*mask_a&*a1) ^ (*mask_b&*b1) ) != 0);
 }
 
 static inline bool
@@ -762,7 +762,8 @@ incompatible_128(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
 bool
 match_std_overlap(struct ofl_match *a, struct ofl_match *b)
 {
-	uint64_t all_mask[2] = {0, 0};
+	uint64_t all_mask[2] = {~0L, ~0L};
+
     struct ofl_match_tlv *f_a;
     struct ofl_match_tlv *f_b;
     int	header, header_m;
