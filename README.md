@@ -151,7 +151,7 @@ Hiroyasu OHYAMA, correct URL of NetBee Library.
 *know if we forgot to add your name to the list of contributors!*
 
 # Contact
-E-mail: Eder Leao Fernandes (ederlf@cpqd.com.br)
+E-mail: Eder Leao Fernandes (ederleaofernandes at gmail . com)
 
 [ofp13]: https://www.opennetworking.org/images/stories/downloads/specification/openflow-spec-v1.3.0.pdf
 [ericssonsw11]: https://github.com/TrafficLab/of11softswitch
