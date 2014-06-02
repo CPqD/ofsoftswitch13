@@ -229,8 +229,8 @@ meter_entry_apply(struct meter_entry *entry, struct packet **pkt){
 				struct ofl_meter_band_dscp_remark *band_header = (struct ofl_meter_band_dscp_remark *)  entry->config->bands[b];
                                 // descrease dscp in ipv4 header
 				struct ip_header *ipv4 = (*pkt)->handle_std->proto->ipv4;
-				uint8_t new_dscp = (ipv4->ip_tos >> 5) - band_header->prec_level;
-				uint8_t new_tos = (new_dscp << 5 ) | (ipv4->ip_tos & 0x1f);
+				uint8_t new_dscp = (ipv4->ip_tos >> 3) - band_header->prec_level;
+				uint8_t new_tos = (new_dscp << 3 ) | (ipv4->ip_tos & 0x03);
 				uint16_t old_val = htons((ipv4->ip_ihl_ver << 8) + ipv4->ip_tos);
 				uint16_t new_val = htons((ipv4->ip_ihl_ver << 8) + new_tos);
 				ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val);
