@@ -2,6 +2,8 @@
 #include "oflib/ofl-structs.h" 
 #include "oflib/oxm-match.h"
 #include "lib/hash.h"
+#include <sys/types.h>
+#include <sys/socket.h>
 
 void __extract_key(uint8_t *, struct key_extractor *, struct packet *);
 
@@ -44,13 +46,22 @@ void __extract_key(uint8_t *buf, struct key_extractor *extractor, struct packet 
 struct state_entry * state_table_lookup(struct state_table* table, struct packet *pkt) {
 	struct state_entry * e = NULL;	
 	uint8_t key[MAX_STATE_KEY_LEN] = {0};
-        //printf("extracting read field with type %zu\n", table->read_key.fields[0]);
+        struct in_addr in;
+	struct sockaddr_in sa;
+//	char *inetadd;
+	char str[INET_ADDRSTRLEN];
+//printf("extracting read field with type %zu\n", table->read_key.fields[0]);
         __extract_key(key, &table->read_key, pkt);
-                                        int h;
-                                        printf("ethernet address is:");
-                                        for (h=0;h<6;h++){
-                                        printf("%02X", key[h]);}
-                                        printf("\n");
+                      //int h;
+                      printf("the key is:");
+		      //for (h=0;h<4;h++){
+ 			//printf("%02X", key[h]);}
+		     memcpy(&(in.s_addr),key,4);		
+		 inet_ntop(AF_INET, &(in.s_addr), str, INET_ADDRSTRLEN);
+		printf("%s\n", str); // prints "192.0.2.33"
+			//	        inetadd = inet_ntoa(in);
+				//	printf("IP address is %s\n",inetadd);
+
 	HMAP_FOR_EACH_WITH_HASH(e, struct state_entry, 
 		hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries){
 //	HMAP_FOR_EACH(e, struct state_entry,hmap_node,&table->state_entries){
