@@ -126,6 +126,9 @@ utilities/ofp-kill.o
 utilities/ofp-parse-leaks
 utilities/vlogconf.o
 cscope.out
-
+nbeesrc*
+udatapath/udatapath_ofdatapath-state_table.o
+utilities/ofp-read
+utilities/ofp-read.o
 *~
 .*.swp
