@@ -481,11 +481,8 @@ struct ofl_msg_state_mod {
     uint64_t cookie;
     uint64_t cookie_mask;
     uint8_t table_id;
-    // uint8_t command;
     enum ofp_state_mod_command command;
-    //uint8_t pad[];
-	uint8_t payload[];
-//	uint8_t *payload;
+    uint8_t payload[8+OFPSC_MAX_KEY_LEN]; //ugly! for now it's ok XXX
 };
 
 struct ofl_msg_state_entry {

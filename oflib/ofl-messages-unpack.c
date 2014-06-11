@@ -1562,8 +1562,7 @@ ofl_msg_unpack_empty(struct ofp_header *src UNUSED, size_t *len, struct ofl_msg_
 }
 
 static ofl_err
-ofl_structs_extraction_unpack(struct ofp_extraction *src, size_t *len, struct ofl_msg_extraction **dst) {
-    struct ofl_msg_extraction *extract=(struct ofl_msg_extraction *)dst;
+ofl_structs_extraction_unpack(struct ofp_extraction *src, size_t *len, struct ofl_msg_extraction *dst) {
     int error=0;
     int i;
     if(*len < (1+ntohl(src->field_count))*sizeof(uint32_t))
@@ -1572,14 +1571,15 @@ ofl_structs_extraction_unpack(struct ofp_extraction *src, size_t *len, struct of
        printf("STATE MODE received extraction struct is too short %zu\n" ,*len);
        return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
     }
-    extract->field_count=ntohl(src->field_count);
-    printf("field count is %d\n",extract->field_count);
-    for (i=0;i<extract->field_count;i++)
+    dst->field_count=ntohl(src->field_count);
+    printf("field count is %d\n",dst->field_count);
+    for (i=0;i<dst->field_count;i++)
     {
-        extract->fields[i]=ntohl(src->fields[i]);
+        dst->fields[i]=ntohl(src->fields[i]);
+    	printf("fields array %02x \n.", dst->fields[i]);
     }
     *len -= ((1+ntohl(src->field_count))*sizeof(uint32_t));
-    printf("fields array %02x \n.", extract->fields[0]);
+ 
     return 0;
 }
 
@@ -1604,19 +1604,21 @@ ofl_msg_unpack_state_mod(struct ofp_header *src, size_t *len, struct ofl_msg_hea
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
     } 
     *len -= sizeof(struct ofp_header);
-    dm->cookie =       ntoh64(sm->cookie);
-    dm->cookie_mask =  ntoh64(sm->cookie_mask);
-    dm->table_id =            sm->table_id;
-    dm->command =             (enum ofp_state_mod_command)sm->command;
+
+    dm->cookie = ntoh64(sm->cookie);
+    dm->cookie_mask = ntoh64(sm->cookie_mask);
+    dm->table_id = sm->table_id;
+    dm->command = (enum ofp_state_mod_command)sm->command;
     
-    *len -= (2*sizeof(uint64_t)+2*sizeof(uint8_t)); //size of ofp_state_mod without payload
-    printf(" STATE MODE before command len entry is %zu \n" ,*len);
+    *len -= sizeof(dm->cookie) - sizeof(dm->cookie_mask) - sizeof(dm->table_id) - sizeof(dm->command);
 
     if (dm->command == OFPSC_ADD_FLOW_STATE || dm->command == OFPSC_DEL_FLOW_STATE){
 	state_entry_pos = sizeof(struct ofp_state_mod);
-   } 
+	//XXX TODO XXX
+    } 
+
     else if(dm->command ==OFPSC_SET_L_EXTRACTOR || dm->command == OFPSC_SET_U_EXTRACTOR){
-	error = ofl_structs_extraction_unpack(&(sm->payload), len,&(dm->payload));
+	error = ofl_structs_extraction_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
     	if (error) {
             free(dm);
             return error;
@@ -1720,9 +1722,7 @@ ofl_msg_unpack(uint8_t *buf, size_t buf_len, struct ofl_msg_header **msg, uint32
             error = ofl_msg_unpack_flow_mod(oh,buf, &len, msg, exp);
             break;
         case OFPT_STATE_MOD:{
-   //	    printf("here is unpack state %d\n",len); 
             error = ofl_msg_unpack_state_mod(oh, &len, msg);
-            OFL_LOG_WARN(LOG_MODULE, "payload is directy.");
             break;
 	}
         case OFPT_GROUP_MOD:
@@ -1797,6 +1797,5 @@ ofl_msg_unpack(uint8_t *buf, size_t buf_len, struct ofl_msg_header **msg, uint32
 
     (*msg)->type = (enum ofp_type)oh->type;
    // printf ("msg unpack has been done\n");
-    OFL_LOG_WARN(LOG_MODULE, "msg type has been done");
     return 0;
 }

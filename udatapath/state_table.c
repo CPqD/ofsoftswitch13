@@ -86,10 +86,10 @@ void state_table_write_metadata(struct state_entry *entry, struct packet *pkt) {
 	HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv, 
 		hmap_node, hash_int(OXM_OF_METADATA,0), &pkt->handle_std->match.match_fields){
                 uint64_t *metadata = (uint64_t*) f->value;
-		printf("state value is %X\n",entry->state);
+		//printf("state value is %X\n",entry->state);
                 //*metadata = (*metadata & 0xffff0000) | (entry->state & 0x0000ffff);
                 *metadata = (*metadata & 0x0) | (entry->state);
-		printf("writing state metadata %X\n",*metadata);
+		//printf("writing state metadata %X\n",*metadata);
     }
 }
 void state_table_del_state(struct state_table *table, uint8_t *key, uint32_t len) {
