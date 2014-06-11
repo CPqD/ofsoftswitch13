@@ -25,10 +25,16 @@ The switch makes use of the NetBee library to parse packets, so we need to insta
 
 2. Download and unpack the source code from: http://www.nbee.org/download/nbeesrc-12-05-16.php
 
+    ```
+    $ wget http://www.nbee.org/download/nbeesrc-jan-09-2013.zip
+    $ unzip nbeesrc-jan-09-2013.zip
+    $ cd nbeesrc-jan-09-2013
+    ```
+
 3. Create the build system
 
     ```
-    $ cd nbeesrc/src
+    $ cd src
     $ cmake .
     ```
 
