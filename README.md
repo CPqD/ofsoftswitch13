@@ -23,12 +23,12 @@ The switch makes use of the NetBee library to parse packets, so we need to insta
     $ sudo apt-get install cmake libpcap-dev libxerces-c2-dev libpcre3-dev flex bison pkg-config autoconf libtool libboost-dev
     ```
 
-2. Download and unpack the source code from: http://www.nbee.org/download/nbeesrc-jan-09-2013.zip
+2. Download and unpack the source code from: http://www.nbee.org/download/nbeesrc-jan-10-2013.zip
 
     ```
-    $ wget http://www.nbee.org/download/nbeesrc-jan-09-2013.zip
-    $ unzip nbeesrc-jan-09-2013.zip
-    $ cd nbeesrc-jan-09-2013
+    $ wget http://www.nbee.org/download/nbeesrc-jan-10-2013.zip
+    $ unzip nbeesrc-jan-10-2013.zip
+    $ cd nbeesrc-jan-10-2013
     ```
 
 3. Create the build system
@@ -157,7 +157,7 @@ Hiroyasu OHYAMA, correct URL of NetBee Library.
 *know if we forgot to add your name to the list of contributors!*
 
 # Contact
-E-mail: Eder Leao Fernandes (ederlf@cpqd.com.br)
+E-mail: Eder Leao Fernandes (ederleaofernandes at gmail . com)
 
 [ofp13]: https://www.opennetworking.org/images/stories/downloads/specification/openflow-spec-v1.3.0.pdf
 [ericssonsw11]: https://github.com/TrafficLab/of11softswitch

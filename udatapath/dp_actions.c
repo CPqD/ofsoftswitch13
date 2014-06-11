@@ -122,9 +122,9 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 struct ip_header *ipv4 =  pkt->handle_std->proto->ipv4;
                 uint8_t tos = (ipv4->ip_tos & ~IP_DSCP_MASK) |
                                (*act->field->value << 2);
-
-                ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, (uint16_t)
-                                                (ipv4->ip_tos), (uint16_t)tos);
+                uint16_t old_val = htons((ipv4->ip_ihl_ver << 8) + ipv4->ip_tos);
+                uint16_t new_val = htons((ipv4->ip_ihl_ver << 8) + tos);
+                ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val);
                 ipv4->ip_tos = tos;
                 break;
             }
@@ -132,8 +132,9 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 struct ip_header *ipv4 =  pkt->handle_std->proto->ipv4;
                 uint8_t tos = (ipv4->ip_tos & ~IP_ECN_MASK) |
                                (*act->field->value & IP_ECN_MASK);
-                ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, (uint16_t)
-                                                (ipv4->ip_tos), (uint16_t)tos);
+                uint16_t old_val = htons((ipv4->ip_ihl_ver << 8) + ipv4->ip_tos);
+                uint16_t new_val = htons((ipv4->ip_ihl_ver << 8) + tos);
+                ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val);
                 ipv4->ip_tos = tos;
                 break;
             }
@@ -183,36 +184,34 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
             }
             case OXM_OF_TCP_SRC:{
                 struct tcp_header *tcp = pkt->handle_std->proto->tcp;
-                uint16_t *v = (uint16_t*) act->field->value;
-                *v = htons(*v);
-                tcp->tcp_csum = recalc_csum16(tcp->tcp_csum, tcp->tcp_src,*v);
-                memcpy(&tcp->tcp_src, v, OXM_LENGTH(act->field->header));
+                uint16_t v = htons(*(uint16_t*) act->field->value);
+                tcp->tcp_csum = recalc_csum16(tcp->tcp_csum, tcp->tcp_src, v);
+                memcpy(&tcp->tcp_src, &v, OXM_LENGTH(act->field->header));
 
                 break;
             }
             case OXM_OF_TCP_DST:{
                 struct tcp_header *tcp = pkt->handle_std->proto->tcp;
-                uint16_t *v = (uint16_t*) act->field->value;
-                *v = htons(*v);
-                tcp->tcp_csum = recalc_csum16(tcp->tcp_csum, tcp->tcp_dst,*v);
-                memcpy(&tcp->tcp_dst, v, OXM_LENGTH(act->field->header));
+                uint16_t v = htons(*(uint16_t*) act->field->value);
+                tcp->tcp_csum = recalc_csum16(tcp->tcp_csum, tcp->tcp_dst, v);
+                memcpy(&tcp->tcp_dst, &v, OXM_LENGTH(act->field->header));
 
                 break;
             }
             case OXM_OF_UDP_SRC:{
                 struct udp_header *udp = pkt->handle_std->proto->udp;
-                uint16_t *v = (uint16_t*) act->field->value;
-                *v = htons(*v);
-                udp->udp_csum = recalc_csum16(udp->udp_csum, udp->udp_dst, *v);
-                memcpy(&udp->udp_src, v, OXM_LENGTH(act->field->header));
+                uint16_t v = htons(*(uint16_t*) act->field->value);
+                udp->udp_csum = recalc_csum16(udp->udp_csum, udp->udp_src, v);
+                memcpy(&udp->udp_src, &v, OXM_LENGTH(act->field->header));
+
                 break;
             }
             case OXM_OF_UDP_DST:{
                 struct udp_header *udp = pkt->handle_std->proto->udp;
-                uint16_t *v = (uint16_t*) act->field->value;
-                *v = htons(*v);
-                udp->udp_csum = recalc_csum16(udp->udp_csum, udp->udp_dst, *v);
-                memcpy(&udp->udp_dst, v, OXM_LENGTH(act->field->header));
+                uint16_t v = htons(*(uint16_t*) act->field->value);
+                udp->udp_csum = recalc_csum16(udp->udp_csum, udp->udp_dst, v);
+                memcpy(&udp->udp_dst, &v, OXM_LENGTH(act->field->header));
+
                 break;
             }
             /*TODO recalculate SCTP checksum*/

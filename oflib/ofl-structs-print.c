@@ -395,7 +395,7 @@ ofl_structs_oxm_tlv_print(FILE *stream, struct ofl_match_tlv *f)
 			fprintf(stream, "mpls_tc=\"%d\"", *f->value & 0x3);
 			break;
 		case OFPXMT_OFB_MPLS_BOS:
-			fprintf(stream, "mpls_bos=\"%d\"", *f->value & 0xfe);
+			fprintf(stream, "mpls_bos=\"%d\"", *f->value & 0x1);
 			break;
 		case OFPXMT_OFB_METADATA:
 			fprintf(stream, "metadata=\"0x%llx\"", *((uint64_t*) f->value));

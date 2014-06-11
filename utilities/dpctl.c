@@ -1814,7 +1814,7 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
     }
     if (strncmp(token, MATCH_TP_DST KEY_VAL2, strlen(MATCH_TP_DST KEY_VAL2)) == 0) {
         uint16_t* tp_dst = xmalloc(2);
-        if (parse16(token + strlen(MATCH_TP_SRC KEY_VAL2), NULL, 0, 0xffff, tp_dst)) {
+        if (parse16(token + strlen(MATCH_TP_DST KEY_VAL2), NULL, 0, 0xffff, tp_dst)) {
             ofp_fatal(0, "Error parsing tcp_src: %s.", token);
         }else{
             act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
@@ -2111,7 +2111,7 @@ parse_flow_stat_args(char *str, struct ofl_msg_multipart_request_flow *req) {
             continue;
         }
         if (strncmp(token, FLOW_MOD_COOKIE_MASK KEY_VAL, strlen(FLOW_MOD_COOKIE_MASK KEY_VAL)) == 0) {
-            if (sscanf(token, FLOW_MOD_COOKIE KEY_VAL "0x%"SCNx64"", &(req->cookie)) != 1) {
+            if (sscanf(token, FLOW_MOD_COOKIE_MASK KEY_VAL "0x%"SCNx64"", &(req->cookie_mask)) != 1) {
                 ofp_fatal(0, "Error parsing flow_stat cookie mask: %s.", token);
             }
             continue;
@@ -2160,7 +2160,7 @@ parse_flow_mod_args(char *str, struct ofl_msg_flow_mod *req) {
             continue;
         }
         if (strncmp(token, FLOW_MOD_COOKIE_MASK KEY_VAL, strlen(FLOW_MOD_COOKIE_MASK KEY_VAL)) == 0) {
-            if (sscanf(token, FLOW_MOD_COOKIE KEY_VAL "0x%"SCNx64"", &(req->cookie)) != 1) {
+            if (sscanf(token, FLOW_MOD_COOKIE_MASK KEY_VAL "0x%"SCNx64"", &(req->cookie_mask)) != 1) {
                 ofp_fatal(0, "Error parsing flow_mod cookie mask: %s.", token);
             }
             continue;

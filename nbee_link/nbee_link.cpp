@@ -249,13 +249,13 @@ int nblink_extract_proto_fields(struct ofpbuf * pktin, _nbPDMLField * field, str
         else if(header == OXM_OF_IP_DSCP){
             uint8_t m_value;
             sscanf(field->Value, "%hhx", &m_value);
-            m_value = m_value & IP_DSCP_MASK;
+            m_value = (m_value & IP_DSCP_MASK) >> 2; 
             ofl_structs_match_put8(pktout, header, m_value);
         }
         else if(header == OXM_OF_IP_ECN){
             uint8_t m_value;
             sscanf(field->Value, "%hhx", &m_value);
-            m_value = m_value & OXM_OF_IP_ECN;
+            m_value = m_value & IP_ECN_MASK; 
             ofl_structs_match_put8(pktout, header, m_value);
         }
         else if(header == OXM_OF_MPLS_LABEL){
@@ -265,14 +265,14 @@ int nblink_extract_proto_fields(struct ofpbuf * pktin, _nbPDMLField * field, str
             ofl_structs_match_put32(pktout, header, m_value);
         }
         else if (header == OXM_OF_MPLS_TC){
-            uint8_t m_value;
-            sscanf(field->Value, "%hhx", &m_value);
+            uint32_t m_value;
+            sscanf(field->Value, "%x", &m_value);
             m_value = (m_value & MPLS_TC_MASK) >> MPLS_TC_SHIFT;
-            ofl_structs_match_put32(pktout, header, m_value);
+            ofl_structs_match_put8(pktout, header, m_value);
         }
         else if (header == OXM_OF_MPLS_BOS){
-            uint8_t m_value;
-            sscanf(field->Value, "%hhx", &m_value);
+            uint32_t m_value;
+            sscanf(field->Value, "%x", &m_value);
             m_value = (m_value & MPLS_S_MASK) >> MPLS_S_SHIFT;
             ofl_structs_match_put8(pktout, header, m_value);
         }
