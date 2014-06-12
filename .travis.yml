@@ -15,7 +15,10 @@ install:
   - "cd ../.."
   - "./boot.sh"
 
-script: ./configure && make && make install
+script:
+  - "./configure"
+  - "make"
+  - "sudo make install"
 
 notifications:
   slack: bebaproj:QOVWgAeMr7r6YebwBWwApXea
