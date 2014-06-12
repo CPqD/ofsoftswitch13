@@ -22,3 +22,4 @@ script:
 
 notifications:
   slack: bebaproj:QOVWgAeMr7r6YebwBWwApXea
+  email: false
