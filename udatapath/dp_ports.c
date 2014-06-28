@@ -229,6 +229,7 @@ void
 dp_ports_run(struct datapath *dp) {
     // static, so an unused buffer can be reused at the dp_ports_run call
     static struct ofpbuf *buffer = NULL;
+    int max_mtu = 0;
 
     struct sw_port *p, *pn;
 
@@ -247,6 +248,16 @@ dp_ports_run(struct datapath *dp) {
     }
 #endif
 
+    // find largest MTU on our interfaces
+    // buffer is shared among all (idle) interfaces...
+    LIST_FOR_EACH_SAFE (p, pn, struct sw_port, node, &dp->port_list) {
+        if (IS_HW_PORT(p)) 
+            continue;
+        const int mtu = netdev_get_mtu(p->netdev);
+        if (mtu > max_mtu)
+            max_mtu = mtu;
+    }
+
     LIST_FOR_EACH_SAFE (p, pn, struct sw_port, node, &dp->port_list) {
         int error;
 
@@ -259,8 +270,7 @@ dp_ports_run(struct datapath *dp) {
              * allow IP headers to be aligned on a 4-byte boundary.  */
             const int headroom = 128 + 2;
             const int hard_header = VLAN_ETH_HEADER_LEN;
-            const int mtu = netdev_get_mtu(p->netdev);
-            buffer = ofpbuf_new_with_headroom(hard_header + mtu, headroom);
+            buffer = ofpbuf_new_with_headroom(hard_header + max_mtu, headroom);
         }
         error = netdev_recv(p->netdev, buffer);
         if (error == ENETDOWN){
