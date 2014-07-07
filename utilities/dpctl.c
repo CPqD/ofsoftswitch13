@@ -617,9 +617,10 @@ flow_mod(struct vconn *vconn, int argc, char *argv[]) {
             parse_match(argv[1], &(msg.match));
         }
         else {
-            if(msg.command == OFPFC_DELETE)
+            if(msg.command == OFPFC_DELETE) {
                 inst_num = 0;
-            else {
+                parse_match(argv[1], &(msg.match));
+            } else {
                 /*We copy the value because we don't know if
                 it is an instruction or match.
                 If the match is empty, the argv is modified
