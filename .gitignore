@@ -125,10 +125,11 @@ utilities/ofp-discover.o
 utilities/ofp-kill.o
 utilities/ofp-parse-leaks
 utilities/vlogconf.o
-cscope.out
+utilities/cscope.out
 nbeesrc*
 udatapath/udatapath_ofdatapath-state_table.o
 utilities/ofp-read
 utilities/ofp-read.o
 *~
+cscope.files
 .*.swp
