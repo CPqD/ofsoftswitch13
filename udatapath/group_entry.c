@@ -28,6 +28,11 @@
  *
  */
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
+
+
 #include <stdbool.h>
 #include "flow_entry.h"
 #include "group_entry.h"
@@ -407,6 +412,7 @@ init_select_group(struct group_entry *entry, struct ofl_msg_group_mod *mod) {
 /* Selects a bucket from a select group, based on the w.r.r. algorithm. */
 static size_t
 select_from_select_group(struct group_entry *entry) {
+    /*
     struct group_entry_wrr_data *data;
     size_t guard;
 
@@ -434,7 +440,12 @@ select_from_select_group(struct group_entry *entry) {
         guard++;
     }
     VLOG_WARN_RL(LOG_MODULE, &rl, "Could not select from select group.");
-    return -1;
+    return -1;*/
+    if (entry->desc->buckets_num == 0) {
+          return -1;
+    }
+    srand(time(NULL));
+    return rand() % entry->desc->buckets_num;  /* random int between 0 and buckets_num-1 */
 }
 
 /* Selects the first live bucket from the failfast group. */
