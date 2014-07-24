@@ -179,7 +179,7 @@ ofl_structs_instructions_unpack(struct ofp_instruction *src, size_t *len, struct
             ilen -= sizeof(struct ofp_instruction_meter);
             break; 
         }
-        case OFPIT_SET_STATE: {
+       /* case OFPIT_SET_STATE: {
             struct ofp_instruction_set_state *si;
             struct ofl_instruction_set_state *di;
             printf ("here is set state unpack case\n"); 
@@ -195,7 +195,7 @@ ofl_structs_instructions_unpack(struct ofp_instruction *src, size_t *len, struct
             inst = (struct ofl_instruction_header *)di;
             ilen -= sizeof(struct ofp_instruction_set_state);
             break; 
-        }
+        }*/
         case OFPIT_EXPERIMENTER: {
             ofl_err error;
 

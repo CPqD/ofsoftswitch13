@@ -209,6 +209,7 @@ ofl_action_type_print(FILE *stream, uint16_t type) {
         case OFPAT_SET_NW_TTL: {     fprintf(stream, "nw_ttl"); return; }
         case OFPAT_DEC_NW_TTL: {     fprintf(stream, "nw_dec"); return; }
         case OFPAT_EXPERIMENTER: {   fprintf(stream, "exp"); return; }
+        case OFPAT_SET_STATE: {      fprintf(stream, "set_state"); return; }
         default: {                   fprintf(stream, "?(%u)", type); return; }
     }
 }

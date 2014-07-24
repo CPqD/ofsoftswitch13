@@ -62,7 +62,8 @@
                              | (10 << OFPAT_SET_QUEUE)       \
                              | (11 << OFPAT_GROUP)           \
                              | (12 << OFPAT_SET_NW_TTL)      \
-                             | (13 << OFPAT_DEC_NW_TTL) )
+                             | (13 << OFPAT_DEC_NW_TTL)     \
+                             | (14 << OFPAT_GROUP) )          
                            
 #define DP_SUPPORTED_MATCH_FIELDS ( OFPXMT_OFB_IN_PORT        \
                                   | OFPXMT_OFB_IN_PHY_PORT    \

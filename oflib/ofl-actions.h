@@ -107,6 +107,12 @@ struct ofl_action_experimenter {
     uint32_t  experimenter_id; /* Experimenter ID */
 };
 
+/* XFSM: for supporting set state that should write the new state in the statetable */
+struct ofl_action_set_state {
+    struct ofl_action_header   header; /* OFPAT_SET_STATE */
+    uint32_t state;
+    //uint64_t state;
+};
 
 /****************************************************************************
  * Functions for (un)packing action structures

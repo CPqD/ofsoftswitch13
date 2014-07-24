@@ -157,5 +157,12 @@ ofl_action_print(FILE *stream, struct ofl_action_header *act, struct ofl_exp *ex
             }
             break;
         }
+        case OFPAT_SET_STATE: {
+            struct ofl_action_set_state *a = (struct ofl_action_set_state *)act;
+
+            fprintf(stream, "{state=\"%u\"}", a->state);
+
+            break;
+        }
     }
 }
