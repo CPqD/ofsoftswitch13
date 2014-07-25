@@ -475,7 +475,7 @@ OFP_ASSERT(sizeof(struct ofp_instruction_meter) == 8);
 //struct ofp_instruction_set_state {
 //   uint16_t type; /* OFPIT_SET_STATE */
 //   uint16_t len;  /* Length is 8. */
-//   uint32_t state; /* Meter instance. */
+//   uint32_t state; /* State instance. */
    //uint64_t state;
 //};
 //OFP_ASSERT(sizeof(struct ofp_instruction_set_state) == 8);
@@ -610,7 +610,7 @@ OFP_ASSERT(sizeof(struct ofp_action_experimenter_header) == 8);
 struct ofp_action_set_state {
     uint16_t type; /* OFPAT_SET_STATE */
     uint16_t len;  /* Length is 8. */
-    uint32_t state; /* Meter instance. */
+    uint32_t state; /* State instance. */
     //uint64_t state;
 };
 OFP_ASSERT(sizeof(struct ofp_action_set_state) == 8);
