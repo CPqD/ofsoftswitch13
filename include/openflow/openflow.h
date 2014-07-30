@@ -406,8 +406,6 @@ enum ofp_instruction_type {
     OFPIT_CLEAR_ACTIONS = 5,    /* Clears all actions from the datapath
                                    action set */
     OFPIT_METER = 6,            /* Apply meter (rate limiter) */
-    /*OFPIT_SET_STATE = 7,		 Write the next state field for use later in
-								pipeline */
                                    
     OFPIT_EXPERIMENTER = 0xFFFF /* Experimenter instruction */
 };
@@ -470,16 +468,6 @@ struct ofp_instruction_meter {
     uint32_t meter_id; /* Meter instance. */
 };
 OFP_ASSERT(sizeof(struct ofp_instruction_meter) == 8);
-
-/* Instruction structure for OFPIT_SET_STATE */
-//struct ofp_instruction_set_state {
-//   uint16_t type; /* OFPIT_SET_STATE */
-//   uint16_t len;  /* Length is 8. */
-//   uint32_t state; /* State instance. */
-   //uint64_t state;
-//};
-//OFP_ASSERT(sizeof(struct ofp_instruction_set_state) == 8);
-//OFP_ASSERT(sizeof(struct ofp_instruction_set_state) == 16);
 
 enum ofp_action_type {
     OFPAT_OUTPUT = 0,        /* Output to switch port. */
