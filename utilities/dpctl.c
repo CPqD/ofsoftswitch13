@@ -2812,9 +2812,10 @@ set_table_features_match(struct vconn *vconn, int argc, char *argv[]) {
     int t;
     int last_table;
     int batch_table;
+    uint32_t repl_xid;
 
     /* Extract current table features */
-    dpctl_transact(vconn, (struct ofl_msg_header *)&req_init, &reply);
+    dpctl_transact(vconn, (struct ofl_msg_header *)&req_init, &reply, &repl_xid);
     table_feat = (struct ofl_msg_multipart_request_table_features *) reply;
 
     if (argc > 0) {
