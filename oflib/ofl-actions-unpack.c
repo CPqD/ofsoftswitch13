@@ -257,6 +257,7 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             da = (struct ofl_action_set_state *)malloc(sizeof(struct ofl_action_set_state));
 
             da->state = ntohl(sa->state);
+            da->stage_id = sa->stage_id;
 
             *dst = (struct ofl_action_header *)da;
             *len -= sizeof(struct ofp_action_set_state);
