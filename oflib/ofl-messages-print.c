@@ -675,7 +675,7 @@ ofl_msg_print_queue_get_config_reply(struct ofl_msg_queue_get_config_reply *msg,
 static void 
 ofl_msg_print_role_msg(struct ofl_msg_role_request *msg, FILE *stream){
     
-    fprintf(stream, "{role= %d, generation_id= %lld}", msg->role, msg->generation_id);
+    fprintf(stream, "{role= %d, generation_id= %"PRIu64"}", msg->role, msg->generation_id);
 
 }
 
@@ -683,7 +683,7 @@ ofl_msg_print_role_msg(struct ofl_msg_role_request *msg, FILE *stream){
 static void
 ofl_msg_print_role_stats_msg(struct ofl_msg_role_status *msg, FILE * stream){
 
-	fprintf(stream, "{role= %d, reason= %d, generation_id= %lld}", msg->role, msg->reason, msg->generation_id);
+	fprintf(stream, "{role= %d, reason= %d, generation_id= %"PRIu64"}", msg->role, msg->reason, msg->generation_id);
 
 }
 
@@ -760,10 +760,10 @@ ofl_msg_print(FILE *stream, struct ofl_msg_header *msg, struct ofl_exp *exp) {
             ofl_msg_print_role_msg((struct ofl_msg_role_request*)msg, stream);        
         }
 
-	/*modified by dingwanfu */
-	case OFPT_ROLE_STATUS:{
- 	    ofl_msg_print_role_stats_msg((struct ofl_msg_role_request*)msg, stream);
-	}
+    	/*modified by dingwanfu */
+    	case OFPT_ROLE_STATUS:{
+     	    ofl_msg_print_role_stats_msg((struct ofl_msg_role_status*)msg, stream);
+    	}
 
         /* Queue Configuration messages. */
         case OFPT_QUEUE_GET_CONFIG_REQUEST: { ofl_msg_print_queue_get_config_request((struct ofl_msg_queue_get_config_request *)msg, stream); return; }

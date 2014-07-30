@@ -100,9 +100,9 @@ ofl_msg_pack_role_status(struct ofl_msg_role_status *msg, uint8_t **buf, size_t 
         *buf_len = sizeof(struct ofp_role_status);
         *buf     = (uint8_t *)malloc(*buf_len);
 
-        sta = (struct ofl_msg_role_status *)(*buf);
+        sta = (struct ofp_role_status *)(*buf);
         sta->role =  htonl(msg->role);
-	sta->reason = msg->reason;
+	    sta->reason = msg->reason;
         memset(sta->pad,0,sizeof(sta->pad));
         sta->generation_id = hton64(msg->generation_id);
 

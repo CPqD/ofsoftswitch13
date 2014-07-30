@@ -253,7 +253,7 @@ send_role_status_to_remote(struct datapath* dp)
 						dp_send_message(dp, (struct ofl_msg_header *)&status, &rsender);
 					}
 				}
-
+    return 0;
 }
 
 static void
@@ -277,7 +277,7 @@ remote_run(struct datapath *dp, struct remote *r)
 
 static void
 remote_rconn_run(struct datapath *dp, struct remote *r, uint8_t conn_id) {
-    struct rconn *rconn;
+    struct rconn *rconn = NULL;
     ofl_err error;
     size_t i;
 

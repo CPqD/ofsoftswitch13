@@ -731,6 +731,7 @@ do_open_netdev(const char *name, int ethertype, int tap_fd,
     int hwaddr_family;
     int error;
     struct netdev *netdev;
+    uint32_t val;
 
     init_netdev();
     *netdev_ = NULL;
@@ -745,10 +746,10 @@ do_open_netdev(const char *name, int ethertype, int tap_fd,
         return errno;
     }
   #ifdef HAVE_PACKET_AUXDATA
-        uint32_t val = 1;
+        val = 1;
           if (setsockopt(netdev_fd, SOL_PACKET, PACKET_AUXDATA, &val,
                sizeof val) == -1 && errno != ENOPROTOOPT){
-              VLOG_ERR(LOG_MODULE, "setsockopt(SO_RCVBUF,%zu): %s", val, strerror(errno));
+              VLOG_ERR(LOG_MODULE, "setsockopt(SO_RCVBUF,%"PRIu32"): %s", val, strerror(errno));
           }
   #endif
 

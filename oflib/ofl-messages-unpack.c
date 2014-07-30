@@ -131,7 +131,7 @@ ofl_msg_unpack_role_status(struct ofp_header *src, size_t *len, struct ofl_msg_h
     	drl = (struct ofl_msg_role_status *) malloc(sizeof(struct ofl_msg_role_status));
     
     	drl->role = ntohl(srl->role);
-	drl->reason = srl->reason;
+	    drl->reason = srl->reason;
     	drl->generation_id = ntoh64(srl->generation_id);
 
     	*msg = (struct ofl_msg_header *)drl;
@@ -467,7 +467,7 @@ ofl_msg_unpack_flow_mod(struct ofp_header *src,uint8_t* buf, size_t *len, struct
 
     if (sm->table_id >= PIPELINE_TABLES && ((sm->command != OFPFC_DELETE
     || sm->command != OFPFC_DELETE_STRICT) && sm->table_id != OFPTT_ALL)) {
-        OFL_LOG_WARN(LOG_MODULE, "Received FLOW_MOD message has invalid table id (%zu).", sm->table_id );
+        OFL_LOG_WARN(LOG_MODULE, "Received FLOW_MOD message has invalid table id (%d).", sm->table_id );
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
     } 
 
@@ -701,7 +701,7 @@ ofl_msg_unpack_table_mod(struct ofp_header *src, size_t *len, struct ofl_msg_hea
     sm = (struct ofp_table_mod *)src;
     dm = (struct ofl_msg_table_mod *)malloc(sizeof(struct ofl_msg_table_mod));
     if (sm->table_id >= PIPELINE_TABLES) {
-        OFL_LOG_WARN(LOG_MODULE, "Received TABLE_MOD message has invalid table id (%zu).", sm->table_id );
+        OFL_LOG_WARN(LOG_MODULE, "Received TABLE_MOD message has invalid table id (%d).", sm->table_id );
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
     }
 
@@ -731,7 +731,7 @@ ofl_msg_unpack_multipart_request_flow(struct ofp_multipart_request *os, uint8_t*
     dm = (struct ofl_msg_multipart_request_flow *) malloc(sizeof(struct ofl_msg_multipart_request_flow));
 
     if (sm->table_id != OFPTT_ALL && sm->table_id >= PIPELINE_TABLES) {
-         OFL_LOG_WARN(LOG_MODULE, "Received MULTIPART REQUEST FLOW message has invalid table id (%zu).", sm->table_id );
+         OFL_LOG_WARN(LOG_MODULE, "Received MULTIPART REQUEST FLOW message has invalid table id (%d).", sm->table_id );
          return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
     }
 
@@ -794,9 +794,6 @@ ofl_msg_unpack_multipart_request_empty(struct ofp_multipart_request *os UNUSED, 
 static ofl_err
 ofl_msg_unpack_multipart_request_table_features(struct ofp_multipart_request *os, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp){
     struct ofl_msg_multipart_request_table_features *dm;
-    ofl_err error;
-    uint8_t *features;
-    size_t i;
     
     dm = (struct ofl_msg_multipart_request_table_features*) malloc(sizeof(struct ofl_msg_multipart_request_table_features));
     if (!(*len)){

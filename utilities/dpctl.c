@@ -2857,7 +2857,7 @@ set_table_features_match(struct vconn *vconn, int argc, char *argv[]) {
 
     {
       int features_len;
-      printf("\nJII table-num:%d\n", table_feat->tables_num);
+      printf("\nJII table-num:%zu\n", table_feat->tables_num);
       features_len = ofl_structs_table_features_ofp_total_len(table_feat->table_features, table_feat->tables_num, NULL);
       printf("\nJII features_len:%d\n", features_len);
     }
@@ -2894,7 +2894,7 @@ set_table_features_match(struct vconn *vconn, int argc, char *argv[]) {
 
       /* Intermediate and last segment are not treated the same. Jean II */
       if(t <= last_table) {
-	struct ofpbuf *ofpbufreq, *ofpbufrepl;
+	struct ofpbuf *ofpbufreq;
 	uint8_t *bufreq;
 	size_t bufreq_size;
 	int error;
@@ -2905,7 +2905,7 @@ set_table_features_match(struct vconn *vconn, int argc, char *argv[]) {
 	if (error) {
 	  ofp_fatal(0, "Error packing request.");
 	}
-	printf("\nJII-req-pack:%d\n", bufreq_size);
+	printf("\nJII-req-pack:%zu\n", bufreq_size);
 
 	ofpbufreq = ofpbuf_new(0);
 	ofpbuf_use(ofpbufreq, bufreq, bufreq_size);
