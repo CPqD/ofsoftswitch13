@@ -83,6 +83,8 @@ select_from_select_group(struct group_entry *entry);
 static size_t
 select_from_ff_group(struct group_entry *entry);
 
+static size_t
+select_from_random_group(struct group_entry *entry);
 
 struct group_entry *
 group_entry_create(struct datapath *dp, struct group_table *table, struct ofl_msg_group_mod *mod) {
@@ -216,6 +218,37 @@ execute_select(struct group_entry *entry, struct packet *pkt) {
     }
 }
 
+/* Executes a group entry of type RANDOM. */
+static void
+execute_random(struct group_entry *entry, struct packet *pkt) {
+    size_t b  = select_from_random_group(entry);
+
+    if (b != -1) {
+        struct ofl_bucket *bucket = entry->desc->buckets[b];
+        struct packet *p = packet_clone(pkt);
+
+        if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
+            char *b = ofl_structs_bucket_to_string(bucket, entry->dp->exp);
+            VLOG_DBG_RL(LOG_MODULE, &rl, "Writing bucket: %s.", b);
+            free(b);
+        }
+
+        action_set_write_actions(p->action_set, bucket->actions_num, bucket->actions);
+
+        entry->stats->byte_count += p->buffer->size;
+        entry->stats->packet_count++;
+        entry->stats->counters[b]->byte_count += p->buffer->size;
+        entry->stats->counters[b]->packet_count++;
+        /* Cookie field is set 0xffffffffffffffff
+           because we cannot associate to any
+           particular flow */
+        action_set_execute(p->action_set, p, 0xffffffffffffffff);
+        packet_destroy(p);
+    } else {
+        VLOG_DBG_RL(LOG_MODULE, &rl, "No bucket in group.");
+    }
+}
+
 /* Execute a group entry of type INDIRECT. */
 static void
 execute_indirect(struct group_entry *entry, struct packet *pkt) {
@@ -304,6 +337,10 @@ group_entry_execute(struct group_entry *entry,
         }
         case (OFPGT_FF): {
             execute_ff(entry, packet);
+            break;
+        }
+        case (OFPGT_RANDOM): {
+            execute_random(entry, packet);
             break;
         }
         default: {
@@ -412,7 +449,6 @@ init_select_group(struct group_entry *entry, struct ofl_msg_group_mod *mod) {
 /* Selects a bucket from a select group, based on the w.r.r. algorithm. */
 static size_t
 select_from_select_group(struct group_entry *entry) {
-    /*
     struct group_entry_wrr_data *data;
     size_t guard;
 
@@ -440,7 +476,12 @@ select_from_select_group(struct group_entry *entry) {
         guard++;
     }
     VLOG_WARN_RL(LOG_MODULE, &rl, "Could not select from select group.");
-    return -1;*/
+    return -1;
+}
+
+/* Selects a bucket from a random group. */
+static size_t
+select_from_random_group(struct group_entry *entry) {
     if (entry->desc->buckets_num == 0) {
           return -1;
     }
