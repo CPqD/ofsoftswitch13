@@ -435,12 +435,17 @@ ofl_msg_print_stats_reply_port(struct ofl_msg_multipart_reply_port *msg, FILE *s
 static void
 ofl_msg_print_stats_reply_queue(struct ofl_msg_multipart_reply_queue *msg, FILE *stream) {
     size_t i;
+    extern int colors;
 
     fprintf(stream, ", stats=[");
 
     for (i=0; i<msg->stats_num; i++) {
         ofl_structs_queue_stats_print(stream, msg->stats[i]);
-        if (i < msg->stats_num - 1) { fprintf(stream, ", "); };
+        if (i < msg->stats_num - 1) {
+            if(colors)
+                fprintf(stream, ",\n\n");
+            else
+                fprintf(stream, ", "); };
     }
 
     fprintf(stream, "]");
@@ -449,6 +454,7 @@ ofl_msg_print_stats_reply_queue(struct ofl_msg_multipart_reply_queue *msg, FILE 
 static void
 ofl_msg_print_stats_reply_group(struct ofl_msg_multipart_reply_group *msg, FILE *stream) {
     size_t i;
+    extern int colors;
 
     fprintf(stream, ", stats=[");
 
