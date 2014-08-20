@@ -36,6 +36,8 @@
 
 #include "../include/openflow/openflow.h"
 
+int colors;
+
 struct ofl_msg_experimenter;
 struct ofl_msg_multipart_request_header;
 struct ofl_msg_multipart_reply_header;
@@ -164,5 +166,9 @@ ofl_error_code(ofl_err error) {
 }
 
 
+static inline void 
+ofl_enable_colors(){
+    colors = 1;
+}
 
 #endif /* OFL_H 1 */

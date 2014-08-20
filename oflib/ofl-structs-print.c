@@ -538,17 +538,34 @@ ofl_structs_flow_stats_to_string(struct ofl_flow_stats *s, struct ofl_exp *exp) 
 void
 ofl_structs_flow_stats_print(FILE *stream, struct ofl_flow_stats *s, struct ofl_exp *exp) {
     size_t i;
+    extern int colors;
+    if(colors) 
+    {
+	    fprintf(stream, "{\x1B[31mtable\x1B[0m=\"");
+	    ofl_table_print(stream, s->table_id);
+	    fprintf(stream, "\", \x1B[31mmatch\x1B[0m=\"");
+	    ofl_structs_match_print(stream, s->match, exp);
+	    fprintf(stream, "\", dur_s=\"%u\", dur_ns=\"%u\", prio=\"%u\", "
+	                          "idle_to=\"%u\", hard_to=\"%u\", cookie=\"0x%"PRIx64"\", "
+	                          "pkt_cnt=\"%"PRIu64"\", byte_cnt=\"%"PRIu64"\", \x1B[31minsts\x1B[0m=[",
+	                  s->duration_sec, s->duration_nsec, s->priority,
+	                  s->idle_timeout, s->hard_timeout, s->cookie,
+	                  s->packet_count, s->byte_count);
+	}
 
-    fprintf(stream, "{\x1B[31mtable\x1B[0m=\"");
-    ofl_table_print(stream, s->table_id);
-    fprintf(stream, "\", \x1B[31mmatch\x1B[0m=\"");
-    ofl_structs_match_print(stream, s->match, exp);
-    fprintf(stream, "\", dur_s=\"%u\", dur_ns=\"%u\", prio=\"%u\", "
-                          "idle_to=\"%u\", hard_to=\"%u\", cookie=\"0x%"PRIx64"\", "
-                          "pkt_cnt=\"%"PRIu64"\", byte_cnt=\"%"PRIu64"\", \x1B[31minsts\x1B[0m=[",
-                  s->duration_sec, s->duration_nsec, s->priority,
-                  s->idle_timeout, s->hard_timeout, s->cookie,
-                  s->packet_count, s->byte_count);
+	else 
+	{
+		fprintf(stream, "{table=\"");
+	    ofl_table_print(stream, s->table_id);
+	    fprintf(stream, "\", match=\"");
+	    ofl_structs_match_print(stream, s->match, exp);
+	    fprintf(stream, "\", dur_s=\"%u\", dur_ns=\"%u\", prio=\"%u\", "
+	                          "idle_to=\"%u\", hard_to=\"%u\", cookie=\"0x%"PRIx64"\", "
+	                          "pkt_cnt=\"%"PRIu64"\", byte_cnt=\"%"PRIu64"\", insts=[",
+	                  s->duration_sec, s->duration_nsec, s->priority,
+	                  s->idle_timeout, s->hard_timeout, s->cookie,
+	                  s->packet_count, s->byte_count);
+	}
 
     for (i=0; i<s->instructions_num; i++) {
         ofl_structs_instruction_print(stream, s->instructions[i], exp);

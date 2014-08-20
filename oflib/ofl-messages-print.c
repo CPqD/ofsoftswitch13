@@ -378,15 +378,21 @@ static void
 ofl_msg_print_stats_reply_flow(struct ofl_msg_multipart_reply_flow *msg, FILE *stream, struct ofl_exp *exp) {
     size_t i;
     size_t last_table_id = -1;
+    extern int colors;
 
     fprintf(stream, ", stats=[");
     
     for (i=0; i<msg->stats_num; i++) {
-        if(last_table_id != msg->stats[i]->table_id)
+
+        if(last_table_id != msg->stats[i]->table_id && colors)
             fprintf(stream, "\n\n\x1B[33mTABLE = %d\x1B[0m\n\n",msg->stats[i]->table_id);
         last_table_id = msg->stats[i]->table_id;
         ofl_structs_flow_stats_print(stream, msg->stats[i], exp);
-        if (i < msg->stats_num - 1) { fprintf(stream, ",\n\n"); };
+        if (i < msg->stats_num - 1) { 
+            if(colors)
+                fprintf(stream, ",\n\n");
+            else
+                fprintf(stream, ", "); };
     }
 
     fprintf(stream, "]");

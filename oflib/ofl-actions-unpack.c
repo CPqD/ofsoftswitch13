@@ -248,7 +248,6 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
         case OFPAT_SET_STATE: {
             struct ofp_action_set_state *sa;
             struct ofl_action_set_state *da;
-            printf ("here is set state unpack case\n"); 
             if (*len < sizeof(struct ofp_action_set_state)) {
                 OFL_LOG_WARN(LOG_MODULE, "Received SET STATE action has invalid length (%zu).", *len);
                 return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
