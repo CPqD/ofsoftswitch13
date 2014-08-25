@@ -1875,18 +1875,6 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
         }
         return 0;
     }
-    if (strncmp(token, MATCH_EXT_HDR KEY_VAL2, strlen(MATCH_EXT_HDR KEY_VAL2)) == 0) {
-        uint32_t *ext_hdr = malloc(sizeof(uint32_t));
-        if (parse32(token + strlen(MATCH_EXT_HDR KEY_VAL2), NULL, 0, 0xffffffff, ext_hdr)) {
-            ofp_fatal(0, "Error parsing ext_hdr: %s.", token);
-        }
-        else {
-                act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
-                act->field->header = OXM_OF_IPV6_EXTHDR;
-                act->field->value = (uint8_t*) ext_hdr;
-        }
-        return 0;
-    }
     ofp_fatal(0, "Error parsing set_field arg: %s.", token);
 }
 
