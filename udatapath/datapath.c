@@ -231,40 +231,12 @@ dp_run(struct datapath *dp) {
     }
 }
 
-/*modified by dingwanfu for EXT-276*/
-/* send role_status (MASTER_FAIL) information to remote controllers when master is done*/
-static int 
-send_role_status_to_remote(struct datapath* dp)
-{
-	struct remote* r;
-	
-	LIST_FOR_EACH (r, struct remote, node, &dp->remotes) {
-					if (r->role != OFPCR_ROLE_MASTER) {
-	
-						/* Send ROLE_STATUS (MASTER_FAIL) message to other  controllers */
-						struct ofl_msg_role_status status =
-								{{.type = OFPT_ROLE_STATUS},
-									.role = r->role,
-									.reason = OFPCRR_MASTER_FAIL,
-									.generation_id = dp->generation_id};
-						struct sender rsender = {
-							.remote = r,
-							.xid = 0};
-						dp_send_message(dp, (struct ofl_msg_header *)&status, &rsender);
-					}
-				}
-    return 0;
-}
-
 static void
 remote_run(struct datapath *dp, struct remote *r)
 {
     remote_rconn_run(dp, r, MAIN_CONNECTION);
 
     if (!rconn_is_alive(r->rconn)) {
-        /*modified by dingwanfu for EXT-276*/
-        if (r->role == OFPCR_ROLE_MASTER)
-                     send_role_status_to_remote(dp);
         remote_destroy(r);
         return;
     }

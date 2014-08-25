@@ -1776,7 +1776,6 @@ enum ofp_controller_role_reason {
 	OFPCRR_MASTER_REQUEST = 0, /* Another controller asked to be master. */
 	OFPCRR_CONFIG = 1,          /* Configuration changed on the switch. */
 	OFPCRR_EXPERIMENTER = 2,   /* Experimenter data changed. */
-	OFPCRR_MASTER_FAIL = 3,         /* Master controller connection fail. */
 };
 
 
