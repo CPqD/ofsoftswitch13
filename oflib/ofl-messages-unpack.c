@@ -794,6 +794,9 @@ ofl_msg_unpack_multipart_request_empty(struct ofp_multipart_request *os UNUSED, 
 static ofl_err
 ofl_msg_unpack_multipart_request_table_features(struct ofp_multipart_request *os, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp){
     struct ofl_msg_multipart_request_table_features *dm;
+    ofl_err error;
+    uint8_t *features;
+    size_t i;
     
     dm = (struct ofl_msg_multipart_request_table_features*) malloc(sizeof(struct ofl_msg_multipart_request_table_features));
     if (!(*len)){
