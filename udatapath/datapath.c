@@ -624,21 +624,6 @@ dp_handle_role_request(struct datapath *dp, struct ofl_msg_role_request *msg,
             LIST_FOR_EACH (r, struct remote, node, &dp->remotes) {
                 if (r->role == OFPCR_ROLE_MASTER) {
                     r->role = OFPCR_ROLE_SLAVE;
-
-			/*modified by dingwanfu*/
-			/* Send ROLE_STATUS message to old master(s) */
-			if (r != sender->remote){ /* Do not send message to the request controller */
-				struct ofl_msg_role_status status =
-						{{.type = OFPT_ROLE_STATUS},
-							.role = OFPCR_ROLE_SLAVE,
-							.reason = OFPCRR_MASTER_REQUEST,
-							.generation_id = msg->generation_id};
-				struct sender rsender = {
-					.remote = r,
-					.xid = 0};
-				dp_send_message(dp, (struct ofl_msg_header *)&status, &rsender);
-			        }
-					
                 }
             }
             sender->remote->role = OFPCR_ROLE_MASTER;

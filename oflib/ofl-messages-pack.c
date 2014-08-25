@@ -93,23 +93,6 @@ ofl_msg_pack_role_request(struct ofl_msg_role_request *msg, uint8_t **buf, size_
         return 0;
 }
 
-/*modified by dingwanfu*/
-static int
-ofl_msg_pack_role_status(struct ofl_msg_role_status *msg, uint8_t **buf, size_t *buf_len) {
-        struct ofp_role_status *sta;
-        *buf_len = sizeof(struct ofp_role_status);
-        *buf     = (uint8_t *)malloc(*buf_len);
-
-        sta = (struct ofp_role_status *)(*buf);
-        sta->role =  htonl(msg->role);
-	    sta->reason = msg->reason;
-        memset(sta->pad,0,sizeof(sta->pad));
-        sta->generation_id = hton64(msg->generation_id);
-
-        return 0;
-}
-
-
 static int
 ofl_msg_pack_features_reply(struct ofl_msg_features_reply *msg, uint8_t **buf, size_t *buf_len) {
     struct ofp_switch_features *features;
@@ -1122,15 +1105,9 @@ ofl_msg_pack(struct ofl_msg_header *msg, uint32_t xid, uint8_t **buf, size_t *bu
             break;
         }
         case OFPT_ROLE_REQUEST:
-        case OFPT_ROLE_REPLY: {
+        case OFPT_ROLE_REPLY:
             error = ofl_msg_pack_role_request((struct ofl_msg_role_request*)msg, buf, buf_len);
-            break;/*modified by dignwanfu*/
-        }
-	/*modified by dignwanfu*/
-        case OFPT_ROLE_STATUS:{
-            error = ofl_msg_pack_role_status((struct ofl_msg_role_status*)msg, buf, buf_len);
             break;
-        }
         default: {
             OFL_LOG_WARN(LOG_MODULE, "Trying to pack unknown message type.");
             error = -1;
