@@ -82,13 +82,6 @@ struct ofl_action_header actions[] = { {OFPAT_OUTPUT, 4},
 
 #define N_ACTIONS       (sizeof(actions) / sizeof(struct ofl_action_header))
 
-uint32_t  oxm_ids_60[]={OXM_OF_IP_PROTO, OXM_OF_IPV4_SRC, OXM_OF_IPV4_DST, OXM_OF_TCP_SRC,
-                        OXM_OF_TCP_DST, OXM_OF_UDP_SRC, OXM_OF_UDP_DST};
-#define NUM_OXM_IDS_60     (sizeof(oxm_ids_60) / sizeof(uint32_t))
-
-uint32_t wildcarded_60[] = {};
-#define NUM_WILD_IDS_60    (sizeof(wildcarded_60) / sizeof(uint32_t))
-
 /* When inserting an entry, this function adds the flow entry to the list of
  * hard and idle timeout entries, if appropriate. */
 static void
@@ -277,7 +270,7 @@ flow_table_timeout(struct flow_table *table) {
 
 
 static void 
-flow_table_create_property(uint8_t table_id, struct ofl_table_feature_prop_header **prop, enum ofp_table_feature_prop_type type){
+flow_table_create_property(struct ofl_table_feature_prop_header **prop, enum ofp_table_feature_prop_type type){
 
     switch(type){
         case OFPTFPT_INSTRUCTIONS:
@@ -332,13 +325,8 @@ flow_table_create_property(uint8_t table_id, struct ofl_table_feature_prop_heade
             int i;
             oxm_capabilities = xmalloc(sizeof(struct ofl_table_feature_prop_oxm));
             oxm_capabilities->header.type = type;
-	    if (table_id != 60) {
-	      oxm_capabilities->oxm_num = NUM_OXM_IDS;
-	      oxm_capabilities->oxm_ids = oxm_ids;
-	    } else {
-	      oxm_capabilities->oxm_num = NUM_OXM_IDS_60;
-	      oxm_capabilities->oxm_ids = oxm_ids_60;
-	    }
+            oxm_capabilities->oxm_num = NUM_OXM_IDS;
+            oxm_capabilities->oxm_ids = oxm_ids;
             oxm_capabilities->header.length = ofl_structs_table_features_properties_ofp_len(&oxm_capabilities->header, NULL);             
             *prop =  (struct ofl_table_feature_prop_header*) oxm_capabilities;
             break;
@@ -347,13 +335,8 @@ flow_table_create_property(uint8_t table_id, struct ofl_table_feature_prop_heade
             struct ofl_table_feature_prop_oxm *oxm_capabilities;
             oxm_capabilities = xmalloc(sizeof(struct ofl_table_feature_prop_oxm)); 
             oxm_capabilities->header.type = type;
-	    if (table_id != 60) {
-	      oxm_capabilities->oxm_num = NUM_WILD_IDS;
-	      oxm_capabilities->oxm_ids = wildcarded;
-	    } else {
-	      oxm_capabilities->oxm_num = NUM_WILD_IDS_60;
-	      oxm_capabilities->oxm_ids = wildcarded_60;
-	    }
+            oxm_capabilities->oxm_num = NUM_WILD_IDS;
+            oxm_capabilities->oxm_ids = wildcarded;
             oxm_capabilities->header.length = ofl_structs_table_features_properties_ofp_len(&oxm_capabilities->header, NULL);                         
             *prop =  (struct ofl_table_feature_prop_header*) oxm_capabilities;
             break;
@@ -366,14 +349,14 @@ flow_table_create_property(uint8_t table_id, struct ofl_table_feature_prop_heade
 }
 
 static int
-flow_table_features(uint8_t table_id, struct ofl_table_features *features){
+flow_table_features(struct ofl_table_features *features){
 
     int type, j;
     features->properties = (struct ofl_table_feature_prop_header **) xmalloc(sizeof(struct ofl_table_feature_prop_header *) * TABLE_FEATURES_NUM);
     j = 0;
     for(type = OFPTFPT_INSTRUCTIONS; type <= OFPTFPT_APPLY_SETFIELD_MISS; type++){ 
         //features->properties[j] = xmalloc(sizeof(struct ofl_table_feature_prop_header));
-        flow_table_create_property(table_id, &features->properties[j], type);
+        flow_table_create_property(&features->properties[j], type);
         if(type == OFPTFPT_MATCH|| type == OFPTFPT_WILDCARDS){
             type++;
         }
@@ -413,7 +396,7 @@ flow_table_create(struct datapath *dp, uint8_t table_id) {
     table->features->metadata_write = 0xffffffffffffffff;
     table->features->config        = OFPTC_TABLE_MISS_CONTROLLER;
     table->features->max_entries   = FLOW_TABLE_MAX_ENTRIES;
-    table->features->properties_num = flow_table_features(table_id, table->features);
+    table->features->properties_num = flow_table_features(table->features);
 
     list_init(&table->match_entries);
     list_init(&table->hard_entries);
