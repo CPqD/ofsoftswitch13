@@ -277,8 +277,7 @@ ofl_msg_free(struct ofl_msg_header *msg, struct ofl_exp *exp) {
             break;
         }
         case OFPT_ROLE_REPLY:
-        case OFPT_ROLE_REQUEST:
-        case OFPT_ROLE_STATUS:{
+        case OFPT_ROLE_REQUEST:{
             break;
         }
         case OFPT_GET_ASYNC_REPLY:
