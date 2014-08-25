@@ -803,9 +803,6 @@ ofl_msg_unpack_multipart_request_table_features(struct ofp_multipart_request *os
         return 0;
     }
     
-#if 1
-    return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
-#else
     error = ofl_utils_count_ofp_table_features((uint8_t*) os->body, *len, &dm->tables_num);  
     if (error) {
         free(dm);
@@ -826,7 +823,6 @@ ofl_msg_unpack_multipart_request_table_features(struct ofp_multipart_request *os
     }   
     *msg = (struct ofl_msg_header *)dm;
     return 0; 
-#endif
 }
 
 static ofl_err
