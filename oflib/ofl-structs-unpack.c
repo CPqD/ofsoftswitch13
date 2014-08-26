@@ -193,7 +193,7 @@ ofl_structs_instructions_unpack(struct ofp_instruction *src, size_t *len, struct
             break;
         }
         default:
-            OFL_LOG_WARN(LOG_MODULE, "The received instruction type (%zu) is invalid.", ntohs(src->type));
+            OFL_LOG_WARN(LOG_MODULE, "The received instruction type (%u) is invalid.", ntohs(src->type));
             return ofl_error(OFPET_BAD_INSTRUCTION, OFPBIC_UNKNOWN_INST);
     }
 
@@ -214,7 +214,7 @@ ofl_structs_instructions_unpack(struct ofp_instruction *src, size_t *len, struct
 }
 
 static ofl_err 
-ofl_structs_table_properties_unpack(struct ofp_table_feature_prop_header * src, size_t *len, struct ofl_table_feature_prop_header **dst, struct ofl_exp *exp){
+ofl_structs_table_properties_unpack(struct ofp_table_feature_prop_header * src, size_t *len, struct ofl_table_feature_prop_header **dst, struct ofl_exp *exp UNUSED){
     size_t plen;
     ofl_err error;
     struct ofl_table_feature_prop_header * prop = NULL;
@@ -341,7 +341,7 @@ ofl_structs_table_properties_unpack(struct ofp_table_feature_prop_header * src, 
 			break;
 		}				
 	default:
-            OFL_LOG_WARN(LOG_MODULE, "The received property contained a unknown property (%zu).", ntohs(src->type));
+            OFL_LOG_WARN(LOG_MODULE, "The received property contained a unknown property (%u).", ntohs(src->type));
             return ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_TYPE);
 	}
 

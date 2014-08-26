@@ -472,7 +472,7 @@ oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len)
     if (!p) {
         VLOG_DBG_RL(LOG_MODULE,&rl, "oxm_match length %u, rounded up to a "
                     "multiple of 8, is longer than space in message (max "
-                    "length %d)", match_len, buf->size);
+                    "length %zd)", match_len, buf->size);
 
         return ofp_mkerr(OFPET_BAD_MATCH, OFPBRC_BAD_LEN);
     }
