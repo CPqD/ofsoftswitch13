@@ -365,21 +365,27 @@ static void
 copy_ttl_out(struct packet *pkt, struct ofl_action_header *act UNUSED) {
     packet_handle_std_validate(pkt->handle_std);
     if (pkt->handle_std->proto->mpls != NULL) {
-        struct mpls_header *mpls = pkt->handle_std->proto->mpls;
-
+        struct mpls_header *mpls = pkt->handle_std->proto->mpls;        
         if ((ntohl(mpls->fields) & MPLS_S_MASK) == 0) {
             // There is an inner MPLS header
             struct mpls_header *in_mpls = (struct mpls_header *)((uint8_t *)mpls + MPLS_HEADER_LEN);
-
             mpls->fields = (mpls->fields & ~htonl(MPLS_TTL_MASK)) | (in_mpls->fields & htonl(MPLS_TTL_MASK));
 
-        } else if (pkt->buffer->size >= ETH_HEADER_LEN + MPLS_HEADER_LEN + IP_HEADER_LEN) {
-            // Assumes an IPv4 header follows, if there is place for it
-            struct ip_header *ipv4 = (struct ip_header *)((uint8_t *)mpls + MPLS_HEADER_LEN);
-
-            mpls->fields = (mpls->fields & ~htonl(MPLS_TTL_MASK)) | htonl((uint32_t)ipv4->ip_ttl & MPLS_TTL_MASK);
-
-        } else {
+        } else if (pkt->buffer->size >= ETH_HEADER_LEN + MPLS_HEADER_LEN + 
+            IP_HEADER_LEN || pkt->buffer->size >= ETH_HEADER_LEN + 
+            MPLS_HEADER_LEN + IPV6_HEADER_LEN) {
+            // Assumes an IPv4 or Ipv6 header follows, if there is place for it            
+            uint8_t version = *((uint8_t *)mpls + MPLS_HEADER_LEN) >> 4;
+            if (version == IPV4_VERSION){
+                struct ip_header *ipv4 = (struct ip_header *)((uint8_t *)mpls + MPLS_HEADER_LEN);
+                mpls->fields = (mpls->fields & ~htonl(MPLS_TTL_MASK)) | htonl((uint32_t)ipv4->ip_ttl & MPLS_TTL_MASK);
+            }
+            else if (version == IPV6_VERSION){
+               struct ipv6_header *ipv6 = (struct ipv6_header *)((uint8_t *)mpls + MPLS_HEADER_LEN);
+               mpls->fields = (mpls->fields & ~htonl(MPLS_TTL_MASK)) | htonl((uint32_t)ipv6->ipv6_hop_limit & MPLS_TTL_MASK); 
+            }
+        }
+        else {
             VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute copy ttl in action on packet with only one mpls.");
         }
     } else {
@@ -400,17 +406,26 @@ copy_ttl_in(struct packet *pkt, struct ofl_action_header *act UNUSED) {
 
             in_mpls->fields = (in_mpls->fields & ~htonl(MPLS_TTL_MASK)) | (mpls->fields & htonl(MPLS_TTL_MASK));
 
-        } else if (pkt->buffer->size >= ETH_HEADER_LEN + MPLS_HEADER_LEN + IP_HEADER_LEN) {
-            // Assumes an IPv4 header follows, if there is place for it
-            struct ip_header *ipv4 = (struct ip_header *)((uint8_t *)mpls + MPLS_HEADER_LEN);
-
-            uint8_t new_ttl = (ntohl(mpls->fields) & MPLS_TTL_MASK) >> MPLS_TTL_SHIFT;
-            uint16_t old_val = htons((ipv4->ip_proto) + (ipv4->ip_ttl<<8));
-            uint16_t new_val = htons((ipv4->ip_proto) + (new_ttl<<8));
-            ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val);
-            ipv4->ip_ttl = new_ttl;
-
-        } else {
+        } else if (pkt->buffer->size >= ETH_HEADER_LEN + MPLS_HEADER_LEN + 
+            IP_HEADER_LEN || pkt->buffer->size >= ETH_HEADER_LEN + 
+            MPLS_HEADER_LEN + IPV6_HEADER_LEN) {
+            // Assumes an IPv4 or Ipv6 header follows, if there is place for it            
+            uint8_t version = *((uint8_t *)mpls + MPLS_HEADER_LEN) >> 4;
+            if (version == IPV4_VERSION){
+                struct ip_header *ipv4 = (struct ip_header *)((uint8_t *)mpls + MPLS_HEADER_LEN);
+                uint8_t new_ttl = (ntohl(mpls->fields) & MPLS_TTL_MASK) >> MPLS_TTL_SHIFT;
+                uint16_t old_val = htons((ipv4->ip_proto) + (ipv4->ip_ttl<<8));
+                uint16_t new_val = htons((ipv4->ip_proto) + (new_ttl<<8));
+                ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val);
+                ipv4->ip_ttl = new_ttl;
+            }
+            else if (version == IPV6_VERSION){
+               struct ipv6_header *ipv6 = (struct ipv6_header *)((uint8_t *)mpls + MPLS_HEADER_LEN);
+               uint8_t new_ttl = (ntohl(mpls->fields) & MPLS_TTL_MASK) >> MPLS_TTL_SHIFT;
+                ipv6->ipv6_hop_limit = new_ttl;
+            }
+        }
+        else {
             VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute copy ttl in action on packet with only one mpls.");
         }
     } else {
