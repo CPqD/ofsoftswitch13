@@ -28,7 +28,9 @@ void __extract_key(uint8_t *buf, struct key_extractor *extractor, struct packet 
 	int i, l=0;
     struct ofl_match_tlv *f;
 
-	for (i=0; i<extractor->field_count; i++) {		
+	for (i=0; i<extractor->field_count; i++) {	
+		printf("\ncontatore %d", extractor->field_count);
+		printf("\nvalore %u\n", (int)extractor->fields[i]);
 		uint32_t type = (int)extractor->fields[i];
 		HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
         	hmap_node, hash_int(type, 0), &pkt->handle_std->match.match_fields){
@@ -46,21 +48,22 @@ void __extract_key(uint8_t *buf, struct key_extractor *extractor, struct packet 
 struct state_entry * state_table_lookup(struct state_table* table, struct packet *pkt) {
 	struct state_entry * e = NULL;	
 	uint8_t key[MAX_STATE_KEY_LEN] = {0};
-        struct in_addr in;
+    struct in_addr in;
 	struct sockaddr_in sa;
 //	char *inetadd;
 	char str[INET_ADDRSTRLEN];
-//printf("extracting read field with type %zu\n", table->read_key.fields[0]);
+
         __extract_key(key, &table->read_key, pkt);
-                      //int h;
-                      printf("the key is:");
-		      //for (h=0;h<4;h++){
- 			//printf("%02X", key[h]);}
-		     memcpy(&(in.s_addr),key,4);		
-		 inet_ntop(AF_INET, &(in.s_addr), str, INET_ADDRSTRLEN);
-		printf("%s\n", str); // prints "192.0.2.33"
-			//	        inetadd = inet_ntoa(in);
-				//	printf("IP address is %s\n",inetadd);
+                     
+        			
+                    //  printf("\nthe key is: %u, %u, %u, %u", key[0],key[1],key[2],key[3]);
+                    //  printf("\nthe key is: %u, %u, %u, %u", key[4],key[5],key[6],key[7]);
+                    //  printf("\nthe key is: %u, %u, %u, %u", key[8],key[9],key[10],key[11]);
+		    
+//		  memcpy(&(in.s_addr),key,4);		
+//		 inet_ntop(AF_INET, &(in.s_addr), str, INET_ADDRSTRLEN);
+//		printf("%s\n", str); // prints "192.0.2.33"
+
 
 	HMAP_FOR_EACH_WITH_HASH(e, struct state_entry, 
 		hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries){
@@ -117,7 +120,8 @@ void state_table_set_extractor(struct state_table *table, struct key_extractor *
                 printf("reading key\n");
 		}
 	dest->field_count = ke->field_count;
-	memcpy(dest->fields, ke->fields, MAX_EXTRACTION_FIELD_COUNT);
+
+	memcpy(dest->fields, ke->fields, 4*ke->field_count);
         //printf("set field =%02x as a  key extractor\n",dest->fields[0]);
 	return;
 }
