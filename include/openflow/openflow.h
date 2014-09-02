@@ -594,7 +594,7 @@ struct ofp_action_experimenter_header {
 };
 OFP_ASSERT(sizeof(struct ofp_action_experimenter_header) == 8);
 
-/* Instruction structure for OFPAT_SET_STATE */
+/* Action structure for OFPAT_SET_STATE */
 struct ofp_action_set_state {
     uint16_t type; /* OFPAT_SET_STATE */
     uint16_t len;  /* Length is 8. */
