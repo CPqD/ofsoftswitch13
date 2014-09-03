@@ -28,17 +28,13 @@ void __extract_key(uint8_t *buf, struct key_extractor *extractor, struct packet 
 	int i, l=0;
     struct ofl_match_tlv *f;
 
-	for (i=0; i<extractor->field_count; i++) {	
-		printf("\ncontatore %d", extractor->field_count);
-		printf("\nvalore %u\n", (int)extractor->fields[i]);
+	for (i=0; i<extractor->field_count; i++) {
 		uint32_t type = (int)extractor->fields[i];
 		HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
         	hmap_node, hash_int(type, 0), &pkt->handle_std->match.match_fields){
-				//if (type == OXM_TYPE(f->header)) {
 				if (type == f->header) {
 					memcpy(&buf[l], f->value, OXM_LENGTH(f->header));
-					l = l + OXM_LENGTH(f->header);//keeps only 8 last bits of oxm_header that contains oxm_length(in which length of oxm_payload).
-			        	//printf("extracting key with type %02X\n", type);
+					l = l + OXM_LENGTH(f->header);//keeps only 8 last bits of oxm_header that contains oxm_length(in which length of oxm_payload)
 					break;
 				}
 		}
@@ -48,26 +44,11 @@ void __extract_key(uint8_t *buf, struct key_extractor *extractor, struct packet 
 struct state_entry * state_table_lookup(struct state_table* table, struct packet *pkt) {
 	struct state_entry * e = NULL;	
 	uint8_t key[MAX_STATE_KEY_LEN] = {0};
-    struct in_addr in;
-	struct sockaddr_in sa;
-//	char *inetadd;
-	char str[INET_ADDRSTRLEN];
 
-        __extract_key(key, &table->read_key, pkt);
-                     
-        			
-                    //  printf("\nthe key is: %u, %u, %u, %u", key[0],key[1],key[2],key[3]);
-                    //  printf("\nthe key is: %u, %u, %u, %u", key[4],key[5],key[6],key[7]);
-                    //  printf("\nthe key is: %u, %u, %u, %u", key[8],key[9],key[10],key[11]);
-		    
-//		  memcpy(&(in.s_addr),key,4);		
-//		 inet_ntop(AF_INET, &(in.s_addr), str, INET_ADDRSTRLEN);
-//		printf("%s\n", str); // prints "192.0.2.33"
-
+    __extract_key(key, &table->read_key, pkt);                    
 
 	HMAP_FOR_EACH_WITH_HASH(e, struct state_entry, 
 		hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries){
-//	HMAP_FOR_EACH(e, struct state_entry,hmap_node,&table->state_entries){
 			if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
 				printf("find corresponding state %d \n",key);
 				return e;
@@ -89,10 +70,7 @@ void state_table_write_metadata(struct state_entry *entry, struct packet *pkt) {
 	HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv, 
 		hmap_node, hash_int(OXM_OF_METADATA,0), &pkt->handle_std->match.match_fields){
                 uint64_t *metadata = (uint64_t*) f->value;
-		//printf("state value is %X\n",entry->state);
-                //*metadata = (*metadata & 0xffff0000) | (entry->state & 0x0000ffff);
                 *metadata = (*metadata & 0x0) | (entry->state);
-		//printf("writing state metadata %X\n",*metadata);
     }
 }
 void state_table_del_state(struct state_table *table, uint8_t *key, uint32_t len) {
@@ -122,7 +100,6 @@ void state_table_set_extractor(struct state_table *table, struct key_extractor *
 	dest->field_count = ke->field_count;
 
 	memcpy(dest->fields, ke->fields, 4*ke->field_count);
-        //printf("set field =%02x as a  key extractor\n",dest->fields[0]);
 	return;
 }
 
