@@ -49,7 +49,7 @@
 
 static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(60, 60);
 
-
+static bool first_rand=1;
 
 struct group_table;
 struct datapath;
@@ -485,7 +485,10 @@ select_from_random_group(struct group_entry *entry) {
     if (entry->desc->buckets_num == 0) {
           return -1;
     }
-    srand(time(NULL));
+    if (first_rand==1){
+        srand(time(NULL));
+        first_rand=0;
+    }
     return rand() % entry->desc->buckets_num;  /* random int between 0 and buckets_num-1 */
 }
 
