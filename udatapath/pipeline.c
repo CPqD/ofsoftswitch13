@@ -795,13 +795,6 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
                 dp_exp_inst((*pkt), (struct ofl_instruction_experimenter *)inst);
                 break;
             }
-            case OFPIT_SET_STATE: {
-                struct ofl_instruction_set_state *wns = (struct ofl_instruction_set_state *)inst;
-		struct state_table *st = pl->tables[(*pkt)->table_id]->state_table;
-                printf("executing instruction NEXT STATE\n");
-		state_table_set_state(st, *pkt, wns->state, NULL, 0);
-		break;
-	    	}
         }
     }
 }

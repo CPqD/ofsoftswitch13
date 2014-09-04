@@ -406,8 +406,6 @@ enum ofp_instruction_type {
     OFPIT_CLEAR_ACTIONS = 5,    /* Clears all actions from the datapath
                                    action set */
     OFPIT_METER = 6,            /* Apply meter (rate limiter) */
-    OFPIT_SET_STATE = 7,		/* Write the next state field for use later in
-								pipeline */
                                    
     OFPIT_EXPERIMENTER = 0xFFFF /* Experimenter instruction */
 };
@@ -471,16 +469,6 @@ struct ofp_instruction_meter {
 };
 OFP_ASSERT(sizeof(struct ofp_instruction_meter) == 8);
 
-/* Instruction structure for OFPIT_SET_STATE */
-struct ofp_instruction_set_state {
-    uint16_t type; /* OFPIT_SET_STATE */
-    uint16_t len;  /* Length is 8. */
-    uint32_t state; /* Meter instance. */
-    //uint64_t state;
-};
-OFP_ASSERT(sizeof(struct ofp_instruction_set_state) == 8);
-//OFP_ASSERT(sizeof(struct ofp_instruction_set_state) == 16);
-
 enum ofp_action_type {
     OFPAT_OUTPUT = 0,        /* Output to switch port. */
     OFPAT_COPY_TTL_OUT = 11, /* Copy TTL "outwards" -- from next-to-outermost
@@ -500,6 +488,8 @@ enum ofp_action_type {
     OFPAT_SET_FIELD = 25,    /* Set a header field using OXM TLV format. */
     OFPAT_PUSH_PBB = 26,     /*Push a new PBB service tag (I-TAG) */
     OFPAT_POP_PBB = 27,      /* Pop the outer PBB service tag (I-TAG) */
+    OFPAT_SET_STATE = 28,   /* Write the next state field for use later in
+                                pipeline */
     OFPAT_EXPERIMENTER = 0xffff
 };
 
@@ -604,7 +594,17 @@ struct ofp_action_experimenter_header {
 };
 OFP_ASSERT(sizeof(struct ofp_action_experimenter_header) == 8);
 
-
+/* Action structure for OFPAT_SET_STATE */
+struct ofp_action_set_state {
+    uint16_t type; /* OFPAT_SET_STATE */
+    uint16_t len;  /* Length is 8. */
+    uint32_t state; /* State instance. */
+    uint8_t stage_id; /*Stage destination*/
+    uint8_t pad[7];           /* Align to 64-bits. */
+    //uint64_t state;
+    //uint8_t pad[3];           /* Align to 64-bits. */
+};
+OFP_ASSERT(sizeof(struct ofp_action_set_state) == 16);
 /*************Controller-to-Switch Messages******************/
 
 /* Switch features. */
@@ -799,6 +799,7 @@ enum ofp_group_type {
     OFPGT_SELECT = 1,   /* Select group. */
     OFPGT_INDIRECT = 2, /* Indirect group. */
     OFPGT_FF = 3,       /* Fast failover group. */
+    OFPGT_RANDOM = 4,   /* Random group. */
 };
 
 

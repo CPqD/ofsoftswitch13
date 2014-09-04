@@ -538,17 +538,34 @@ ofl_structs_flow_stats_to_string(struct ofl_flow_stats *s, struct ofl_exp *exp) 
 void
 ofl_structs_flow_stats_print(FILE *stream, struct ofl_flow_stats *s, struct ofl_exp *exp) {
     size_t i;
+    extern int colors;
+    if(colors) 
+    {
+	    fprintf(stream, "{\x1B[31mtable\x1B[0m=\"");
+	    ofl_table_print(stream, s->table_id);
+	    fprintf(stream, "\", \x1B[31mmatch\x1B[0m=\"");
+	    ofl_structs_match_print(stream, s->match, exp);
+	    fprintf(stream, "\", dur_s=\"%u\", dur_ns=\"%u\", prio=\"%u\", "
+	                          "idle_to=\"%u\", hard_to=\"%u\", cookie=\"0x%"PRIx64"\", "
+	                          "pkt_cnt=\"%"PRIu64"\", byte_cnt=\"%"PRIu64"\", \x1B[31minsts\x1B[0m=[",
+	                  s->duration_sec, s->duration_nsec, s->priority,
+	                  s->idle_timeout, s->hard_timeout, s->cookie,
+	                  s->packet_count, s->byte_count);
+	}
 
-    fprintf(stream, "{table=\"");
-    ofl_table_print(stream, s->table_id);
-    fprintf(stream, "\", match=\"");
-    ofl_structs_match_print(stream, s->match, exp);
-    fprintf(stream, "\", dur_s=\"%u\", dur_ns=\"%u\", prio=\"%u\", "
-                          "idle_to=\"%u\", hard_to=\"%u\", cookie=\"0x%"PRIx64"\", "
-                          "pkt_cnt=\"%"PRIu64"\", byte_cnt=\"%"PRIu64"\", insts=[",
-                  s->duration_sec, s->duration_nsec, s->priority,
-                  s->idle_timeout, s->hard_timeout, s->cookie,
-                  s->packet_count, s->byte_count);
+	else 
+	{
+		fprintf(stream, "{table=\"");
+	    ofl_table_print(stream, s->table_id);
+	    fprintf(stream, "\", match=\"");
+	    ofl_structs_match_print(stream, s->match, exp);
+	    fprintf(stream, "\", dur_s=\"%u\", dur_ns=\"%u\", prio=\"%u\", "
+	                          "idle_to=\"%u\", hard_to=\"%u\", cookie=\"0x%"PRIx64"\", "
+	                          "pkt_cnt=\"%"PRIu64"\", byte_cnt=\"%"PRIu64"\", insts=[",
+	                  s->duration_sec, s->duration_nsec, s->priority,
+	                  s->idle_timeout, s->hard_timeout, s->cookie,
+	                  s->packet_count, s->byte_count);
+	}
 
     for (i=0; i<s->instructions_num; i++) {
         ofl_structs_instruction_print(stream, s->instructions[i], exp);
@@ -570,8 +587,16 @@ ofl_structs_bucket_counter_to_string(struct ofl_bucket_counter *s) {
 
 void
 ofl_structs_bucket_counter_print(FILE *stream, struct ofl_bucket_counter *c) {
-    fprintf(stream, "{pkt_cnt=\"%"PRIu64"\", byte_cnt=\"%"PRIu64"\"}",
+	extern int colors;
+    if (colors){
+		fprintf(stream, "{\x1B[32mpkt_cnt\x1B[0m=\"%"PRIu64"\", byte_cnt=\"%"PRIu64"\"}",
                   c->packet_count, c->byte_count);
+    }
+    else
+    {
+		fprintf(stream, "{pkt_cnt=\"%"PRIu64"\", byte_cnt=\"%"PRIu64"\"}",
+                  c->packet_count, c->byte_count);
+    }
 }
 
 char *
@@ -587,18 +612,32 @@ ofl_structs_group_stats_to_string(struct ofl_group_stats *s) {
 void
 ofl_structs_group_stats_print(FILE *stream, struct ofl_group_stats *s) {
     size_t i;
+    extern int colors;
+    if (colors)
+    {
+    	fprintf(stream, "{\x1B[31mgroup\x1B[0m=\"");
+		ofl_group_print(stream, s->group_id);
+		fprintf(stream, "\", ref_cnt=\"%u\", \x1B[36mpkt_cnt\x1B[0m=\"%"PRIu64"\", byte_cnt=\"%"PRIu64"\", cntrs=[",
+		              s->ref_count, s->packet_count, s->byte_count);
 
-    fprintf(stream, "{group=\"");
-    ofl_group_print(stream, s->group_id);
-    fprintf(stream, "\", ref_cnt=\"%u\", pkt_cnt=\"%"PRIu64"\", byte_cnt=\"%"PRIu64"\", cntrs=[",
-                  s->ref_count, s->packet_count, s->byte_count);
+    }
+    else
+    {
+		fprintf(stream, "{group=\"");
+		ofl_group_print(stream, s->group_id);
+		fprintf(stream, "\", ref_cnt=\"%u\", pkt_cnt=\"%"PRIu64"\", byte_cnt=\"%"PRIu64"\", cntrs=[",
+		              s->ref_count, s->packet_count, s->byte_count);
+	}
 
     for (i=0; i<s->counters_num; i++) {
         ofl_structs_bucket_counter_print(stream, s->counters[i]);
         if (i < s->counters_num - 1) { fprintf(stream, ", "); };
     }
 
-    fprintf(stream, "]}");
+    if(colors)
+    	fprintf(stream, "]}\n\n");
+    else
+    	fprintf(stream, "]}");
 }
 
 char*
@@ -922,19 +961,36 @@ ofl_structs_group_desc_stats_to_string(struct ofl_group_desc_stats *s, struct of
 void
 ofl_structs_group_desc_stats_print(FILE *stream, struct ofl_group_desc_stats *s, struct ofl_exp *exp) {
     size_t i;
+    extern int colors;
 
     fprintf(stream, "{type=\"");
     ofl_group_type_print(stream, s->type);
-    fprintf(stream, "\", group=\"");
-    ofl_group_print(stream, s->group_id);
-    fprintf(stream, "\", buckets=[");
+    if(colors)
+    {
+    	fprintf(stream, "\", \x1B[31mgroup\x1B[0m=\"");
+    	ofl_group_print(stream, s->group_id);
+    	fprintf(stream, "\", buckets=[\n\n");
+    }
+    else
+    {
+    	fprintf(stream, "\", group=\"");
+    	ofl_group_print(stream, s->group_id);
+    	fprintf(stream, "\", buckets=[");
+    }
 
     for (i=0; i<s->buckets_num; i++) {
         ofl_structs_bucket_print(stream, s->buckets[i], exp);
-        if (i < s->buckets_num - 1) { fprintf(stream, ", "); };
+        if (i < s->buckets_num - 1) {
+        	if(colors)
+                fprintf(stream, ",\n\n");
+            else
+                fprintf(stream, ", "); };
     }
 
-    fprintf(stream, "]}");
+    if(colors)
+    	fprintf(stream, "]}\n\n");
+    else
+    	fprintf(stream, "]}");
 }
 
 char *

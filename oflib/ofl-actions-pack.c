@@ -87,6 +87,9 @@ ofl_actions_ofp_len(struct ofl_action_header *action, struct ofl_exp *exp) {
             }
             return exp->act->ofp_len(action);
         }
+        case OFPAT_SET_STATE:{
+            return sizeof(struct ofp_action_set_state);
+    }
         default:
             return 0;
     }
@@ -244,6 +247,16 @@ ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, u
                 return 0;
             }
             return exp->act->pack(src, dst);
+        }
+        case OFPAT_SET_STATE: {
+            struct ofl_action_set_state *sa = (struct ofl_action_set_state *) src;
+            struct ofp_action_set_state *da = (struct ofp_action_set_state *) dst;
+
+            da->len = htons(sizeof(struct ofp_action_set_state));
+            da->state = htonl(sa->state);
+            da->stage_id = sa->stage_id;
+
+            return sizeof(struct ofp_action_set_state);
         }
         default:
             return 0;

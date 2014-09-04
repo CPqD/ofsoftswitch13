@@ -191,25 +191,52 @@ ofl_action_type_to_string(uint16_t type) {
 
 void
 ofl_action_type_print(FILE *stream, uint16_t type) {
-    switch (type) {
-        case OFPAT_OUTPUT: {   fprintf(stream, "out"); return; }
-        case OFPAT_SET_FIELD: {   fprintf(stream, "set_field"); return; }
-        case OFPAT_COPY_TTL_OUT: {   fprintf(stream, "ttl_out"); return; }
-        case OFPAT_COPY_TTL_IN: {    fprintf(stream, "ttl_in"); return; }
-        case OFPAT_SET_MPLS_TTL: {   fprintf(stream, "mpls_ttl"); return; }
-        case OFPAT_DEC_MPLS_TTL: {   fprintf(stream, "mpls_dec"); return; }
-        case OFPAT_PUSH_VLAN: {      fprintf(stream, "vlan_psh"); return; }
-        case OFPAT_POP_VLAN: {       fprintf(stream, "vlan_pop"); return; }
-        case OFPAT_PUSH_MPLS: {      fprintf(stream, "mpls_psh"); return; }
-        case OFPAT_POP_MPLS: {       fprintf(stream, "mpls_pop"); return; }
-        case OFPAT_SET_QUEUE: {      fprintf(stream, "queue"); return; }
-        case OFPAT_GROUP: {          fprintf(stream, "group"); return; }
-        case OFPAT_PUSH_PBB:  {      fprintf(stream, "pbb_psh"); return; }
-        case OFPAT_POP_PBB:   {      fprintf(stream, "pbb_pop"); return; }
-        case OFPAT_SET_NW_TTL: {     fprintf(stream, "nw_ttl"); return; }
-        case OFPAT_DEC_NW_TTL: {     fprintf(stream, "nw_dec"); return; }
-        case OFPAT_EXPERIMENTER: {   fprintf(stream, "exp"); return; }
-        default: {                   fprintf(stream, "?(%u)", type); return; }
+    extern int colors;
+    if(colors) {
+        switch (type) {
+            case OFPAT_OUTPUT: {   fprintf(stream, "\x1B[36mout\x1B[0m"); return; }
+            case OFPAT_SET_FIELD: {   fprintf(stream, "\x1B[36mset_field\x1B[0m"); return; }
+            case OFPAT_COPY_TTL_OUT: {   fprintf(stream, "\x1B[36mttl_out\x1B[0m"); return; }
+            case OFPAT_COPY_TTL_IN: {    fprintf(stream, "\x1B[36mttl_in\x1B[0m"); return; }
+            case OFPAT_SET_MPLS_TTL: {   fprintf(stream, "\x1B[36mmpls_ttl\x1B[0m"); return; }
+            case OFPAT_DEC_MPLS_TTL: {   fprintf(stream, "\x1B[36mmpls_dec\x1B[0m"); return; }
+            case OFPAT_PUSH_VLAN: {      fprintf(stream, "\x1B[36mvlan_psh\x1B[0m"); return; }
+            case OFPAT_POP_VLAN: {       fprintf(stream, "\x1B[36mvlan_pop\x1B[0m"); return; }
+            case OFPAT_PUSH_MPLS: {      fprintf(stream, "\x1B[36mmpls_psh\x1B[0m"); return; }
+            case OFPAT_POP_MPLS: {       fprintf(stream, "\x1B[36mmpls_pop\x1B[0m"); return; }
+            case OFPAT_SET_QUEUE: {      fprintf(stream, "\x1B[36mqueue\x1B[0m"); return; }
+            case OFPAT_GROUP: {          fprintf(stream, "\x1B[36mgroup\x1B[0m"); return; }
+            case OFPAT_PUSH_PBB:  {      fprintf(stream, "\x1B[36mpbb_psh\x1B[0m"); return; }
+            case OFPAT_POP_PBB:   {      fprintf(stream, "\x1B[36mpbb_pop\x1B[0m"); return; }
+            case OFPAT_SET_NW_TTL: {     fprintf(stream, "\x1B[36mnw_ttl\x1B[0m"); return; }
+            case OFPAT_DEC_NW_TTL: {     fprintf(stream, "\x1B[36mnw_dec\x1B[0m"); return; }
+            case OFPAT_EXPERIMENTER: {   fprintf(stream, "\x1B[36mexp\x1B[0m"); return; }
+            case OFPAT_SET_STATE: {      fprintf(stream, "\x1B[36mset_state\x1B[0m"); return; }
+            default: {                   fprintf(stream, "?(%u)", type); return; }
+        }
+    }
+    else{
+        switch (type) {
+            case OFPAT_OUTPUT: {   fprintf(stream, "out"); return; }
+            case OFPAT_SET_FIELD: {   fprintf(stream, "set_field"); return; }
+            case OFPAT_COPY_TTL_OUT: {   fprintf(stream, "ttl_out"); return; }
+            case OFPAT_COPY_TTL_IN: {    fprintf(stream, "ttl_in"); return; }
+            case OFPAT_SET_MPLS_TTL: {   fprintf(stream, "mpls_ttl"); return; }
+            case OFPAT_DEC_MPLS_TTL: {   fprintf(stream, "mpls_dec"); return; }
+            case OFPAT_PUSH_VLAN: {      fprintf(stream, "vlan_psh"); return; }
+            case OFPAT_POP_VLAN: {       fprintf(stream, "vlan_pop"); return; }
+            case OFPAT_PUSH_MPLS: {      fprintf(stream, "mpls_psh"); return; }
+            case OFPAT_POP_MPLS: {       fprintf(stream, "mpls_pop"); return; }
+            case OFPAT_SET_QUEUE: {      fprintf(stream, "queue"); return; }
+            case OFPAT_GROUP: {          fprintf(stream, "group"); return; }
+            case OFPAT_PUSH_PBB:  {      fprintf(stream, "pbb_psh"); return; }
+            case OFPAT_POP_PBB:   {      fprintf(stream, "pbb_pop"); return; }
+            case OFPAT_SET_NW_TTL: {     fprintf(stream, "nw_ttl"); return; }
+            case OFPAT_DEC_NW_TTL: {     fprintf(stream, "nw_dec"); return; }
+            case OFPAT_EXPERIMENTER: {   fprintf(stream, "exp"); return; }
+            case OFPAT_SET_STATE: {      fprintf(stream, "set_state"); return; }
+            default: {                   fprintf(stream, "?(%u)", type); return; }
+        }
     }
 }
 
@@ -287,17 +314,35 @@ ofl_instruction_type_to_string(uint16_t type) {
 
 void
 ofl_instruction_type_print(FILE *stream, uint16_t type) {
-    switch (type) {
-        case OFPIT_GOTO_TABLE: {    fprintf(stream, "goto"); return; }
-        case OFPIT_WRITE_METADATA: { fprintf(stream, "meta"); return; }
-        case OFPIT_WRITE_ACTIONS: {  fprintf(stream, "write"); return; }
-        case OFPIT_APPLY_ACTIONS: {  fprintf(stream, "apply"); return; }
-        case OFPIT_CLEAR_ACTIONS: {  fprintf(stream, "clear"); return; }
-        case OFPIT_METER:         {  fprintf(stream, "meter"); return; }
-        case OFPIT_EXPERIMENTER: {   fprintf(stream, "exp"); return; }
-        default: {                   fprintf(stream, "?(%u)", type); return; }
+    extern int colors;
+    if(colors)
+    {
+        switch (type) {
+            case OFPIT_GOTO_TABLE: {    fprintf(stream, "\x1B[32mgoto\x1B[0m"); return; }
+            case OFPIT_WRITE_METADATA: { fprintf(stream, "\x1B[32mmeta\x1B[0m"); return; }
+            case OFPIT_WRITE_ACTIONS: {  fprintf(stream, "\x1B[32mwrite\x1B[0m"); return; }
+            case OFPIT_APPLY_ACTIONS: {  fprintf(stream, "\x1B[32mapply\x1B[0m"); return; }
+            case OFPIT_CLEAR_ACTIONS: {  fprintf(stream, "\x1B[32mclear\x1B[0m"); return; }
+            case OFPIT_METER:         {  fprintf(stream, "\x1B[32mmeter\x1B[0m"); return; }
+            case OFPIT_EXPERIMENTER: {   fprintf(stream, "\x1B[32mexp\x1B[0m"); return; }
+            default: {                   fprintf(stream, "?(%u)", type); return; }
+        }
     }
+
+    else{
+        switch (type) {
+            case OFPIT_GOTO_TABLE: {    fprintf(stream, "goto"); return; }
+            case OFPIT_WRITE_METADATA: { fprintf(stream, "meta"); return; }
+            case OFPIT_WRITE_ACTIONS: {  fprintf(stream, "write"); return; }
+            case OFPIT_APPLY_ACTIONS: {  fprintf(stream, "apply"); return; }
+            case OFPIT_CLEAR_ACTIONS: {  fprintf(stream, "clear"); return; }
+            case OFPIT_METER:         {  fprintf(stream, "meter"); return; }
+            case OFPIT_EXPERIMENTER: {   fprintf(stream, "exp"); return; }
+            default: {                   fprintf(stream, "?(%u)", type); return; }
+        }
+    }         
 }
+
 
 
 char *
@@ -759,6 +804,7 @@ ofl_group_type_print(FILE *stream, uint8_t type) {
         case (OFPGT_SELECT):   { fprintf(stream, "sel"); return; }
         case (OFPGT_INDIRECT): { fprintf(stream, "ind"); return; }
         case (OFPGT_FF):       { fprintf(stream, "ff"); return; }
+        case (OFPGT_RANDOM):   { fprintf(stream, "rand"); return; }
         default: {               fprintf(stream, "?(%u)", type); return; }
     }
 }

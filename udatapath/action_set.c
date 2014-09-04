@@ -88,6 +88,7 @@ action_set_order(struct ofl_action_header *act) {
         case (OFPAT_SET_NW_TTL):     return 60;
         case (OFPAT_DEC_NW_TTL):     return 50;
         case (OFPAT_OUTPUT):         return 90;
+        case (OFPAT_SET_STATE):      return 55; //Highest priority respect to OFPAT_SET_FIELD
         case (OFPAT_EXPERIMENTER):   return 75;
         default:                     return 79;
     }

@@ -1002,6 +1002,7 @@ parse_options(int argc, char *argv[])
         {"strict", no_argument, 0, OPT_STRICT},
         {"help", no_argument, 0, 'h'},
         {"version", no_argument, 0, 'V'},
+        {"colors", no_argument, 0, 'c'},
         VCONN_SSL_LONG_OPTIONS
         {0, 0, 0, 0},
     };
@@ -1037,6 +1038,10 @@ parse_options(int argc, char *argv[])
 
         case 'v':
             vlog_set_verbosity(optarg);
+            break;
+
+        case 'c':
+            ofl_enable_colors();
             break;
 
         VCONN_SSL_OPTION_HANDLERS
@@ -1095,7 +1100,8 @@ usage(void)
             "  --strict                    use strict match for flow commands\n"
             "  -t, --timeout=SECS          give up after SECS seconds\n"
             "  -h, --help                  display this help message\n"
-            "  -V, --version               display version information\n");
+            "  -V, --version               display version information\n"
+            "  -c, --colors                display indented and colored output\n");
      exit(EXIT_SUCCESS);
 }
 

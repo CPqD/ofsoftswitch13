@@ -69,9 +69,6 @@ ofl_structs_instructions_ofp_len(struct ofl_instruction_header *instruction, str
         case OFPIT_METER:{
             return sizeof(struct ofp_instruction_meter);
         }
-	case OFPIT_SET_STATE:{
-	    return sizeof(struct ofp_instruction_set_state);
-	}
         case OFPIT_EXPERIMENTER: {
             if (exp == NULL || exp->inst == NULL || exp->inst->ofp_len == NULL) {
                 OFL_LOG_WARN(LOG_MODULE, "Trying to len experimenter instruction, but no callback was given.");
@@ -162,15 +159,6 @@ ofl_structs_instructions_pack(struct ofl_instruction_header *src, struct ofp_ins
             di->meter_id = htonl(si->meter_id);
 
             return sizeof(struct ofp_instruction_meter);
-        }
-        case OFPIT_SET_STATE: {
-            struct ofl_instruction_set_state *si = (struct ofl_instruction_set_state *) src;
-            struct ofp_instruction_set_state *di = (struct ofp_instruction_set_state *) dst;
-
-            di->len = htons(sizeof(struct ofp_instruction_set_state));
-            di->state = htonl(si->state);
-
-            return sizeof(struct ofp_instruction_set_state);
         }
         case OFPIT_EXPERIMENTER: {
             if (exp == NULL || exp->inst == NULL || exp->inst->pack == NULL) {

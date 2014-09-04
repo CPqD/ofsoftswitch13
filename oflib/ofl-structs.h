@@ -112,13 +112,6 @@ struct ofl_instruction_meter {
 
 };
 
-/* XFSM: for supporting set state that should write the new state in the statetable */
-struct ofl_instruction_set_state {
-    struct ofl_instruction_header   header; /* OFPIT_METER */
-    uint32_t state;
-    //uint64_t state;
-};
-
 /* Instruction structure for experimental instructions */
 struct ofl_instruction_experimenter {
     struct ofl_instruction_header   header; /* OFPIT_EXPERIMENTER */

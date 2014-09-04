@@ -62,7 +62,8 @@
                              | (10 << OFPAT_SET_QUEUE)       \
                              | (11 << OFPAT_GROUP)           \
                              | (12 << OFPAT_SET_NW_TTL)      \
-                             | (13 << OFPAT_DEC_NW_TTL) )
+                             | (13 << OFPAT_DEC_NW_TTL)     \
+                             | (14 << OFPAT_GROUP) )          
                            
 #define DP_SUPPORTED_MATCH_FIELDS ( OFPXMT_OFB_IN_PORT        \
                                   | OFPXMT_OFB_IN_PHY_PORT    \
@@ -104,7 +105,8 @@
 #define DP_SUPPORTED_GROUPS ( OFPGT_ALL      \
 							| OFPGT_SELECT   \
 							| OFPGT_INDIRECT \
-							| OFPGT_FF)
+							| OFPGT_FF       \
+              | OFPGT_RANDOM)
 
 #define DP_SUPPORTED_GROUP_CAPABILITIES ( OFPGFC_SELECT_WEIGHT      \
 							            /*| OFPGFC_SELECT_LIVENESS    \
