@@ -486,7 +486,8 @@ select_from_random_group(struct group_entry *entry) {
           return -1;
     }
     if (first_rand==1){
-        srand(time(NULL));
+        uint64_t datapath_id=entry->dp->id;
+        srand(time(NULL)+datapath_id);
         first_rand=0;
     }
     return rand() % entry->desc->buckets_num;  /* random int between 0 and buckets_num-1 */
