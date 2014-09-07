@@ -636,7 +636,7 @@ push_mpls(struct packet *pkt, struct ofl_action_push *act) {
             new_ipv4 = ipv4 == NULL ? NULL
                     : (struct ip_header *)((uint8_t *)push_mpls + MPLS_HEADER_LEN);
             new_ipv6 = ipv6 == NULL ? NULL
-                    : (struct ip_header *)((uint8_t *)push_mpls + MPLS_HEADER_LEN);
+                    : (struct ipv6_header *)((uint8_t *)push_mpls + MPLS_HEADER_LEN);
         }
 
         if (new_mpls != NULL) {
@@ -835,8 +835,12 @@ set_nw_ttl(struct packet *pkt, struct ofl_action_set_nw_ttl *act) {
         uint16_t new_val = htons((ipv4->ip_proto) + (act->nw_ttl<<8));
         ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val);
         ipv4->ip_ttl = act->nw_ttl;
-    } else {
-        VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute SET_NW_TTL action on packet with no ipv4.");
+    } else if (pkt->handle_std->proto->ipv6 != NULL){
+       struct ipv6_header *ipv6 = pkt->handle_std->proto->ipv6;
+       ipv6->ipv6_hop_limit = act->nw_ttl;
+    }
+    else {
+        VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute SET_NW_TTL action on packet with no ipv4 or ipv6.");
     }
 }
 
@@ -856,7 +860,13 @@ dec_nw_ttl(struct packet *pkt, struct ofl_action_header *act UNUSED) {
             ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val);
             ipv4->ip_ttl = new_ttl;
         }
-    } else {
+    } else if (pkt->handle_std->proto->ipv6 != NULL){
+        struct ipv6_header *ipv6 = pkt->handle_std->proto->ipv6;
+        if (ipv6->ipv6_hop_limit > 0){
+            --ipv6->ipv6_hop_limit;
+       }
+    }
+    else {
         VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute DEC_NW_TTL action on packet with no ipv4.");
     }
 }
