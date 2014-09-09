@@ -139,7 +139,14 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 break;
             }
             case OXM_OF_IP_PROTO:{
-                pkt->handle_std->proto->ipv4->ip_proto = *act->field->value;
+                struct ip_header *ipv4 =  pkt->handle_std->proto->ipv4;
+                uint16_t new_val, old_val;
+                uint8_t proto = *act->field->value;
+                old_val = htons((ipv4->ip_ttl << 8) + ipv4->ip_proto);
+                VLOG_ERR(LOG_MODULE, "Proto %d %d", ipv4->ip_proto, proto);
+                new_val =  htons((ipv4->ip_ttl << 8) + proto);
+                ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val);
+                ipv4->ip_proto = proto;
                 break;
             }
             case OXM_OF_IPV4_SRC:{
@@ -294,34 +301,31 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                                             OXM_LENGTH(act->field->header));
                 break;
             }
-            case OXM_OF_IPV6_ND_SLL:{
-                struct icmp_header *icmp = pkt->handle_std->proto->icmp;
-                uint8_t offset;
-                struct ipv6_nd_options_hd *opt = (struct ipv6_nd_options_hd*)
-                                        icmp + sizeof(struct icmp_header);
-                uint8_t *data = (uint8_t*) opt;
-                /*ICMP header + neighbor discovery header reserverd bytes*/
-                offset = sizeof(struct ipv6_nd_header);
-
-                if(opt->type == ND_OPT_SLL){
-                    memcpy(data + offset, act->field->value,
-                                    OXM_LENGTH(act->field->header));
-                }
-                break;
-            }
+            case OXM_OF_IPV6_ND_SLL:
             case OXM_OF_IPV6_ND_TLL:{
                 struct icmp_header *icmp = pkt->handle_std->proto->icmp;
                 uint8_t offset;
+                uint32_t old_val32;
+                uint32_t new_val32;
+                uint16_t old_val16;
+                uint16_t new_val16;
                 struct ipv6_nd_options_hd *opt = (struct ipv6_nd_options_hd*)
-                                        icmp + sizeof(struct icmp_header);
+                                        ((uint8_t*) icmp + sizeof(struct icmp_header) + 
+                                        sizeof(struct ipv6_nd_header));
                 uint8_t *data = (uint8_t*) opt;
-                /*ICMP header + neighbor discovery header reserverd bytes*/
-                offset = sizeof(struct ipv6_nd_header);
+                /*ICMP header + neighbor discovery header reserved bytes*/
+                offset = sizeof(struct ipv6_nd_options_hd);
+                if(opt->type == ND_OPT_SLL || opt->type == ND_OPT_TLL){
+                    old_val16 = *((uint16_t*) (data + offset));
+                    old_val32 = *((uint32_t*) (data + offset + sizeof(uint16_t)));
 
-                if(opt->type == ND_OPT_TLL){
                     memcpy(data + offset, act->field->value,
                                     OXM_LENGTH(act->field->header));
-                }                
+                    new_val16 = *((uint16_t*) (act->field->value));
+                    new_val32 = *((uint32_t*) (act->field->value + sizeof(uint16_t)));
+                    icmp->icmp_csum = recalc_csum16(icmp->icmp_csum, old_val16, new_val16);
+                    icmp->icmp_csum = recalc_csum32(icmp->icmp_csum, old_val32, new_val32);
+                }                                
                 break;
             }
             case OXM_OF_MPLS_LABEL:{
