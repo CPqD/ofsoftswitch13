@@ -69,7 +69,6 @@ handle_control_barrier_request(struct datapath *dp,
 static ofl_err
 handle_control_features_request(struct datapath *dp,
           struct ofl_msg_header *msg, const struct sender *sender) {
-    printf("capabilities:%d \n",DP_SUPPORTED_CAPABILITIES);
     struct ofl_msg_features_reply reply =
             {{.type = OFPT_FEATURES_REPLY},
              .datapath_id  = dp->id,

@@ -161,7 +161,6 @@ pipeline_create(struct datapath *dp) {
     struct pipeline *pl;
     int i;
 
-    printf("here is the create pipeline %02x \n",OXM_OF_ETH_SRC);
     pl = xmalloc(sizeof(struct pipeline));
     for (i=0; i<PIPELINE_TABLES; i++) {
         pl->tables[i] = flow_table_create(dp, i);
@@ -176,7 +175,6 @@ pipeline_create(struct datapath *dp) {
 static bool
 is_table_miss(struct flow_entry *entry){
 
-    //printf("here is table miss\n");
     return ((entry->stats->priority) == 0 && (entry->match->length <= 4));
 
 }
@@ -268,7 +266,6 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
 		if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
 			char *m = ofl_structs_match_to_string((struct ofl_match_header*)&(pkt->handle_std->match), pkt->dp->exp);
 			VLOG_DBG_RL(LOG_MODULE, &rl, "searching table entry for packet match: %s.", m);
-			printf("searching table entry for pkt match\n");
 			free(m);
 		}
 
@@ -279,7 +276,6 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
                 char *m = ofl_structs_flow_stats_to_string(entry->stats, pkt->dp->exp);
                 VLOG_DBG_RL(LOG_MODULE, &rl, "found matching entry: %s.", m);
                 free(m);
-		printf("find matching entry\n");
             } 
 
             pkt->handle_std->table_miss = is_table_miss(entry);
@@ -301,7 +297,6 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
 			/* OpenFlow 1.3 default behavior on a table miss */
 			VLOG_DBG_RL(LOG_MODULE, &rl, "No matching entry found. Dropping packet.");
 			packet_destroy(pkt);
-			printf("No matching entry found. Dropping packet.\n");
 			return;
         }
     }
@@ -310,7 +305,6 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
 
 static
 int inst_compare(const void *inst1, const void *inst2){
-    printf("here is comparing priority instructions\n");
     struct ofl_instruction_header * i1 = *(struct ofl_instruction_header **) inst1;
     struct ofl_instruction_header * i2 = *(struct ofl_instruction_header **) inst2;
     if ((i1->type == OFPIT_APPLY_ACTIONS && i2->type == OFPIT_CLEAR_ACTIONS) ||
@@ -323,7 +317,6 @@ int inst_compare(const void *inst1, const void *inst2){
 ofl_err
 pipeline_handle_state_mod(struct pipeline *pl, struct ofl_msg_state_mod *msg,
                                                 const struct sender *sender) {
-    printf("here is handle state mod func\n");
     ofl_err error;
 	struct state_table *st = pl->tables[msg->table_id]->state_table;
 //	int update;
@@ -353,7 +346,6 @@ pipeline_handle_state_mod(struct pipeline *pl, struct ofl_msg_state_mod *msg,
 ofl_err
 pipeline_handle_flow_mod(struct pipeline *pl, struct ofl_msg_flow_mod *msg,
                                                 const struct sender *sender) {
-    printf("here is handle flow mod func\n");
     /* Note: the result of using table_id = 0xff is undefined in the spec.
      *       for now it is accepted for delete commands, meaning to delete
      *       from all tables */
@@ -437,7 +429,6 @@ pipeline_handle_table_mod(struct pipeline *pl,
                           struct ofl_msg_table_mod *msg,
                           const struct sender *sender) {
 
-    printf("here is handle table mod func\n");
     if(sender->remote->role == OFPCR_ROLE_SLAVE)
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_IS_SLAVE);
 
@@ -460,7 +451,6 @@ pipeline_handle_stats_request_flow(struct pipeline *pl,
                                    struct ofl_msg_multipart_request_flow *msg,
                                    const struct sender *sender) {
 
-    printf("here is handle statistic request flow\n");
     struct ofl_flow_stats **stats = xmalloc(sizeof(struct ofl_flow_stats *));
     size_t stats_size = 1;
     size_t stats_num = 0;
@@ -494,7 +484,6 @@ ofl_err
 pipeline_handle_stats_request_table(struct pipeline *pl,
                                     struct ofl_msg_multipart_request_header *msg UNUSED,
                                     const struct sender *sender) {
-    printf("here is handle statistic request table\n");
     struct ofl_table_stats **stats;
     size_t i;
 
@@ -523,7 +512,6 @@ ofl_err
 pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
                                     struct ofl_msg_multipart_request_header *msg,
                                     const struct sender *sender) {
-    printf("here is handle statistic request table feature\n");
     size_t i, j;
     struct ofl_table_features **features;
     struct ofl_msg_multipart_request_table_features *feat =
@@ -565,7 +553,6 @@ ofl_err
 pipeline_handle_stats_request_aggregate(struct pipeline *pl,
                                   struct ofl_msg_multipart_request_flow *msg,
                                   const struct sender *sender) {
-    printf("here is handle statistic request aggregatation\n");
     struct ofl_msg_multipart_reply_aggregate reply =
             {{{.type = OFPT_MULTIPART_REPLY},
               .type = OFPMP_AGGREGATE, .flags = 0x0000},
@@ -598,7 +585,6 @@ pipeline_destroy(struct pipeline *pl) {
     struct flow_table *table;
     int i;
 
-    printf("here is handle destroy pipeline\n");
     for (i=0; i<PIPELINE_TABLES; i++) {
         table = pl->tables[i];
         if (table != NULL) {
@@ -613,7 +599,6 @@ void
 pipeline_timeout(struct pipeline *pl) {
     int i;
 
-    printf("here is handle timeout pipeline\n");
     for (i = 0; i < PIPELINE_TABLES; i++) {
         flow_table_timeout(pl->tables[i]);
     }
@@ -633,7 +618,6 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
             Write-Metadata
             Goto-Table
     */
-    printf("here is handle execution of intruction for each flow entry\n");
     size_t i;
     struct ofl_instruction_header *inst;
 
