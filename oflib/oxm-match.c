@@ -247,7 +247,6 @@ static uint8_t* get_oxm_value(struct ofl_match *m, uint32_t header){
 static int
 parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
                 const void *value, const void *mask){
-
     switch (f->index) {
         case OFI_OXM_OF_IN_PORT: {
             uint32_t* in_port = (uint32_t*) value;
@@ -267,6 +266,14 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
         }
         case OFI_OXM_OF_METADATA_W:{
             ofl_structs_match_put64m(match, f->header, ntoh64(*((uint64_t*) value)), ntoh64(*((uint64_t*) mask)));
+            return 0;
+        }
+        case OFI_OXM_OF_FLAGS:{
+            ofl_structs_match_put32(match, f->header, ntohl(*((uint32_t*) value)));
+            return 0;
+        }
+        case OFI_OXM_OF_FLAGS_W:{
+            ofl_structs_match_put32m(match, f->header, ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)));
             return 0;
         }
         /* Ethernet header. */

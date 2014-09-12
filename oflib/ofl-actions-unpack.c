@@ -262,6 +262,24 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             *len -= sizeof(struct ofp_action_set_state);
             break; 
         }
+
+        case OFPAT_SET_FLAG: {
+            struct ofp_action_set_flag *sa;
+            struct ofl_action_set_flag *da;
+            if (*len < sizeof(struct ofp_action_set_flag)) {
+                OFL_LOG_WARN(LOG_MODULE, "Received SET flag action has invalid length (%zu).", *len);
+                return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
+            }
+            sa = (struct ofp_action_set_flag*)src;
+            da = (struct ofl_action_set_flag *)malloc(sizeof(struct ofl_action_set_flag));
+
+            da->flag = sa->flag;
+            da->value = sa->value;
+
+            *dst = (struct ofl_action_header *)da;
+            *len -= sizeof(struct ofp_action_set_flag);
+            break; 
+        }
         case OFPAT_SET_NW_TTL: {
             struct ofp_action_nw_ttl *sa;
             struct ofl_action_set_nw_ttl *da;
@@ -303,7 +321,7 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             da->field->value = malloc(OXM_LENGTH(da->field->header));
             /*TODO: need to check if other fields are valid */
             if(da->field->header == OXM_OF_IN_PORT || da->field->header == OXM_OF_IN_PHY_PORT
-                                    || da->field->header == OXM_OF_METADATA){
+                                    || da->field->header == OXM_OF_METADATA ||  da->field->header == OXM_OF_FLAGS ){
                 return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_SET_TYPE);
             }
             switch(OXM_LENGTH(da->field->header)){

@@ -258,6 +258,10 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
 			state_entry = state_table_lookup(table->state_table, pkt);
 			state_table_write_metadata(state_entry, pkt);
 		}
+        
+        if (pl->dp->config.flags & OFPC_DATAPATH_GLOBAL_STATES_MASK){
+            pipeline_global_states_write_flags(pkt);
+        }
 
     		//printf("after statetable entry\n");
 		// EEDBEH: additional printout to debug table lookup
@@ -688,5 +692,16 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
                 break;
             }
         }
+    }
+}
+
+
+void pipeline_global_states_write_flags(struct packet *pkt){
+    struct  ofl_match_tlv *f;
+
+    HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv, 
+        hmap_node, hash_int(OXM_OF_FLAGS,0), &pkt->handle_std->match.match_fields){
+                uint32_t *flags = (uint32_t*) f->value;
+                *flags = (*flags & 0x0) | (pkt->dp->global_states);
     }
 }
