@@ -364,7 +364,8 @@ enum oxm_ofb_match_fields {
     OFPXMT_OFB_MPLS_BOS = 36,       /* MPLS BoS bit. */
     OFPXMT_OFB_PBB_ISID = 37,       /* PBB I-SID. */
     OFPXMT_OFB_TUNNEL_ID = 38,      /* Logical Port Metadata. */
-    OFPXMT_OFB_IPV6_EXTHDR = 39     /* IPv6 Extension Header pseudo-field */
+    OFPXMT_OFB_IPV6_EXTHDR = 39,     /* IPv6 Extension Header pseudo-field */
+    OFPXMT_OFB_FLAGS = 40        /* Global States */
 };
 
 /* The VLAN id is 12-bits, so we can use the entire 16 bits to indicate
@@ -490,6 +491,7 @@ enum ofp_action_type {
     OFPAT_POP_PBB = 27,      /* Pop the outer PBB service tag (I-TAG) */
     OFPAT_SET_STATE = 28,   /* Write the next state field for use later in
                                 pipeline */
+    OFPAT_SET_FLAG = 29,   /* Set a single flag value of the global state */
     OFPAT_EXPERIMENTER = 0xffff
 };
 
@@ -605,6 +607,16 @@ struct ofp_action_set_state {
     //uint8_t pad[3];           /* Align to 64-bits. */
 };
 OFP_ASSERT(sizeof(struct ofp_action_set_state) == 16);
+
+/* Action structure for OFPAT_SET_FLAG */
+struct ofp_action_set_flag {
+    uint16_t type; /* OFPAT_SET_FLAG */
+    uint16_t len;  /* Length is 8. */
+    uint8_t flag; /* flag index */
+    uint8_t value;    /*flag value*/
+    uint8_t pad[2];   /* Align to 64-bits. */
+};
+OFP_ASSERT(sizeof(struct ofp_action_set_flag) == 8);
 /*************Controller-to-Switch Messages******************/
 
 /* Switch features. */
@@ -632,7 +644,8 @@ enum ofp_capabilities {
     OFPC_IP_REASM = 1 << 5,    /* Can reassemble IP fragments. */
     OFPC_QUEUE_STATS = 1 << 6, /* Queue statistics. */
     OFPC_PORT_BLOCKED = 1 << 8, /* Switch will block looping ports. */
-    OFPC_TABLE_STATEFULL = 1 << 9  /* support stateful feature */
+    OFPC_TABLE_STATEFULL = 1 << 9,  /* support stateful feature */
+    OFPC_DATAPATH_GLOBAL_STATE = 1 << 10  /* support stateful feature */
 };
 
 /* Switch configuration. */
@@ -654,6 +667,8 @@ enum ofp_config_flags {
     /* TTL processing - applicable for IP and MPLS packets */
     OFPC_INVALID_TTL_TO_CONTROLLER = 1 << 2, /* Send packets with invalid TTL
 to the controller */
+    OFPC_DATAPATH_GLOBAL_STATES = 1 << 3,  /* support global states */
+    OFPC_DATAPATH_GLOBAL_STATES_MASK = 4
 };
 
 /* Table numbering. Tables can use any number up to OFPT_MAX. */

@@ -131,6 +131,8 @@ dp_new(void) {
 
     dp->id = gen_datapath_id();
 
+    dp->global_states = NULL;
+
     dp->generation_id = -1;
 
     dp->last_timeout = time_now();

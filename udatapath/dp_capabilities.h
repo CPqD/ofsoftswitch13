@@ -48,7 +48,8 @@
                                | OFPC_GROUP_STATS          \
                             /* | OFPC_IP_REASM       */    \
                                | OFPC_QUEUE_STATS          \
-                               | OFPC_TABLE_STATEFULL      ) 
+                               | OFPC_TABLE_STATEFULL      \
+                               | OFPC_DATAPATH_GLOBAL_STATE) 
                                /*| OFPC_PORT_BLOCKED */    
 #define DP_SUPPORTED_ACTIONS ( (1 << OFPAT_OUTPUT)          \
                              | (2 << OFPAT_COPY_TTL_OUT)    \
@@ -59,15 +60,17 @@
                              | (7 << OFPAT_POP_VLAN)        \
                              | (8 << OFPAT_PUSH_MPLS)       \
                              | (9 << OFPAT_POP_MPLS)        \
-                             | (10 << OFPAT_SET_QUEUE)       \
-                             | (11 << OFPAT_GROUP)           \
-                             | (12 << OFPAT_SET_NW_TTL)      \
+                             | (10 << OFPAT_SET_QUEUE)      \
+                             | (11 << OFPAT_GROUP)          \
+                             | (12 << OFPAT_SET_NW_TTL)     \
                              | (13 << OFPAT_DEC_NW_TTL)     \
-                             | (14 << OFPAT_GROUP) )          
+                             | (14 << OFPAT_SET_STATE)      \
+                             | (15 << OFPAT_SET_FLAG) )          
                            
 #define DP_SUPPORTED_MATCH_FIELDS ( OFPXMT_OFB_IN_PORT        \
                                   | OFPXMT_OFB_IN_PHY_PORT    \
                                   | OFPXMT_OFB_METADATA       \
+                                  | OFPXMT_OFB_FLAGS          \
                                   | OFPXMT_OFB_ETH_DST        \
                                   | OFPXMT_OFB_ETH_SRC        \
                                   | OFPXMT_OFB_ETH_TYPE       \

@@ -111,5 +111,7 @@ pipeline_timeout(struct pipeline *pl);
 void
 pipeline_destroy(struct pipeline *pl);
 
+void
+pipeline_global_states_write_flags(struct packet *pkt);
 
 #endif /* PIPELINE_H */

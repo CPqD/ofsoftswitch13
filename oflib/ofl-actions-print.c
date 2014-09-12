@@ -165,5 +165,13 @@ ofl_action_print(FILE *stream, struct ofl_action_header *act, struct ofl_exp *ex
 
             break;
         }
+        case OFPAT_SET_FLAG: {
+            struct ofl_action_set_flag *a = (struct ofl_action_set_flag *)act;
+
+            fprintf(stream, "{flag=\"%u\"", a->flag);
+            fprintf(stream, ",value=\"%u\"}", a->value);
+
+            break;
+        }
     }
 }

@@ -115,6 +115,11 @@ struct ofl_action_set_state {
     //uint64_t state;
 };
 
+struct ofl_action_set_flag {
+    struct ofl_action_header   header; /* OFPAT_SET_FLAG */
+    uint8_t flag;
+    uint8_t value;
+};
 /****************************************************************************
  * Functions for (un)packing action structures
  ****************************************************************************/

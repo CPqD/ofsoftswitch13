@@ -826,6 +826,16 @@ dec_nw_ttl(struct packet *pkt, struct ofl_action_header *act UNUSED) {
     }
 }
 
+/* Executes set flag. */
+static void
+set_flag(struct packet *pkt, struct ofl_action_set_flag *action) {
+        struct ofl_action_set_flag *wns = (struct ofl_action_set_flag *)action;
+        uint32_t global_states = pkt->dp->global_states;
+        uint32_t mask = 1<<(wns->flag-1);
+        global_states = (global_states & ~mask) | (wns->value << (wns->flag-1));
+        pkt->dp->global_states = global_states;
+}
+
 
 void
 dp_execute_action(struct packet *pkt,
@@ -888,12 +898,13 @@ dp_execute_action(struct packet *pkt,
         }
         case (OFPAT_SET_STATE): {
             struct ofl_action_set_state *wns = (struct ofl_action_set_state *)action;
-            //struct state_table *st = pkt->dp->pipeline->tables[pkt->table_id]->state_table;
             struct state_table *st = pkt->dp->pipeline->tables[wns->stage_id]->state_table;
-            //TODO: come indice dl vettore metteremo il parametro dello stage da aggiornare :)
-            
             printf("executing action NEXT STATE at stage %u\n", wns->stage_id);
             state_table_set_state(st, pkt, wns->state, NULL, 0);
+            break;
+        }
+        case (OFPAT_SET_FLAG): {
+            set_flag(pkt, (struct ofl_action_set_flag *)action);
             break;
         }
         case (OFPAT_SET_NW_TTL): {

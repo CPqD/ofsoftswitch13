@@ -212,6 +212,7 @@ ofl_action_type_print(FILE *stream, uint16_t type) {
             case OFPAT_DEC_NW_TTL: {     fprintf(stream, "\x1B[36mnw_dec\x1B[0m"); return; }
             case OFPAT_EXPERIMENTER: {   fprintf(stream, "\x1B[36mexp\x1B[0m"); return; }
             case OFPAT_SET_STATE: {      fprintf(stream, "\x1B[36mset_state\x1B[0m"); return; }
+            case OFPAT_SET_FLAG: {       fprintf(stream, "\x1B[36mset_flag\x1B[0m"); return; }
             default: {                   fprintf(stream, "?(%u)", type); return; }
         }
     }
@@ -235,6 +236,7 @@ ofl_action_type_print(FILE *stream, uint16_t type) {
             case OFPAT_DEC_NW_TTL: {     fprintf(stream, "nw_dec"); return; }
             case OFPAT_EXPERIMENTER: {   fprintf(stream, "exp"); return; }
             case OFPAT_SET_STATE: {      fprintf(stream, "set_state"); return; }
+            case OFPAT_SET_FLAG: {       fprintf(stream, "set_flag"); return; }
             default: {                   fprintf(stream, "?(%u)", type); return; }
         }
     }
@@ -257,6 +259,7 @@ ofl_oxm_type_print(FILE *stream, uint32_t type){
     case OXM_OF_IN_PORT:            {fprintf(stream, "in_port"); return; }
     case OXM_OF_IN_PHY_PORT:        {fprintf(stream, "in_phy_port"); return; }
     case OXM_OF_METADATA:           {fprintf(stream, "metadata"); return; }
+    case OXM_OF_FLAGS:              {fprintf(stream, "flags"); return; }
     case OXM_OF_ETH_DST:            {fprintf(stream, "eth_dst"); return; }
     case OXM_OF_ETH_SRC:            {fprintf(stream, "eth_src"); return; }
     case OXM_OF_ETH_TYPE:           {fprintf(stream, "eth_type"); return; }
