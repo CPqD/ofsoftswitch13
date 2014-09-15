@@ -94,8 +94,25 @@ enum ofp_type {
     /* Meters and rate limiters configuration messages. */
     OFPT_METER_MOD = 29, /* Controller/switch message */
 	OFPT_STATE_MOD = 30, /* Controller/switch message */
+    OFPT_FLAG_MOD = 31,  /* Controller/switch message */
 };
 
+/*
+    OFPT_FLAG_MOD
+*/
+
+struct ofp_flag_mod {
+    struct ofp_header header;
+    uint32_t flag;
+    uint32_t flag_mask;
+    uint8_t command;
+    uint8_t pad[7];                  /* Pad to 64 bits. */
+};
+
+enum ofp_flag_mod_command { 
+    OFPSC_MODIFY_FLAGS = 0,
+    OFPSC_RESET_FLAGS
+};
 /*
 	OFPT_STATE_MOD
 */
@@ -612,11 +629,11 @@ OFP_ASSERT(sizeof(struct ofp_action_set_state) == 16);
 struct ofp_action_set_flag {
     uint16_t type; /* OFPAT_SET_FLAG */
     uint16_t len;  /* Length is 8. */
-    uint8_t flag; /* flag index */
-    uint8_t value;    /*flag value*/
-    uint8_t pad[2];   /* Align to 64-bits. */
+    uint32_t value; /* flag value */
+    uint32_t mask;    /*flag mask*/
+    uint8_t pad[4];   /* Align to 64-bits. */
 };
-OFP_ASSERT(sizeof(struct ofp_action_set_flag) == 8);
+OFP_ASSERT(sizeof(struct ofp_action_set_flag) == 16);
 /*************Controller-to-Switch Messages******************/
 
 /* Switch features. */

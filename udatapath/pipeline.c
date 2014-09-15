@@ -315,6 +315,24 @@ int inst_compare(const void *inst1, const void *inst2){
 }
 
 ofl_err
+pipeline_handle_flag_mod(struct pipeline *pl, struct ofl_msg_flag_mod *msg,
+                                                const struct sender *sender) {
+    
+    uint32_t global_states = pl->dp->global_states;
+    ofl_err error;
+    if (msg->command == OFPSC_MODIFY_FLAGS) {
+        global_states = (global_states & ~(msg->flag_mask)) | (msg->flag & msg->flag_mask);
+        pl->dp->global_states = global_states;       
+    }
+    else if (msg->command == OFPSC_RESET_FLAGS) {
+        pl->dp->global_states = 0;
+    }
+    else
+        return 1;
+    return 0;
+}
+
+ofl_err
 pipeline_handle_state_mod(struct pipeline *pl, struct ofl_msg_state_mod *msg,
                                                 const struct sender *sender) {
     ofl_err error;
