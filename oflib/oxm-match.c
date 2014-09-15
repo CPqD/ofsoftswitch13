@@ -110,6 +110,65 @@ oxm_init(void)
     }
 }
 
+bool 
+check_bad_wildcard(uint8_t value, uint8_t mask){
+    uint8_t masked = value & mask;
+    if (value == masked){
+        return false;
+    }
+    else {
+        return true;
+    }
+}
+
+bool 
+check_bad_wildcard16(uint16_t value, uint16_t mask){
+    uint16_t masked = value & mask;
+    if (value == masked){
+        return false;
+    }
+    else {
+        return true;
+    }
+}
+
+bool 
+check_bad_wildcard32(uint32_t value, uint32_t mask){
+    uint32_t masked = value & mask;
+    if (value == masked){
+        return false;
+    }
+    else {
+        return true;
+    }
+}
+
+bool 
+check_bad_wildcard48(uint8_t *value, uint8_t *mask){
+    return (check_bad_wildcard16(*((uint16_t *) value), *((uint16_t *) mask)) ||  
+    check_bad_wildcard32(*((uint32_t *) (value + 2)), 
+                        *((uint32_t *) (mask + 2))));
+}
+
+bool 
+check_bad_wildcard64(uint64_t value, uint64_t mask){
+    uint64_t masked = value & mask;
+    if (value == masked){
+        return false;
+    }
+    else {
+        return true;
+    }
+}
+
+bool 
+check_bad_wildcard128(uint8_t *value, uint8_t *mask){
+    return (check_bad_wildcard64(*((uint64_t *) value), *((uint64_t *) mask)) ||  
+    check_bad_wildcard64(*((uint64_t *) (value + 8)), 
+                        *((uint64_t *) (mask + 8)))); 
+}
+
+
 struct oxm_field *
 oxm_field_lookup(uint32_t header)
 {
@@ -265,6 +324,9 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
             return 0;
         }
         case OFI_OXM_OF_METADATA_W:{
+            if (check_bad_wildcard64(ntoh64(*((uint64_t*) value)), ntoh64(*((uint64_t*) mask)))){
+                return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
+            }
             ofl_structs_match_put64m(match, f->header, ntoh64(*((uint64_t*) value)), ntoh64(*((uint64_t*) mask)));
             return 0;
         }
@@ -284,6 +346,9 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
         }
         case OFI_OXM_OF_ETH_DST_W:
         case OFI_OXM_OF_ETH_SRC_W:{
+            if (check_bad_wildcard48((uint8_t* )value, (uint8_t* )mask)){
+                return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
+            }
             ofl_structs_match_put_eth_m(match, f->header,(uint8_t* )value, (uint8_t* )mask );
             return 0;
         }
@@ -306,6 +371,10 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
         case OFI_OXM_OF_VLAN_VID_W:{
             uint16_t* vlan_id = (uint16_t*) value;
             uint16_t* vlan_mask = (uint16_t*) mask;
+
+            if (check_bad_wildcard16(ntohs(*vlan_id), ntohs(*vlan_mask))){
+                return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
+            }
 
             if (ntohs(*vlan_id) > OFPVID_PRESENT+VLAN_VID_MAX)
                 return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_VALUE);
@@ -349,25 +418,33 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
         case OFI_OXM_OF_IPV4_SRC:
         case OFI_OXM_OF_IPV4_DST:
         case OFI_OXM_OF_ARP_TPA:
-        case OFI_OXM_OF_ARP_SPA:
+        case OFI_OXM_OF_ARP_SPA:{
              ofl_structs_match_put32(match, f->header, *((uint32_t*) value));
              return 0;
+        }
         case OFI_OXM_OF_IPV4_DST_W:
         case OFI_OXM_OF_IPV4_SRC_W:
         case OFI_OXM_OF_ARP_SPA_W:
-        case OFI_OXM_OF_ARP_TPA_W:
-             ofl_structs_match_put32m(match, f->header, *((uint32_t*) value), *((uint32_t*) mask));
-             return 0;
+        case OFI_OXM_OF_ARP_TPA_W:{
+            if (check_bad_wildcard32(*((uint32_t*) value), *((uint32_t*) mask))){
+                return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
+            }
+            ofl_structs_match_put32m(match, f->header, *((uint32_t*) value), *((uint32_t*) mask));
+            return 0;
+        }
         case OFI_OXM_OF_ARP_SHA:
         case OFI_OXM_OF_ARP_THA:
             ofl_structs_match_put_eth(match, f->header,(uint8_t* )value);
             return 0;
 
         case OFI_OXM_OF_ARP_SHA_W:
-        case OFI_OXM_OF_ARP_THA_W:
+        case OFI_OXM_OF_ARP_THA_W:{
+             if (check_bad_wildcard48((uint8_t* )value, (uint8_t* )mask)){
+                return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
+            }
             ofl_structs_match_put_eth_m(match, f->header,(uint8_t* )value, (uint8_t* )mask );
             return 0;
-
+        }
             /* IPv6 addresses. */
         case OFI_OXM_OF_IPV6_SRC:
         case OFI_OXM_OF_IPV6_DST:{
@@ -376,6 +453,9 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
         }
         case OFI_OXM_OF_IPV6_SRC_W:
         case OFI_OXM_OF_IPV6_DST_W:{
+            if (check_bad_wildcard128((uint8_t* ) value,(uint8_t* ) mask)){
+                return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
+            }
             ofl_structs_match_put_ipv6m(match, f->header,(uint8_t* ) value,(uint8_t* ) mask);
             return 0;
         }
@@ -384,6 +464,9 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
             return 0;
         }
         case OFI_OXM_OF_IPV6_FLABEL_W:{
+            if (check_bad_wildcard32(*((uint32_t*) value), *((uint32_t*) mask))){
+                return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
+            }
             ofl_structs_match_put32m(match, f->header, ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)));
             return 0;
         }
@@ -398,7 +481,6 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
         case OFI_OXM_OF_SCTP_DST:
                 ofl_structs_match_put16(match, f->header, ntohs(*((uint16_t*) value)));
                 return 0;
-
             /* ICMP header. */
         case OFI_OXM_OF_ICMPV4_TYPE:
         case OFI_OXM_OF_ICMPV4_CODE:
@@ -438,14 +520,21 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
         case OFI_OXM_OF_PBB_ISID:
              ofl_structs_match_put32(match, f->header, ntohl(*((uint32_t*) value)));
              return 0;
-        case OFI_OXM_OF_PBB_ISID_W:
-             ofl_structs_match_put32m(match, f->header, ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)));
-             return 0;
+        case OFI_OXM_OF_PBB_ISID_W:{
+            if (check_bad_wildcard32(*((uint32_t*) value), *((uint32_t*) mask))){
+                return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
+            }
+            ofl_structs_match_put32m(match, f->header, ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)));
+            return 0;
+        }
         case OFI_OXM_OF_TUNNEL_ID:{
             ofl_structs_match_put64(match, f->header, *((uint64_t*) value));
             return 0;
         }
         case OFI_OXM_OF_TUNNEL_ID_W:{
+            if (check_bad_wildcard64(*((uint64_t*) value), *((uint64_t*) mask))){
+                return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
+            }
             ofl_structs_match_put64m(match, f->header,*((uint64_t*) value),*((uint64_t*) mask));
             return 0;
         }
@@ -479,7 +568,7 @@ oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len)
     if (!p) {
         VLOG_DBG_RL(LOG_MODULE,&rl, "oxm_match length %u, rounded up to a "
                     "multiple of 8, is longer than space in message (max "
-                    "length %d)", match_len, buf->size);
+                    "length %zd)", match_len, buf->size);
 
         return ofp_mkerr(OFPET_BAD_MATCH, OFPBRC_BAD_LEN);
     }

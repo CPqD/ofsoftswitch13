@@ -221,8 +221,7 @@ BUILD_ASSERT_DECL(VLAN_ETH_HEADER_LEN == sizeof(struct vlan_eth_header));
 
 
 
-#define IP_VERSION 4
-
+#define IPV4_VERSION 4
 #define IP_DONT_FRAGMENT  0x4000 /* Don't fragment. */
 #define IP_MORE_FRAGMENTS 0x2000 /* More fragments. */
 #define IP_FRAG_OFF_MASK  0x1fff /* Fragment offset. */
@@ -259,8 +258,8 @@ BUILD_ASSERT_DECL(IP_HEADER_LEN == sizeof(struct ip_header));
 #define IPV6_TC(ipv6_ver_tc_fl) ((ipv6_ver_tc_fl) & 0xff00000)
 #define IPV6_FLABEL(ipv6_ver_tc_fl) ((ipv6_ver_tc_fl) & 0xffff)
 
+#define IPV6_VERSION 6
 #define IPV6_FLABEL_MASK 0xfffff
-
 #define IPV6_HEADER_LEN 40
 struct ipv6_header {
     uint32_t ipv6_ver_tc_fl;

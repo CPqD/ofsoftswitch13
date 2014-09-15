@@ -398,9 +398,9 @@ ofl_structs_oxm_tlv_print(FILE *stream, struct ofl_match_tlv *f)
 			fprintf(stream, "mpls_bos=\"%d\"", *f->value & 0x1);
 			break;
 		case OFPXMT_OFB_METADATA:
-			fprintf(stream, "metadata=\"0x%llx\"", *((uint64_t*) f->value));
+			fprintf(stream, "metadata=\"0x%"PRIu64"\"", *((uint64_t*) f->value));
 			if (OXM_HASMASK(f->header)) {
-				fprintf(stream, ", metadata_mask=\"0x%llx\"", *((uint64_t*)(f->value+8)));
+				fprintf(stream, ", metadata_mask=\"0x%"PRIu64"\"", *((uint64_t*)(f->value+8)));
 			}
 			break;
 		case OFPXMT_OFB_FLAGS:
@@ -416,9 +416,9 @@ ofl_structs_oxm_tlv_print(FILE *stream, struct ofl_match_tlv *f)
 			}
 			break;
 		case OFPXMT_OFB_TUNNEL_ID:
-			fprintf(stream, "tunnel_id=\"%lld\"", *((uint64_t*) f->value));
+			fprintf(stream, "tunnel_id=\"%"PRIu64"\"", *((uint64_t*) f->value));
 			if (OXM_HASMASK(f->header)) {
-				fprintf(stream, ", tunnel_id_mask=\"%lld\"", *((uint64_t*)(f->value+8)));
+				fprintf(stream, ", tunnel_id_mask=\"%"PRIu64"\"", *((uint64_t*)(f->value+8)));
 			}
 			break;
 		case OFPXMT_OFB_IPV6_EXTHDR:
@@ -526,9 +526,13 @@ ofl_structs_queue_prop_print(FILE *stream, struct ofl_queue_prop_header *p) {
             fprintf(stream, "{rate=\"%u\"}", pm->rate);
             break;
         }
-        
+        case (OFPQT_MAX_RATE): {
+        	break;
+        }
+        case (OFPQT_EXPERIMENTER): {
+        	break;
+        }
     }
-
 }
 
 char *

@@ -139,7 +139,14 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 break;
             }
             case OXM_OF_IP_PROTO:{
-                pkt->handle_std->proto->ipv4->ip_proto = *act->field->value;
+                struct ip_header *ipv4 =  pkt->handle_std->proto->ipv4;
+                uint16_t new_val, old_val;
+                uint8_t proto = *act->field->value;
+                old_val = htons((ipv4->ip_ttl << 8) + ipv4->ip_proto);
+                VLOG_ERR(LOG_MODULE, "Proto %d %d", ipv4->ip_proto, proto);
+                new_val =  htons((ipv4->ip_ttl << 8) + proto);
+                ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val);
+                ipv4->ip_proto = proto;
                 break;
             }
             case OXM_OF_IPV4_SRC:{
@@ -294,34 +301,31 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                                             OXM_LENGTH(act->field->header));
                 break;
             }
-            case OXM_OF_IPV6_ND_SLL:{
-                struct icmp_header *icmp = pkt->handle_std->proto->icmp;
-                uint8_t offset;
-                struct ipv6_nd_options_hd *opt = (struct ipv6_nd_options_hd*)
-                                        icmp + sizeof(struct icmp_header);
-                uint8_t *data = (uint8_t*) opt;
-                /*ICMP header + neighbor discovery header reserverd bytes*/
-                offset = sizeof(struct ipv6_nd_header);
-
-                if(opt->type == ND_OPT_SLL){
-                    memcpy(data + offset, act->field->value,
-                                    OXM_LENGTH(act->field->header));
-                }
-                break;
-            }
+            case OXM_OF_IPV6_ND_SLL:
             case OXM_OF_IPV6_ND_TLL:{
                 struct icmp_header *icmp = pkt->handle_std->proto->icmp;
                 uint8_t offset;
+                uint32_t old_val32;
+                uint32_t new_val32;
+                uint16_t old_val16;
+                uint16_t new_val16;
                 struct ipv6_nd_options_hd *opt = (struct ipv6_nd_options_hd*)
-                                        icmp + sizeof(struct icmp_header);
+                                        ((uint8_t*) icmp + sizeof(struct icmp_header) + 
+                                        sizeof(struct ipv6_nd_header));
                 uint8_t *data = (uint8_t*) opt;
-                /*ICMP header + neighbor discovery header reserverd bytes*/
-                offset = sizeof(struct ipv6_nd_header);
+                /*ICMP header + neighbor discovery header reserved bytes*/
+                offset = sizeof(struct ipv6_nd_options_hd);
+                if(opt->type == ND_OPT_SLL || opt->type == ND_OPT_TLL){
+                    old_val16 = *((uint16_t*) (data + offset));
+                    old_val32 = *((uint32_t*) (data + offset + sizeof(uint16_t)));
 
-                if(opt->type == ND_OPT_TLL){
                     memcpy(data + offset, act->field->value,
                                     OXM_LENGTH(act->field->header));
-                }                
+                    new_val16 = *((uint16_t*) (act->field->value));
+                    new_val32 = *((uint32_t*) (act->field->value + sizeof(uint16_t)));
+                    icmp->icmp_csum = recalc_csum16(icmp->icmp_csum, old_val16, new_val16);
+                    icmp->icmp_csum = recalc_csum32(icmp->icmp_csum, old_val32, new_val32);
+                }                                
                 break;
             }
             case OXM_OF_MPLS_LABEL:{
@@ -365,21 +369,27 @@ static void
 copy_ttl_out(struct packet *pkt, struct ofl_action_header *act UNUSED) {
     packet_handle_std_validate(pkt->handle_std);
     if (pkt->handle_std->proto->mpls != NULL) {
-        struct mpls_header *mpls = pkt->handle_std->proto->mpls;
-
+        struct mpls_header *mpls = pkt->handle_std->proto->mpls;        
         if ((ntohl(mpls->fields) & MPLS_S_MASK) == 0) {
             // There is an inner MPLS header
             struct mpls_header *in_mpls = (struct mpls_header *)((uint8_t *)mpls + MPLS_HEADER_LEN);
-
             mpls->fields = (mpls->fields & ~htonl(MPLS_TTL_MASK)) | (in_mpls->fields & htonl(MPLS_TTL_MASK));
 
-        } else if (pkt->buffer->size >= ETH_HEADER_LEN + MPLS_HEADER_LEN + IP_HEADER_LEN) {
-            // Assumes an IPv4 header follows, if there is place for it
-            struct ip_header *ipv4 = (struct ip_header *)((uint8_t *)mpls + MPLS_HEADER_LEN);
-
-            mpls->fields = (mpls->fields & ~htonl(MPLS_TTL_MASK)) | htonl((uint32_t)ipv4->ip_ttl & MPLS_TTL_MASK);
-
-        } else {
+        } else if (pkt->buffer->size >= ETH_HEADER_LEN + MPLS_HEADER_LEN + 
+            IP_HEADER_LEN || pkt->buffer->size >= ETH_HEADER_LEN + 
+            MPLS_HEADER_LEN + IPV6_HEADER_LEN) {
+            // Assumes an IPv4 or Ipv6 header follows, if there is place for it            
+            uint8_t version = *((uint8_t *)mpls + MPLS_HEADER_LEN) >> 4;
+            if (version == IPV4_VERSION){
+                struct ip_header *ipv4 = (struct ip_header *)((uint8_t *)mpls + MPLS_HEADER_LEN);
+                mpls->fields = (mpls->fields & ~htonl(MPLS_TTL_MASK)) | htonl((uint32_t)ipv4->ip_ttl & MPLS_TTL_MASK);
+            }
+            else if (version == IPV6_VERSION){
+               struct ipv6_header *ipv6 = (struct ipv6_header *)((uint8_t *)mpls + MPLS_HEADER_LEN);
+               mpls->fields = (mpls->fields & ~htonl(MPLS_TTL_MASK)) | htonl((uint32_t)ipv6->ipv6_hop_limit & MPLS_TTL_MASK); 
+            }
+        }
+        else {
             VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute copy ttl in action on packet with only one mpls.");
         }
     } else {
@@ -400,17 +410,26 @@ copy_ttl_in(struct packet *pkt, struct ofl_action_header *act UNUSED) {
 
             in_mpls->fields = (in_mpls->fields & ~htonl(MPLS_TTL_MASK)) | (mpls->fields & htonl(MPLS_TTL_MASK));
 
-        } else if (pkt->buffer->size >= ETH_HEADER_LEN + MPLS_HEADER_LEN + IP_HEADER_LEN) {
-            // Assumes an IPv4 header follows, if there is place for it
-            struct ip_header *ipv4 = (struct ip_header *)((uint8_t *)mpls + MPLS_HEADER_LEN);
-
-            uint8_t new_ttl = (ntohl(mpls->fields) & MPLS_TTL_MASK) >> MPLS_TTL_SHIFT;
-            uint16_t old_val = htons((ipv4->ip_proto) + (ipv4->ip_ttl<<8));
-            uint16_t new_val = htons((ipv4->ip_proto) + (new_ttl<<8));
-            ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val);
-            ipv4->ip_ttl = new_ttl;
-
-        } else {
+        } else if (pkt->buffer->size >= ETH_HEADER_LEN + MPLS_HEADER_LEN + 
+            IP_HEADER_LEN || pkt->buffer->size >= ETH_HEADER_LEN + 
+            MPLS_HEADER_LEN + IPV6_HEADER_LEN) {
+            // Assumes an IPv4 or Ipv6 header follows, if there is place for it            
+            uint8_t version = *((uint8_t *)mpls + MPLS_HEADER_LEN) >> 4;
+            if (version == IPV4_VERSION){
+                struct ip_header *ipv4 = (struct ip_header *)((uint8_t *)mpls + MPLS_HEADER_LEN);
+                uint8_t new_ttl = (ntohl(mpls->fields) & MPLS_TTL_MASK) >> MPLS_TTL_SHIFT;
+                uint16_t old_val = htons((ipv4->ip_proto) + (ipv4->ip_ttl<<8));
+                uint16_t new_val = htons((ipv4->ip_proto) + (new_ttl<<8));
+                ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val);
+                ipv4->ip_ttl = new_ttl;
+            }
+            else if (version == IPV6_VERSION){
+               struct ipv6_header *ipv6 = (struct ipv6_header *)((uint8_t *)mpls + MPLS_HEADER_LEN);
+               uint8_t new_ttl = (ntohl(mpls->fields) & MPLS_TTL_MASK) >> MPLS_TTL_SHIFT;
+                ipv6->ipv6_hop_limit = new_ttl;
+            }
+        }
+        else {
             VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute copy ttl in action on packet with only one mpls.");
         }
     } else {
@@ -561,13 +580,16 @@ push_mpls(struct packet *pkt, struct ofl_action_push *act) {
     if (pkt->handle_std->proto->eth != NULL) {
         struct eth_header  *eth,  *new_eth;
         struct snap_header *snap, *new_snap;
+        struct vlan_header *vlan, *new_vlan;
         struct mpls_header *mpls, *new_mpls, *push_mpls;
-        struct ip_header *ipv4;
-        struct ipv6_header *ipv6;
+        struct ip_header *ipv4, *new_ipv4;
+        struct ipv6_header *ipv6, *new_ipv6;
         size_t eth_size;
+        size_t head_offset;
 
         eth = pkt->handle_std->proto->eth;
         snap = pkt->handle_std->proto->eth_snap;
+        vlan = pkt->handle_std->proto->vlan_last;
         mpls = pkt->handle_std->proto->mpls;
         ipv4 = pkt->handle_std->proto->ipv4;
         ipv6 = pkt->handle_std->proto->ipv6;
@@ -576,19 +598,24 @@ push_mpls(struct packet *pkt, struct ofl_action_push *act) {
                    ? ETH_HEADER_LEN
                    : ETH_HEADER_LEN + LLC_HEADER_LEN + SNAP_HEADER_LEN;
 
+        head_offset = vlan == NULL ? eth_size
+              : (uint8_t *)vlan - (uint8_t *)eth + VLAN_HEADER_LEN;
+
         if (ofpbuf_headroom(pkt->buffer) >= MPLS_HEADER_LEN) {
             // there is available space in headroom, move eth backwards
             pkt->buffer->data = (uint8_t *)(pkt->buffer->data) - MPLS_HEADER_LEN;
             pkt->buffer->size += MPLS_HEADER_LEN;
 
-            memmove(pkt->buffer->data, eth, eth_size);
-
+            memmove(pkt->buffer->data, eth, head_offset);
             new_eth = (struct eth_header *)(pkt->buffer->data);
             new_snap = snap == NULL ? NULL
-                                   : (struct snap_header *)((uint8_t *)new_eth
-                                        + ETH_HEADER_LEN + MPLS_HEADER_LEN + LLC_HEADER_LEN);
-            push_mpls = (struct mpls_header *)((uint8_t *)new_eth + eth_size);
+                    : (struct snap_header *)((uint8_t *)snap - MPLS_HEADER_LEN);
+            new_vlan = vlan == NULL ? NULL
+                    : (struct vlan_header *)((uint8_t *)vlan - MPLS_HEADER_LEN);
+            push_mpls = (struct mpls_header *)((uint8_t *)new_eth + head_offset);
             new_mpls = mpls;
+            new_ipv4 = ipv4;
+            new_ipv6 = ipv6;
 
         } else {
             // not enough headroom, use tailroom of the packet
@@ -598,39 +625,51 @@ push_mpls(struct packet *pkt, struct ofl_action_push *act) {
 
             new_eth = (struct eth_header *)(pkt->buffer->data);
             new_snap = snap == NULL ? NULL
-                                   : (struct snap_header *)((uint8_t *)new_eth
-                                        + ETH_HEADER_LEN + MPLS_HEADER_LEN + LLC_HEADER_LEN);
-            push_mpls = (struct mpls_header *)((uint8_t *)new_eth + ETH_HEADER_LEN);
+                    : (struct snap_header *)((uint8_t *)snap - (uint8_t *)eth + (uint8_t *)new_eth);
+            new_vlan = vlan == NULL ? NULL
+                    : (struct vlan_header *)((uint8_t *)vlan - (uint8_t *)eth + (uint8_t *)new_eth);
+            push_mpls = (struct mpls_header *)((uint8_t *)new_eth + head_offset);
 
             // push data to create space for new MPLS
             memmove((uint8_t *)push_mpls + MPLS_HEADER_LEN, push_mpls,
-                    pkt->buffer->size - ETH_HEADER_LEN);
+                    pkt->buffer->size - head_offset);
 
-           new_mpls = mpls == NULL ? NULL
-              : (struct mpls_header *)((uint8_t *)push_mpls + MPLS_HEADER_LEN);
+            new_mpls = mpls == NULL ? NULL
+                    : (struct mpls_header *)((uint8_t *)push_mpls + MPLS_HEADER_LEN);
+            // Note: if ipv4 was not null, then there was no MPLS header in 1.1
+            new_ipv4 = ipv4 == NULL ? NULL
+                    : (struct ip_header *)((uint8_t *)push_mpls + MPLS_HEADER_LEN);
+            new_ipv6 = ipv6 == NULL ? NULL
+                    : (struct ipv6_header *)((uint8_t *)push_mpls + MPLS_HEADER_LEN);
         }
 
         if (new_mpls != NULL) {
             push_mpls->fields = new_mpls->fields & ~htonl(MPLS_S_MASK);
-        } else if (ipv4 != NULL) {
+        } else if (new_ipv4 != NULL) {
             // copy IP TTL to MPLS TTL (rest is zero), and set S bit
-            push_mpls->fields = htonl((uint32_t)ipv4->ip_ttl & MPLS_TTL_MASK) | htonl(MPLS_S_MASK);
-        } else if (ipv6 != NULL) {
+            push_mpls->fields = htonl((uint32_t)new_ipv4->ip_ttl & MPLS_TTL_MASK) | htonl(MPLS_S_MASK);
+        } else if (new_ipv6 != NULL) {
             // copy IP HOP LIMIT to MPLS TTL (rest is zero), and set S bit
-            push_mpls->fields = htonl((uint32_t)ipv6->ipv6_hop_limit & MPLS_TTL_MASK) | htonl(MPLS_S_MASK);
-        }
-        else {
+            push_mpls->fields = htonl((uint32_t)new_ipv6->ipv6_hop_limit & MPLS_TTL_MASK) | htonl(MPLS_S_MASK);
+        } else {
             push_mpls->fields = htonl(MPLS_S_MASK);
         }
 
-        if (new_snap != NULL) {
-            new_snap->snap_type = ntohs(act->ethertype);
+        if (new_vlan != NULL) {
+            new_vlan->vlan_next_type = htons(act->ethertype);
+        } else if (new_snap != NULL) {
+            new_snap->snap_type = htons(act->ethertype);
         } else {
-            new_eth->eth_type = ntohs(act->ethertype);
+            new_eth->eth_type = htons(act->ethertype);
         }
 
-        pkt->handle_std->valid = false;
+        if (new_snap != NULL) {
+            new_eth->eth_type = htons(ntohs(new_eth->eth_type) + MPLS_HEADER_LEN);
+        }
 
+        // in 1.1 all proto but eth and mpls will be hidden,
+        // so revalidating won't be a tedious work (probably)
+        pkt->handle_std->valid = false;
     } else {
         VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute PUSH_MPLS action on packet with no eth.");
     }
@@ -800,8 +839,12 @@ set_nw_ttl(struct packet *pkt, struct ofl_action_set_nw_ttl *act) {
         uint16_t new_val = htons((ipv4->ip_proto) + (act->nw_ttl<<8));
         ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val);
         ipv4->ip_ttl = act->nw_ttl;
-    } else {
-        VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute SET_NW_TTL action on packet with no ipv4.");
+    } else if (pkt->handle_std->proto->ipv6 != NULL){
+       struct ipv6_header *ipv6 = pkt->handle_std->proto->ipv6;
+       ipv6->ipv6_hop_limit = act->nw_ttl;
+    }
+    else {
+        VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute SET_NW_TTL action on packet with no ipv4 or ipv6.");
     }
 }
 
@@ -821,7 +864,13 @@ dec_nw_ttl(struct packet *pkt, struct ofl_action_header *act UNUSED) {
             ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val);
             ipv4->ip_ttl = new_ttl;
         }
-    } else {
+    } else if (pkt->handle_std->proto->ipv6 != NULL){
+        struct ipv6_header *ipv6 = pkt->handle_std->proto->ipv6;
+        if (ipv6->ipv6_hop_limit > 0){
+            --ipv6->ipv6_hop_limit;
+       }
+    }
+    else {
         VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute DEC_NW_TTL action on packet with no ipv4.");
     }
 }
