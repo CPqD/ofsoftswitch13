@@ -644,8 +644,7 @@ enum ofp_capabilities {
     OFPC_IP_REASM = 1 << 5,    /* Can reassemble IP fragments. */
     OFPC_QUEUE_STATS = 1 << 6, /* Queue statistics. */
     OFPC_PORT_BLOCKED = 1 << 8, /* Switch will block looping ports. */
-    OFPC_TABLE_STATEFULL = 1 << 9,  /* support stateful feature */
-    OFPC_DATAPATH_GLOBAL_STATE = 1 << 10  /* support stateful feature */
+    OFPC_OPENSTATE = 1 << 9,  /* support OpenState feature */
 };
 
 /* Switch configuration. */
@@ -667,8 +666,6 @@ enum ofp_config_flags {
     /* TTL processing - applicable for IP and MPLS packets */
     OFPC_INVALID_TTL_TO_CONTROLLER = 1 << 2, /* Send packets with invalid TTL
 to the controller */
-    OFPC_DATAPATH_GLOBAL_STATES = 1 << 3,  /* support global states */
-    OFPC_DATAPATH_GLOBAL_STATES_MASK = 4
 };
 
 /* Table numbering. Tables can use any number up to OFPT_MAX. */

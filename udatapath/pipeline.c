@@ -257,7 +257,7 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
 			state_table_write_metadata(state_entry, pkt);
 		}
         
-        if (pl->dp->config.flags & OFPC_DATAPATH_GLOBAL_STATES_MASK){
+        if (DP_SUPPORTED_CAPABILITIES & OFPC_OPENSTATE){
             pipeline_global_states_write_flags(pkt);
         }
 
