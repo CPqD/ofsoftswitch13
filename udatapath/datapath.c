@@ -261,7 +261,7 @@ remote_run(struct datapath *dp, struct remote *r)
 
 static void
 remote_rconn_run(struct datapath *dp, struct remote *r, uint8_t conn_id) {
-    struct rconn *rconn;
+    struct rconn *rconn = NULL;
     ofl_err error;
     size_t i;
    // printf("here is remot rconn run is called\n");

@@ -382,6 +382,10 @@ pipeline_handle_flow_mod(struct pipeline *pl, struct ofl_msg_flow_mod *msg,
                 return error;
             }
         }
+	/* Reject goto in the last table. */
+	if ((msg->table_id == (PIPELINE_TABLES - 1))
+	    && (msg->instructions[i]->type == OFPIT_GOTO_TABLE))
+	  return ofl_error(OFPET_BAD_INSTRUCTION, OFPBIC_UNSUP_INST);
     }
 
     if (msg->table_id == 0xff) {
@@ -551,7 +555,7 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
 	  return ofl_error(OFPET_BAD_REQUEST, OFPBRC_MULTIPART_BUFFER_OVERFLOW);
 	}
 
-      VLOG_DBG(LOG_MODULE, "multipart request: merging with previous fragments (%d+%d)", ((struct ofl_msg_multipart_request_table_features *) sender->remote->mp_req_msg)->tables_num, feat->tables_num);
+      VLOG_DBG(LOG_MODULE, "multipart request: merging with previous fragments (%zu+%zu)", ((struct ofl_msg_multipart_request_table_features *) sender->remote->mp_req_msg)->tables_num, feat->tables_num);
 
       /* Merge the request with previous fragments. */
       nomore = ofl_msg_merge_multipart_request_table_features((struct ofl_msg_multipart_request_table_features *) sender->remote->mp_req_msg, feat);
@@ -560,7 +564,7 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
       if(!nomore)
 	return 0;
 
-      VLOG_DBG(LOG_MODULE, "multipart request: reassembly complete (%d)", ((struct ofl_msg_multipart_request_table_features *) sender->remote->mp_req_msg)->tables_num);
+      VLOG_DBG(LOG_MODULE, "multipart request: reassembly complete (%zu)", ((struct ofl_msg_multipart_request_table_features *) sender->remote->mp_req_msg)->tables_num);
 
       /* Use the complete request. */
       feat = (struct ofl_msg_multipart_request_table_features *) sender->remote->mp_req_msg;
@@ -579,7 +583,7 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
       if(msg->flags & OFPMPF_REQ_MORE) {
 	struct ofl_msg_multipart_request_table_features* saved_msg;
 
-	VLOG_DBG(LOG_MODULE, "multipart request: create reassembly buffer (%d)", feat->tables_num);
+	VLOG_DBG(LOG_MODULE, "multipart request: create reassembly buffer (%zu)", feat->tables_num);
 
 	/* Create a buffer the do reassembly. */
 	saved_msg = (struct ofl_msg_multipart_request_table_features*) malloc(sizeof(struct ofl_msg_multipart_request_table_features));
@@ -598,7 +602,7 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
       }
 
       /* Non fragmented request. Nothing to do... */
-      VLOG_DBG(LOG_MODULE, "multipart request: non-fragmented request (%d)", feat->tables_num);
+      VLOG_DBG(LOG_MODULE, "multipart request: non-fragmented request (%zu)", feat->tables_num);
     }
 
     /*Check to see if the body is empty.*/
@@ -648,7 +652,7 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
         features[i] = pl->tables[j]->features;
         j++;
     }
-    VLOG_DBG(LOG_MODULE, "multipart reply: returning %d tables, next table-id %d", i, j);
+    VLOG_DBG(LOG_MODULE, "multipart reply: returning %zu tables, next table-id %zu", i, j);
     {
     struct ofl_msg_multipart_reply_table_features reply =
          {{{.type = OFPT_MULTIPART_REPLY},
@@ -768,7 +772,7 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
                     hmap_node, hash_int(OXM_OF_METADATA,0), &(*pkt)->handle_std->match.match_fields){
                     uint64_t *metadata = (uint64_t*) f->value;
                     *metadata = (*metadata & ~wi->metadata_mask) | (wi->metadata & wi->metadata_mask);
-                    VLOG_DBG_RL(LOG_MODULE, &rl, "Executing write metadata: %llx", *metadata);
+                    VLOG_DBG_RL(LOG_MODULE, &rl, "Executing write metadata: %"PRIx64"", *metadata);
                 }
                 break;
             }

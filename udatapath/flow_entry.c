@@ -150,6 +150,19 @@ flow_entry_replace_instructions(struct flow_entry *entry,
     init_group_refs(entry);
 }
 
+void
+flow_entry_modify_stats(struct flow_entry *entry,
+                              struct ofl_msg_flow_mod *mod) {
+
+    /* Reset flow counters as needed. Jean II */
+    if ((mod->flags & OFPFF_RESET_COUNTS) != 0) {
+        if (!(entry->no_pkt_count))
+            entry->stats->packet_count     = 0;
+        if (!(entry->no_byt_count))
+            entry->stats->byte_count       = 0;
+    }
+}
+
 bool
 flow_entry_idle_timeout(struct flow_entry *entry) {
     bool timeout;

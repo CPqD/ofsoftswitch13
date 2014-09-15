@@ -68,6 +68,9 @@ uint32_t wildcarded[] = {OXM_OF_METADATA, OXM_OF_ETH_DST, OXM_OF_ETH_SRC, OXM_OF
 struct ofl_instruction_header instructions[] = { {OFPIT_GOTO_TABLE}, 
                   {OFPIT_WRITE_METADATA },{OFPIT_WRITE_ACTIONS},{OFPIT_APPLY_ACTIONS},
                   {OFPIT_CLEAR_ACTIONS},{OFPIT_METER}} ;
+struct ofl_instruction_header instructions_nogoto[] = {
+                  {OFPIT_WRITE_METADATA },{OFPIT_WRITE_ACTIONS},{OFPIT_APPLY_ACTIONS},
+                  {OFPIT_CLEAR_ACTIONS},{OFPIT_METER}} ;
 
 #define N_INSTRUCTIONS  (sizeof(instructions) / sizeof(struct ofl_instruction_header))
 
@@ -156,6 +159,7 @@ flow_table_modify(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool s
     LIST_FOR_EACH (entry, struct flow_entry, match_node, &table->match_entries) {
         if (flow_entry_matches(entry, mod, strict, true/*check_cookie*/)) {
             flow_entry_replace_instructions(entry, mod->instructions_num, mod->instructions);
+	    flow_entry_modify_stats(entry, mod);
             *insts_kept = true;
         }
     }
@@ -274,8 +278,13 @@ flow_table_create_property(struct ofl_table_feature_prop_header **prop, enum ofp
             struct ofl_table_feature_prop_instructions *inst_capabilities;
             inst_capabilities = xmalloc(sizeof(struct ofl_table_feature_prop_instructions));
             inst_capabilities->header.type = type;
-			inst_capabilities->ids_num = N_INSTRUCTIONS;
-            inst_capabilities->instruction_ids = instructions;
+	    if (PIPELINE_TABLES > 1) {
+	      inst_capabilities->ids_num = N_INSTRUCTIONS;
+	      inst_capabilities->instruction_ids = instructions;
+	    } else {
+	      inst_capabilities->ids_num = N_INSTRUCTIONS - 1;
+	      inst_capabilities->instruction_ids = instructions_nogoto;
+	    }
             inst_capabilities->header.length = ofl_structs_table_features_properties_ofp_len(&inst_capabilities->header, NULL);            
             (*prop) =  (struct ofl_table_feature_prop_header*) inst_capabilities;
             break;        

@@ -285,7 +285,9 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             da->field->value = malloc(OXM_LENGTH(da->field->header));
             /*TODO: need to check if other fields are valid */
             if(da->field->header == OXM_OF_IN_PORT || da->field->header == OXM_OF_IN_PHY_PORT
-                                    || da->field->header == OXM_OF_METADATA){
+                                    || da->field->header == OXM_OF_METADATA
+                                    || da->field->header == OXM_OF_IPV6_EXTHDR){
+
                 return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_SET_TYPE);
             }
             switch(OXM_LENGTH(da->field->header)){

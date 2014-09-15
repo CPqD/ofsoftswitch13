@@ -299,6 +299,24 @@ struct oxm_field {
 /* All the known fields. */
 extern struct oxm_field all_fields[NUM_OXM_FIELDS];
 
+bool 
+check_bad_wildcard(uint8_t value, uint8_t mask);
+
+bool 
+check_bad_wildcard16(uint16_t value, uint16_t mask);
+
+bool 
+check_bad_wildcard32(uint32_t value, uint32_t mask);
+
+bool 
+check_bad_wildcard48(uint8_t *value, uint8_t *mask);
+
+bool 
+check_bad_wildcard64(uint64_t value, uint64_t mask);
+
+bool 
+check_bad_wildcard128(uint8_t *value, uint8_t *mask);
+
 struct oxm_field *
 oxm_field_lookup(uint32_t header);
 
