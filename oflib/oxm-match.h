@@ -228,6 +228,9 @@
 #define OXM_OF_FLAGS OXM_HEADER     (0x8000, 40, 4)
 #define OXM_OF_FLAGS_W OXM_HEADER_W (0x8000, 40, 4)
 
+/* Flow State */
+#define OXM_OF_STATE OXM_HEADER     (0x8000, 41, 4)
+
 /* ## ------------------------------- ## */
 /* ## IPv6 compatible fields. ## */
 /* ## ------------------------------- ## */
@@ -288,7 +291,7 @@ enum oxm_field_index {
 #define DEFINE_FIELD(HEADER,DL_TYPES, NW_PROTO, MASKABLE) \
         OFI_OXM_##HEADER,
 #include "oxm-match.def"
-    NUM_OXM_FIELDS = 58
+    NUM_OXM_FIELDS = 59
 };
 
 struct oxm_field {

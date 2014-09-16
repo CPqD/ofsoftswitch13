@@ -299,6 +299,7 @@ ofl_oxm_type_print(FILE *stream, uint32_t type){
     case OXM_OF_IN_PHY_PORT:        {fprintf(stream, "in_phy_port"); return; }
     case OXM_OF_METADATA:           {fprintf(stream, "metadata"); return; }
     case OXM_OF_FLAGS:              {fprintf(stream, "flags"); return; }
+    case OXM_OF_STATE:              {fprintf(stream, "state"); return; }
     case OXM_OF_ETH_DST:            {fprintf(stream, "eth_dst"); return; }
     case OXM_OF_ETH_SRC:            {fprintf(stream, "eth_src"); return; }
     case OXM_OF_ETH_TYPE:           {fprintf(stream, "eth_type"); return; }

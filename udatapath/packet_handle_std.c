@@ -73,6 +73,7 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
     /* Add global register value to the hash_map */
 
     if (DP_SUPPORTED_CAPABILITIES & OFPC_OPENSTATE){
+            ofl_structs_match_put32(&handle->match, OXM_OF_STATE, 0x00000000);
             ofl_structs_match_put32(&handle->match, OXM_OF_FLAGS, 0x00000000);
     }
     

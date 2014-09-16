@@ -64,13 +64,13 @@ struct state_entry * state_table_lookup(struct state_table* table, struct packet
 		return e;
 }
 /* having the state value  */
-void state_table_write_metadata(struct state_entry *entry, struct packet *pkt) {
+void state_table_write_state(struct state_entry *entry, struct packet *pkt) {
 	struct  ofl_match_tlv *f;
     
 	HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv, 
-		hmap_node, hash_int(OXM_OF_METADATA,0), &pkt->handle_std->match.match_fields){
-                uint64_t *metadata = (uint64_t*) f->value;
-                *metadata = (*metadata & 0x0) | (entry->state);
+		hmap_node, hash_int(OXM_OF_STATE,0), &pkt->handle_std->match.match_fields){
+                uint32_t *state = (uint32_t*) f->value;
+                *state = (*state & 0x0) | (entry->state);
     }
 }
 void state_table_del_state(struct state_table *table, uint8_t *key, uint32_t len) {

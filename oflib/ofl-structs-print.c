@@ -403,6 +403,9 @@ ofl_structs_oxm_tlv_print(FILE *stream, struct ofl_match_tlv *f)
 				fprintf(stream, ", metadata_mask=\"0x%"PRIu64"\"", *((uint64_t*)(f->value+8)));
 			}
 			break;
+		case OFPXMT_OFB_STATE:
+			fprintf(stream, "state=\"%d\"", *((uint32_t*) f->value));
+			break;
 		case OFPXMT_OFB_FLAGS:
 			/*
 			fprintf(stream, "flags=\"%d\"", *((uint32_t*) f->value));
