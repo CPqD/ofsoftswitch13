@@ -149,6 +149,10 @@ ofl_err
 dp_ports_handle_port_mod(struct datapath *dp, struct ofl_msg_port_mod *msg,
                                                const struct sender *sender);
 
+/* Update Live flag on a port/ */
+void
+dp_port_live_update(struct sw_port *port);
+
 /* Handles a port stats request message. */
 ofl_err
 dp_ports_handle_stats_request_port(struct datapath *dp,

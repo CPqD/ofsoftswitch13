@@ -50,10 +50,10 @@
 
 void
 packet_handle_std_validate(struct packet_handle_std *handle) {
-
+    struct ofl_match_tlv * iter, *next;
     if(handle->valid)
         return;
-    struct ofl_match_tlv * iter, *next;
+    
     HMAP_FOR_EACH_SAFE(iter, next, struct ofl_match_tlv, hmap_node, &handle->match.match_fields){
         free(iter->value);
         free(iter);
@@ -69,11 +69,11 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
     /* Add in_port value to the hash_map */
     ofl_structs_match_put32(&handle->match, OXM_OF_IN_PORT, handle->pkt->in_port);
     /*Add metadata value to the hash_map */
-    ofl_structs_match_put64(&handle->match, OXM_OF_METADATA, 0xffffffffffffffff);
+    ofl_structs_match_put64(&handle->match, OXM_OF_METADATA, 0x0000000000000000);
     /* Add global register value to the hash_map */
 
     if (DP_SUPPORTED_CAPABILITIES & OFPC_OPENSTATE){
-            ofl_structs_match_put32(&handle->match, OXM_OF_FLAGS, 0x0000000);
+            ofl_structs_match_put32(&handle->match, OXM_OF_FLAGS, 0x00000000);
     }
     
     return;

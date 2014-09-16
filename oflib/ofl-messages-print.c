@@ -691,7 +691,7 @@ ofl_msg_print_queue_get_config_reply(struct ofl_msg_queue_get_config_reply *msg,
 static void 
 ofl_msg_print_role_msg(struct ofl_msg_role_request *msg, FILE *stream){
     
-    fprintf(stream, "{role= %d, generation_id= %lld}", msg->role, msg->generation_id);
+    fprintf(stream, "{role= %d, generation_id= %"PRIu64"}", msg->role, msg->generation_id);
 
 }
 

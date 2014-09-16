@@ -997,7 +997,7 @@ do_send_msg(struct dhclient *cli, const struct dhcp_msg *msg)
     memcpy(eh.eth_dst, eth_addr_broadcast, ETH_ADDR_LEN);
     eh.eth_type = htons(ETH_TYPE_IP);
 
-    nh.ip_ihl_ver = IP_IHL_VER(5, IP_VERSION);
+    nh.ip_ihl_ver = IP_IHL_VER(5, IPV4_VERSION);
     nh.ip_tos = 0;
     nh.ip_tot_len = htons(IP_HEADER_LEN + UDP_HEADER_LEN + b.size);
     /* We can't guarantee uniqueness of ip_id versus the host's, screwing up

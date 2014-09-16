@@ -82,6 +82,7 @@
 //       response, barrier resp., or the error
 #define XID   0xf0ff00f0
 
+static uint32_t global_xid = XID;
 
 struct command {
     char *name;
@@ -186,6 +187,9 @@ parse32(char *str, struct names32 *names, size_t names_num, uint32_t max, uint32
 static int
 parse32m(char *str, struct names32 *names, size_t names_num, uint32_t max, uint32_t *val, uint32_t **mask);
 
+static void
+set_table_features_match(struct vconn *vconn, int argc, char *argv[]);
+
 static struct ofl_exp_msg dpctl_exp_msg =
         {.pack      = ofl_exp_msg_pack,
          .unpack    = ofl_exp_msg_unpack,
@@ -202,13 +206,13 @@ static struct ofl_exp dpctl_exp =
 
 static void
 dpctl_transact(struct vconn *vconn, struct ofl_msg_header *req,
-                              struct ofl_msg_header **repl) {
+	       struct ofl_msg_header **repl, uint32_t *repl_xid_p) {
     struct ofpbuf *ofpbufreq, *ofpbufrepl;
     uint8_t *bufreq;
     size_t bufreq_size;
     int error;
 
-    error = ofl_msg_pack(req, XID, &bufreq, &bufreq_size, &dpctl_exp);
+    error = ofl_msg_pack(req, global_xid, &bufreq, &bufreq_size, &dpctl_exp);
     if (error) {
         ofp_fatal(0, "Error packing request.");
     }
@@ -220,7 +224,7 @@ dpctl_transact(struct vconn *vconn, struct ofl_msg_header *req,
     if (error) {
         ofp_fatal(0, "Error during transaction.");
     }
-    error = ofl_msg_unpack(ofpbufrepl->data, ofpbufrepl->size, repl, NULL /*xid_ptr*/, &dpctl_exp);
+    error = ofl_msg_unpack(ofpbufrepl->data, ofpbufrepl->size, repl, repl_xid_p, &dpctl_exp);
 
     if (error) {
         ofp_fatal(0, "Error unpacking reply.");
@@ -238,14 +242,15 @@ static void
 dpctl_transact_and_print(struct vconn *vconn, struct ofl_msg_header *req,
                                         struct ofl_msg_header **repl) {
     struct ofl_msg_header *reply;
+    uint32_t repl_xid;
     char *str;
 
     str = ofl_msg_to_string(req, &dpctl_exp);
-    printf("\nSENDING:\n%s\n\n", str);
+    printf("\nSENDING (xid=0x%X):\n%s\n\n", global_xid, str);
     free(str);
-    dpctl_transact(vconn, req, &reply);
+    dpctl_transact(vconn, req, &reply, &repl_xid);
     str = ofl_msg_to_string(reply, &dpctl_exp);
-    printf("\nRECEIVED:\n%s\n\n", str);
+    printf("\nRECEIVED (xid=0x%X):\n%s\n\n", repl_xid, str);
     free(str);
 
     if (repl != NULL) {
@@ -258,12 +263,13 @@ dpctl_transact_and_print(struct vconn *vconn, struct ofl_msg_header *req,
 static void
 dpctl_barrier(struct vconn *vconn) {
     struct ofl_msg_header *reply;
+    uint32_t repl_xid;
     char *str;
 
     struct ofl_msg_header req =
             {.type = OFPT_BARRIER_REQUEST};
 
-    dpctl_transact(vconn, &req, &reply);
+    dpctl_transact(vconn, &req, &reply, &repl_xid);
 
     if (reply->type == OFPT_BARRIER_REPLY) {
         str = ofl_msg_to_string(reply, &dpctl_exp);
@@ -271,7 +277,7 @@ dpctl_barrier(struct vconn *vconn) {
         free(str);
     } else {
         str = ofl_msg_to_string(reply, &dpctl_exp);
-        printf("\nRECEIVED:\n%s\n\n", str);
+        printf("\nRECEIVED (xid=0x%X):\n%s\n\n", repl_xid, str);
         free(str);
     }
 
@@ -284,7 +290,7 @@ dpctl_send(struct vconn *vconn, struct ofl_msg_header *msg) {
     size_t buf_size;
     int error;
 
-    error = ofl_msg_pack(msg, XID, &buf, &buf_size, &dpctl_exp);
+    error = ofl_msg_pack(msg, global_xid, &buf, &buf_size, &dpctl_exp);
     if (error) {
         ofp_fatal(0, "Error packing request.");
     }
@@ -305,7 +311,7 @@ static void
 dpctl_send_and_print(struct vconn *vconn, struct ofl_msg_header *msg) {
     char *str;
     str = ofl_msg_to_string(msg, &dpctl_exp);
-    printf("\nSENDING:\n%s\n\n", str);
+    printf("\nSENDING (xid=0x%X):\n%s\n\n", global_xid, str);
     free(str);
 
     dpctl_send(vconn, msg);
@@ -316,6 +322,7 @@ ping(struct vconn *vconn, int argc, char *argv[]) {
     uint16_t payload_size = 0;
     size_t times = 0, i;
     struct ofl_msg_echo *reply;
+    uint32_t repl_xid;
 
     struct ofl_msg_echo req =
             {{.type = OFPT_ECHO_REQUEST},
@@ -346,7 +353,7 @@ ping(struct vconn *vconn, int argc, char *argv[]) {
         random_bytes(req.data, payload_size);
 
         gettimeofday(&start, NULL);
-        dpctl_transact(vconn, (struct ofl_msg_header *)&req, (struct ofl_msg_header **)&reply);
+        dpctl_transact(vconn, (struct ofl_msg_header *)&req, (struct ofl_msg_header **)&reply, &repl_xid);
         gettimeofday(&end, NULL);
 
         if ((req.data_length != reply->data_length) ||
@@ -617,9 +624,10 @@ flow_mod(struct vconn *vconn, int argc, char *argv[]) {
             parse_match(argv[1], &(msg.match));
         }
         else {
-            if(msg.command == OFPFC_DELETE)
+            if(msg.command == OFPFC_DELETE) {
                 inst_num = 0;
-            else {
+                parse_match(argv[1], &(msg.match));
+            } else {
                 /*We copy the value because we don't know if
                 it is an instruction or match.
                 If the match is empty, the argv is modified
@@ -923,6 +931,7 @@ static struct command all_commands[] = {
     {"table-mod", 1, 1, table_mod },
     {"queue-get-config", 1, 1, queue_get_config},
     {"set-desc", 1, 1, set_desc},
+    {"set-table-match", 0, 2, set_table_features_match},
 
     {"queue-mod", 3, 3, queue_mod},
     {"queue-del", 2, 2, queue_del}
@@ -998,6 +1007,7 @@ parse_options(int argc, char *argv[])
         {"help", no_argument, 0, 'h'},
         {"version", no_argument, 0, 'V'},
         {"colors", no_argument, 0, 'c'},
+        {"xid", required_argument, 0, 'x'},
         VCONN_SSL_LONG_OPTIONS
         {0, 0, 0, 0},
     };
@@ -1037,7 +1047,11 @@ parse_options(int argc, char *argv[])
 
         case 'c':
             ofl_enable_colors();
-            break;
+			break;
+
+        case 'x':
+            global_xid = strtoul(optarg, NULL, 0);
+			break;
 
         VCONN_SSL_OPTION_HANDLERS
 
@@ -2698,4 +2712,207 @@ parse32m(char *str, struct names32 *names, size_t names_num, uint32_t max, uint3
         sscanf(saveptr, "%"SCNu32"", *mask);
     }
     return 0;
+}
+
+struct oxm_str_mapping {
+  char *    name;
+  uint32_t  oxm_id;
+};
+struct oxm_str_mapping oxm_str_map[] =
+  { { .name=MATCH_IN_PORT, .oxm_id=OXM_OF_IN_PORT },
+    { .name=MATCH_DL_SRC, .oxm_id=OXM_OF_ETH_SRC },
+    { .name=MATCH_DL_DST, .oxm_id=OXM_OF_ETH_DST },
+    { .name=MATCH_ARP_SHA, .oxm_id=OXM_OF_ARP_SHA },
+    { .name=MATCH_ARP_THA, .oxm_id=OXM_OF_ARP_THA },
+    { .name=MATCH_ARP_SPA, .oxm_id=OXM_OF_ARP_SPA },
+    { .name=MATCH_ARP_TPA, .oxm_id=OXM_OF_ARP_TPA },
+    { .name=MATCH_ARP_OP, .oxm_id=OXM_OF_ARP_OP },
+    { .name=MATCH_DL_VLAN, .oxm_id=OXM_OF_VLAN_VID },
+    { .name=MATCH_DL_VLAN_PCP, .oxm_id=OXM_OF_VLAN_PCP },
+    { .name=MATCH_DL_TYPE, .oxm_id=OXM_OF_ETH_TYPE },
+    { .name=MATCH_IP_ECN, .oxm_id=OXM_OF_IP_ECN },
+    { .name=MATCH_IP_DSCP, .oxm_id=OXM_OF_IP_DSCP },
+    { .name=MATCH_NW_PROTO, .oxm_id=OXM_OF_IP_PROTO },
+    { .name=MATCH_NW_SRC, .oxm_id=OXM_OF_IPV4_SRC },
+    { .name=MATCH_NW_DST, .oxm_id=OXM_OF_IPV4_DST },
+    { .name=MATCH_ICMPV4_CODE, .oxm_id=OXM_OF_ICMPV4_CODE },
+    { .name=MATCH_ICMPV4_TYPE, .oxm_id=OXM_OF_ICMPV4_TYPE },
+    { .name=MATCH_TP_SRC, .oxm_id=OXM_OF_TCP_SRC },
+    { .name=MATCH_TP_DST, .oxm_id=OXM_OF_TCP_DST },
+    { .name=MATCH_UDP_SRC, .oxm_id=OXM_OF_UDP_SRC },
+    { .name=MATCH_UDP_DST, .oxm_id=OXM_OF_UDP_DST },
+    { .name=MATCH_SCTP_SRC, .oxm_id=OXM_OF_SCTP_SRC },
+    { .name=MATCH_SCTP_DST, .oxm_id=OXM_OF_SCTP_DST },
+    { .name=MATCH_MPLS_LABEL, .oxm_id=OXM_OF_MPLS_LABEL },
+    { .name=MATCH_MPLS_TC, .oxm_id=OXM_OF_MPLS_TC },
+    { .name=MATCH_MPLS_BOS, .oxm_id=OXM_OF_MPLS_BOS },
+    { .name=MATCH_NW_SRC_IPV6, .oxm_id=OXM_OF_IPV6_SRC },
+    { .name=MATCH_NW_DST_IPV6, .oxm_id=OXM_OF_IPV6_DST },
+    { .name=MATCH_IPV6_FLABEL, .oxm_id=OXM_OF_IPV6_FLABEL },
+    { .name=MATCH_ICMPV6_CODE, .oxm_id=OXM_OF_ICMPV6_CODE },
+    { .name=MATCH_ICMPV6_TYPE, .oxm_id=OXM_OF_ICMPV6_TYPE },
+    { .name=MATCH_IPV6_ND_TARGET, .oxm_id=OXM_OF_IPV6_ND_TARGET },
+    { .name=MATCH_IPV6_ND_SLL, .oxm_id=OXM_OF_IPV6_ND_SLL },
+    { .name=MATCH_IPV6_ND_TLL, .oxm_id=OXM_OF_IPV6_ND_TLL },
+    { .name=MATCH_METADATA, .oxm_id=OXM_OF_METADATA },
+    { .name=MATCH_PBB_ISID, .oxm_id=OXM_OF_PBB_ISID },
+    { .name=MATCH_TUNNEL_ID, .oxm_id=OXM_OF_TUNNEL_ID },
+    { .name=MATCH_EXT_HDR, .oxm_id=OXM_OF_IPV6_EXTHDR },
+  };
+
+static void
+parse_feature_prop_match(char *str, struct ofl_table_feature_prop_oxm **prop_addr) {
+    char *token, *saveptr = NULL;
+    const int oxm_max = sizeof(oxm_str_map) / sizeof(oxm_str_map[0]);
+    uint32_t *oxm_array = (uint32_t *) xmalloc(sizeof(uint32_t) * 80);
+    struct ofl_table_feature_prop_oxm *property;
+    int oxm_num = 0;
+    int id;
+
+    for (token = strtok_r(str, KEY_SEP, &saveptr); token != NULL; token = strtok_r(NULL, KEY_SEP, &saveptr)) {
+         if (strncmp(token, "apply", strlen("apply")) == 0 ||  strncmp(token, "write", strlen("write")) == 0 ) {
+                break;
+         }
+	 if (oxm_num >= oxm_max) {
+	   break;
+	 }
+	 for (id = 0; id < oxm_max; id++) {
+
+	     if (strncmp(token, oxm_str_map[id].name, strlen(oxm_str_map[id].name)) == 0) {
+	         oxm_array[oxm_num++] = oxm_str_map[id].oxm_id;
+		 break;
+	     }
+	 }
+    }
+
+    property = (struct ofl_table_feature_prop_oxm *) xmalloc(sizeof(struct ofl_table_feature_prop_oxm));		
+    property->header.type = OFPTFPT_MATCH;
+    property->header.length = (sizeof(struct ofp_table_feature_prop_oxm) + oxm_num * sizeof(uint32_t));
+    property->oxm_num = oxm_num;
+    property->oxm_ids = oxm_array;
+    (*prop_addr) = property;
+}
+
+static void
+set_table_features_match(struct vconn *vconn, int argc, char *argv[]) {
+    struct ofl_msg_multipart_request_table_features req_init =
+        {{{.type = OFPT_MULTIPART_REQUEST},
+              .type = OFPMP_TABLE_FEATURES, .flags = 0x0000},
+             .tables_num = 0,
+             .table_features = NULL,
+          };
+    struct ofl_msg_header *reply;
+    struct ofl_msg_multipart_request_table_features *table_feat;
+    int t;
+    int last_table;
+    int batch_table;
+    uint32_t repl_xid;
+
+    /* Extract current table features */
+    dpctl_transact(vconn, (struct ofl_msg_header *)&req_init, &reply, &repl_xid);
+    table_feat = (struct ofl_msg_multipart_request_table_features *) reply;
+
+    if (argc > 0) {
+      struct ofl_table_feature_prop_oxm *new_match;
+      struct ofl_table_feature_prop_header **properties;
+      int properties_num;
+      int i;
+
+      /* New match features */
+      parse_feature_prop_match(argv[0], &new_match);
+      {
+	char *str;
+	str = ofl_structs_table_properties_to_string((struct ofl_table_feature_prop_header *) new_match);
+	printf("New match property:%s\n\n", str);
+	free(str);
+      }
+
+      /* Set them in all the table features */
+      for(t = 0; t < table_feat->tables_num; t++) {
+	properties = table_feat->table_features[t]->properties;
+	properties_num = table_feat->table_features[t]->properties_num;
+	for (i = 0; i < properties_num; i++) {
+	  if(properties[i]->type == OFPTFPT_MATCH) {
+	    struct ofl_table_feature_prop_oxm *clone_match;
+	    clone_match = (struct ofl_table_feature_prop_oxm *) xmalloc(sizeof(struct ofl_table_feature_prop_oxm));
+	    memcpy((char *) clone_match, (char *) new_match, sizeof(struct ofl_table_feature_prop_oxm));
+	    clone_match->oxm_ids = (uint32_t *) xmalloc(clone_match->oxm_num * sizeof(uint32_t));
+	    memcpy((char *) clone_match->oxm_ids, new_match->oxm_ids, clone_match->oxm_num * sizeof(uint32_t));
+
+	    ofl_structs_free_table_properties(properties[i], &dpctl_exp);
+	    properties[i] = (struct ofl_table_feature_prop_header *) clone_match;
+	  }
+	}
+      }
+
+      ofl_structs_free_table_properties((struct ofl_table_feature_prop_header *) new_match, &dpctl_exp);
+
+    }
+
+    {
+      int features_len;
+      printf("\nJII table-num:%zu\n", table_feat->tables_num);
+      features_len = ofl_structs_table_features_ofp_total_len(table_feat->table_features, table_feat->tables_num, NULL);
+      printf("\nJII features_len:%d\n", features_len);
+    }
+
+    /* Turn the reply into a request */
+    table_feat->header.header.type = OFPT_MULTIPART_REQUEST;
+
+    /* Renumber tables to form multipart request */
+    last_table = table_feat->table_features[table_feat->tables_num - 1]->table_id;
+    t = 0;
+    batch_table = table_feat->tables_num;
+    while(t <= last_table) {
+      int i;
+      int prev_t = t;
+      for(i = 0; i < batch_table; i++) {
+	table_feat->table_features[i]->table_id = t;
+	table_feat->table_features[i]->name[0] = '\0';
+	t++;
+	if(t > last_table)
+	  break;
+      }
+
+      /* Set the request parameters. */
+      table_feat->tables_num = t - prev_t;
+
+#if 0
+      {
+	char *str;
+	str = ofl_msg_to_string(reply, &dpctl_exp);
+	printf("\nNew table request (t=%d/%d, num=%d):\n%s\n\n", t, last_table, table_feat->tables_num, str);
+	free(str);
+      }
+#endif
+
+      /* Intermediate and last segment are not treated the same. Jean II */
+      if(t <= last_table) {
+	struct ofpbuf *ofpbufreq;
+	uint8_t *bufreq;
+	size_t bufreq_size;
+	int error;
+
+	table_feat->header.flags = OFPMPF_REQ_MORE;
+
+	error = ofl_msg_pack((struct ofl_msg_header *)table_feat, XID, &bufreq, &bufreq_size, NULL);
+	if (error) {
+	  ofp_fatal(0, "Error packing request.");
+	}
+	printf("\nJII-req-pack:%zu\n", bufreq_size);
+
+	ofpbufreq = ofpbuf_new(0);
+	ofpbuf_use(ofpbufreq, bufreq, bufreq_size);
+	ofpbuf_put_uninit(ofpbufreq, bufreq_size);
+	error = vconn_send_block(vconn, ofpbufreq);
+	if (error) {
+	  ofp_fatal(0, "Error during transaction.");
+	}
+	/* No reply. */
+      } else {
+	table_feat->header.flags = 0;
+
+	dpctl_transact_and_print(vconn, (struct ofl_msg_header *)table_feat, NULL);
+      }
+    }
 }
