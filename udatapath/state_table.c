@@ -9,7 +9,7 @@
 
 #define LOG_MODULE VLM_pipeline
 
-static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(6000, 6000);
+static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(6000000, 60000000);
 
 void __extract_key(uint8_t *, struct key_extractor *, struct packet *);
 
@@ -56,7 +56,7 @@ struct state_entry * state_table_lookup(struct state_table* table, struct packet
 	HMAP_FOR_EACH_WITH_HASH(e, struct state_entry, 
 		hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries){
 			if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
-				VLOG_WARN_RL(LOG_MODULE, &rl, "found corresponding state %d",e->state);
+				VLOG_WARN_RL(LOG_MODULE, &rl, "found corresponding state %u",e->state);
 				return e;
 			}
 	}
@@ -127,11 +127,11 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, uint32
 		memcpy(key, k, MAX_STATE_KEY_LEN);
 	        printf("state table no pkt exist \n");
 	}
-
+	
 	HMAP_FOR_EACH_WITH_HASH(e, struct state_entry, 
 		hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries){
 			if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
-				VLOG_WARN_RL(LOG_MODULE, &rl, "state value is %d updated to hash map", state);
+				VLOG_WARN_RL(LOG_MODULE, &rl, "state value is %u updated to hash map", state);
 				e->state = state;
 				return;
 			}
@@ -140,6 +140,6 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, uint32
 	e = malloc(sizeof(struct state_entry));
 	memcpy(e->key, key, MAX_STATE_KEY_LEN);
 	e->state = state;
-	VLOG_WARN_RL(LOG_MODULE, &rl, "state value is %d inserted to hash map", e->state);
+	VLOG_WARN_RL(LOG_MODULE, &rl, "state value is %u inserted to hash map", e->state);
         hmap_insert(&table->state_entries, &e->hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
 }
