@@ -5,6 +5,12 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+#include "vlog.h"
+
+#define LOG_MODULE VLM_pipeline
+
+static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(6000, 6000);
+
 void __extract_key(uint8_t *, struct key_extractor *, struct packet *);
 
 struct state_table * state_table_create(void) {
@@ -45,19 +51,19 @@ struct state_entry * state_table_lookup(struct state_table* table, struct packet
 	struct state_entry * e = NULL;	
 	uint8_t key[MAX_STATE_KEY_LEN] = {0};
 
-    __extract_key(key, &table->read_key, pkt);                    
+    __extract_key(key, &table->read_key, pkt);
 
 	HMAP_FOR_EACH_WITH_HASH(e, struct state_entry, 
 		hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries){
 			if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
-				printf("find corresponding state %d \n",key);
+				VLOG_WARN_RL(LOG_MODULE, &rl, "found corresponding state %d",e->state);
 				return e;
 			}
 	}
 
 	if (e == NULL)
 	{	 
-		printf("not found the corresponding state value\n");
+		VLOG_WARN_RL(LOG_MODULE, &rl, "not found the corresponding state value\n");
 		return &table->default_state_entry;
 	}
 	else 
@@ -107,6 +113,7 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, uint32
 	uint8_t key[MAX_STATE_KEY_LEN] = {0};	
 	struct state_entry *e;
 
+
 	if (pkt){
 		__extract_key(key, &table->write_key, pkt);
                                         int h;
@@ -120,11 +127,12 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, uint32
 		memcpy(key, k, MAX_STATE_KEY_LEN);
 	        printf("state table no pkt exist \n");
 	}
+
 	HMAP_FOR_EACH_WITH_HASH(e, struct state_entry, 
 		hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries){
 			if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
+				VLOG_WARN_RL(LOG_MODULE, &rl, "state value is %d updated to hash map", state);
 				e->state = state;
-				printf("state value is copied to hash map is %d \n",state);
 				return;
 			}
 	}
@@ -132,6 +140,6 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, uint32
 	e = malloc(sizeof(struct state_entry));
 	memcpy(e->key, key, MAX_STATE_KEY_LEN);
 	e->state = state;
-	printf("state value is inserted to hash map is %d \n",state);
+	VLOG_WARN_RL(LOG_MODULE, &rl, "state value is %d inserted to hash map", e->state);
         hmap_insert(&table->state_entries, &e->hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
 }

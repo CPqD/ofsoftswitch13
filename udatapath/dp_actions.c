@@ -949,7 +949,7 @@ dp_execute_action(struct packet *pkt,
         case (OFPAT_SET_STATE): {
             struct ofl_action_set_state *wns = (struct ofl_action_set_state *)action;
             struct state_table *st = pkt->dp->pipeline->tables[wns->stage_id]->state_table;
-            printf("executing action NEXT STATE at stage %u\n", wns->stage_id);
+            VLOG_WARN_RL(LOG_MODULE, &rl, "executing action NEXT STATE at stage %u\n", wns->stage_id);
             state_table_set_state(st, pkt, wns->state, NULL, 0);
             break;
         }
