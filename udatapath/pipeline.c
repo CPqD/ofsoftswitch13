@@ -254,10 +254,10 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
 		if (table->features->config &OFPTC_TABLE_STATEFUL) {
 			
 			state_entry = state_table_lookup(table->state_table, pkt);
-			state_table_write_metadata(state_entry, pkt);
+			state_table_write_state(state_entry, pkt);
 		}
         
-        if (pl->dp->config.flags & OFPC_DATAPATH_GLOBAL_STATES_MASK){
+        if (DP_SUPPORTED_CAPABILITIES & OFPC_OPENSTATE){
             pipeline_global_states_write_flags(pkt);
         }
 
@@ -265,7 +265,7 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
 		// EEDBEH: additional printout to debug table lookup
 		if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
 			char *m = ofl_structs_match_to_string((struct ofl_match_header*)&(pkt->handle_std->match), pkt->dp->exp);
-			VLOG_DBG_RL(LOG_MODULE, &rl, "searching table entry for packet match: %s.", m);
+			VLOG_DBG_RL(LOG_MODULE, &rl, "searching table entry in table %d for packet match: %s.", table->stats->table_id,m);
 			free(m);
 		}
 
@@ -315,6 +315,24 @@ int inst_compare(const void *inst1, const void *inst2){
 }
 
 ofl_err
+pipeline_handle_flag_mod(struct pipeline *pl, struct ofl_msg_flag_mod *msg,
+                                                const struct sender *sender) {
+    
+    uint32_t global_states = pl->dp->global_states;
+    ofl_err error;
+    if (msg->command == OFPSC_MODIFY_FLAGS) {
+        global_states = (global_states & ~(msg->flag_mask)) | (msg->flag & msg->flag_mask);
+        pl->dp->global_states = global_states;       
+    }
+    else if (msg->command == OFPSC_RESET_FLAGS) {
+        pl->dp->global_states = 0;
+    }
+    else
+        return 1;
+    return 0;
+}
+
+ofl_err
 pipeline_handle_state_mod(struct pipeline *pl, struct ofl_msg_state_mod *msg,
                                                 const struct sender *sender) {
     ofl_err error;
@@ -330,7 +348,6 @@ pipeline_handle_state_mod(struct pipeline *pl, struct ofl_msg_state_mod *msg,
 	}
 	else if (msg->command == OFPSC_ADD_FLOW_STATE) {
 		struct ofl_msg_state_entry *p = (struct ofl_msg_state_entry *) msg->payload;
-		
 		state_table_set_state(st, NULL, p->state, p->key, p->key_len);
 	}
 	else if (msg->command == OFPSC_DEL_FLOW_STATE) {

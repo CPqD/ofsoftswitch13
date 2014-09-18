@@ -330,6 +330,10 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
             ofl_structs_match_put64m(match, f->header, ntoh64(*((uint64_t*) value)), ntoh64(*((uint64_t*) mask)));
             return 0;
         }
+        case OFI_OXM_OF_STATE:{
+            ofl_structs_match_put32(match, f->header, ntohl(*((uint32_t*) value)));
+            return 0;
+        }
         case OFI_OXM_OF_FLAGS:{
             ofl_structs_match_put32(match, f->header, ntohl(*((uint32_t*) value)));
             return 0;

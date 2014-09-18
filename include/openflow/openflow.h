@@ -94,8 +94,25 @@ enum ofp_type {
     /* Meters and rate limiters configuration messages. */
     OFPT_METER_MOD = 29, /* Controller/switch message */
 	OFPT_STATE_MOD = 30, /* Controller/switch message */
+    OFPT_FLAG_MOD = 31,  /* Controller/switch message */
 };
 
+/*
+    OFPT_FLAG_MOD
+*/
+
+struct ofp_flag_mod {
+    struct ofp_header header;
+    uint32_t flag;
+    uint32_t flag_mask;
+    uint8_t command;
+    uint8_t pad[7];                  /* Pad to 64 bits. */
+};
+
+enum ofp_flag_mod_command { 
+    OFPSC_MODIFY_FLAGS = 0,
+    OFPSC_RESET_FLAGS
+};
 /*
 	OFPT_STATE_MOD
 */
@@ -365,7 +382,8 @@ enum oxm_ofb_match_fields {
     OFPXMT_OFB_PBB_ISID = 37,       /* PBB I-SID. */
     OFPXMT_OFB_TUNNEL_ID = 38,      /* Logical Port Metadata. */
     OFPXMT_OFB_IPV6_EXTHDR = 39,     /* IPv6 Extension Header pseudo-field */
-    OFPXMT_OFB_FLAGS = 40        /* Global States */
+    OFPXMT_OFB_FLAGS = 40,        /* Global States */
+    OFPXMT_OFB_STATE = 41,        /* Flow State */
 };
 
 /* The VLAN id is 12-bits, so we can use the entire 16 bits to indicate
@@ -612,11 +630,11 @@ OFP_ASSERT(sizeof(struct ofp_action_set_state) == 16);
 struct ofp_action_set_flag {
     uint16_t type; /* OFPAT_SET_FLAG */
     uint16_t len;  /* Length is 8. */
-    uint8_t flag; /* flag index */
-    uint8_t value;    /*flag value*/
-    uint8_t pad[2];   /* Align to 64-bits. */
+    uint32_t value; /* flag value */
+    uint32_t mask;    /*flag mask*/
+    uint8_t pad[4];   /* Align to 64-bits. */
 };
-OFP_ASSERT(sizeof(struct ofp_action_set_flag) == 8);
+OFP_ASSERT(sizeof(struct ofp_action_set_flag) == 16);
 /*************Controller-to-Switch Messages******************/
 
 /* Switch features. */
@@ -644,8 +662,7 @@ enum ofp_capabilities {
     OFPC_IP_REASM = 1 << 5,    /* Can reassemble IP fragments. */
     OFPC_QUEUE_STATS = 1 << 6, /* Queue statistics. */
     OFPC_PORT_BLOCKED = 1 << 8, /* Switch will block looping ports. */
-    OFPC_TABLE_STATEFULL = 1 << 9,  /* support stateful feature */
-    OFPC_DATAPATH_GLOBAL_STATE = 1 << 10  /* support stateful feature */
+    OFPC_OPENSTATE = 1 << 9,  /* support OpenState feature */
 };
 
 /* Switch configuration. */
@@ -667,8 +684,6 @@ enum ofp_config_flags {
     /* TTL processing - applicable for IP and MPLS packets */
     OFPC_INVALID_TTL_TO_CONTROLLER = 1 << 2, /* Send packets with invalid TTL
 to the controller */
-    OFPC_DATAPATH_GLOBAL_STATES = 1 << 3,  /* support global states */
-    OFPC_DATAPATH_GLOBAL_STATES_MASK = 4
 };
 
 /* Table numbering. Tables can use any number up to OFPT_MAX. */

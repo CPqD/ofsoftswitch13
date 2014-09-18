@@ -398,16 +398,26 @@ ofl_structs_oxm_tlv_print(FILE *stream, struct ofl_match_tlv *f)
 			fprintf(stream, "mpls_bos=\"%d\"", *f->value & 0x1);
 			break;
 		case OFPXMT_OFB_METADATA:
-			fprintf(stream, "metadata=\"0x%"PRIu64"\"", *((uint64_t*) f->value));
+			fprintf(stream, "metadata=\"0x%"PRIx64"\"", *((uint64_t*) f->value));
 			if (OXM_HASMASK(f->header)) {
-				fprintf(stream, ", metadata_mask=\"0x%"PRIu64"\"", *((uint64_t*)(f->value+8)));
+				fprintf(stream, ", metadata_mask=\"0x%"PRIx64"\"", *((uint64_t*)(f->value+8)));
 			}
 			break;
+		case OFPXMT_OFB_STATE:
+			fprintf(stream, "state=\"%u\"", *((uint32_t*) f->value));
+			break;
 		case OFPXMT_OFB_FLAGS:
+			/*
 			fprintf(stream, "flags=\"%d\"", *((uint32_t*) f->value));
 			if (OXM_HASMASK(f->header)) {
 				fprintf(stream, ", flags_mask=\"%d\"", *((uint32_t*)(f->value+4)));
-			}
+			}*/
+			if (!OXM_HASMASK(f->header)) {
+				fprintf(stream, "flags=\"%d\"", *((uint32_t*) f->value));
+			} else {
+				fprintf(stream, "flags=");
+	            masked_value_print(stream,decimal_to_binary(*((uint32_t*) f->value)),decimal_to_binary(*((uint32_t*)(f->value+4))));
+	        }
 			break;
 		case OFPXMT_OFB_PBB_ISID   :
 			fprintf(stream, "pbb_isid=\"%d\"", *((uint32_t*) f->value));

@@ -472,6 +472,16 @@ struct ofl_msg_queue_get_config_reply {
     struct ofl_packet_queue **queues; /* List of configured queues. */
 };
 
+/************************
+ * flag mod messages
+ ************************/
+struct ofl_msg_flag_mod {
+    struct ofl_msg_header header;   /* OFPT_STATE_MOD */
+    uint32_t flag;
+    uint32_t flag_mask;
+    enum ofp_flag_mod_command command;
+};
+
 
 /************************
  * state mod messages

@@ -878,11 +878,12 @@ dec_nw_ttl(struct packet *pkt, struct ofl_action_header *act UNUSED) {
 /* Executes set flag. */
 static void
 set_flag(struct packet *pkt, struct ofl_action_set_flag *action) {
-        struct ofl_action_set_flag *wns = (struct ofl_action_set_flag *)action;
-        uint32_t global_states = pkt->dp->global_states;
-        uint32_t mask = 1<<(wns->flag-1);
-        global_states = (global_states & ~mask) | (wns->value << (wns->flag-1));
-        pkt->dp->global_states = global_states;
+
+    struct ofl_action_set_flag *wns = (struct ofl_action_set_flag *)action;
+    uint32_t global_states = pkt->dp->global_states;
+    
+    global_states = (global_states & ~(wns->mask)) | (wns->value & wns->mask);
+    pkt->dp->global_states = global_states;
 }
 
 
@@ -948,7 +949,7 @@ dp_execute_action(struct packet *pkt,
         case (OFPAT_SET_STATE): {
             struct ofl_action_set_state *wns = (struct ofl_action_set_state *)action;
             struct state_table *st = pkt->dp->pipeline->tables[wns->stage_id]->state_table;
-            printf("executing action NEXT STATE at stage %u\n", wns->stage_id);
+            VLOG_WARN_RL(LOG_MODULE, &rl, "executing action NEXT STATE at stage %u\n", wns->stage_id);
             state_table_set_state(st, pkt, wns->state, NULL, 0);
             break;
         }

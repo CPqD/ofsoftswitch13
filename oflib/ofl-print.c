@@ -41,6 +41,45 @@
 #include "openflow/openflow.h"
 
 
+char *decimal_to_binary(int n)
+{
+   int c, d, count;
+   char *pointer;
+ 
+   count = 0;
+   pointer = (char*)malloc(32+1);
+ 
+   if ( pointer == NULL )
+      exit(EXIT_FAILURE);
+   for ( c = 31 ; c >= 0 ; c-- )
+   {
+      d = n >> c;
+      if ( d & 1 )
+         *(pointer+count) = 1 + '0';
+      else
+         *(pointer+count) = 0 + '0';
+      count++;
+   }
+   *(pointer+count) = '\0';
+ 
+   return  pointer;
+}
+
+void masked_value_print(FILE *stream,char *value, char *mask){
+    int i=0;
+
+    for(i=0;i<32;i++){
+
+        if (mask[i]=='0'){
+            fprintf(stream,"*");
+        }
+        else {
+            fprintf(stream,"%c",*(value+i));
+        }
+    }
+}
+
+
 char *
 ofl_port_to_string(uint32_t port) {
     char *str;
@@ -260,6 +299,7 @@ ofl_oxm_type_print(FILE *stream, uint32_t type){
     case OXM_OF_IN_PHY_PORT:        {fprintf(stream, "in_phy_port"); return; }
     case OXM_OF_METADATA:           {fprintf(stream, "metadata"); return; }
     case OXM_OF_FLAGS:              {fprintf(stream, "flags"); return; }
+    case OXM_OF_STATE:              {fprintf(stream, "state"); return; }
     case OXM_OF_ETH_DST:            {fprintf(stream, "eth_dst"); return; }
     case OXM_OF_ETH_SRC:            {fprintf(stream, "eth_src"); return; }
     case OXM_OF_ETH_TYPE:           {fprintf(stream, "eth_type"); return; }

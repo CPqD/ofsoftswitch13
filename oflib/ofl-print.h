@@ -200,4 +200,10 @@ ofl_hex_to_string(uint8_t *buf, size_t buf_size);
 void
 ofl_hex_print(FILE *stream, uint8_t *buf, size_t buf_size);
 
+char
+*decimal_to_binary(int);
+
+void
+masked_value_print(FILE *stream, char *value, char *mask);
+
 #endif /* OFL_PRINT_H */

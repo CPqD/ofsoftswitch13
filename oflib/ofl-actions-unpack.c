@@ -273,8 +273,8 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             sa = (struct ofp_action_set_flag*)src;
             da = (struct ofl_action_set_flag *)malloc(sizeof(struct ofl_action_set_flag));
 
-            da->flag = sa->flag;
-            da->value = sa->value;
+            da->value = ntohl(sa->value);
+            da->mask = ntohl(sa->mask);
 
             *dst = (struct ofl_action_header *)da;
             *len -= sizeof(struct ofp_action_set_flag);
@@ -323,7 +323,8 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             if(da->field->header == OXM_OF_IN_PORT || da->field->header == OXM_OF_IN_PHY_PORT
                                     || da->field->header == OXM_OF_METADATA
                                     || da->field->header == OXM_OF_IPV6_EXTHDR
-									|| da->field->header == OXM_OF_FLAGS){
+									|| da->field->header == OXM_OF_FLAGS
+                                    || da->field->header == OXM_OF_STATE){
 				
                 return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_SET_TYPE);
             }

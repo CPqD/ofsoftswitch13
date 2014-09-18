@@ -53,7 +53,7 @@ uint32_t  oxm_ids[]={OXM_OF_IN_PORT,OXM_OF_IN_PHY_PORT,OXM_OF_METADATA, OXM_OF_E
                         OXM_OF_ARP_SHA, OXM_OF_ARP_THA, OXM_OF_IPV6_SRC, OXM_OF_IPV6_DST, OXM_OF_IPV6_FLABEL,
                         OXM_OF_ICMPV6_TYPE, OXM_OF_ICMPV6_CODE, OXM_OF_IPV6_ND_TARGET, OXM_OF_IPV6_ND_SLL,
                         OXM_OF_IPV6_ND_TLL, OXM_OF_MPLS_LABEL, OXM_OF_MPLS_TC, OXM_OF_MPLS_BOS, OXM_OF_PBB_ISID,
-                        OXM_OF_TUNNEL_ID, OXM_OF_IPV6_EXTHDR, OXM_OF_FLAGS};
+                        OXM_OF_TUNNEL_ID, OXM_OF_IPV6_EXTHDR, OXM_OF_FLAGS, OXM_OF_STATE};
 
 #define NUM_OXM_IDS     (sizeof(oxm_ids) / sizeof(uint32_t))
 /* Do *NOT* use N_OXM_FIELDS, it's ligically wrong and can run over

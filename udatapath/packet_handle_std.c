@@ -44,6 +44,7 @@
 #include "oflib/oxm-match.h"
 
 #include "nbee_link/nbee_link.h"
+#include "dp_capabilities.h"
 
 /* Resets all protocol fields to NULL */
 
@@ -70,8 +71,10 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
     /*Add metadata value to the hash_map */
     ofl_structs_match_put64(&handle->match, OXM_OF_METADATA, 0x0000000000000000);
     /* Add global register value to the hash_map */
-    if (handle->pkt->dp->config.flags & OFPC_DATAPATH_GLOBAL_STATES_MASK){
-        ofl_structs_match_put32(&handle->match, OXM_OF_FLAGS, 0x0000000);
+
+    if (DP_SUPPORTED_CAPABILITIES & OFPC_OPENSTATE){
+            ofl_structs_match_put32(&handle->match, OXM_OF_STATE, 0x00000000);
+            ofl_structs_match_put32(&handle->match, OXM_OF_FLAGS, 0x00000000);
     }
     
     return;
