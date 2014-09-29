@@ -218,7 +218,9 @@ action_set_execute(struct action_set *set, struct packet *pkt, uint64_t cookie) 
             uint32_t group_id = pkt->out_group;
             pkt->out_group = OFPG_ANY;
 
-            action_set_clear_actions(pkt->action_set);
+            /* We don't need to clear the action-set because group will clone
+             * the packet with an empty action-set. Jean II
+             * action_set_clear_actions(pkt->action_set); */
             group_table_execute(pkt->dp->groups, pkt, group_id);
 
             return;

@@ -283,6 +283,9 @@ group_entry_execute(struct group_entry *entry,
     /* NOTE: Packet is copied for all buckets now (even if there is only one).
      * This allows execution of the original packet onward. It is not clear
      * whether that is allowed or not according to the spec. though. */
+    /* Spec v1.1 and later say that group can occur in action-list, it must
+     * process a copy of the packet and execution continue on the original
+     * packet. Jean II */
 
     switch (entry->desc->type) {
         case (OFPGT_ALL): {
