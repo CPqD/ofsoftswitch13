@@ -1000,6 +1000,11 @@ dp_execute_action_list(struct packet *pkt,
             uint32_t group = pkt->out_group;
             pkt->out_group = OFPG_ANY;
             VLOG_DBG_RL(LOG_MODULE, &rl, "Group action; executing group (%u).", group);
+            /* The group must process a copy of the packet in the current state,
+             * so that when we return we continue processing an unmodified
+             * version of the packet. The group must also ignore the current
+	     * action-set. Group functions will clone the packet with an
+             * empty action-set. Jean II */
             group_table_execute(pkt->dp->groups, pkt, group);
 
         } else if (pkt->out_port != OFPP_ANY) {

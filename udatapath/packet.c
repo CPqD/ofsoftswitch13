@@ -75,7 +75,12 @@ packet_clone(struct packet *pkt) {
     clone->dp         = pkt->dp;
     clone->buffer     = ofpbuf_clone(pkt->buffer);
     clone->in_port    = pkt->in_port;
-    clone->action_set = action_set_clone(pkt->action_set);
+    /* There is no case we need to keep the action-set, but if it's needed
+     * we could add a parameter to the function... Jean II
+     * clone->action_set = action_set_clone(pkt->action_set);
+     */
+    clone->action_set = action_set_create(pkt->dp->exp);
+
 
     clone->packet_out       = pkt->packet_out;
     clone->out_group        = OFPG_ANY;
