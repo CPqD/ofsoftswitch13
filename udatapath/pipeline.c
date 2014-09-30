@@ -325,7 +325,7 @@ pipeline_handle_flag_mod(struct pipeline *pl, struct ofl_msg_flag_mod *msg,
         pl->dp->global_states = global_states;       
     }
     else if (msg->command == OFPSC_RESET_FLAGS) {
-        pl->dp->global_states = 0;
+        pl->dp->global_states = OFP_GLOBAL_STATES_DEFAULT;
     }
     else
         return 1;
