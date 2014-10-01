@@ -118,6 +118,8 @@ send_packet_to_controller(struct pipeline *pl, struct packet *pkt, uint8_t table
     ofl_structs_free_match((struct ofl_match_header* ) m, NULL);
 }
 
+/* Pass the packet through the flow tables.
+ * This function takes ownership of the packet and will destroy it. */
 void
 pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
     struct flow_table *table, *next_table;
@@ -174,7 +176,6 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
                 because we cannot associate it to any
                 particular flow */
                 action_set_execute(pkt->action_set, pkt, 0xffffffffffffffff);
-                packet_destroy(pkt);
                 return;
             }
 

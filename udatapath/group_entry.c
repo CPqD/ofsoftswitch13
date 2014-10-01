@@ -178,6 +178,7 @@ execute_all(struct group_entry *entry, struct packet *pkt) {
 
         packet_destroy(p);
     }
+    packet_destroy(pkt);
 }
 
 /* Executes a group entry of type SELECT. */
@@ -187,7 +188,6 @@ execute_select(struct group_entry *entry, struct packet *pkt) {
 
     if (b != -1) {
         struct ofl_bucket *bucket = entry->desc->buckets[b];
-        struct packet *p = packet_clone(pkt);
 
         if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
             char *b = ofl_structs_bucket_to_string(bucket, entry->dp->exp);
@@ -195,19 +195,19 @@ execute_select(struct group_entry *entry, struct packet *pkt) {
             free(b);
         }
 
-        action_set_write_actions(p->action_set, bucket->actions_num, bucket->actions);
+        action_set_write_actions(pkt->action_set, bucket->actions_num, bucket->actions);
 
-        entry->stats->byte_count += p->buffer->size;
+        entry->stats->byte_count += pkt->buffer->size;
         entry->stats->packet_count++;
-        entry->stats->counters[b]->byte_count += p->buffer->size;
+        entry->stats->counters[b]->byte_count += pkt->buffer->size;
         entry->stats->counters[b]->packet_count++;
         /* Cookie field is set 0xffffffffffffffff
            because we cannot associate to any
            particular flow */
-        action_set_execute(p->action_set, p, 0xffffffffffffffff);
-        packet_destroy(p);
+        action_set_execute(pkt->action_set, pkt, 0xffffffffffffffff);
     } else {
         VLOG_DBG_RL(LOG_MODULE, &rl, "No bucket in group.");
+        packet_destroy(pkt);
     }
 }
 
@@ -217,7 +217,6 @@ execute_indirect(struct group_entry *entry, struct packet *pkt) {
 
     if (entry->desc->buckets_num > 0) {
         struct ofl_bucket *bucket = entry->desc->buckets[0];
-        struct packet *p = packet_clone(pkt);
 
         if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
             char *b = ofl_structs_bucket_to_string(bucket, entry->dp->exp);
@@ -225,19 +224,19 @@ execute_indirect(struct group_entry *entry, struct packet *pkt) {
             free(b);
         }
 
-        action_set_write_actions(p->action_set, bucket->actions_num, bucket->actions);
+        action_set_write_actions(pkt->action_set, bucket->actions_num, bucket->actions);
 
-        entry->stats->byte_count += p->buffer->size;
+        entry->stats->byte_count += pkt->buffer->size;
         entry->stats->packet_count++;
-        entry->stats->counters[0]->byte_count += p->buffer->size;
+        entry->stats->counters[0]->byte_count += pkt->buffer->size;
         entry->stats->counters[0]->packet_count++;
         /* Cookie field is set 0xffffffffffffffff
            because we cannot associate to any
            particular flow */
-        action_set_execute(p->action_set, p, 0xffffffffffffffff);
-        packet_destroy(p);
+        action_set_execute(pkt->action_set, pkt, 0xffffffffffffffff);
     } else {
         VLOG_DBG_RL(LOG_MODULE, &rl, "No bucket in group.");
+        packet_destroy(pkt);
     }
 }
 
@@ -248,7 +247,6 @@ execute_ff(struct group_entry *entry, struct packet *pkt) {
 
     if (b != -1) {
         struct ofl_bucket *bucket = entry->desc->buckets[b];
-        struct packet *p = packet_clone(pkt);
 
         if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
             char *b = ofl_structs_bucket_to_string(bucket, entry->dp->exp);
@@ -256,19 +254,19 @@ execute_ff(struct group_entry *entry, struct packet *pkt) {
             free(b);
         }
 
-        action_set_write_actions(p->action_set, bucket->actions_num, bucket->actions);
+        action_set_write_actions(pkt->action_set, bucket->actions_num, bucket->actions);
 
-        entry->stats->byte_count += p->buffer->size;
+        entry->stats->byte_count += pkt->buffer->size;
         entry->stats->packet_count++;
-        entry->stats->counters[b]->byte_count += p->buffer->size;
+        entry->stats->counters[b]->byte_count += pkt->buffer->size;
         entry->stats->counters[b]->packet_count++;
         /* Cookie field is set 0xffffffffffffffff
            because we cannot associate to any
            particular flow */
-        action_set_execute(p->action_set, p, 0xffffffffffffffff);
-        packet_destroy(p);
+        action_set_execute(pkt->action_set, pkt, 0xffffffffffffffff);
     } else {
         VLOG_DBG_RL(LOG_MODULE, &rl, "No bucket in group.");
+        packet_destroy(pkt);
     }
 }
 
@@ -280,12 +278,18 @@ group_entry_execute(struct group_entry *entry,
 
     VLOG_DBG_RL(LOG_MODULE, &rl, "Executing group %u.", entry->stats->group_id);
 
-    /* NOTE: Packet is copied for all buckets now (even if there is only one).
-     * This allows execution of the original packet onward. It is not clear
-     * whether that is allowed or not according to the spec. though. */
-    /* Spec v1.1 and later say that group can occur in action-list, it must
-     * process a copy of the packet and execution continue on the original
-     * packet. Jean II */
+    /* Group action are often used in the action-set. Action-set
+     * processing is terminal, so the original packet is passed to us
+     * for processing. In that case, the caller must clear the
+     * action-set of the packet. See action_set_execute().
+     * Spec v1.1 and later also say that a group action can occur in
+     * action-list, in that case it must process a clone/copy of the
+     * packet and execution continue on the original packet. In that
+     * case, the caller must do the appropriate cloning of the packet.
+     * See dp_execute_action_list().
+     * In any case, we won't return the packet to the caller, we will
+     * destroy it or pass it to someone.
+     * Jean II */
 
     switch (entry->desc->type) {
         case (OFPGT_ALL): {
@@ -306,6 +310,7 @@ group_entry_execute(struct group_entry *entry,
         }
         default: {
             VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute unknown group type (%u) in group (%u).", entry->desc->type, entry->stats->group_id);
+            packet_destroy(packet);
         }
     }
 }
