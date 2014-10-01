@@ -997,15 +997,17 @@ dp_execute_action_list(struct packet *pkt,
         dp_execute_action(pkt, actions[i]);
 
         if (pkt->out_group != OFPG_ANY) {
+            struct packet *pkt_clone;
             uint32_t group = pkt->out_group;
             pkt->out_group = OFPG_ANY;
             VLOG_DBG_RL(LOG_MODULE, &rl, "Group action; executing group (%u).", group);
             /* The group must process a copy of the packet in the current state,
              * so that when we return we continue processing an unmodified
              * version of the packet. The group must also ignore the current
-	     * action-set. Group functions will clone the packet with an
-             * empty action-set. Jean II */
-            group_table_execute(pkt->dp->groups, pkt, group);
+	     * action-set. We need to clone the packet with an empty
+             * action-set. Jean II */
+            pkt_clone = packet_clone(pkt);
+            group_table_execute(pkt_clone->dp->groups, pkt_clone, group);
 
         } else if (pkt->out_port != OFPP_ANY) {
             uint32_t port = pkt->out_port;
