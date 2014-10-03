@@ -394,7 +394,7 @@ ofl_msg_print_stats_reply_flow(struct ofl_msg_multipart_reply_flow *msg, FILE *s
             if(colors)
                 fprintf(stream, ",\n\n");
             else
-                fprintf(stream, ", "); };
+                fprintf(stream, ",\n"); };
     }
 
     fprintf(stream, "]");
