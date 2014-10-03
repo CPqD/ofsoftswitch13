@@ -382,7 +382,7 @@ ofl_msg_print_stats_reply_flow(struct ofl_msg_multipart_reply_flow *msg, FILE *s
 
     for (i=0; i<msg->stats_num; i++) {
         ofl_structs_flow_stats_print(stream, msg->stats[i], exp);
-        if (i < msg->stats_num - 1) { fprintf(stream, ", "); };
+        if (i < msg->stats_num - 1) { fprintf(stream, ",\n"); };
     }
 
     fprintf(stream, "]");
