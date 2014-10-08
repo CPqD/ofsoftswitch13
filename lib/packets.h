@@ -259,7 +259,11 @@ BUILD_ASSERT_DECL(IP_HEADER_LEN == sizeof(struct ip_header));
 #define IPV6_FLABEL(ipv6_ver_tc_fl) ((ipv6_ver_tc_fl) & 0xffff)
 
 #define IPV6_VERSION 6
-#define IPV6_FLABEL_MASK 0xfffff
+#define IPV6_DSCP_MASK 0x0fc00000
+#define IPV6_DSCP_SHIFT 22
+#define IPV6_ECN_MASK 0x00300000
+#define IPV6_ECN_SHIFT 20
+#define IPV6_FLABEL_MASK 0x000fffff
 #define IPV6_HEADER_LEN 40
 struct ipv6_header {
     uint32_t ipv6_ver_tc_fl;
@@ -300,12 +304,14 @@ struct ipv6_nd_header{
     uint32_t reserved;
     struct in6_addr target_addr;
 };
+BUILD_ASSERT_DECL(IPV6_ND_HEADER_LEN == sizeof(struct ipv6_nd_header));
 
 #define IPV6_ND_OPT_HD_LEN 2
 struct ipv6_nd_options_hd{
     uint8_t type;
     uint8_t length;
 };
+BUILD_ASSERT_DECL(IPV6_ND_OPT_HD_LEN == sizeof(struct ipv6_nd_options_hd));
 
 #define UDP_HEADER_LEN 8
 struct udp_header {

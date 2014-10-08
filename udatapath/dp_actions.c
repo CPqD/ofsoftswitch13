@@ -119,24 +119,40 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 }
             }
             case OXM_OF_IP_DSCP:{
-                struct ip_header *ipv4 =  pkt->handle_std->proto->ipv4;
-                uint8_t tos = (ipv4->ip_tos & ~IP_DSCP_MASK) |
-                               (*act->field->value << 2);
-                uint16_t old_val = htons((ipv4->ip_ihl_ver << 8) + ipv4->ip_tos);
-                uint16_t new_val = htons((ipv4->ip_ihl_ver << 8) + tos);
-                ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val);
-                ipv4->ip_tos = tos;
+                if (pkt->handle_std->proto->ipv4){
+                    struct ip_header *ipv4 =  pkt->handle_std->proto->ipv4;
+                    uint8_t tos = (ipv4->ip_tos & ~IP_DSCP_MASK) |
+                                   (*act->field->value << 2);
+                    uint16_t old_val = htons((ipv4->ip_ihl_ver << 8) + ipv4->ip_tos);
+                    uint16_t new_val = htons((ipv4->ip_ihl_ver << 8) + tos);
+                    ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val);
+                    ipv4->ip_tos = tos;
+                }
+                else if (pkt->handle_std->proto->ipv6){
+                    struct ipv6_header *ipv6 =  pkt->handle_std->proto->ipv6;
+                    uint32_t ipv6_ver_tc_fl = (ipv6->ipv6_ver_tc_fl & ~htonl(IPV6_DSCP_MASK)) |
+                                   htonl((((uint32_t) *act->field->value) << IPV6_DSCP_SHIFT));
+                    ipv6->ipv6_ver_tc_fl = ipv6_ver_tc_fl;
+                }    
                 break;
             }
             case OXM_OF_IP_ECN:{
-                struct ip_header *ipv4 =  pkt->handle_std->proto->ipv4;
-                uint8_t tos = (ipv4->ip_tos & ~IP_ECN_MASK) |
+                if (pkt->handle_std->proto->ipv4){
+                    struct ip_header *ipv4 =  pkt->handle_std->proto->ipv4;
+                    uint8_t tos = (ipv4->ip_tos & ~IP_ECN_MASK) |
                                (*act->field->value & IP_ECN_MASK);
-                uint16_t old_val = htons((ipv4->ip_ihl_ver << 8) + ipv4->ip_tos);
-                uint16_t new_val = htons((ipv4->ip_ihl_ver << 8) + tos);
-                ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val);
-                ipv4->ip_tos = tos;
-                break;
+                    uint16_t old_val = htons((ipv4->ip_ihl_ver << 8) + ipv4->ip_tos);
+                    uint16_t new_val = htons((ipv4->ip_ihl_ver << 8) + tos);
+                    ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val);
+                    ipv4->ip_tos = tos;
+                }
+                else if (pkt->handle_std->proto->ipv6){
+                     struct ipv6_header *ipv6 =  pkt->handle_std->proto->ipv6;
+                     uint32_t ipv6_ver_tc_fl = (ipv6->ipv6_ver_tc_fl & ~htonl(IPV6_ECN_MASK)) |
+                                   htonl((((uint32_t) *act->field->value) << IPV6_ECN_SHIFT));
+                    ipv6->ipv6_ver_tc_fl = ipv6_ver_tc_fl;
+                }    
+                break;        
             }
             case OXM_OF_IP_PROTO:{
                 struct ip_header *ipv4 =  pkt->handle_std->proto->ipv4;
