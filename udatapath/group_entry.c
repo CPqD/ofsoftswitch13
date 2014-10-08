@@ -175,8 +175,7 @@ execute_all(struct group_entry *entry, struct packet *pkt) {
            because we cannot associate to any
            particular flow */
         action_set_execute(p->action_set, p, 0xffffffffffffffff);
-
-        packet_destroy(p);
+        /* Clone will be destroyed above. Jean II */
     }
     packet_destroy(pkt);
 }
