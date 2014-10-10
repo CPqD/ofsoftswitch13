@@ -309,7 +309,7 @@ ofl_oxm_type_print(FILE *stream, uint32_t type){
     case OXM_OF_UDP_SRC:            {fprintf(stream, "udp_src"); return; }
     case OXM_OF_UDP_DST:            {fprintf(stream, "udp_dst"); return; }
     case OXM_OF_SCTP_SRC:           {fprintf(stream, "sctp_src"); return; }
-    case OXM_OF_SCTP_DST:           {fprintf(stream, "udp_dst"); return; }
+    case OXM_OF_SCTP_DST:           {fprintf(stream, "sctp_dst"); return; }
     case OXM_OF_ICMPV4_CODE:        {fprintf(stream, "icmpv4_code"); return; }
     case OXM_OF_ICMPV4_TYPE:        {fprintf(stream, "icmpv4_type"); return; }
     case OXM_OF_ARP_OP:             {fprintf(stream, "arp_op"); return; }
