@@ -306,15 +306,15 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
                 }
                 case 4:{
                     uint32_t v; 
-		    uint8_t field = OXM_FIELD(da->field->header);					
-		    if( field != 11 && field != 12 && field != 22 && field != 23)  
-		        v = htonl(*((uint32_t*) value));
-		    else v = *((uint32_t*) value);
+        		    uint8_t field = OXM_FIELD(da->field->header);					
+        		    if( field != 11 && field != 12 && field != 22 && field != 23)  
+        		        v = htonl(*((uint32_t*) value));
+        		    else v = *((uint32_t*) value);
                     memcpy(da->field->value , &v, OXM_LENGTH(da->field->header));
                     break;
                 }
                 case 8:{
-                    uint64_t v = hton64(*((uint64_t*) value));
+                    uint64_t v = ntoh64(*((uint64_t*) value));                    
                     memcpy(da->field->value , &v, OXM_LENGTH(da->field->header));
                     break;
                 }                
