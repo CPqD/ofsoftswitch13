@@ -1098,7 +1098,6 @@ ofl_msg_unpack_multipart_reply_port(struct ofp_multipart_reply *os, size_t *len,
     // ofp_multipart_reply was already checked and subtracted in unpack_multipart_reply
 
     stat = (struct ofp_port_stats *)os->body;
-    dm = (struct ofl_msg_multipart_reply_port *) malloc(sizeof(struct ofl_msg_multipart_reply_port));
 
     error = ofl_utils_count_ofp_port_stats(stat, *len, &dm->stats_num);
     if (error) {
@@ -1132,7 +1131,6 @@ ofl_msg_unpack_multipart_reply_queue(struct ofp_multipart_reply *os, size_t *len
     // ofp_multipart_reply was already checked and subtracted in unpack_multipart_reply
 
     stat = (struct ofp_queue_stats *)os->body;
-    dm = (struct ofl_msg_multipart_reply_queue *) malloc(sizeof(struct ofl_msg_multipart_reply_queue));
 
     error = ofl_utils_count_ofp_queue_stats(stat, *len, &dm->stats_num);
     if (error) {
