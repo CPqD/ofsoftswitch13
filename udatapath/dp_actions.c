@@ -105,7 +105,6 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                     uint16_t v = (*(uint16_t*)act->field->value);
                     vlan->vlan_tci = htons((ntohs(vlan->vlan_tci) & ~VLAN_VID_MASK)
                                                     | (v & VLAN_VID_MASK));
-                    
                 }
                 break;
             }
@@ -368,6 +367,15 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 uint32_t v = *((uint32_t*) act->field->value);
                 pbb->id = (pbb->id & ~ntohl(PBB_ISID_MASK)) |
                                                 ntohl(v & PBB_ISID_MASK);
+                break;
+            }
+            case OXM_OF_TUNNEL_ID :{
+                struct  ofl_match_tlv *f;
+                HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
+                    hmap_node, hash_int(OXM_OF_TUNNEL_ID, 0), &(pkt)->handle_std->match.match_fields){
+                    uint64_t *tunnel_id = (uint64_t*) f->value;
+                    *tunnel_id = *((uint64_t*) act->field->value);
+                }
                 break;
             }
             default:

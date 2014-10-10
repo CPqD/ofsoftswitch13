@@ -227,7 +227,7 @@ ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, u
                     break;
                 }
                 case 8:{
-                    uint64_t value = htons(*((uint64_t*) sa->field->value));
+                    uint64_t value = hton64(*((uint64_t*) sa->field->value));
                     memcpy(data + (sizeof(struct ofp_action_set_field)),&value,OXM_LENGTH(sa->field->header));
                     break;
                 }
