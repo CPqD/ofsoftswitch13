@@ -95,7 +95,7 @@ oxm_init(void)
         int i;
 
         for (i = 0; i < NUM_OXM_FIELDS; i++) {
-            struct oxm_field *f = &all_fields[i];
+            struct oxm_field *f = &all_fields[i];            
             hmap_insert(&all_oxm_fields, &f->hmap_node,
                         hash_int(f->header, 0));
         }
@@ -175,6 +175,7 @@ oxm_field_lookup(uint32_t header)
     struct oxm_field *f;
 
     oxm_init();
+      
     HMAP_FOR_EACH_WITH_HASH(f, struct oxm_field, hmap_node, hash_int(header, 0),
                             &all_oxm_fields) {
         if (f->header == header) {
@@ -306,7 +307,6 @@ static uint8_t* get_oxm_value(struct ofl_match *m, uint32_t header){
 static int
 parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
                 const void *value, const void *mask){
-
     switch (f->index) {
         case OFI_OXM_OF_IN_PORT: {
             uint32_t* in_port = (uint32_t*) value;
@@ -510,9 +510,10 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
              ofl_structs_match_put8(match, f->header, *v);
              return 0;
         }
-        case OFI_OXM_OF_PBB_ISID:
+        case OFI_OXM_OF_PBB_ISID:{
              ofl_structs_match_put32(match, f->header, ntohl(*((uint32_t*) value)));
              return 0;
+        }
         case OFI_OXM_OF_PBB_ISID_W:{
             if (check_bad_wildcard32(*((uint32_t*) value), *((uint32_t*) mask))){
                 return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
@@ -521,14 +522,14 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
             return 0;
         }
         case OFI_OXM_OF_TUNNEL_ID:{
-            ofl_structs_match_put64(match, f->header, *((uint64_t*) value));
+            ofl_structs_match_put64(match, f->header, ntoh64(*((uint64_t*) value)));
             return 0;
         }
         case OFI_OXM_OF_TUNNEL_ID_W:{
             if (check_bad_wildcard64(*((uint64_t*) value), *((uint64_t*) mask))){
                 return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
             }
-            ofl_structs_match_put64m(match, f->header,*((uint64_t*) value),*((uint64_t*) mask));
+            ofl_structs_match_put64m(match, f->header,ntoh64(*((uint64_t*) value)),ntoh64(*((uint64_t*) mask)));
             return 0;
         }
         case OFI_OXM_OF_IPV6_EXTHDR:
