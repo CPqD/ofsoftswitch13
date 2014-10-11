@@ -61,7 +61,7 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
     }
 
     HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
-                    hmap_node, hash_int(OXM_OF_METADATA,0), &handle->match.match_fields){
+                    hmap_node, hash_int(OXM_OF_TUNNEL_ID,0), &handle->match.match_fields){
             tunnel_id = *((uint64_t*) f->value);
     }
 
