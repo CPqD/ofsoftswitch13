@@ -2403,7 +2403,7 @@ parse_config(char *str, struct ofl_config *c) {
             continue;
         }
         if (strncmp(token, CONFIG_MISS KEY_VAL, strlen(CONFIG_MISS KEY_VAL)) == 0) {
-            if (parse16(token + strlen(CONFIG_MISS KEY_VAL), NULL, 0, UINT16_MAX - sizeof(struct ofp_packet_in), &c->miss_send_len)) {
+            if (parse16(token + strlen(CONFIG_MISS KEY_VAL), NULL, 0, UINT16_MAX, &c->miss_send_len)) {
                 ofp_fatal(0, "Error parsing config miss send len: %s.", token);
             }
             continue;
