@@ -373,10 +373,11 @@ ofl_err
 pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
                                     struct ofl_msg_multipart_request_header *msg,
                                     const struct sender *sender) {
-    size_t i, j;
     struct ofl_table_features **features;
     struct ofl_msg_multipart_request_table_features *feat =
                        (struct ofl_msg_multipart_request_table_features *) msg;
+    int i;           /* Feature index in feature array. Jean II */
+    int table_id;
 
     /* Further validation of request not done in
      * ofl_structs_table_features_unpack(). Jean II */
@@ -458,8 +459,8 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
     /* Should check merge->tables_num instead. Jean II */
     if(feat->table_features != NULL){
         /* Disable all tables, they will be selectively re-enabled. */
-        for(i = 0; i < PIPELINE_TABLES; i++){
-	    pl->tables[i]->disabled = true;
+        for(table_id = 0; table_id < PIPELINE_TABLES; table_id++){
+	    pl->tables[table_id]->disabled = true;
 	}
         /* Change tables configuration
            TODO: Remove flows*/
@@ -468,52 +469,55 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
 	 * expected, like OFPTFFC_BAD_TABLE... Jean II  */
         VLOG_DBG(LOG_MODULE, "pipeline_handle_stats_request_table_features_request: updating features");
         for(i = 0; i < feat->tables_num; i++){
-	    /* Obvious memory leak.
-	     * Obvious memory ownership issue when non-frag requests.
-	     * Jean II */
-            pl->tables[feat->table_features[i]->table_id]->features = feat->table_features[i];
-	    pl->tables[i]->disabled = false;
+            table_id = feat->table_features[i]->table_id;
+
+            /* Replace whole table feature. */
+            ofl_structs_free_table_features(pl->tables[table_id]->features, pl->dp->exp);
+            pl->tables[table_id]->features = feat->table_features[i];
+            feat->table_features[i] = NULL;
+
+	    /* Re-enable table. */
+	    pl->tables[table_id]->disabled = false;
         }
     }
 
     /* Cleanup request. */
     if(sender->remote->mp_req_msg != NULL) {
-      /* Can't free entire structure, we are pointing to it ! */
-      //ofl_msg_free((struct ofl_msg_header *) sender->remote->mp_req_msg, NULL);
-      free(sender->remote->mp_req_msg);
+      ofl_msg_free((struct ofl_msg_header *) sender->remote->mp_req_msg, pl->dp->exp);
       sender->remote->mp_req_msg = NULL;
       sender->remote->mp_req_xid = 0;  /* Currently not needed. Jean II. */
     }
 
-    j = 0;
+    table_id = 0;
     /* Query for table capabilities */
     loop: ;
     features = (struct ofl_table_features**) xmalloc(sizeof(struct ofl_table_features *) * 8);
     /* Return 8 tables per reply segment. */
     for (i = 0; i < 8; i++){
         /* Skip disabled tables. */
-        while((j < PIPELINE_TABLES) && (pl->tables[j]->disabled == true))
-	    j++;
+        while((table_id < PIPELINE_TABLES) && (pl->tables[table_id]->disabled == true))
+	    table_id++;
 	/* Stop at the last table. */
-	if(j >= PIPELINE_TABLES)
+	if(table_id >= PIPELINE_TABLES)
 	    break;
 	/* Use that table in the reply. */
-        features[i] = pl->tables[j]->features;
-        j++;
+        features[i] = pl->tables[table_id]->features;
+        table_id++;
     }
-    VLOG_DBG(LOG_MODULE, "multipart reply: returning %zu tables, next table-id %zu", i, j);
+    VLOG_DBG(LOG_MODULE, "multipart reply: returning %d tables, next table-id %d", i, table_id);
     {
     struct ofl_msg_multipart_reply_table_features reply =
          {{{.type = OFPT_MULTIPART_REPLY},
            .type = OFPMP_TABLE_FEATURES,
-           .flags = (j == PIPELINE_TABLES ? 0x00000000 : OFPMPF_REPLY_MORE) },
+           .flags = (table_id == PIPELINE_TABLES ? 0x00000000 : OFPMPF_REPLY_MORE) },
           .table_features     = features,
           .tables_num = i };
           dp_send_message(pl->dp, (struct ofl_msg_header *)&reply, sender);
     }
-    if (j < PIPELINE_TABLES){
+    if (table_id < PIPELINE_TABLES){
            goto loop;
     }
+    free(features);
 
     return 0;
 }

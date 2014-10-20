@@ -470,6 +470,10 @@ ofl_structs_free_group_desc_stats(struct ofl_group_desc_stats *stats, struct ofl
 
 void
 ofl_structs_free_table_features(struct ofl_table_features* features, struct ofl_exp *exp){
+    /* We sometime sets it to NULL (see set feature request). Jean II */
+    if (features == NULL)
+        return;
+
     OFL_UTILS_FREE_ARR_FUN2(features->properties, features->properties_num,
                             ofl_structs_free_table_properties, exp);
     free(features->name);
