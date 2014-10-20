@@ -378,6 +378,7 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
                        (struct ofl_msg_multipart_request_table_features *) msg;
     int i;           /* Feature index in feature array. Jean II */
     int table_id;
+    ofl_err error = 0;
 
     /* Further validation of request not done in
      * ofl_structs_table_features_unpack(). Jean II */
@@ -458,26 +459,43 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
     /*Check to see if the body is empty.*/
     /* Should check merge->tables_num instead. Jean II */
     if(feat->table_features != NULL){
-        /* Disable all tables, they will be selectively re-enabled. */
-        for(table_id = 0; table_id < PIPELINE_TABLES; table_id++){
-	    pl->tables[table_id]->disabled = true;
-	}
-        /* Change tables configuration
-           TODO: Remove flows*/
-        /* TODO : In theory, tables should be in ascending order !
-	 * Maybe we could return an error if table number not
-	 * expected, like OFPTFFC_BAD_TABLE... Jean II  */
-        VLOG_DBG(LOG_MODULE, "pipeline_handle_stats_request_table_features_request: updating features");
+        int last_table_id = 0;
+
+	/* Check that the table features make sense. */
         for(i = 0; i < feat->tables_num; i++){
+            /* Table-IDs must be in ascending order. */
             table_id = feat->table_features[i]->table_id;
+            if(table_id < last_table_id) {
+                error = ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_TABLE);
+		break;
+            }
+            /* Can't go over out internal max-entries. */
+            if (feat->table_features[i]->max_entries > FLOW_TABLE_MAX_ENTRIES) {
+                error = ofl_error(OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_ARGUMENT);
+		break;
+            }
+        }
 
-            /* Replace whole table feature. */
-            ofl_structs_free_table_features(pl->tables[table_id]->features, pl->dp->exp);
-            pl->tables[table_id]->features = feat->table_features[i];
-            feat->table_features[i] = NULL;
+        if (error == 0) {
 
-	    /* Re-enable table. */
-	    pl->tables[table_id]->disabled = false;
+            /* Disable all tables, they will be selectively re-enabled. */
+            for(table_id = 0; table_id < PIPELINE_TABLES; table_id++){
+	        pl->tables[table_id]->disabled = true;
+            }
+            /* Change tables configuration
+               TODO: Remove flows*/
+            VLOG_DBG(LOG_MODULE, "pipeline_handle_stats_request_table_features_request: updating features");
+            for(i = 0; i < feat->tables_num; i++){
+                table_id = feat->table_features[i]->table_id;
+
+                /* Replace whole table feature. */
+                ofl_structs_free_table_features(pl->tables[table_id]->features, pl->dp->exp);
+                pl->tables[table_id]->features = feat->table_features[i];
+                feat->table_features[i] = NULL;
+
+                /* Re-enable table. */
+                pl->tables[table_id]->disabled = false;
+            }
         }
     }
 
@@ -486,6 +504,10 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
       ofl_msg_free((struct ofl_msg_header *) sender->remote->mp_req_msg, pl->dp->exp);
       sender->remote->mp_req_msg = NULL;
       sender->remote->mp_req_xid = 0;  /* Currently not needed. Jean II. */
+    }
+
+    if (error) {
+        return error;
     }
 
     table_id = 0;
