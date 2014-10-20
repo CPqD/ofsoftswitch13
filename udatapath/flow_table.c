@@ -273,12 +273,13 @@ flow_table_create_property(struct ofl_table_feature_prop_header **prop, enum ofp
             struct ofl_table_feature_prop_instructions *inst_capabilities;
             inst_capabilities = xmalloc(sizeof(struct ofl_table_feature_prop_instructions));
             inst_capabilities->header.type = type;
+            inst_capabilities->instruction_ids = xmalloc(sizeof(instructions));
 	    if (PIPELINE_TABLES > 1) {
-	      inst_capabilities->ids_num = N_INSTRUCTIONS;
-	      inst_capabilities->instruction_ids = instructions;
+              inst_capabilities->ids_num = N_INSTRUCTIONS;
+              memcpy(inst_capabilities->instruction_ids, instructions, sizeof(instructions));
 	    } else {
-	      inst_capabilities->ids_num = N_INSTRUCTIONS - 1;
-	      inst_capabilities->instruction_ids = instructions_nogoto;
+              inst_capabilities->ids_num = N_INSTRUCTIONS - 1;
+              memcpy(inst_capabilities->instruction_ids, instructions_nogoto, sizeof(instructions_nogoto));
 	    }
             inst_capabilities->header.length = ofl_structs_table_features_properties_ofp_len(&inst_capabilities->header, NULL);            
             (*prop) =  (struct ofl_table_feature_prop_header*) inst_capabilities;
@@ -306,7 +307,8 @@ flow_table_create_property(struct ofl_table_feature_prop_header **prop, enum ofp
              act_capabilities = xmalloc(sizeof(struct ofl_table_feature_prop_actions));
              act_capabilities->header.type =  type;
              act_capabilities->actions_num= N_ACTIONS;
-             act_capabilities->action_ids = actions;
+             act_capabilities->action_ids = xmalloc(sizeof(actions));
+             memcpy(act_capabilities->action_ids, actions, sizeof(actions));
              act_capabilities->header.length = ofl_structs_table_features_properties_ofp_len(&act_capabilities->header, NULL);                         
              *prop =  (struct ofl_table_feature_prop_header*) act_capabilities; 
              break;
@@ -317,11 +319,11 @@ flow_table_create_property(struct ofl_table_feature_prop_header **prop, enum ofp
         case OFPTFPT_WRITE_SETFIELD:
         case OFPTFPT_WRITE_SETFIELD_MISS:{
             struct ofl_table_feature_prop_oxm *oxm_capabilities; 
-            int i;
             oxm_capabilities = xmalloc(sizeof(struct ofl_table_feature_prop_oxm));
             oxm_capabilities->header.type = type;
             oxm_capabilities->oxm_num = NUM_OXM_IDS;
-            oxm_capabilities->oxm_ids = oxm_ids;
+            oxm_capabilities->oxm_ids = xmalloc(sizeof(oxm_ids));
+            memcpy(oxm_capabilities->oxm_ids, oxm_ids, sizeof(oxm_ids));
             oxm_capabilities->header.length = ofl_structs_table_features_properties_ofp_len(&oxm_capabilities->header, NULL);             
             *prop =  (struct ofl_table_feature_prop_header*) oxm_capabilities;
             break;
@@ -331,7 +333,8 @@ flow_table_create_property(struct ofl_table_feature_prop_header **prop, enum ofp
             oxm_capabilities = xmalloc(sizeof(struct ofl_table_feature_prop_oxm)); 
             oxm_capabilities->header.type = type;
             oxm_capabilities->oxm_num = NUM_WILD_IDS;
-            oxm_capabilities->oxm_ids = wildcarded;
+            oxm_capabilities->oxm_ids = xmalloc(sizeof(wildcarded));
+            memcpy(oxm_capabilities->oxm_ids, wildcarded, sizeof(wildcarded));
             oxm_capabilities->header.length = ofl_structs_table_features_properties_ofp_len(&oxm_capabilities->header, NULL);                         
             *prop =  (struct ofl_table_feature_prop_header*) oxm_capabilities;
             break;
