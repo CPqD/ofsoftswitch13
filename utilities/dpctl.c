@@ -1197,7 +1197,9 @@ parse_match(char *str, struct ofl_match_header **match) {
     ofl_structs_match_init(m);
     
     for (token = strtok_r(str, KEY_SEP, &saveptr); token != NULL; token = strtok_r(NULL, KEY_SEP, &saveptr)) {
-         if (strncmp(token, "apply", strlen("apply")) == 0 ||  strncmp(token, "write", strlen("write")) == 0 ) {
+         if (strncmp(token, "apply", strlen("apply")) == 0 ||
+                 strncmp(token, "write", strlen("write")) == 0 ||
+                 strncmp(token, "goto", strlen("goto")) == 0) {
                 break;
          }
         /* In_port */
