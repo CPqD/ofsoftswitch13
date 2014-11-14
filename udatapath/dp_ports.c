@@ -273,9 +273,14 @@ dp_ports_run(struct datapath *dp) {
             buffer = ofpbuf_new_with_headroom(hard_header + max_mtu, headroom);
         }
         error = netdev_recv(p->netdev, buffer);
+        
         if (error == ENETDOWN){
             VLOG_ERR(LOG_MODULE, "Não tenho nada mas tô aqui...");
         }
+        else{
+            p->conf->state &= ~OFPPS_LINK_DOWN;
+        }
+        
         if (!error) {
             p->stats->rx_packets++;
             p->stats->rx_bytes += buffer->size;
