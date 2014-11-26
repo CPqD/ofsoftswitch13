@@ -402,7 +402,7 @@ ofl_msg_print_stats_reply_table(struct ofl_msg_multipart_reply_table *msg, FILE 
 
     for (i=0; i<msg->stats_num; i++) {
         ofl_structs_table_stats_print(stream, msg->stats[i]);
-        if (i < msg->stats_num - 1) { fprintf(stream, ", "); };
+        if (i < msg->stats_num - 1) { fprintf(stream, ",\n"); };
     }
 
     fprintf(stream, "]");
@@ -416,7 +416,7 @@ ofl_msg_print_stats_reply_port(struct ofl_msg_multipart_reply_port *msg, FILE *s
 
     for (i=0; i<msg->stats_num; i++) {
         ofl_structs_port_stats_print(stream, msg->stats[i]);
-        if (i < msg->stats_num - 1) { fprintf(stream, ", "); };
+        if (i < msg->stats_num - 1) { fprintf(stream, ",\n"); };
     }
 
     fprintf(stream, "]");
@@ -430,7 +430,7 @@ ofl_msg_print_stats_reply_queue(struct ofl_msg_multipart_reply_queue *msg, FILE 
 
     for (i=0; i<msg->stats_num; i++) {
         ofl_structs_queue_stats_print(stream, msg->stats[i]);
-        if (i < msg->stats_num - 1) { fprintf(stream, ", "); };
+        if (i < msg->stats_num - 1) { fprintf(stream, ",\n"); };
     }
 
     fprintf(stream, "]");
@@ -444,7 +444,7 @@ ofl_msg_print_stats_reply_group(struct ofl_msg_multipart_reply_group *msg, FILE 
 
     for (i=0; i<msg->stats_num; i++) {
         ofl_structs_group_stats_print(stream, msg->stats[i]);
-        if (i < msg->stats_num - 1) { fprintf(stream, ", "); };
+        if (i < msg->stats_num - 1) { fprintf(stream, ",\n"); };
     }
 
     fprintf(stream, "]");
@@ -458,7 +458,7 @@ ofl_msg_print_stats_reply_meter(struct ofl_msg_multipart_reply_meter *msg, FILE 
 
     for (i=0; i<msg->stats_num; i++) {
         ofl_structs_meter_stats_print(stream, msg->stats[i]);
-        if (i < msg->stats_num - 1) { fprintf(stream, ", "); };
+        if (i < msg->stats_num - 1) { fprintf(stream, ",\n"); };
     }
 
     fprintf(stream, "]");
@@ -472,7 +472,7 @@ ofl_msg_print_stats_reply_meter_conf(struct ofl_msg_multipart_reply_meter_conf *
 
     for (i=0; i<msg->stats_num; i++) {
         ofl_structs_meter_config_print(stream, msg->stats[i]);
-        if (i < msg->stats_num - 1) { fprintf(stream, ", "); };
+        if (i < msg->stats_num - 1) { fprintf(stream, ",\n"); };
     }
 
     fprintf(stream, "]");
@@ -492,7 +492,7 @@ ofl_msg_print_stats_reply_group_desc(struct ofl_msg_multipart_reply_group_desc *
 
     for (i=0; i<msg->stats_num; i++) {
         ofl_structs_group_desc_stats_print(stream, msg->stats[i], exp);
-        if (i < msg->stats_num - 1) { fprintf(stream, ", "); };
+        if (i < msg->stats_num - 1) { fprintf(stream, ",\n"); };
     }
 
     fprintf(stream, "]");
@@ -529,7 +529,7 @@ static void ofl_msg_print_stats_reply_group_features(struct ofl_msg_multipart_re
             }
         }
         if (i < 3)
-            fprintf(stream, ", ");
+            fprintf(stream, ",\n");
     }
 }
 
@@ -561,7 +561,7 @@ ofl_msg_print_port_desc_reply(struct ofl_msg_multipart_reply_port_desc *msg, FIL
     
     for(i = 0; i < msg->stats_num; i++){
         ofl_structs_port_print(stream, msg->stats[i]);
-        if (i < msg->stats_num - 1) { fprintf(stream, ", "); };
+        if (i < msg->stats_num - 1) { fprintf(stream, ",\n"); };
     }
     fprintf(stream, "}");
 }
