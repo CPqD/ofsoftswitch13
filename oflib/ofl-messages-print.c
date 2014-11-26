@@ -329,7 +329,7 @@ ofl_msg_print_multipart_request(struct ofl_msg_multipart_request_header *msg, FI
             break;
         }
         case OFPMP_TABLE_FEATURES: {
-            ofl_msg_print_table_features_request((struct ofl_msg_multipart_request_table_features*)msg, stream);        
+            ofl_msg_print_table_features_request((struct ofl_msg_multipart_request_table_features*)msg, stream);
             break;
         }
         case OFPMP_PORT_STATS: {
@@ -357,7 +357,7 @@ ofl_msg_print_multipart_request(struct ofl_msg_multipart_request_header *msg, FI
         }
         case OFPMP_METER_FEATURES:{
             break;
-        }    
+        }
         case OFPMP_PORT_DESC:{
             break;
         }
@@ -510,17 +510,17 @@ static void ofl_msg_print_stats_reply_group_features(struct ofl_msg_multipart_re
         fprintf(stream, ": max_groups=%d, actions= ", msg->max_groups[i]);
         if(msg->actions[i] & 1){
             ofl_action_type_print(stream, OFPAT_OUTPUT);
-            fprintf(stream, "/");    
+            fprintf(stream, "/");
 
         }
         if(msg->actions[i] & OFPAT_COPY_TTL_OUT){
             ofl_action_type_print(stream, OFPAT_COPY_TTL_OUT);
-            fprintf(stream, "/");    
+            fprintf(stream, "/");
 
         }
-        if(msg->actions[i] & OFPAT_COPY_TTL_IN){    
+        if(msg->actions[i] & OFPAT_COPY_TTL_IN){
             ofl_action_type_print(stream, OFPAT_COPY_TTL_IN);
-            fprintf(stream, "/");      
+            fprintf(stream, "/");
         }
         for(j = OFPAT_SET_MPLS_TTL; j < OFPAT_POP_PBB; j++){
             if (msg->actions[i] & j){
@@ -558,7 +558,7 @@ ofl_msg_print_table_features_reply(struct ofl_msg_multipart_reply_table_features
 static void
 ofl_msg_print_port_desc_reply(struct ofl_msg_multipart_reply_port_desc *msg, FILE *stream) {
     size_t i;
-    
+
     for(i = 0; i < msg->stats_num; i++){
         ofl_structs_port_print(stream, msg->stats[i]);
         if (i < msg->stats_num - 1) { fprintf(stream, ",\n"); };
@@ -630,7 +630,7 @@ ofl_msg_print_multipart_reply(struct ofl_msg_multipart_reply_header *msg, FILE *
         }
         case OFPMP_METER_CONFIG:{
             ofl_msg_print_stats_reply_meter_conf((struct ofl_msg_multipart_reply_meter_conf*)msg, stream);
-            break;            
+            break;
         }
         case OFPMP_METER_FEATURES:{
             ofl_msg_print_reply_meter_features((struct ofl_msg_multipart_reply_meter_features*)msg, stream);
@@ -672,16 +672,16 @@ ofl_msg_print_queue_get_config_reply(struct ofl_msg_queue_get_config_reply *msg,
     fprintf(stream, "]}");
 }
 
-static void 
+static void
 ofl_msg_print_role_msg(struct ofl_msg_role_request *msg, FILE *stream){
-    
+
     fprintf(stream, "{role= %d, generation_id= %"PRIu64"}", msg->role, msg->generation_id);
 
 }
 
 static void
 ofl_msg_print_async(struct ofl_msg_async_config* msg, FILE *stream){
-    
+
     fprintf(stream, "{");
     ofl_structs_async_config_print(stream, msg->config);
     fprintf(stream, "}");
@@ -749,19 +749,18 @@ ofl_msg_print(FILE *stream, struct ofl_msg_header *msg, struct ofl_exp *exp) {
         /*Role messages */
         case OFPT_ROLE_REQUEST:
         case OFPT_ROLE_REPLY:{
-            ofl_msg_print_role_msg((struct ofl_msg_role_request*)msg, stream);        
+            ofl_msg_print_role_msg((struct ofl_msg_role_request*)msg, stream);
         }
         /* Queue Configuration messages. */
         case OFPT_QUEUE_GET_CONFIG_REQUEST: { ofl_msg_print_queue_get_config_request((struct ofl_msg_queue_get_config_request *)msg, stream); return; }
         case OFPT_QUEUE_GET_CONFIG_REPLY: { ofl_msg_print_queue_get_config_reply((struct ofl_msg_queue_get_config_reply *)msg, stream); return; }
-		
-		/* Asynchronous message configuration. */
-		case OFPT_GET_ASYNC_REQUEST:{return;}
+
+        /* Asynchronous message configuration. */
+        case OFPT_GET_ASYNC_REQUEST:{return;}
         case OFPT_GET_ASYNC_REPLY:
-        case OFPT_SET_ASYNC:{ofl_msg_print_async((struct ofl_msg_async_config*)msg, stream); return;}		
-		
-		case OFPT_METER_MOD: {ofl_msg_print_meter_mod((struct ofl_msg_meter_mod*)msg, stream); return;}
-			    	
-	}
+        case OFPT_SET_ASYNC:{ofl_msg_print_async((struct ofl_msg_async_config*)msg, stream); return;}
+
+        case OFPT_METER_MOD: {ofl_msg_print_meter_mod((struct ofl_msg_meter_mod*)msg, stream); return;}
+    }
 }
 
