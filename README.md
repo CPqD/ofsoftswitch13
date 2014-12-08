@@ -12,7 +12,10 @@ The following components are available in this package:
 
 # Getting Started
 
-These instructions have been tested on Ubuntu 12.04. Other distributions or versions may need different steps.
+These instructions have been tested on Ubuntu 12.04. Other distributions or versions may need different steps. 
+
+For Ubuntu 14.04, please check @castroflavio solution:
+[How to compile on Ubuntu 14.04][compileubuntu14]
 
 ## Before building
 The switch makes use of the NetBee library to parse packets, so we need to install it first.
@@ -155,3 +158,4 @@ E-mail: Eder Leao Fernandes (ederleaofernandes at gmail . com)
 
 [ofp13]: https://www.opennetworking.org/images/stories/downloads/specification/openflow-spec-v1.3.0.pdf
 [ericssonsw11]: https://github.com/TrafficLab/of11softswitch
+[compileubuntu14]: http://tocai.dia.uniroma3.it/compunet-wiki/index.php/Installing_and_setting_up_OpenFlow_tools
