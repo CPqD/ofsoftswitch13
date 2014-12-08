@@ -892,9 +892,12 @@
 
 	<format>
 		<fields>			
-			<!-- <field type="bit" name="tos" longname="Type of service" mask="0x0F000000" size="4" showtemplate="FieldHex"/> -->
-			<!-- <field type="fixed" name="tos" longname="{0x8000 8} Type of service" size="1" showtemplate="FieldHex"/> -->
-			<field type="fixed" name="ipv6_ver_tc_fl" longname="Version Traffic Class and Flow Label" size="4" showtemplate="FieldHex"/>
+			<block name="ipv6_ver_tc_fl" longname="Version, Traffic class and Flow label">
+				<field type="bit" name="ip dscp" longname="{0x8000 8} DSCP" mask="F0000000" size="1" showtemplate="FieldDec"/>
+				<field type="bit" name="ip ecn" longname="{0x8000 9} ECN" mask="0F000000" size="1" showtemplate="FieldDec"/>
+				<field type="bit" name="flabel"  mask="00FFFFFF" size="4" showtemplate="FieldDec"/>
+			</block>
+			<!-- <field type="fixed" name="ipv6_ver_tc_fl" longname="Version Traffic Class and Flow Label" size="4" showtemplate="FieldHex"/> -->
 			<field type="fixed" name="plen" longname="Payload Length" size="2" showtemplate="FieldDec"/>
 			<field type="fixed" name="nexthdr" longname="{0x8000 10} Next Header" size="1" showtemplate="ipv6.nexthdr"/>
 			<field type="fixed" name="hop" longname="Hop limit" size="1" showtemplate="FieldDec"/>
@@ -1412,7 +1415,7 @@
 		<block name="NDO" longname="Neighbor Discovery Option" showtemplate="icmp6.ndo">
 -->
 		<block name="NDO" longname="Neighbor Discovery Option">
-			<field type="fixed" name="ndotype" longname="Type" size="1" showtemplate="icmp6.ndotype"/>
+			<field type="fixed" name="ndotype" longname="Type" size="1" showtemplate="FieldDec"/>
 			<field type="fixed" name="length" longname="Length" size="1" showtemplate="FieldDec"/>
 
 			<switch expr="buf2int(ndotype)">

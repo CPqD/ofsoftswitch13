@@ -158,7 +158,6 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 uint16_t new_val, old_val;
                 uint8_t proto = *act->field->value;
                 old_val = htons((ipv4->ip_ttl << 8) + ipv4->ip_proto);
-                VLOG_ERR(LOG_MODULE, "Proto %d %d", ipv4->ip_proto, proto);
                 new_val =  htons((ipv4->ip_ttl << 8) + proto);
                 ipv4->ip_csum = recalc_csum16(ipv4->ip_csum, old_val, new_val);
                 ipv4->ip_proto = proto;
@@ -209,7 +208,6 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 uint16_t v = htons(*(uint16_t*) act->field->value);
                 tcp->tcp_csum = recalc_csum16(tcp->tcp_csum, tcp->tcp_src, v);
                 memcpy(&tcp->tcp_src, &v, OXM_LENGTH(act->field->header));
-
                 break;
             }
             case OXM_OF_TCP_DST:{
@@ -217,7 +215,6 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 uint16_t v = htons(*(uint16_t*) act->field->value);
                 tcp->tcp_csum = recalc_csum16(tcp->tcp_csum, tcp->tcp_dst, v);
                 memcpy(&tcp->tcp_dst, &v, OXM_LENGTH(act->field->header));
-
                 break;
             }
             case OXM_OF_UDP_SRC:{
@@ -238,28 +235,39 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
             }
             /*TODO recalculate SCTP checksum*/
             case OXM_OF_SCTP_SRC:{
-                uint16_t *v = (uint16_t*) act->field->value;
-                *v = htons(*v);
-                memcpy(&pkt->handle_std->proto->sctp->sctp_src,
-                    v, OXM_LENGTH(act->field->header));
-                break;
+                struct sctp_header *sctp = pkt->handle_std->proto->sctp;
+                uint16_t v = htons(*(uint16_t*) act->field->value);
+                /*TODO correct checksum */
+                memcpy(&sctp->sctp_src, &v, OXM_LENGTH(act->field->header));
             }
             case OXM_OF_SCTP_DST:{
                 uint16_t *v = (uint16_t*) act->field->value;
                 *v = htons(*v);
+                /*TODO correct checksum */
                 memcpy(&pkt->handle_std->proto->sctp->sctp_dst,
                     v, OXM_LENGTH(act->field->header));
                 break;
             }
             case OXM_OF_ICMPV4_TYPE:
             case OXM_OF_ICMPV6_TYPE:{
-                pkt->handle_std->proto->icmp->icmp_type = *act->field->value;
+                    struct icmp_header *icmp_header =  pkt->handle_std->proto->icmp;
+                    uint16_t new_val, old_val;
+                    uint8_t icmp_type = *act->field->value;
+                    old_val = htons((icmp_header->icmp_type << 8) + icmp_header->icmp_code);
+                    new_val =  htons((icmp_type << 8) + icmp_header->icmp_code);
+                    icmp_header->icmp_csum = recalc_csum16(icmp_header->icmp_csum , old_val, new_val);
+                    icmp_header->icmp_type = *act->field->value;
                 break;
             }
-
             case OXM_OF_ICMPV4_CODE:
             case OXM_OF_ICMPV6_CODE:{
-                pkt->handle_std->proto->icmp->icmp_code = *act->field->value;
+                    struct icmp_header *icmp_header =  pkt->handle_std->proto->icmp;
+                    uint16_t new_val, old_val;
+                    uint8_t icmp_code = *act->field->value;
+                    old_val = htons((icmp_header->icmp_type << 8) + icmp_header->icmp_code);
+                    new_val =  htons((icmp_header->icmp_type << 8) + icmp_code);
+                    icmp_header->icmp_csum = recalc_csum16(icmp_header->icmp_csum , old_val, new_val);
+                    icmp_header->icmp_code = *act->field->value;
                 break;
             }
             case OXM_OF_ARP_OP: {
@@ -289,6 +297,7 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
             case OXM_OF_IPV6_SRC:{
                 memcpy(&pkt->handle_std->proto->ipv6->ipv6_src,
                         act->field->value, OXM_LENGTH(act->field->header));
+
                 break;
             }
             case OXM_OF_IPV6_DST:{
