@@ -737,6 +737,7 @@
                     <case value="1"> <nextproto proto="#icmp"/> </case>
 					<case value="6"> <nextproto proto="#tcp"/> </case>
 					<case value="17"> <nextproto proto="#udp"/> </case>
+					<case value="132"> <nextproto proto="#sctp"/> </case>
 				</switch>
 			</if-true>
 		</if>
@@ -1043,7 +1044,7 @@
 <!--			<case value="29"> <nextproto proto="#TP4"/> </case> -->
 <!--			<case value="45"> <nextproto proto="#IDRP"/> </case> -->
 			<case value="58"> <nextproto proto="#icmp6"/> </case>
-
+			<case value="132"> <nextproto proto="#sctp"/> </case>
 		</switch>
 	</encapsulation>
 
@@ -1737,11 +1738,32 @@
 		</fields>
 	</format>
 
-
 	<visualization>
 		<showsumtemplate name="udp">
 			<section name="next"/>
 			<text value="UDP: port "/>
+			<protofield name="sport" showdata="showvalue"/>
+			<text value=" => "/>
+			<protofield name="dport" showdata="showvalue"/>
+		</showsumtemplate>
+	</visualization>
+</protocol>
+
+<protocol name="sctp" longname="SCTP (Stream Control Transmission Protocol)" showsumtemplate="sctp">
+
+	<format>
+		<fields>
+			<field type="fixed" name="sport" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="dport" size="2" showtemplate="FieldDec"/>
+			<field type="fixed" name="ver_tag" longname="Verification Tag" size="4" showtemplate="FieldDec"/>	
+			<field type="fixed" name="crc" longname="Checksum" size="4" showtemplate="FieldHex"/>
+		</fields>
+	</format>
+
+	<visualization>
+		<showsumtemplate name="sctp">
+			<section name="next"/>
+			<text value="SCTP: port "/>
 			<protofield name="sport" showdata="showvalue"/>
 			<text value=" => "/>
 			<protofield name="dport" showdata="showvalue"/>
