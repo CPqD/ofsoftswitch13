@@ -113,3 +113,30 @@ recalc_csum32(uint16_t old_csum, uint32_t old_u32, uint32_t new_u32)
     return recalc_csum16(recalc_csum16(old_csum, old_u32, new_u32),
                          old_u32 >> 16, new_u32 >> 16);
 }
+
+/* Returns the new checksum for a packet in which the checksum field previously
+ * contained 'old_csum' and in which a field that contained 'old_u64' was
+ * changed to contain 'new_u64'. */
+uint16_t
+recalc_csum64(uint16_t old_csum, uint64_t old_u64, uint64_t new_u64)
+{
+    return recalc_csum32(recalc_csum32(old_csum, old_u64, new_u64),
+                         old_u64 >> 32, new_u64 >> 32);
+}
+
+
+/* Returns the new checksum for a packet in which the checksum field previously
+ * contained 'old_csum' and in which a field that contained 'old_u32' was
+ * changed to contain 'new_u12'. */
+uint16_t
+recalc_csum128(uint16_t old_csum, uint8_t old_u128[16], uint8_t new_u128[16])
+{
+    uint64_t old_left, old_right;
+    uint64_t new_left, new_right;
+    old_right = *((uint64_t*) ( old_u128 + 8 ));
+    new_right = *((uint64_t*) ( new_u128 + 8 ));
+    old_left = *((uint64_t*) ( old_u128 ));
+    new_left = *((uint64_t*) ( new_u128 ));
+    return recalc_csum64(recalc_csum64(old_csum, old_right, new_right),
+                         old_left, new_left);
+}

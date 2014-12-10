@@ -295,14 +295,36 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 break;
             }
             case OXM_OF_IPV6_SRC:{
+                struct ipv6_header *ipv6 = pkt->handle_std->proto->ipv6;
+                 /*Reconstruct TCP or UDP checksum*/
+                if (pkt->handle_std->proto->tcp != NULL) {
+                    struct tcp_header *tcp = pkt->handle_std->proto->tcp;
+                    tcp->tcp_csum = recalc_csum128(tcp->tcp_csum,
+                        ipv6->ipv6_src.s6_addr,  act->field->value);
+                } else if (pkt->handle_std->proto->udp != NULL) {
+                    struct udp_header *udp = pkt->handle_std->proto->udp;
+                    udp->udp_csum = recalc_csum128(udp->udp_csum,
+                        ipv6->ipv6_src.s6_addr, act->field->value);
+                }
                 memcpy(&pkt->handle_std->proto->ipv6->ipv6_src,
                         act->field->value, OXM_LENGTH(act->field->header));
-
                 break;
             }
             case OXM_OF_IPV6_DST:{
+                struct ipv6_header *ipv6 = pkt->handle_std->proto->ipv6;
+                 /*Reconstruct TCP or UDP checksum*/
+                if (pkt->handle_std->proto->tcp != NULL) {
+                    struct tcp_header *tcp = pkt->handle_std->proto->tcp;
+                    tcp->tcp_csum = recalc_csum128(tcp->tcp_csum,
+                        ipv6->ipv6_dst.s6_addr,  act->field->value);
+                } else if (pkt->handle_std->proto->udp != NULL) {
+                    struct udp_header *udp = pkt->handle_std->proto->udp;
+                    udp->udp_csum = recalc_csum128(udp->udp_csum,
+                        ipv6->ipv6_dst.s6_addr, act->field->value);
+                }
                 memcpy(&pkt->handle_std->proto->ipv6->ipv6_dst,
                         act->field->value, OXM_LENGTH(act->field->header));
+
                 break;
             }
             case OXM_OF_IPV6_FLABEL:{
