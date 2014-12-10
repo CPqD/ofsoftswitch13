@@ -349,7 +349,7 @@ BUILD_ASSERT_DECL(TCP_HEADER_LEN == sizeof(struct tcp_header));
 struct sctp_header {
     uint16_t sctp_src;
     uint16_t sctp_dst;
-    uint32_t sctp_verif;
+    uint32_t sctp_ver_tag;
     uint32_t sctp_csum;
 };
 BUILD_ASSERT_DECL(SCTP_HEADER_LEN == sizeof(struct sctp_header));
