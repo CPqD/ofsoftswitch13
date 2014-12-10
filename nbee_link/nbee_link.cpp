@@ -238,15 +238,31 @@ int nblink_extract_proto_fields(struct ofpbuf * pktin, _nbPDMLField * field, str
         }
         else if(header == OXM_OF_IP_DSCP){
             uint8_t m_value;
-            sscanf(field->Value, "%hhx", &m_value);
-            m_value = (m_value & IP_DSCP_MASK) >> 2; 
-            ofl_structs_match_put8(pktout, header, m_value);
+            if (strcmp(field->Name, "ip dscp") == 0){                
+                sscanf(field->Value, "%hhx", &m_value);
+                m_value = (m_value & IP_DSCP_MASK) >> 2; 
+                ofl_structs_match_put8(pktout, header, m_value);
+            }
+            else {
+                uint32_t field_value;
+                sscanf(field->Value, "%x", &field_value);
+                m_value = (field_value & IPV6_DSCP_MASK) >> IPV6_DSCP_SHIFT; 
+                ofl_structs_match_put8(pktout, header, m_value);
+            }
         }
         else if(header == OXM_OF_IP_ECN){
             uint8_t m_value;
-            sscanf(field->Value, "%hhx", &m_value);
-            m_value = m_value & IP_ECN_MASK; 
-            ofl_structs_match_put8(pktout, header, m_value);
+            if (strcmp(field->Name, "ip ecn") == 0){
+                sscanf(field->Value, "%hhx", &m_value);
+                m_value = (m_value & IP_ECN_MASK) >> IPV6_ECN_SHIFT; 
+                ofl_structs_match_put8(pktout, header, m_value);
+            }
+            else {
+                uint32_t field_value;
+                sscanf(field->Value, "%x", &field_value);
+                m_value = field_value & IPV6_ECN_MASK;               
+                ofl_structs_match_put8(pktout, header, m_value);
+            }
         }
         else if(header == OXM_OF_MPLS_LABEL){
             uint32_t m_value;
@@ -463,8 +479,11 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct ofl_match * pk
                 _nbPDMLField * ip_proto = NULL;
                 uint8_t i;
                 pkt_proto->ipv6 = (struct ipv6_header *) ((uint8_t*) pktin->data + proto->Position);
-                PDMLReader->GetPDMLField(proto->Name, (char*) "flabel", proto->FirstField, &field);
-                
+                PDMLReader->GetPDMLField(proto->Name, (char*) "ipv6 dscp", proto->FirstField, &field);
+                nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_IP_DSCP);
+                PDMLReader->GetPDMLField(proto->Name, (char*) "ipv6 ecn", proto->FirstField, &field);
+                nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_IP_ECN);
+                PDMLReader->GetPDMLField(proto->Name, (char*) "flabel", proto->FirstField, &field);                
                 nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_IPV6_FLABEL);
                 /*Initialize extension header OXM */
                 struct ofl_match_tlv * EH_field;

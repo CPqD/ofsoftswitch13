@@ -893,8 +893,8 @@
 	<format>
 		<fields>			
 			<block name="ipv6_ver_tc_fl" longname="Version, Traffic class and Flow label">
-				<field type="bit" name="ip dscp" longname="{0x8000 8} DSCP" mask="F0000000" size="1" showtemplate="FieldDec"/>
-				<field type="bit" name="ip ecn" longname="{0x8000 9} ECN" mask="0F000000" size="1" showtemplate="FieldDec"/>
+				<field type="bit" name="ipv6 dscp" longname="{0x8000 8} DSCP" mask="F0000000" size="4" showtemplate="FieldDec"/>
+				<field type="bit" name="ipv6 ecn" longname="{0x8000 9} ECN" mask="0F000000" size="4" showtemplate="FieldDec"/>
 				<field type="bit" name="flabel"  mask="00FFFFFF" size="4" showtemplate="FieldDec"/>
 			</block>
 			<!-- <field type="fixed" name="ipv6_ver_tc_fl" longname="Version Traffic Class and Flow Label" size="4" showtemplate="FieldHex"/> -->
