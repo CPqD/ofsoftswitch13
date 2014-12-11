@@ -43,6 +43,7 @@
 #include "packet.h"
 #include "packets.h"
 #include "pipeline.h"
+#include "crc32.h"
 #include "util.h"
 #include "oflib/oxm-match.h"
 #include "hash.h"
@@ -230,23 +231,34 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 uint16_t v = htons(*(uint16_t*) act->field->value);
                 udp->udp_csum = recalc_csum16(udp->udp_csum, udp->udp_dst, v);
                 memcpy(&udp->udp_dst, &v, OXM_LENGTH(act->field->header));
-
                 break;
             }
             /*TODO recalculate SCTP checksum*/
             case OXM_OF_SCTP_SRC:{
-                struct sctp_header *sctp = pkt->handle_std->proto->sctp;
+                crc_t crc;
+                struct sctp_header *sctp = pkt->handle_std->proto->sctp;                
+                size_t len = ((uint8_t*) ofpbuf_tail(pkt->handle_std->pkt->buffer)) - (uint8_t *) sctp;
                 uint16_t v = htons(*(uint16_t*) act->field->value);
-                /*TODO correct checksum */
+                sctp->sctp_csum = 0;
                 memcpy(&sctp->sctp_src, &v, OXM_LENGTH(act->field->header));
+                crc = crc_init();
+                crc = crc_update(crc, (unsigned char*)sctp, len);                            
+                crc = crc_finalize(crc);
+                sctp->sctp_csum = crc;
+                break;                                        
             }
             case OXM_OF_SCTP_DST:{
-                uint16_t *v = (uint16_t*) act->field->value;
-                *v = htons(*v);
-                /*TODO correct checksum */
-                memcpy(&pkt->handle_std->proto->sctp->sctp_dst,
-                    v, OXM_LENGTH(act->field->header));
-                break;
+                crc_t crc;
+                struct sctp_header *sctp = pkt->handle_std->proto->sctp;                
+                size_t len = ((uint8_t*) ofpbuf_tail(pkt->handle_std->pkt->buffer)) - (uint8_t *) sctp;
+                uint16_t v = htons(*(uint16_t*) act->field->value);
+                sctp->sctp_csum = 0;
+                memcpy(&sctp->sctp_dst, &v, OXM_LENGTH(act->field->header));
+                crc = crc_init();
+                crc = crc_update(crc, (unsigned char*)sctp, len);                            
+                crc = crc_finalize(crc);
+                sctp->sctp_csum = crc;
+                break;        
             }
             case OXM_OF_ICMPV4_TYPE:
             case OXM_OF_ICMPV6_TYPE:{
