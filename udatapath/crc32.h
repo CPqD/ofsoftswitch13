@@ -1,50 +1,92 @@
-/* Copyright (c) 2008 The Board of Trustees of The Leland Stanford
- * Junior University
- * 
- * We are making the OpenFlow specification and associated documentation
- * (Software) available for public use and benefit with the expectation
- * that others will use, modify and enhance the Software and contribute
- * those enhancements back to the community. However, since we would
- * like to make the Software available for broadest use, with as few
- * restrictions as possible permission is hereby granted, free of
- * charge, to any person obtaining a copy of this Software to deal in
- * the Software under the copyrights without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- * 
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
- * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
- * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- * 
- * The name and trademarks of copyright holder(s) may NOT be used in
- * advertising or publicity pertaining to the Software or any
- * derivatives without specific, written prior permission.
- */
+/**
+ * \file crc32c.h
+ * Functions and types for CRC checks.
+ *
+ * Generated on Thu Dec 11 18:04:29 2014,
+ * by pycrc v0.8.2, http://www.tty1.net/pycrc/
+ * using the configuration:
+ *    Width        = 32
+ *    Poly         = 0x1edc6f41
+ *    XorIn        = 0xffffffff
+ *    ReflectIn    = True
+ *    XorOut       = 0xffffffff
+ *    ReflectOut   = True
+ *    Algorithm    = table-driven
+ *****************************************************************************/
+#ifndef __CRC32C_H__
+#define __CRC32C_H__
 
-#ifndef CRC32_H
-#define CRC32_H 1
-
+#include <stdlib.h>
 #include <stdint.h>
-#include <stddef.h>
 
-#define CRC32_TABLE_BITS 8
-#define CRC32_TABLE_SIZE (1u << CRC32_TABLE_BITS)
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-struct crc32 {
-    unsigned int table[CRC32_TABLE_SIZE];
-};
 
-void crc32_init(struct crc32 *, unsigned int polynomial);
-unsigned int crc32_calculate(const struct crc32 *, const void *, size_t);
+/**
+ * The definition of the used algorithm.
+ *
+ * This is not used anywhere in the generated code, but it may be used by the
+ * application code to call algoritm-specific code, is desired.
+ *****************************************************************************/
+#define CRC_ALGO_TABLE_DRIVEN 1
 
-#endif /* crc32.h */
+
+/**
+ * The type of the CRC values.
+ *
+ * This type must be big enough to contain at least 32 bits.
+ *****************************************************************************/
+typedef uint_fast32_t crc_t;
+
+
+/**
+ * Reflect all bits of a \a data word of \a data_len bytes.
+ *
+ * \param data         The data word to be reflected.
+ * \param data_len     The width of \a data expressed in number of bits.
+ * \return             The reflected data.
+ *****************************************************************************/
+crc_t crc_reflect(crc_t data, size_t data_len);
+
+
+/**
+ * Calculate the initial crc value.
+ *
+ * \return     The initial crc value.
+ *****************************************************************************/
+static inline crc_t crc_init(void)
+{
+    return 0xffffffff;
+}
+
+
+/**
+ * Update the crc value with new data.
+ *
+ * \param crc      The current crc value.
+ * \param data     Pointer to a buffer of \a data_len bytes.
+ * \param data_len Number of bytes in the \a data buffer.
+ * \return         The updated crc value.
+ *****************************************************************************/
+crc_t crc_update(crc_t crc, const unsigned char *data, size_t data_len);
+
+
+/**
+ * Calculate the final crc value.
+ *
+ * \param crc  The current crc value.
+ * \return     The final crc value.
+ *****************************************************************************/
+static inline crc_t crc_finalize(crc_t crc)
+{
+    return crc ^ 0xffffffff;
+}
+
+
+#ifdef __cplusplus
+}           /* closing brace for extern "C" */
+#endif
+
+#endif      /* __CRC32C_H__ */
