@@ -351,12 +351,16 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
             case OXM_OF_IPV6_ND_TARGET:{
                 struct icmp_header *icmp = pkt->handle_std->proto->icmp;
                 uint8_t offset;
+                uint8_t * old_value;
                 uint8_t *data = (uint8_t*)icmp;
                 /*ICMP header + neighbor discovery header reserverd bytes*/
                 offset = sizeof(struct icmp_header) + 4;
-
+                old_value = data + offset;
                 memcpy(data + offset, act->field->value,
                                             OXM_LENGTH(act->field->header));
+
+                icmp->icmp_csum = recalc_csum128(icmp->icmp_csum,
+                        old_value, act->field->value);
                 break;
             }
             case OXM_OF_IPV6_ND_SLL:
