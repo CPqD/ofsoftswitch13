@@ -219,13 +219,13 @@ oxm_prereqs_ok(const struct oxm_field *field, const struct ofl_match *rule)
 {
 
     struct ofl_match_tlv *omt = NULL;
-
+    bool found =  false;
     /*Check ICMP type*/
     if (field->header == OXM_OF_IPV6_ND_SLL || field->header == OXM_OF_IPV6_ND_TARGET ){
-        bool found =  false;
+        
         HMAP_FOR_EACH_WITH_HASH (omt, struct ofl_match_tlv, hmap_node, hash_int(OXM_OF_ICMPV6_TYPE, 0),
               &rule->match_fields) {
-            if (*omt->value != ICMPV6_NEIGHSOL){
+            if (*(omt)->value != ICMPV6_NEIGHSOL){
                 return false;
             }
             found = true;
@@ -234,8 +234,7 @@ oxm_prereqs_ok(const struct oxm_field *field, const struct ofl_match *rule)
             return false;
     }
     /*Check ICMP type*/
-    if (field->header == OXM_OF_IPV6_ND_TLL || field->header == OXM_OF_IPV6_ND_TARGET){
-        bool found =  false;
+    if ((field->header == OXM_OF_IPV6_ND_TLL || field->header == OXM_OF_IPV6_ND_TARGET) && !found){
         HMAP_FOR_EACH_WITH_HASH (omt, struct ofl_match_tlv, hmap_node, hash_int(OXM_OF_ICMPV6_TYPE, 0),
               &rule->match_fields) {
             if (*omt->value != ICMPV6_NEIGHADV){
@@ -249,7 +248,7 @@ oxm_prereqs_ok(const struct oxm_field *field, const struct ofl_match *rule)
 
     /*Check for IP_PROTO */
     if (field->nw_proto){
-        bool found =  false;
+        found =  false;
         HMAP_FOR_EACH_WITH_HASH (omt, struct ofl_match_tlv, hmap_node, hash_int(OXM_OF_IP_PROTO, 0),
             &rule->match_fields) {
             uint8_t ip_proto;
@@ -471,23 +470,25 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
         case OFI_OXM_OF_UDP_DST:
             /* SCTP header. */
         case OFI_OXM_OF_SCTP_SRC:
-        case OFI_OXM_OF_SCTP_DST:
-                ofl_structs_match_put16(match, f->header, ntohs(*((uint16_t*) value)));
-                return 0;
+        case OFI_OXM_OF_SCTP_DST:{
+            ofl_structs_match_put16(match, f->header, ntohs(*((uint16_t*) value)));
+            return 0;
+        }
             /* ICMP header. */
         case OFI_OXM_OF_ICMPV4_TYPE:
         case OFI_OXM_OF_ICMPV4_CODE:
             /* ICMPv6 header. */
         case OFI_OXM_OF_ICMPV6_TYPE:
         case OFI_OXM_OF_ICMPV6_CODE:{
-                uint8_t *v = (uint8_t*) value;
-                ofl_structs_match_put8(match, f->header, *v);
+            uint8_t *v = (uint8_t*) value;
+            ofl_structs_match_put8(match, f->header, *v);
                 return 0;
         }
             /* IPv6 Neighbor Discovery. */
-        case OFI_OXM_OF_IPV6_ND_TARGET:
-            ofl_structs_match_put_ipv6(match, f->header,(uint8_t* ) value);
+        case OFI_OXM_OF_IPV6_ND_TARGET:{
+            ofl_structs_match_put_ipv6(match, f->header,(uint8_t* ) value);            
             return 0;
+        }
         case OFI_OXM_OF_IPV6_ND_SLL:
         case OFI_OXM_OF_IPV6_ND_TLL:
             ofl_structs_match_put_eth(match, f->header,(uint8_t* )value);
@@ -776,7 +777,8 @@ oxm_put_eth_dst(struct ofpbuf *b,
 static bool
 is_requisite(uint32_t header){
     if(header == OXM_OF_IN_PORT || header == OXM_OF_ETH_TYPE
-        || header == OXM_OF_VLAN_VID || header == OXM_OF_IP_PROTO) {
+        || header == OXM_OF_VLAN_VID || header == OXM_OF_IP_PROTO ||
+        header == OXM_OF_ICMPV6_TYPE) {
         return true;
     }
     return false;
@@ -819,6 +821,13 @@ int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt){
 
     /* L3 Pre-requisites */
      HMAP_FOR_EACH_WITH_HASH(oft, struct ofl_match_tlv, hmap_node, hash_int(OXM_OF_IP_PROTO, 0),
+          &omt->match_fields) {
+         uint8_t value;
+         memcpy(&value, oft->value,sizeof(uint8_t));
+         oxm_put_8(buf,oft->header, value);
+    }
+
+    HMAP_FOR_EACH_WITH_HASH(oft, struct ofl_match_tlv, hmap_node, hash_int(OXM_OF_ICMPV6_TYPE, 0),
           &omt->match_fields) {
          uint8_t value;
          memcpy(&value, oft->value,sizeof(uint8_t));

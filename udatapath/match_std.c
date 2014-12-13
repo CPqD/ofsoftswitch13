@@ -105,7 +105,6 @@ static inline bool
 match_64(uint8_t *a, uint8_t *b) {
     uint64_t *a1 = (uint64_t *) a;
     uint64_t *b1 = (uint64_t *) b;
-    VLOG_ERR(LOG_MODULE, "Result %"PRIx64" %"PRIx64"", *a1, *b1);
     return (*a1 == *b1);
 }
 
