@@ -142,7 +142,7 @@ meter_entry_create(struct datapath *dp, struct meter_table *table, struct ofl_ms
 void
 meter_entry_update(struct meter_entry *entry) {
     entry->stats->duration_sec  =  (time_msec() - entry->created) / 1000;
-    entry->stats->duration_nsec = ((time_msec() - entry->created) % 1000) * 1000;
+    entry->stats->duration_nsec = ((time_msec() - entry->created) % 1000) * 1000000;
 }
 
 void

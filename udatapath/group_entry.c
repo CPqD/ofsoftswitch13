@@ -317,7 +317,7 @@ group_entry_execute(struct group_entry *entry,
 void
 group_entry_update(struct group_entry *entry){
     entry->stats->duration_sec  =  (time_msec() - entry->created) / 1000;
-    entry->stats->duration_nsec = ((time_msec() - entry->created) % 1000) * 1000;
+    entry->stats->duration_nsec = ((time_msec() - entry->created) % 1000) * 1000000;
 }
 
 /* Returns true if the group entry has  reference to the flow entry. */
