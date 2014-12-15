@@ -715,7 +715,7 @@ dp_ports_handle_port_mod(struct datapath *dp, struct ofl_msg_port_mod *msg,
 static void
 dp_port_stats_update(struct sw_port *port) {
     port->stats->duration_sec  =  (time_msec() - port->created) / 1000;
-    port->stats->duration_nsec = ((time_msec() - port->created) % 1000) * 1000;
+    port->stats->duration_nsec = ((time_msec() - port->created) % 1000) * 1000000;
 }
 
 void
@@ -807,7 +807,7 @@ dp_ports_handle_port_desc_request(struct datapath *dp,
 static void
 dp_ports_queue_update(struct sw_queue *queue) {
     queue->stats->duration_sec  =  (time_msec() - queue->created) / 1000;
-    queue->stats->duration_nsec = ((time_msec() - queue->created) % 1000) * 1000;
+    queue->stats->duration_nsec = ((time_msec() - queue->created) % 1000) * 1000000;
 }
 
 ofl_err
