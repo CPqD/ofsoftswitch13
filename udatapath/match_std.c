@@ -95,9 +95,8 @@ static inline bool
 match_mask32(uint8_t *a, uint8_t *am, uint8_t *b) {
     uint32_t *a1 = (uint32_t *) a;
     uint32_t *b1 = (uint32_t *) b;
-    uint32_t mask = (uint32_t) ((uint8_t) ~am[0] << 24 | (uint8_t) ~am[1] << 16 
-        | (uint8_t) ~am[2] << 8 | (uint8_t) ~am[3]);  
-    return (((mask) & (*a1 ^ *b1)) == 0);
+    uint32_t *mask = (uint32_t*) am;
+    return (((*mask) & (*a1 ^ *b1)) == 0);
 }
 
 /* Returns true if two 48 bit values match */
