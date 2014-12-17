@@ -231,10 +231,11 @@ int nblink_extract_proto_fields(struct ofpbuf * pktin, _nbPDMLField * field, str
             ofl_structs_match_put16(pktout, header, m_value);
         }
         else if (header == OXM_OF_VLAN_PCP){
-            uint8_t m_value;
-            sscanf(field->Value, "%hhx", &m_value);
-            m_value = (m_value  & VLAN_PCP_MASK) >> VLAN_PCP_SHIFT;
-            ofl_structs_match_put8(pktout, header, m_value);
+            uint16_t m_value;
+            uint8_t vlan_pcp;
+            sscanf(field->Value, "%hx", &m_value);
+            vlan_pcp = (m_value  & VLAN_PCP_MASK) >> VLAN_PCP_SHIFT;
+            ofl_structs_match_put8(pktout, header, vlan_pcp);
         }
         else if(header == OXM_OF_IP_DSCP){
             uint8_t m_value;
