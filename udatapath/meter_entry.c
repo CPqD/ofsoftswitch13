@@ -226,9 +226,9 @@ meter_entry_apply(struct meter_entry *entry, struct packet **pkt){
                 break;
             }
             case OFPMBT_DSCP_REMARK:{
-                                /* Nothing prevent this band to be used for non-IP packets, so filter them out. Jean II */
+                struct ofl_meter_band_dscp_remark *band_header = (struct ofl_meter_band_dscp_remark *)  entry->config->bands[b];
+                /* Nothing prevent this band to be used for non-IP packets, so filter them out. Jean II */
                 if ((*pkt)->handle_std->proto->ipv4 != NULL) {
-                                    struct ofl_meter_band_dscp_remark *band_header = (struct ofl_meter_band_dscp_remark *)  entry->config->bands[b];
                     // Fetch dscp in ipv4 header
                     struct ip_header *ipv4 = (*pkt)->handle_std->proto->ipv4;
                     uint8_t old_drop = ipv4->ip_tos & 0x1C;
@@ -239,7 +239,7 @@ meter_entry_apply(struct meter_entry *entry, struct packet **pkt){
                                        drop precedence is low (tos 0x***010**)
                                        or medium (tos 0x***100**). Jean II */
                     if (((old_drop == 0x8) && (band_header->prec_level <= 2)) || ((old_drop == 0x10) && (band_header->prec_level <= 1))) {
-                                        uint8_t new_drop = old_drop + (band_header->prec_level << 3);
+                        uint8_t new_drop = old_drop + (band_header->prec_level << 3);
                         uint8_t new_tos = new_drop | (ipv4->ip_tos & 0xE3);
                         uint16_t old_val = htons((ipv4->ip_ihl_ver << 8) + ipv4->ip_tos);
                         uint16_t new_val = htons((ipv4->ip_ihl_ver << 8) + new_tos);
@@ -247,8 +247,18 @@ meter_entry_apply(struct meter_entry *entry, struct packet **pkt){
                         ipv4->ip_tos = new_tos;
                     }
                 }
+                else if ((*pkt)->handle_std->proto->ipv6 != NULL){
+                    struct ipv6_header *ipv6 = (*pkt)->handle_std->proto->ipv6;
+                    uint32_t ipv6_ver_tc_fl = ntohl(ipv6->ipv6_ver_tc_fl);
+                    uint32_t old_drop = ipv6_ver_tc_fl & 0x1C00000;
+                    if (((old_drop == 0x800000) && (band_header->prec_level <= 2)) || ((old_drop == 0x1000000) && (band_header->prec_level <= 1))){
+                        uint32_t prec_level = band_header->prec_level << 23;
+                        uint32_t new_drop = old_drop + prec_level;
+                        ipv6->ipv6_ver_tc_fl = htonl(new_drop | (ipv6_ver_tc_fl & 0xFE3FFFFF));
+                    }
+                }
                 break;
-                        }
+            }
             case OFPMBT_EXPERIMENTER:{
                 break;
             }
