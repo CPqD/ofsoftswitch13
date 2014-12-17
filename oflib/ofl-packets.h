@@ -40,6 +40,7 @@
 #define ETH_TYPE_MPLS          0x8847
 #define ETH_TYPE_MPLS_MCAST    0x8848
 
+#define PBB_ISID_LEN		   3
 #define ETH_ADDR_LEN           6
 #define IPv6_ADDR_LEN	       16
 

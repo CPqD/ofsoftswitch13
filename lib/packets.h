@@ -381,6 +381,8 @@ struct qtag_prefix {
     uint16_t tci;
 };
 
+
+#define PBB_ISID_LEN 3
 #define PBB_HEADER_LEN 18
 #define PBB_ISID_MASK 0xffffff
 

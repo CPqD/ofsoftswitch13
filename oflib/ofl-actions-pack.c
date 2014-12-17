@@ -207,10 +207,10 @@ ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, u
             switch (OXM_LENGTH(sa->field->header)){
                 case 1:
                 case 6:
+                case 3:
                 case 16:
                     memcpy(data + (sizeof(struct ofp_action_set_field)), sa->field->value, OXM_LENGTH(sa->field->header));
                     break;
-                
                 case 2:{
                    uint16_t value = htons(*((uint16_t*) sa->field->value));
                    memcpy(data + (sizeof(struct ofp_action_set_field)),&value,OXM_LENGTH(sa->field->header));

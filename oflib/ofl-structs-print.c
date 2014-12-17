@@ -404,9 +404,9 @@ ofl_structs_oxm_tlv_print(FILE *stream, struct ofl_match_tlv *f)
 			}
 			break;
 		case OFPXMT_OFB_PBB_ISID   :
-			fprintf(stream, "pbb_isid=\"%d\"", *((uint32_t*) f->value));
+			fprintf(stream, "pbb_isid=\"%x%x%x\"", f->value[0],f->value[1], f->value[2]);
 			if (OXM_HASMASK(f->header)) {
-				fprintf(stream, ", pbb_isid_mask=\"%d\"", *((uint32_t*)(f->value+4)));
+				fprintf(stream, ", pbb_isid_mask=\"%x%x%x\"", (f->value+4)[0], (f->value+4)[1], (f->value+4)[2]);
 			}
 			break;
 		case OFPXMT_OFB_TUNNEL_ID:

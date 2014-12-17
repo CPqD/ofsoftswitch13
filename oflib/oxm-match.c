@@ -95,7 +95,7 @@ oxm_init(void)
         int i;
 
         for (i = 0; i < NUM_OXM_FIELDS; i++) {
-            struct oxm_field *f = &all_fields[i];            
+            struct oxm_field *f = &all_fields[i];
             hmap_insert(&all_oxm_fields, &f->hmap_node,
                         hash_int(f->header, 0));
         }
@@ -173,7 +173,6 @@ struct oxm_field *
 oxm_field_lookup(uint32_t header)
 {
     struct oxm_field *f;
-
     oxm_init();
       
     HMAP_FOR_EACH_WITH_HASH(f, struct oxm_field, hmap_node, hash_int(header, 0),
@@ -512,14 +511,20 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
              return 0;
         }
         case OFI_OXM_OF_PBB_ISID:{
-             ofl_structs_match_put32(match, f->header, ntohl(*((uint32_t*) value)));
-             return 0;
+            uint8_t* pbb_isid;
+            pbb_isid = value;                    
+            ofl_structs_match_put_pbb_isid(match, f->header, pbb_isid);
+            return 0;
         }
         case OFI_OXM_OF_PBB_ISID_W:{
+            uint8_t* pbb_isid;
+            uint8_t* pbb_isid_mask;
+            pbb_isid = value;
+            pbb_isid_mask = mask;
             if (check_bad_wildcard32(*((uint32_t*) value), *((uint32_t*) mask))){
                 return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
-            }
-            ofl_structs_match_put32m(match, f->header, ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)));
+            }            
+            ofl_structs_match_put_pbb_isidm(match, f->header, pbb_isid, (uint8_t*) &pbb_isid_mask);
             return 0;
         }
         case OFI_OXM_OF_TUNNEL_ID:{
@@ -577,7 +582,6 @@ oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len)
         const struct oxm_field *f;
         int error;
         f = oxm_field_lookup(header);
-
         if (!f) {
             error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_FIELD);
         }
@@ -717,6 +721,24 @@ oxm_put_64w(struct ofpbuf *buf, uint32_t header, uint64_t value, uint64_t mask)
     oxm_put_header(buf, header);
     ofpbuf_put(buf, &value, sizeof value);
     ofpbuf_put(buf, &mask, sizeof mask);
+}
+
+static void
+oxm_put_pbb(struct ofpbuf *buf, uint32_t header,
+            const uint8_t value[PBB_ISID_LEN])
+{
+    oxm_put_header(buf, header);
+    ofpbuf_put(buf, value, PBB_ISID_LEN);
+
+}
+
+static void
+oxm_put_pbbm(struct ofpbuf *buf, uint32_t header,
+            const uint8_t value[PBB_ISID_LEN], const uint8_t mask[PBB_ISID_LEN])
+{
+    oxm_put_header(buf, header);
+    ofpbuf_put(buf, value, PBB_ISID_LEN);
+    ofpbuf_put(buf, mask, PBB_ISID_LEN);
 }
 
 static void
@@ -872,6 +894,20 @@ int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt){
                     }
                     break;
                 }
+                case (PBB_ISID_LEN):{
+                    {
+                     uint8_t value[PBB_ISID_LEN];
+                     memcpy(&value, oft->value, PBB_ISID_LEN);
+                     if(!has_mask)
+                         oxm_put_pbb(buf,oft->header, value);
+                     else {
+                         uint8_t mask[PBB_ISID_LEN];
+                         memcpy(&mask, oft->value + length ,PBB_ISID_LEN);
+                         oxm_put_pbbm(buf, oft->header,value, mask);
+                      }
+                      break;
+                   }
+                } 
                 case (sizeof(uint32_t)):{
                     uint32_t value;
                     memcpy(&value, oft->value,sizeof(uint32_t));

@@ -292,11 +292,11 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             }
             switch(OXM_LENGTH(da->field->header)){
                 case 1:
+                case 3:
                 case 6:
                 case 16:
                     memcpy(da->field->value , value, OXM_LENGTH(da->field->header));
                     break;
-                
                 case 2:{
                    uint16_t v = ntohs(*((uint16_t*) value));
                    memcpy(da->field->value , &v, OXM_LENGTH(da->field->header));
