@@ -64,8 +64,8 @@ static inline bool
 match_mask16(uint8_t *a, uint8_t *am, uint8_t *b) {
     uint16_t *a1 = (uint16_t *) a;
     uint16_t *b1 = (uint16_t *) b;
-    uint16_t mask = (uint16_t) ((uint8_t) ~am[0] << 8 | (uint8_t) ~a[1]);    
-    return (((mask) & (*a1 ^ *b1)) == 0);
+    uint16_t *mask = (uint16_t*) am;
+    return (((*mask) & (*a1 ^ *b1)) == 0);
 }
 
 /* Returns true if two 24 bit values match */
@@ -214,9 +214,17 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
                             /* Any VLAN ID is acceptable. No further checks */
                         } else {
                             /* Check the VLAN ID */
-                            *flow_vlan_id &= VLAN_VID_MASK; 
-                            if (!match_16(flow_val, packet_val))
-                                return false;
+                            *flow_vlan_id &= VLAN_VID_MASK;
+                            if (has_mask){
+                                if (!match_mask16(flow_val, flow_mask, packet_val)){
+                                    return false;
+                                }
+                            }
+                            else {
+                                if (!match_16(flow_val, packet_val)){
+                                    return false;
+                                }
+                            }
                         }
                         break;
                     }
