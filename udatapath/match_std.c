@@ -245,9 +245,17 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet, struct ofl_
                             /* Any VLAN ID is acceptable. No further checks */
                         } else {
                             /* Check the VLAN ID */
-                            *flow_vlan_id &= VLAN_VID_MASK; 
-                            if (!match_16(flow_val, packet_val))
-                                return false;
+                            *flow_vlan_id &= VLAN_VID_MASK;
+                            if (has_mask){
+                                if (!match_mask16(flow_val, flow_mask, packet_val)){
+                                    return false;
+                                }
+                            }
+                            else {
+                                if (!match_16(flow_val, packet_val)){
+                                    return false;
+                                }
+                            }
                         }
                         break;
                     }
