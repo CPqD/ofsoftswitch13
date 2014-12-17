@@ -993,7 +993,7 @@ netdev_recv(struct netdev *netdev, struct ofpbuf *buffer)
             for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
                 struct tpacket_auxdata *aux;
                 struct vlan_tag *tag;
-
+                uint16_t eth_type;
                 buffer->size += n_bytes;
 
                 if (cmsg->cmsg_len < CMSG_LEN(sizeof(struct tpacket_auxdata)) ||
@@ -1006,11 +1006,13 @@ netdev_recv(struct netdev *netdev, struct ofpbuf *buffer)
                   continue;
                 /* VLAN tag found. Shift MAC addresses down and insert VLAN tag */
                 /* Create headroom for the VLAN tag */
-                uint16_t* eth_type = (uint16_t *)(buffer->data + ETHER_ADDR_LEN * 2);                
+                eth_type = ntohs(*((uint16_t *)(buffer->data + ETHER_ADDR_LEN * 2)));                
                 ofpbuf_push_uninit(buffer, VLAN_HEADER_LEN);
                 memmove(buffer->data, (uint8_t*)buffer->data+VLAN_HEADER_LEN, ETH_ALEN * 2);
                 tag = (struct vlan_tag *)((uint8_t*)buffer->data + ETH_ALEN * 2);
-                if (ntohs(*eth_type) == ETH_TYPE_VLAN_PBB_S){
+                if (eth_type == ETH_TYPE_VLAN_PBB_S || 
+                    eth_type == ETH_TYPE_VLAN_PBB_B || 
+                    eth_type == ETH_TYPE_VLAN){
                     tag->vlan_tp_id = htons(ETH_TYPE_VLAN_PBB_B);
                 }
                 else {
