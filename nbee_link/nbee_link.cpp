@@ -284,9 +284,13 @@ int nblink_extract_proto_fields(struct ofpbuf * pktin, _nbPDMLField * field, str
         }
         else if (header == OXM_OF_PBB_ISID){
             uint32_t m_value;
+            uint8_t pbb_isid[3];
             sscanf(field->Value, "%x", &m_value);
             m_value = (m_value & PBB_ISID_MASK);
-            ofl_structs_match_put32(pktout, header, m_value);        
+            pbb_isid[0] = (m_value >> 24) & 0xff;
+            pbb_isid[1] = (m_value >> 16) & 0xff;
+            pbb_isid[2] = m_value & 0xff;                                
+            ofl_structs_match_put_pbb_isid(pktout, header, pbb_isid);        
         }
         else if (header == OXM_OF_IPV6_FLABEL){
             uint32_t m_value;
@@ -593,8 +597,8 @@ extern "C" int nblink_packet_parse(struct ofpbuf * pktin,  struct ofl_match * pk
                 nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_ICMPV6_CODE);
                 if (PDMLReader->GetPDMLField(proto->Name, (char*) "NeighSol", proto->FirstField, &field) == nbSUCCESS ||
                     PDMLReader->GetPDMLField(proto->Name, (char*) "NeighAdv", proto->FirstField, &field) == nbSUCCESS){
-                    
                     PDMLReader->GetPDMLField(proto->Name, (char*) "target_address", proto->FirstField, &field);                                            
+                    
                     nblink_extract_proto_fields(pktin, field, pktout, OXM_OF_IPV6_ND_TARGET);                    
                 }
                 if (PDMLReader->GetPDMLField(proto->Name, (char*) "NDO", proto->FirstField, &field) == nbSUCCESS){

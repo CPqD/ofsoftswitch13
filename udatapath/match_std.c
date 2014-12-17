@@ -68,6 +68,20 @@ match_mask16(uint8_t *a, uint8_t *am, uint8_t *b) {
     return (((*mask) & (*a1 ^ *b1)) == 0);
 }
 
+/* Returns true if two 24 bit values match */
+static inline bool
+match_24(uint8_t *a, uint8_t *b) {     
+     return (match_16(a, b) &&
+             match_8(a+2, b+2));
+}
+
+/* Returns true if two masked 24 bit values match */
+static inline bool
+match_mask24(uint8_t *a, uint8_t *am, uint8_t *b) {
+     return (match_mask16(a, am, b) &&
+             match_mask8(a+2, am+2, b+2));
+}
+
 /* Returns true if two 32 bit values match */
 static inline bool
 match_32(uint8_t *a, uint8_t *b) {
@@ -259,6 +273,16 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet, struct ofl_
                         break;
                 }
                 break;
+            case 3:
+                if (has_mask) {
+                    if (!match_mask24(flow_val, flow_mask, packet_val))
+                        return false;
+                }
+                else {
+                    if (!match_24(flow_val, packet_val))
+                        return false;
+                }
+                break;
             case 4:
                 if (has_mask) {
                     if (!match_mask32(flow_val, flow_mask, packet_val))
@@ -321,6 +345,12 @@ strict_mask16(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
     uint16_t *mask_a = (uint16_t *) am;
     uint16_t *mask_b = (uint16_t *) bm;
     return (*mask_a == *mask_b) && (((*a1 ^ *b1) & (*mask_a))== 0);
+}
+
+static inline bool
+strict_mask24(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
+    return strict_mask16(a, b, am, bm) &&
+           strict_mask8(a+2, b+2, am+2, bm+2);
 }
 
 static inline bool
@@ -434,6 +464,16 @@ match_std_strict(struct ofl_match *a, struct ofl_match *b, struct ofl_exp *exp) 
                         return false;
                 }
                 break;
+            case 3:
+                if (has_mask) {
+                    if (!strict_mask24(flow_mod_val, flow_entry_val, flow_mod_mask, flow_entry_mask))
+                        return false;
+                }
+                else {
+                    if (!match_24(flow_mod_val, flow_entry_val))
+                        return false;
+                }
+                break;
             case 4:
                 if (has_mask) {
                     if (!strict_mask32(flow_mod_val, flow_entry_val, flow_mod_mask, flow_entry_mask))
@@ -500,6 +540,12 @@ nonstrict_mask16(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
     uint16_t *mask_a = (uint16_t *) am;
     uint16_t *mask_b = (uint16_t *) bm;
     return (~(*mask_a) & (~(*a1) | ~(*b1) | *mask_b) & (*a1| *b1 | *mask_b)) == 0;
+}
+
+static inline bool
+nonstrict_mask24(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
+    return nonstrict_mask16(a,  b, am, bm) &&
+           nonstrict_mask8(a+2, b+2, am+2, bm+2);
 }
 
 static inline bool
@@ -608,6 +654,16 @@ match_std_nonstrict(struct ofl_match *a, struct ofl_match *b, struct ofl_exp *ex
                 }
                 else {
                     if (!match_16(flow_mod_val, flow_entry_val))
+                        return false;
+                }
+                break;
+             case 3:
+                if (has_mask) {
+                    if (!nonstrict_mask24(flow_mod_val, flow_entry_val, flow_mod_mask, flow_entry_mask))
+                        return false;
+                }
+                else {
+                    if (!match_24(flow_mod_val, flow_entry_val))
                         return false;
                 }
                 break;

@@ -81,6 +81,7 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
     {
         /*Field existence is guaranteed by the
         field pre-requisite on matching */
+        fprintf(stderr, "Header %d\n", OXM_FIELD(act->field->header));
         switch(act->field->header){
             case OXM_OF_ETH_DST:{
                 memcpy(pkt->handle_std->proto->eth->eth_dst,
@@ -410,9 +411,9 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
             }
             case OXM_OF_PBB_ISID :{
                 struct pbb_header *pbb = pkt->handle_std->proto->pbb;
-                uint32_t v = *((uint32_t*) act->field->value);
-                pbb->id = (pbb->id & ~ntohl(PBB_ISID_MASK)) |
-                                                ntohl(v & PBB_ISID_MASK);
+                uint8_t* pbb_isid;
+                pbb_isid = act->field->value; 
+                pbb->id = (pbb->id & 0xFF) | ((pbb_isid[2] << 24) | (pbb_isid[1] << 16) | (pbb_isid[1] << 8));                 
                 break;
             }
             case OXM_OF_TUNNEL_ID :{
