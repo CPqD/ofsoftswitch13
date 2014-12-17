@@ -254,7 +254,7 @@ int nblink_extract_proto_fields(struct ofpbuf * pktin, _nbPDMLField * field, str
             uint8_t m_value;
             if (strcmp(field->Name, "ip ecn") == 0){
                 sscanf(field->Value, "%hhx", &m_value);
-                m_value = (m_value & IP_ECN_MASK) >> IPV6_ECN_SHIFT; 
+                m_value = (m_value & IP_ECN_MASK); 
                 ofl_structs_match_put8(pktout, header, m_value);
             }
             else {
