@@ -36,7 +36,7 @@
 #include "../oflib/ofl-structs.h"
 #include "../oflib/ofl-messages.h"
 
-
+/*experimenter messages ofl_exp*/
 struct ofl_exp_openflow_msg_header {
     struct ofl_msg_experimenter   header; /* OPENFLOW_VENDOR_ID */
 
@@ -57,6 +57,21 @@ struct ofl_exp_openflow_msg_set_dp_desc {
     char  *dp_desc;
 };
 
+/*************************************************************************/
+/*experimenter actions ofl_exp*/
+struct ofl_exp_openflow_act_header {
+    struct ofl_action_experimenter   header; /* OPENFLOW_VENDOR_ID */
+
+    uint32_t   act_type;
+};
+
+
+struct ofl_exp_set_state_action {
+    struct ofl_exp_openflow_act_header  header; /* OFPAT_EXP_SET_STATE */
+
+    uint32_t state;
+    uint8_t stage_id; /*we have 64 flow table in the pipeline*/
+};
 
 
 int
@@ -71,5 +86,21 @@ ofl_exp_openflow_msg_free(struct ofl_msg_experimenter *msg);
 char *
 ofl_exp_openflow_msg_to_string(struct ofl_msg_experimenter *msg);
 
+/*experimenter action functions*/
+
+int 
+ofl_exp_openflow_act_pack(struct ofl_action_header *src, struct ofp_action_header *dst);
+
+ofl_err
+ofl_exp_openflow_act_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action_header **dst);
+
+size_t
+ofl_exp_openflow_act_ofp_len(struct ofl_action_header *act);
+
+int     
+ofl_exp_openflow_act_free(struct ofl_action_header *act);
+
+char *
+ofl_exp_openflow_act_to_string(struct ofl_action_header *act);
 
 #endif /* OFL_EXP_OPENFLOW_H */

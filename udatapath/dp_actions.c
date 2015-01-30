@@ -946,13 +946,6 @@ dp_execute_action(struct packet *pkt,
             group(pkt, (struct ofl_action_group *)action);
             break;
         }
-        case (OFPAT_SET_STATE): {
-            struct ofl_action_set_state *wns = (struct ofl_action_set_state *)action;
-            struct state_table *st = pkt->dp->pipeline->tables[wns->stage_id]->state_table;
-            VLOG_WARN_RL(LOG_MODULE, &rl, "executing action NEXT STATE at stage %u\n", wns->stage_id);
-            state_table_set_state(st, pkt, wns->state, NULL, 0);
-            break;
-        }
         case (OFPAT_SET_FLAG): {
             set_flag(pkt, (struct ofl_action_set_flag *)action);
             break;
@@ -974,7 +967,7 @@ dp_execute_action(struct packet *pkt,
             break;
         }
         case (OFPAT_EXPERIMENTER): {
-        	dp_exp_action(pkt, (struct ofl_action_experimenter *)action);
+            dp_exp_action(pkt, (struct ofl_action_experimenter *)action);
             break;
         }
 

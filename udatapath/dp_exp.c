@@ -44,14 +44,38 @@
 #include "openflow/openflow-ext.h"
 #include "openflow/nicira-ext.h"
 #include "vlog.h"
+#include "pipeline.h"
 
 #define LOG_MODULE VLM_dp_exp
 
 static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(60, 60);
 
 void
-dp_exp_action(struct packet * pkt UNUSED, struct ofl_action_experimenter *act) {
-	VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute unknown experimenter action (%u).", act->experimenter_id);
+dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
+    
+    if(act->experimenter_id == OPENFLOW_VENDOR_ID)
+    {
+        struct ofl_exp_openflow_act_header *action;
+        action = (struct ofl_exp_openflow_act_header *) act;
+        switch(action->act_type){
+
+            case(OFPAT_EXP_SET_STATE):{
+                struct ofl_exp_set_state_action *wns = (struct ofl_exp_set_state_action *)action;
+                struct state_table *st = pkt->dp->pipeline->tables[wns->stage_id]->state_table;
+                VLOG_WARN_RL(LOG_MODULE, &rl, "executing action NEXT STATE at stage %u\n", wns->stage_id);
+                state_table_set_state(st, pkt, wns->state, NULL, 0);
+                break;
+            }
+            default:
+                VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute unknown experimenter action (%zu).", htonl(act->experimenter_id));
+                break;
+        }
+        if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
+            char *p = packet_to_string(pkt);
+            VLOG_DBG_RL(LOG_MODULE, &rl, "action result: %s", p);
+            free(p);
+        }
+    }
 }
 
 void

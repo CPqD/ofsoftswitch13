@@ -73,8 +73,15 @@ static struct ofl_exp_msg ofl_exp_msg =
          .free      = ofl_exp_msg_free,
          .to_string = ofl_exp_msg_to_string};
 
+static struct ofl_exp_act ofl_exp_act =
+        {.pack      = ofl_exp_act_pack,
+         .unpack    = ofl_exp_act_unpack,
+         .free      = ofl_exp_act_free,
+         .ofp_len   = ofl_exp_act_ofp_len,
+         .to_string = ofl_exp_act_to_string};
+
 static struct ofl_exp ofl_exp =
-        {.act   = NULL,
+        {.act   = &ofl_exp_act,
          .inst  = NULL,
          .match = NULL,
          .stats = NULL,

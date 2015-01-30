@@ -42,6 +42,9 @@
 #include "ofl-log.h"
 #include "openflow/openflow.h"
 
+
+
+
 #define LOG_MODULE ofl_act_p
 OFL_LOG_INIT(LOG_MODULE)
 
@@ -85,10 +88,10 @@ ofl_actions_ofp_len(struct ofl_action_header *action, struct ofl_exp *exp) {
                 OFL_LOG_WARN(LOG_MODULE, "requesting experimenter length, but no callback was given.");
                 return -1;
             }
+            struct ofl_action_experimenter* exp2 = (struct ofl_action_experimenter *) action;
+            struct ofl_exp_openflow_act_header* ext = (struct ofl_exp_openflow_act_header *) exp2;
             return exp->act->ofp_len(action);
         }
-        case OFPAT_SET_STATE:
-            return sizeof(struct ofp_action_set_state);
         case OFPAT_SET_FLAG:
             return sizeof(struct ofp_action_set_flag);
     
@@ -249,16 +252,7 @@ ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, u
                 return 0;
             }
             return exp->act->pack(src, dst);
-        }
-        case OFPAT_SET_STATE: {
-            struct ofl_action_set_state *sa = (struct ofl_action_set_state *) src;
-            struct ofp_action_set_state *da = (struct ofp_action_set_state *) dst;
-
-            da->len = htons(sizeof(struct ofp_action_set_state));
-            da->state = htonl(sa->state);
-            da->stage_id = sa->stage_id;
-
-            return sizeof(struct ofp_action_set_state);
+            
         }
         case OFPAT_SET_FLAG: {
             struct ofl_action_set_flag *sa = (struct ofl_action_set_flag *) src;

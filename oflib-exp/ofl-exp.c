@@ -125,3 +125,91 @@ ofl_exp_msg_to_string(struct ofl_msg_experimenter *msg) {
         }
     }
 }
+
+int 
+ofl_exp_act_pack(struct ofl_action_header *src, struct ofp_action_header *dst){
+
+    struct ofl_action_experimenter *exp = (struct ofl_action_experimenter *) src;
+    
+    switch (exp->experimenter_id) {
+        case (OPENFLOW_VENDOR_ID): {
+            return ofl_exp_openflow_act_pack(src,dst);
+        }
+        default: {
+            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+        }
+
+    }
+}
+
+ofl_err 
+ofl_exp_act_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action_header **dst){
+    
+    struct ofp_action_experimenter_header *exp;
+
+    if (*len < sizeof(struct ofp_action_experimenter_header)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER action is shorter than ofp_experimenter_header.");
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+
+
+    exp = (struct ofp_action_experimenter_header *)src;
+
+    switch(htonl(exp->experimenter)){
+        case (OPENFLOW_VENDOR_ID): {
+            return ofl_exp_openflow_act_unpack(src,len,dst);
+        }
+        default: {
+            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+        }
+
+    }
+}
+
+
+int     
+ofl_exp_act_free(struct ofl_action_header *act){
+    
+    struct ofl_action_experimenter *exp = (struct ofl_action_experimenter *) act;
+        
+    switch (exp->experimenter_id) {
+        case (OPENFLOW_VENDOR_ID): {
+            return ofl_exp_openflow_act_free(act);
+        }
+        default: {
+            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+        }
+
+    }
+}
+
+size_t
+ofl_exp_act_ofp_len(struct ofl_action_header *act){    
+
+    struct ofl_action_experimenter *exp = (struct ofl_action_experimenter *) act;
+    switch (exp->experimenter_id) {
+        case (OPENFLOW_VENDOR_ID): {
+            return ofl_exp_openflow_act_ofp_len(act);
+        }
+        default: {
+            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+        }
+
+    }
+}
+
+char *
+ofl_exp_act_to_string(struct ofl_action_header *act){
+
+    struct ofl_action_experimenter* exp = (struct ofl_action_experimenter *) act;
+    
+    switch (exp->experimenter_id) {
+        case (OPENFLOW_VENDOR_ID): {
+            return ofl_exp_openflow_act_to_string(act);
+        }
+        default: {
+            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+        }
+
+    }
+}

@@ -196,8 +196,15 @@ static struct ofl_exp_msg dpctl_exp_msg =
          .free      = ofl_exp_msg_free,
          .to_string = ofl_exp_msg_to_string};
 
+static struct ofl_exp_act dpctl_exp_act =
+        {.pack      = ofl_exp_act_pack,
+         .unpack    = ofl_exp_act_unpack,
+         .free      = ofl_exp_act_free,
+         .ofp_len   = ofl_exp_act_ofp_len,
+         .to_string = ofl_exp_act_to_string};
+
 static struct ofl_exp dpctl_exp =
-        {.act   = NULL,
+        {.act   = &dpctl_exp_act,
          .inst  = NULL,
          .match = NULL,
          .stats = NULL,
@@ -225,7 +232,7 @@ dpctl_transact(struct vconn *vconn, struct ofl_msg_header *req,
         ofp_fatal(0, "Error during transaction.");
     }
     error = ofl_msg_unpack(ofpbufrepl->data, ofpbufrepl->size, repl, repl_xid_p, &dpctl_exp);
-
+    //ofp_fatal(0, "error = %d", error);
     if (error) {
         ofp_fatal(0, "Error unpacking reply.");
     }

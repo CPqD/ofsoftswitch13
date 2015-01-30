@@ -245,24 +245,6 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             break;
         }
 
-        case OFPAT_SET_STATE: {
-            struct ofp_action_set_state *sa;
-            struct ofl_action_set_state *da;
-            if (*len < sizeof(struct ofp_action_set_state)) {
-                OFL_LOG_WARN(LOG_MODULE, "Received SET STATE action has invalid length (%zu).", *len);
-                return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
-            }
-            sa = (struct ofp_action_set_state*)src;
-            da = (struct ofl_action_set_state *)malloc(sizeof(struct ofl_action_set_state));
-
-            da->state = ntohl(sa->state);
-            da->stage_id = sa->stage_id;
-
-            *dst = (struct ofl_action_header *)da;
-            *len -= sizeof(struct ofp_action_set_state);
-            break; 
-        }
-
         case OFPAT_SET_FLAG: {
             struct ofp_action_set_flag *sa;
             struct ofl_action_set_flag *da;

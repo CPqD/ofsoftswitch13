@@ -107,14 +107,6 @@ struct ofl_action_experimenter {
     uint32_t  experimenter_id; /* Experimenter ID */
 };
 
-/* XFSM: for supporting set state that should write the new state in the statetable of stage stage_id*/
-struct ofl_action_set_state {
-    struct ofl_action_header   header; /* OFPAT_SET_STATE */
-    uint32_t state;
-    uint8_t stage_id; /*we have 64 flow table in the pipeline*/
-    //uint64_t state;
-};
-
 struct ofl_action_set_flag {
     struct ofl_action_header   header; /* OFPAT_SET_FLAG */
     uint32_t value;

@@ -27,12 +27,40 @@ enum ofp_extension_commands { /* Queue configuration commands */
     OFP_EXT_COUNT
 };
 
-struct ofp_extension_header {
+enum ofp_action_extension_commands {
+    OFPAT_EXP_SET_STATE      /* Write the next state field for use later in
+                                pipeline */
+};
+
+struct ofp_message_extension_header {
     struct ofp_header header;
     uint32_t vendor;            /* OPENFLOW_VENDOR_ID. */
     uint32_t subtype;           /* One of ofp_extension_commands */
 };
-OFP_ASSERT(sizeof(struct ofp_extension_header) == 16);
+OFP_ASSERT(sizeof(struct ofp_message_extension_header) == 16);
+
+
+struct ofp_action_extension_header {
+    struct ofp_action_experimenter_header header;
+    uint32_t act_type;   /* One of ofp_action_extension_commands */
+    uint8_t pad[4];
+};
+OFP_ASSERT(sizeof(struct ofp_action_extension_header) == 16);
+
+/****************************************************************
+ *
+ * OpenFlow experimenter Actions
+ *
+ ****************************************************************/
+
+struct ofp_exp_set_state_action {
+    struct ofp_action_extension_header header;
+    uint32_t state; /* State instance. */
+    uint8_t stage_id; /*Stage destination*/
+    uint8_t pad[3];   /* Align to 64-bits. */
+};
+OFP_ASSERT(sizeof(struct ofp_exp_set_state_action) == 24);
+
 
 /****************************************************************
  *
@@ -41,7 +69,7 @@ OFP_ASSERT(sizeof(struct ofp_extension_header) == 16);
  ****************************************************************/
 
 struct openflow_queue_command_header {
-    struct ofp_extension_header header;
+    struct ofp_message_extension_header header;
     uint32_t port;              /* Port for operations */
     uint8_t pad[4];             /* Align to 64-bits */
     uint8_t body[0];            /* Body of ofp_queue objects for op. */
@@ -82,7 +110,7 @@ enum openflow_queue_error_code {
 extern char *openflow_queue_error_strings[];
 
 struct openflow_ext_set_dp_desc {
-    struct ofp_extension_header header;
+    struct ofp_message_extension_header header;
     char dp_desc[DESC_STR_LEN];
 };
 OFP_ASSERT(sizeof(struct openflow_ext_set_dp_desc) == 272);

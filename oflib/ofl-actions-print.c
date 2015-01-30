@@ -48,8 +48,7 @@
     "%02"PRIx8":%02"PRIx8":%02"PRIx8":%02"PRIx8":%02"PRIx8":%02"PRIx8
 #define ETH_ADDR_ARGS(ea)                                   \
     (ea)[0], (ea)[1], (ea)[2], (ea)[3], (ea)[4], (ea)[5]
-
-
+    
 
 char *
 ofl_action_to_string(struct ofl_action_header *act, struct ofl_exp *exp) {
@@ -152,16 +151,8 @@ ofl_action_print(FILE *stream, struct ofl_action_header *act, struct ofl_exp *ex
             } else {
                 char *c = exp->act->to_string(act);
                 fprintf(stream, "%s", c);
-                free (c);
+                free(c);
             }
-            break;
-        }
-        case OFPAT_SET_STATE: {
-            struct ofl_action_set_state *a = (struct ofl_action_set_state *)act;
-
-            fprintf(stream, "{state=\"%u\"", a->state);
-            fprintf(stream, ",stage_id=\"%u\"}", a->stage_id);
-
             break;
         }
         case OFPAT_SET_FLAG: {

@@ -96,8 +96,16 @@ static struct ofl_exp_msg dp_exp_msg =
          .free      = ofl_exp_msg_free,
          .to_string = ofl_exp_msg_to_string};
 
+/* Callbacks for processing experimenter actions in OFLib.*/
+static struct ofl_exp_act dp_exp_act =
+        {.pack      = ofl_exp_act_pack,
+         .unpack    = ofl_exp_act_unpack,
+         .free      = ofl_exp_act_free,
+         .ofp_len   = ofl_exp_act_ofp_len,
+         .to_string = ofl_exp_act_to_string};
+
 static struct ofl_exp dp_exp =
-        {.act   = NULL,
+        {.act   = &dp_exp_act,
          .inst  = NULL,
          .match = NULL,
          .stats = NULL,
