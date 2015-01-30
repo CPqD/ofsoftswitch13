@@ -65,17 +65,17 @@ char *decimal_to_binary(int n)
    return  pointer;
 }
 
-void masked_value_print(FILE *stream,char *value, char *mask){
+void masked_value_print(char *string,char *value, char *mask){
     int i=0;
 
     for(i=0;i<32;i++){
-
         if (mask[i]=='0'){
-            fprintf(stream,"*");
+            string[i]='*';
         }
         else {
-            fprintf(stream,"%c",*(value+i));
+            string[i]=*(value+i);
         }
+        string[32]='\0';
     }
 }
 
@@ -250,7 +250,6 @@ ofl_action_type_print(FILE *stream, uint16_t type) {
             case OFPAT_SET_NW_TTL: {     fprintf(stream, "\x1B[36mnw_ttl\x1B[0m"); return; }
             case OFPAT_DEC_NW_TTL: {     fprintf(stream, "\x1B[36mnw_dec\x1B[0m"); return; }
             case OFPAT_EXPERIMENTER: {   fprintf(stream, "\x1B[36mexp\x1B[0m"); return; }
-            case OFPAT_SET_FLAG: {       fprintf(stream, "\x1B[36mset_flag\x1B[0m"); return; }
             default: {                   fprintf(stream, "?(%u)", type); return; }
         }
     }
@@ -273,7 +272,6 @@ ofl_action_type_print(FILE *stream, uint16_t type) {
             case OFPAT_SET_NW_TTL: {     fprintf(stream, "nw_ttl"); return; }
             case OFPAT_DEC_NW_TTL: {     fprintf(stream, "nw_dec"); return; }
             case OFPAT_EXPERIMENTER: {   fprintf(stream, "exp"); return; }
-            case OFPAT_SET_FLAG: {       fprintf(stream, "set_flag"); return; }
             default: {                   fprintf(stream, "?(%u)", type); return; }
         }
     }

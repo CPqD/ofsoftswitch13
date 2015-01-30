@@ -508,7 +508,6 @@ enum ofp_action_type {
     OFPAT_SET_FIELD = 25,    /* Set a header field using OXM TLV format. */
     OFPAT_PUSH_PBB = 26,     /*Push a new PBB service tag (I-TAG) */
     OFPAT_POP_PBB = 27,      /* Pop the outer PBB service tag (I-TAG) */
-    OFPAT_SET_FLAG = 28,   /* Set a single flag value of the global state */
     OFPAT_EXPERIMENTER = 0xffff
 };
 
@@ -613,15 +612,6 @@ struct ofp_action_experimenter_header {
 };
 OFP_ASSERT(sizeof(struct ofp_action_experimenter_header) == 8);
 
-/* Action structure for OFPAT_SET_FLAG */
-struct ofp_action_set_flag {
-    uint16_t type; /* OFPAT_SET_FLAG */
-    uint16_t len;  /* Length is 8. */
-    uint32_t value; /* flag value */
-    uint32_t mask;    /*flag mask*/
-    uint8_t pad[4];   /* Align to 64-bits. */
-};
-OFP_ASSERT(sizeof(struct ofp_action_set_flag) == 16);
 /*************Controller-to-Switch Messages******************/
 
 /* Switch features. */

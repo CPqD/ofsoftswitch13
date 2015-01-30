@@ -66,13 +66,19 @@ struct ofl_exp_openflow_act_header {
 };
 
 
-struct ofl_exp_set_state_action {
+struct ofl_exp_action_set_state {
     struct ofl_exp_openflow_act_header  header; /* OFPAT_EXP_SET_STATE */
 
     uint32_t state;
     uint8_t stage_id; /*we have 64 flow table in the pipeline*/
 };
 
+struct ofl_exp_action_set_flag {
+    struct ofl_exp_openflow_act_header   header; /* OFPAT_EXP_SET_FLAG */
+
+    uint32_t value;
+    uint32_t mask;
+};
 
 int
 ofl_exp_openflow_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf, size_t *buf_len);

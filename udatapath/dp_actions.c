@@ -875,17 +875,6 @@ dec_nw_ttl(struct packet *pkt, struct ofl_action_header *act UNUSED) {
     }
 }
 
-/* Executes set flag. */
-static void
-set_flag(struct packet *pkt, struct ofl_action_set_flag *action) {
-
-    struct ofl_action_set_flag *wns = (struct ofl_action_set_flag *)action;
-    uint32_t global_states = pkt->dp->global_states;
-    
-    global_states = (global_states & ~(wns->mask)) | (wns->value & wns->mask);
-    pkt->dp->global_states = global_states;
-}
-
 
 void
 dp_execute_action(struct packet *pkt,
@@ -944,10 +933,6 @@ dp_execute_action(struct packet *pkt,
         }
         case (OFPAT_GROUP): {
             group(pkt, (struct ofl_action_group *)action);
-            break;
-        }
-        case (OFPAT_SET_FLAG): {
-            set_flag(pkt, (struct ofl_action_set_flag *)action);
             break;
         }
         case (OFPAT_SET_NW_TTL): {

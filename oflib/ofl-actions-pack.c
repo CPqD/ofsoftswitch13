@@ -92,8 +92,6 @@ ofl_actions_ofp_len(struct ofl_action_header *action, struct ofl_exp *exp) {
             struct ofl_exp_openflow_act_header* ext = (struct ofl_exp_openflow_act_header *) exp2;
             return exp->act->ofp_len(action);
         }
-        case OFPAT_SET_FLAG:
-            return sizeof(struct ofp_action_set_flag);
     
         default:
             return 0;
@@ -253,16 +251,6 @@ ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, u
             }
             return exp->act->pack(src, dst);
             
-        }
-        case OFPAT_SET_FLAG: {
-            struct ofl_action_set_flag *sa = (struct ofl_action_set_flag *) src;
-            struct ofp_action_set_flag *da = (struct ofp_action_set_flag *) dst;
-
-            da->len = htons(sizeof(struct ofp_action_set_flag));
-            da->value = htonl(sa->value);
-            da->mask = htonl(sa->mask);
-
-            return sizeof(struct ofp_action_set_flag);
         }
         default:
             return 0;

@@ -416,7 +416,9 @@ ofl_structs_oxm_tlv_print(FILE *stream, struct ofl_match_tlv *f)
 				fprintf(stream, "flags=\"%d\"", *((uint32_t*) f->value));
 			} else {
 				fprintf(stream, "flags=");
-	            masked_value_print(stream,decimal_to_binary(*((uint32_t*) f->value)),decimal_to_binary(*((uint32_t*)(f->value+4))));
+				char string_value[33];
+	            masked_value_print(string_value,decimal_to_binary(*((uint32_t*) f->value)),decimal_to_binary(*((uint32_t*)(f->value+4))));
+	            fprintf(stream,"%s",string_value);
 	        }
 			break;
 		case OFPXMT_OFB_PBB_ISID   :

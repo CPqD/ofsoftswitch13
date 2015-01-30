@@ -59,13 +59,23 @@ dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
         action = (struct ofl_exp_openflow_act_header *) act;
         switch(action->act_type){
 
-            case(OFPAT_EXP_SET_STATE):{
-                struct ofl_exp_set_state_action *wns = (struct ofl_exp_set_state_action *)action;
+            case(OFPAT_EXP_SET_STATE):
+            {
+                struct ofl_exp_action_set_state *wns = (struct ofl_exp_action_set_state *)action;
                 struct state_table *st = pkt->dp->pipeline->tables[wns->stage_id]->state_table;
                 VLOG_WARN_RL(LOG_MODULE, &rl, "executing action NEXT STATE at stage %u\n", wns->stage_id);
                 state_table_set_state(st, pkt, wns->state, NULL, 0);
                 break;
             }
+            case (OFPAT_EXP_SET_FLAG): 
+            {
+                struct ofl_exp_action_set_flag *wns = (struct ofl_exp_action_set_flag *)action;
+                uint32_t global_states = pkt->dp->global_states;
+                
+                global_states = (global_states & ~(wns->mask)) | (wns->value & wns->mask);
+                pkt->dp->global_states = global_states;
+                 break;
+            }  
             default:
                 VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute unknown experimenter action (%zu).", htonl(act->experimenter_id));
                 break;

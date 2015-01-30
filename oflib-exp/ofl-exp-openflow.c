@@ -250,14 +250,14 @@ ofl_exp_openflow_act_unpack(struct ofp_action_header *src, size_t *len, struct o
         switch (ntohl(ext->act_type)) {
             case (OFPAT_EXP_SET_STATE): 
             {
-                struct ofp_exp_set_state_action *sa;
-                struct ofl_exp_set_state_action *da;
-                if (*len < sizeof(struct ofp_exp_set_state_action)) {
+                struct ofp_exp_action_set_state *sa;
+                struct ofl_exp_action_set_state *da;
+                if (*len < sizeof(struct ofp_exp_action_set_state)) {
                     OFL_LOG_WARN(LOG_MODULE, "Received SET STATE action has invalid length (%zu).", *len);
                     return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
                 }
-                sa = (struct ofp_exp_set_state_action *)ext;
-                da = (struct ofl_exp_set_state_action *)malloc(sizeof(struct ofl_exp_set_state_action));
+                sa = (struct ofp_exp_action_set_state *)ext;
+                da = (struct ofl_exp_action_set_state *)malloc(sizeof(struct ofl_exp_action_set_state));
 
                 da->header.header.experimenter_id = ntohl(exp->experimenter);
                 da->header.act_type = ntohl(ext->act_type);
@@ -265,10 +265,33 @@ ofl_exp_openflow_act_unpack(struct ofp_action_header *src, size_t *len, struct o
                 da->stage_id = sa->stage_id;
 
                 *dst = (struct ofl_action_header *)da;
-                *len -= sizeof(struct ofp_exp_set_state_action);
+                *len -= sizeof(struct ofp_exp_action_set_state);
                 break; 
             }
-            default: {
+
+            case (OFPAT_EXP_SET_FLAG): 
+            {
+                struct ofp_exp_action_set_flag *sa;
+                struct ofl_exp_action_set_flag *da;
+                if (*len < sizeof(struct ofp_exp_action_set_flag)) {
+                    OFL_LOG_WARN(LOG_MODULE, "Received SET FLAG action has invalid length (%zu).", *len);
+                    return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
+                }
+                sa = (struct ofp_exp_action_set_flag*)ext;
+                da = (struct ofl_exp_action_set_flag *)malloc(sizeof(struct ofl_exp_action_set_flag));
+
+                da->header.header.experimenter_id = ntohl(exp->experimenter);
+                da->header.act_type = ntohl(ext->act_type);
+                da->value = ntohl(sa->value);
+                da->mask = ntohl(sa->mask);
+
+                *dst = (struct ofl_action_header *)da;
+                *len -= sizeof(struct ofp_exp_action_set_flag);
+                break; 
+            }
+
+            default: 
+            {
                 OFL_LOG_WARN(LOG_MODULE, "Trying to unpack unknown Openflow Experimenter action.");
                 return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
             }
@@ -287,10 +310,8 @@ ofl_exp_openflow_act_pack(struct ofl_action_header *src, struct ofp_action_heade
         switch (ext->act_type) {
             case (OFPAT_EXP_SET_STATE):
             {
-                struct ofl_exp_set_state_action *sa = (struct ofl_exp_set_state_action *) ext;
-
-                struct ofp_exp_set_state_action *da = (struct ofp_exp_set_state_action *) dst;
-                //struct ofp_exp_set_state_action *da = malloc(sizeof(struct ofp_exp_set_state_action));
+                struct ofl_exp_action_set_state *sa = (struct ofl_exp_action_set_state *) ext;
+                struct ofp_exp_action_set_state *da = (struct ofp_exp_action_set_state *) dst;
 
                 da->header.header.experimenter = htonl(exp->experimenter_id);
                 da->header.act_type = htonl(ext->act_type);
@@ -298,10 +319,23 @@ ofl_exp_openflow_act_pack(struct ofl_action_header *src, struct ofp_action_heade
                 da->state = htonl(sa->state);
                 da->stage_id = sa->stage_id;
                 memset(da->pad, 0x00, 3);
-                dst->len = htons(sizeof(struct ofp_exp_set_state_action));
-                //dst = (struct ofp_action_header *) da;
+                dst->len = htons(sizeof(struct ofp_exp_action_set_state));
 
-                return sizeof(struct ofp_exp_set_state_action);
+                return sizeof(struct ofp_exp_action_set_state);
+            }
+            case (OFPAT_EXP_SET_FLAG): 
+            {
+                struct ofl_exp_action_set_flag *sa = (struct ofl_exp_action_set_flag *) ext;
+                struct ofp_exp_action_set_flag *da = (struct ofp_exp_action_set_flag *) dst;
+
+                da->header.header.experimenter = htonl(exp->experimenter_id);
+                da->header.act_type = htonl(ext->act_type);
+                memset(da->header.pad, 0x00, 4);
+                da->value = htonl(sa->value);
+                da->mask = htonl(sa->mask);
+                dst->len = htons(sizeof(struct ofp_exp_action_set_flag));
+
+                return sizeof(struct ofp_exp_action_set_flag);
             }
             default:
                 return 0;
@@ -316,10 +350,13 @@ ofl_exp_openflow_act_ofp_len(struct ofl_action_header *act)
     if (exp->experimenter_id == OPENFLOW_VENDOR_ID) {
         struct ofl_exp_openflow_act_header *ext = (struct ofl_exp_openflow_act_header *)exp;
         switch (ext->act_type) {
+
             case (OFPAT_EXP_SET_STATE):
-            {
-                return sizeof(struct ofp_exp_set_state_action);
-            }
+                return sizeof(struct ofp_exp_action_set_state);
+
+            case (OFPAT_EXP_SET_FLAG):
+                return sizeof(struct ofp_exp_action_set_flag);
+
             default:
                 return 0;
         }
@@ -336,9 +373,19 @@ ofl_exp_openflow_act_to_string(struct ofl_action_header *act)
         switch (ext->act_type) {
             case (OFPAT_EXP_SET_STATE):
             {
-                struct ofl_exp_set_state_action *a = (struct ofl_exp_set_state_action *)ext;
+                struct ofl_exp_action_set_state *a = (struct ofl_exp_action_set_state *)ext;
                 char *string = malloc(50);
                 sprintf(string, "{set_state=[state=\"%u\",stage_id=\"%u\"]}", a->state, a->stage_id);
+                return string;
+                break;
+            }
+            case (OFPAT_EXP_SET_FLAG): 
+            {
+                struct ofl_exp_action_set_flag *a = (struct ofl_exp_action_set_flag *)ext;
+                char *string = malloc(100);
+                char string_value[33];
+                masked_value_print(string_value,decimal_to_binary(a->value),decimal_to_binary(a->mask));
+                sprintf(string, "{set_flag=[flag=%s]}", string_value);
                 return string;
                 break;
             }
@@ -355,7 +402,14 @@ ofl_exp_openflow_act_free(struct ofl_action_header *act){
         switch (ext->act_type) {
             case (OFPAT_EXP_SET_STATE):
             {
-                struct ofl_exp_set_state_action *a = (struct ofl_exp_set_state_action *)ext;
+                struct ofl_exp_action_set_state *a = (struct ofl_exp_action_set_state *)ext;
+                free(a);
+                return;
+                break;
+            }
+            case (OFPAT_EXP_SET_FLAG):
+            {
+                struct ofl_exp_action_set_flag *a = (struct ofl_exp_action_set_flag *)ext;
                 free(a);
                 return;
                 break;

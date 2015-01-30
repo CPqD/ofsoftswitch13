@@ -28,8 +28,9 @@ enum ofp_extension_commands { /* Queue configuration commands */
 };
 
 enum ofp_action_extension_commands {
-    OFPAT_EXP_SET_STATE      /* Write the next state field for use later in
+    OFPAT_EXP_SET_STATE,        /* Write the next state field for use later in
                                 pipeline */
+    OFPAT_EXP_SET_FLAG          /* Set a single flag value of the global state */
 };
 
 struct ofp_message_extension_header {
@@ -53,14 +54,23 @@ OFP_ASSERT(sizeof(struct ofp_action_extension_header) == 16);
  *
  ****************************************************************/
 
-struct ofp_exp_set_state_action {
+/* Action structure for OFPAT_EXP_SET_STATE */
+struct ofp_exp_action_set_state {
     struct ofp_action_extension_header header;
     uint32_t state; /* State instance. */
     uint8_t stage_id; /*Stage destination*/
     uint8_t pad[3];   /* Align to 64-bits. */
 };
-OFP_ASSERT(sizeof(struct ofp_exp_set_state_action) == 24);
+OFP_ASSERT(sizeof(struct ofp_exp_action_set_state) == 24);
 
+
+/* Action structure for OFPAT_EXP_SET_FLAG */
+struct ofp_exp_action_set_flag {
+    struct ofp_action_extension_header header;
+    uint32_t value; /* flag value */
+    uint32_t mask;    /*flag mask*/
+};
+OFP_ASSERT(sizeof(struct ofp_exp_action_set_flag) == 24);
 
 /****************************************************************
  *
