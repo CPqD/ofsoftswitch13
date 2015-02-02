@@ -11,7 +11,7 @@
 
 static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(6000000, 60000000);
 
-void __extract_key(uint8_t *, struct key_extractor *, struct packet *);
+int __extract_key(uint8_t *, struct key_extractor *, struct packet *);
 
 struct state_table * state_table_create(void) {
     struct state_table *table = malloc(sizeof(struct state_table));
@@ -30,7 +30,7 @@ void state_table_destroy(struct state_table *table) {
     free(table);
 }
 /* having the key extractor field goes to look for these key inside the packet and map to corresponding value and copy the value into buf. */ 
-void __extract_key(uint8_t *buf, struct key_extractor *extractor, struct packet *pkt) {
+int __extract_key(uint8_t *buf, struct key_extractor *extractor, struct packet *pkt) {
 	int i, l=0;
     struct ofl_match_tlv *f;
 
@@ -45,14 +45,20 @@ void __extract_key(uint8_t *buf, struct key_extractor *extractor, struct packet 
 				}
 		}
 	}
+	return l;
 }
 /*having the read_key, look for the state vaule inside the state_table */
 struct state_entry * state_table_lookup(struct state_table* table, struct packet *pkt) {
 	struct state_entry * e = NULL;	
 	uint8_t key[MAX_STATE_KEY_LEN] = {0};
 
-    __extract_key(key, &table->read_key, pkt);
+    if(!__extract_key(key, &table->read_key, pkt))
+    {
+    	VLOG_WARN_RL(LOG_MODULE, &rl, "lookup key fields not found in the packet's header -> NULL");
+    	return NULL;
+    }
 
+ 	
 	HMAP_FOR_EACH_WITH_HASH(e, struct state_entry, 
 		hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries){
 			if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
@@ -114,17 +120,13 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, uint32
 	struct state_entry *e;
 
 
-	if (pkt){
+	if (pkt)
 		__extract_key(key, &table->write_key, pkt);
-                                        int h;
-                                        printf("ethernet address for write key is:");
-                                        for (h=0;h<6;h++){
-                                        printf("%02X", key[h]);}
-                                        printf("\n");
-		}
+
 	else {
 
 		memcpy(key, k, MAX_STATE_KEY_LEN);
+
 	        printf("state table no pkt exist \n");
 	}
 	
