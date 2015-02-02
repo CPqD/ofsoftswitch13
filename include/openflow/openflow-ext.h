@@ -24,7 +24,8 @@ enum ofp_extension_commands { /* Queue configuration commands */
     OFP_EXT_QUEUE_DELETE,  /* Remove a queue */
     OFP_EXT_SET_DESC,      /* Set ofp_desc_stat->dp_desc */
     OFP_EXT_COUNT,
-    OFP_EXT_STATE_MOD
+    OFP_EXT_STATE_MOD,
+    OFP_EXT_FLAG_MOD
 };
 
 enum ofp_action_extension_commands {
@@ -76,7 +77,7 @@ OFP_ASSERT(sizeof(struct ofp_exp_action_set_flag) == 24);
 /*EXPERIMENTER MESSAGES*/
 /****************************************************************
  *
- *   OFP_EXP_STATE_MOD
+ *   OFP_EXT_STATE_MOD
  *
 ****************************************************************/
 #define OFPSC_MAX_FIELD_COUNT 6
@@ -112,7 +113,24 @@ enum ofp_exp_state_mod_command {
 };
 
 
+/****************************************************************
+ *
+ *   OFP_EXT_FLAG_MOD
+ *
+****************************************************************/
 
+struct ofp_exp_flag_mod {
+    struct ofp_message_extension_header header;
+    uint32_t flag;
+    uint32_t flag_mask;
+    uint8_t command;
+    uint8_t pad[7];                  /* Pad to 64 bits. */
+};
+
+enum ofp_exp_flag_mod_command { 
+    OFPSC_MODIFY_FLAGS = 0,
+    OFPSC_RESET_FLAGS
+};
 
 /****************************************************************
  *

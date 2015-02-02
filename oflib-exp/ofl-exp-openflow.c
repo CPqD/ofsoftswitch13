@@ -258,9 +258,37 @@ ofl_exp_openflow_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_e
                     }
 
                 }
-                *msg = (struct ofl_msg_header *)dm;
+                (*msg) = (struct ofl_msg_experimenter *)dm;
                 return 0;
             }
+
+            case (OFP_EXT_FLAG_MOD): 
+            {
+                struct ofp_exp_flag_mod *sm;
+                struct ofl_exp_msg_flag_mod *dm;
+                ofl_err error;
+                size_t i;
+               
+                
+                if (*len < sizeof(struct ofp_exp_flag_mod)) {
+                    OFL_LOG_WARN(LOG_MODULE, "Received FLAG_MOD message has invalid length (%zu).", *len);
+                    return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+                }
+                sm = (struct ofp_exp_flag_mod *)exp;
+                dm = (struct ofl_exp_msg_flag_mod *)malloc(sizeof(struct ofl_exp_msg_flag_mod));
+                
+                *len -= sizeof(struct ofp_exp_flag_mod);
+
+                dm->header.header.experimenter_id = ntohl(exp->vendor);
+                dm->header.type                   = ntohl(exp->subtype);
+                dm->flag = ntohl(sm->flag);
+                dm->flag_mask = ntohl(sm->flag_mask);
+                dm->command = (enum ofp_exp_flag_mod_command)sm->command;
+            
+                (*msg) = (struct ofl_msg_experimenter *)dm;
+                return 0;
+            }
+
             default: {
                 OFL_LOG_WARN(LOG_MODULE, "Trying to unpack unknown Openflow Experimenter message.");
                 return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);

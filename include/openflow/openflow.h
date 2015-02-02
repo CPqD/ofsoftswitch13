@@ -94,24 +94,6 @@ enum ofp_type {
     OFPT_SET_ASYNC = 28, /* Controller/switch message */
     /* Meters and rate limiters configuration messages. */
     OFPT_METER_MOD = 29, /* Controller/switch message */
-    OFPT_FLAG_MOD = 30,  /* Controller/switch message */
-};
-
-/*
-    OFPT_FLAG_MOD
-*/
-
-struct ofp_flag_mod {
-    struct ofp_header header;
-    uint32_t flag;
-    uint32_t flag_mask;
-    uint8_t command;
-    uint8_t pad[7];                  /* Pad to 64 bits. */
-};
-
-enum ofp_flag_mod_command { 
-    OFPSC_MODIFY_FLAGS = 0,
-    OFPSC_RESET_FLAGS
 };
 
 

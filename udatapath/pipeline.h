@@ -99,7 +99,7 @@ pipeline_handle_stats_request_aggregate(struct pipeline *pl,
 
 /* Handles a flag_mod message */
 ofl_err
-pipeline_handle_flag_mod(struct pipeline *pl, struct ofl_msg_flag_mod *msg,
+pipeline_handle_flag_mod(struct pipeline *pl, struct ofl_exp_msg_flag_mod *msg,
                                                 const struct sender *sender);
 
 /* Handles a state_mod message */

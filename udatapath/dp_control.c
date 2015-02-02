@@ -321,9 +321,6 @@ handle_control_msg(struct datapath *dp, struct ofl_msg_header *msg,
         case OFPT_FLOW_MOD: {
             return pipeline_handle_flow_mod(dp->pipeline, (struct ofl_msg_flow_mod *)msg, sender);
         }
-        case OFPT_FLAG_MOD: {
-            return pipeline_handle_flag_mod(dp->pipeline, (struct ofl_msg_flag_mod *)msg, sender);
-        }
         case OFPT_GROUP_MOD: {
             return group_table_handle_group_mod(dp->groups, (struct ofl_msg_group_mod *)msg, sender);
         }

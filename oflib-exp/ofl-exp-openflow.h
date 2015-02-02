@@ -60,6 +60,9 @@ struct ofl_exp_openflow_msg_set_dp_desc {
 };
 
 
+/************************
+ * state mod messages
+ ************************/
 
 struct ofl_exp_msg_state_mod {
     struct ofl_exp_openflow_msg_header header;   /* OFP_EXP_STATE_MOD */
@@ -81,6 +84,16 @@ struct ofl_exp_msg_extraction {
     uint32_t fields[OFPSC_MAX_FIELD_COUNT];
 };
 
+/************************
+ * flag mod messages
+ ************************/
+
+struct ofl_exp_msg_flag_mod {
+    struct ofl_exp_openflow_msg_header header;   /* OFPT_EXP_FLAG_MOD */
+    uint32_t flag;
+    uint32_t flag_mask;
+    enum ofp_exp_flag_mod_command command;
+};
 
 /*************************************************************************/
 /*                        experimenter actions ofl_exp                   */

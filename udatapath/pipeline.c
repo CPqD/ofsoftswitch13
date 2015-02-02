@@ -315,7 +315,7 @@ int inst_compare(const void *inst1, const void *inst2){
 }
 
 ofl_err
-pipeline_handle_flag_mod(struct pipeline *pl, struct ofl_msg_flag_mod *msg,
+pipeline_handle_flag_mod(struct pipeline *pl, struct ofl_exp_msg_flag_mod *msg,
                                                 const struct sender *sender) {
     
     uint32_t global_states = pl->dp->global_states;

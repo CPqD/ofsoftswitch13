@@ -1573,33 +1573,6 @@ ofl_msg_unpack_empty(struct ofp_header *src UNUSED, size_t *len, struct ofl_msg_
     return 0;
 }
 
-static ofl_err
-ofl_msg_unpack_flag_mod(struct ofp_header *src, size_t *len, struct ofl_msg_header **msg) {
-    struct ofp_flag_mod *sm;
-    struct ofl_msg_flag_mod *dm;
-    ofl_err error;
-    size_t i;
-   
-    
-    if (*len < sizeof(struct ofp_flag_mod)) {
-        OFL_LOG_WARN(LOG_MODULE, "Received FLAG_MOD message has invalid length (%zu).", *len);
-        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
-    }
-    sm = (struct ofp_flag_mod *)src;
-    dm = (struct ofl_msg_flag_mod *)malloc(sizeof(struct ofl_msg_flag_mod));
-    
-    *len -= sizeof(struct ofp_flag_mod);
-
-    dm->flag = ntohl(sm->flag);
-    dm->flag_mask = ntohl(sm->flag_mask);
-    dm->command = (enum ofp_flag_mod_command)sm->command;
-    
-    
-
-    *msg = (struct ofl_msg_header *)dm;
-    return 0;
-}
-
 
 ofl_err
 ofl_msg_unpack(uint8_t *buf, size_t buf_len, struct ofl_msg_header **msg, uint32_t *xid, struct ofl_exp *exp) {
@@ -1692,9 +1665,6 @@ ofl_msg_unpack(uint8_t *buf, size_t buf_len, struct ofl_msg_header **msg, uint32
             break;
         case OFPT_FLOW_MOD:
             error = ofl_msg_unpack_flow_mod(oh,buf, &len, msg, exp);
-            break;
-        case OFPT_FLAG_MOD:
-            error = ofl_msg_unpack_flag_mod(oh, &len, msg);
             break;
         case OFPT_GROUP_MOD:
             error = ofl_msg_unpack_group_mod(oh, &len, msg, exp);
