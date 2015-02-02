@@ -121,6 +121,9 @@ dp_exp_message(struct datapath *dp,
                 case (OFP_EXT_SET_DESC): {
                     return dp_handle_set_desc(dp, (struct ofl_exp_openflow_msg_set_dp_desc *)msg, sender);
                 }
+                case (OFP_EXT_STATE_MOD): {
+                    return pipeline_handle_state_mod(dp->pipeline, (struct ofl_exp_msg_state_mod *)msg, sender);
+                }
                 default: {
                 	VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to handle unknown experimenter type (%u).", exp->type);
                     return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);

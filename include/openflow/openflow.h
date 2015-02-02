@@ -94,8 +94,7 @@ enum ofp_type {
     OFPT_SET_ASYNC = 28, /* Controller/switch message */
     /* Meters and rate limiters configuration messages. */
     OFPT_METER_MOD = 29, /* Controller/switch message */
-	OFPT_STATE_MOD = 30, /* Controller/switch message */
-    OFPT_FLAG_MOD = 31,  /* Controller/switch message */
+    OFPT_FLAG_MOD = 30,  /* Controller/switch message */
 };
 
 /*
@@ -114,41 +113,7 @@ enum ofp_flag_mod_command {
     OFPSC_MODIFY_FLAGS = 0,
     OFPSC_RESET_FLAGS
 };
-/*
-	OFPT_STATE_MOD
-*/
-#define OFPSC_MAX_FIELD_COUNT 6
-#define OFPSC_MAX_KEY_LEN 48
 
-struct ofp_state_mod {
-    struct ofp_header header;
-    uint64_t cookie;
-    uint64_t cookie_mask;
-    uint8_t table_id;
-    uint8_t command;
-    //uint8_t pad[];
-    uint8_t payload[];
-    //uint8_t *payload;
-};
-
-struct ofp_state_entry {
-    uint32_t key_len;
-    uint32_t state;
-   // uint64_t state;
-    uint8_t key[OFPSC_MAX_KEY_LEN];
-};
-
-struct ofp_extraction {
-    uint32_t field_count;
-    uint32_t fields[OFPSC_MAX_FIELD_COUNT];
-};
-
-enum ofp_state_mod_command {
-	OFPSC_SET_L_EXTRACTOR = 0,
-	OFPSC_SET_U_EXTRACTOR,
-	OFPSC_ADD_FLOW_STATE,	
-	OFPSC_DEL_FLOW_STATE
-};
 
 /* OFPT_HELLO.  This message has an empty body, but implementations must
  * ignore any data included in the body, to allow for future extensions. */

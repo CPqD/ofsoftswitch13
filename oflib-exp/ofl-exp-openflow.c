@@ -38,9 +38,63 @@
 #include "ofl-exp-openflow.h"
 #include "../oflib/ofl-log.h"
 #include "../oflib/ofl-print.h"
+ #include "../oflib/ofl-utils.h"
 
 #define LOG_MODULE ofl_exp_of
 OFL_LOG_INIT(LOG_MODULE)
+
+
+
+/* functions used by OFP_EXP_STATE_MOD*/
+static ofl_err
+ofl_structs_extraction_unpack(struct ofp_exp_extraction *src, size_t *len, struct ofl_exp_msg_extraction *dst) {
+    int error=0;
+    int i;
+    if(*len < (1+ntohl(src->field_count))*sizeof(uint32_t))
+    { //control of struct ofp_extraction length.
+       OFL_LOG_WARN(LOG_MODULE, "Received state mod extraction is too short (%zu).", *len);
+       printf("STATE MODE received extraction struct is too short %zu\n" ,*len);
+       return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+    }
+    dst->field_count=ntohl(src->field_count);
+    printf("field count is %d\n",dst->field_count);
+    for (i=0;i<dst->field_count;i++)
+    {
+        dst->fields[i]=ntohl(src->fields[i]);
+        printf("fields array %02x \n.", dst->fields[i]);
+    }
+    *len -= ((1+ntohl(src->field_count))*sizeof(uint32_t));
+ 
+    return 0;
+}
+
+static ofl_err
+ofl_structs_key_unpack(struct ofp_exp_state_entry *src, size_t *len, struct ofl_exp_msg_state_entry *dst) {
+    int error=0;
+    int i;
+    uint8_t key[OFPSC_MAX_KEY_LEN] = {0};
+
+    if(*len < (2*sizeof(uint32_t) + ntohl(src->key_len)*sizeof(uint8_t)))
+    { //control of struct ofp_extraction length.
+       OFL_LOG_WARN(LOG_MODULE, "Received state mod is too short (%zu).", *len);
+       return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+    }
+    dst->key_len=ntohl(src->key_len);
+    dst->state=ntohl(src->state);
+    for (i=0;i<dst->key_len;i++)
+    {
+        key[i]=src->key[i];
+        printf("fields array %02x \n.", dst->key[i]);
+    }
+    memcpy(dst->key, key, OFPSC_MAX_KEY_LEN);
+    OFL_LOG_WARN(LOG_MODULE, "key count is %d\n",dst->key_len);
+    OFL_LOG_WARN(LOG_MODULE, "state is %d\n",dst->state);   
+
+    *len -= (2*sizeof(uint32_t) + ntohl(src->key_len)*sizeof(uint8_t));
+ 
+    return 0;
+}
+
 
 
 int
@@ -100,11 +154,13 @@ ofl_exp_openflow_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_e
 
     exp = (struct ofp_message_extension_header *)oh;
 
+
     if (ntohl(exp->vendor) == OPENFLOW_VENDOR_ID) {
 
         switch (ntohl(exp->subtype)) {
             case (OFP_EXT_QUEUE_MODIFY):
-            case (OFP_EXT_QUEUE_DELETE): {
+            case (OFP_EXT_QUEUE_DELETE): 
+            {
                 struct openflow_queue_command_header *src;
                 struct ofl_exp_openflow_msg_queue *dst;
                 ofl_err error;
@@ -131,9 +187,11 @@ ofl_exp_openflow_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_e
                 (*msg) = (struct ofl_msg_experimenter *)dst;
                 return 0;
             }
-            case (OFP_EXT_SET_DESC): {
+            case (OFP_EXT_SET_DESC): 
+            {
                 struct openflow_ext_set_dp_desc *src;
                 struct ofl_exp_openflow_msg_set_dp_desc *dst;
+
 
                 if (*len < sizeof(struct openflow_ext_set_dp_desc)) {
                     OFL_LOG_WARN(LOG_MODULE, "Received EXT_SET_DESC message has invalid length (%zu).", *len);
@@ -150,6 +208,57 @@ ofl_exp_openflow_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_e
                 dst->dp_desc = strcpy((char *)malloc(strlen(src->dp_desc)+1), src->dp_desc);
 
                 (*msg) = (struct ofl_msg_experimenter *)dst;
+                return 0;
+            }
+            case (OFP_EXT_STATE_MOD): 
+            {
+                struct ofp_exp_state_mod *sm;
+                struct ofl_exp_msg_state_mod *dm;
+                ofl_err error;
+                size_t i;
+                int state_entry_pos;
+
+                if (*len < sizeof(struct ofp_exp_state_mod)) {
+                    OFL_LOG_WARN(LOG_MODULE, "Received STATE_MOD message has invalid length (%zu).", *len);
+                    return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+                }
+                sm = (struct ofp_exp_state_mod *)exp;
+                dm = (struct ofl_exp_msg_state_mod *)malloc(sizeof(struct ofl_exp_msg_state_mod));
+                
+                if (sm->table_id >= PIPELINE_TABLES) {
+                    OFL_LOG_WARN(LOG_MODULE, "Received STATE_MOD message has invalid table id (%zu).", sm->table_id );
+                    return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
+                } 
+                *len -= sizeof(struct ofp_message_extension_header);
+
+                dm->header.header.experimenter_id = ntohl(exp->vendor);
+                dm->header.type                   = ntohl(exp->subtype);
+                dm->cookie = ntoh64(sm->cookie);
+                dm->cookie_mask = ntoh64(sm->cookie_mask);
+                dm->table_id = sm->table_id;
+                dm->command = (enum ofp_exp_state_mod_command)sm->command;
+                
+                *len -= sizeof(dm->cookie) + sizeof(dm->cookie_mask) + sizeof(dm->table_id) + 1;
+
+                
+                if (dm->command == OFPSC_ADD_FLOW_STATE || dm->command == OFPSC_DEL_FLOW_STATE){
+                error = ofl_structs_key_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
+                    if (error) {
+                        free(dm);
+                        return error;
+                    }
+
+                } 
+
+                else if(dm->command ==OFPSC_SET_L_EXTRACTOR || dm->command == OFPSC_SET_U_EXTRACTOR){
+                error = ofl_structs_extraction_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
+                    if (error) {
+                        free(dm);
+                        return error;
+                    }
+
+                }
+                *msg = (struct ofl_msg_header *)dm;
                 return 0;
             }
             default: {

@@ -333,25 +333,25 @@ pipeline_handle_flag_mod(struct pipeline *pl, struct ofl_msg_flag_mod *msg,
 }
 
 ofl_err
-pipeline_handle_state_mod(struct pipeline *pl, struct ofl_msg_state_mod *msg,
+pipeline_handle_state_mod(struct pipeline *pl, struct ofl_exp_msg_state_mod *msg,
                                                 const struct sender *sender) {
     ofl_err error;
 	struct state_table *st = pl->tables[msg->table_id]->state_table;
 //	int update;
 
 	if (msg->command == OFPSC_SET_L_EXTRACTOR || msg->command == OFPSC_SET_U_EXTRACTOR) {
-		struct ofl_msg_extraction *p = (struct ofl_msg_extraction *) msg->payload;	
+		struct ofl_exp_msg_extraction *p = (struct ofl_exp_msg_extraction *) msg->payload;	
 		int update=0;
 		if (msg->command == OFPSC_SET_U_EXTRACTOR) 
 			update = 1;
 		state_table_set_extractor(st, (struct key_extractor *)p, update);
 	}
 	else if (msg->command == OFPSC_ADD_FLOW_STATE) {
-		struct ofl_msg_state_entry *p = (struct ofl_msg_state_entry *) msg->payload;
+		struct ofl_exp_msg_state_entry *p = (struct ofl_exp_msg_state_entry *) msg->payload;
 		state_table_set_state(st, NULL, p->state, p->key, p->key_len);
 	}
 	else if (msg->command == OFPSC_DEL_FLOW_STATE) {
-		struct ofl_msg_state_entry *p = (struct ofl_msg_state_entry *) msg->payload;
+		struct ofl_exp_msg_state_entry *p = (struct ofl_exp_msg_state_entry *) msg->payload;
 		state_table_del_state(st, p->key, p->key_len);
 	}
 	else

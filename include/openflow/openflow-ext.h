@@ -23,8 +23,8 @@ enum ofp_extension_commands { /* Queue configuration commands */
     OFP_EXT_QUEUE_MODIFY,  /* Add and/or modify */
     OFP_EXT_QUEUE_DELETE,  /* Remove a queue */
     OFP_EXT_SET_DESC,      /* Set ofp_desc_stat->dp_desc */
-
-    OFP_EXT_COUNT
+    OFP_EXT_COUNT,
+    OFP_EXT_STATE_MOD
 };
 
 enum ofp_action_extension_commands {
@@ -71,6 +71,48 @@ struct ofp_exp_action_set_flag {
     uint32_t mask;    /*flag mask*/
 };
 OFP_ASSERT(sizeof(struct ofp_exp_action_set_flag) == 24);
+
+
+/*EXPERIMENTER MESSAGES*/
+/****************************************************************
+ *
+ *   OFP_EXP_STATE_MOD
+ *
+****************************************************************/
+#define OFPSC_MAX_FIELD_COUNT 6
+#define OFPSC_MAX_KEY_LEN 48
+
+struct ofp_exp_state_mod {
+    struct ofp_message_extension_header header;
+    uint64_t cookie;
+    uint64_t cookie_mask;
+    uint8_t table_id;
+    uint8_t command;
+    //uint8_t pad[];
+    uint8_t payload[];
+    //uint8_t *payload;
+};
+
+struct ofp_exp_state_entry {
+    uint32_t key_len;
+    uint32_t state;
+    uint8_t key[OFPSC_MAX_KEY_LEN];
+};
+
+struct ofp_exp_extraction {
+    uint32_t field_count;
+    uint32_t fields[OFPSC_MAX_FIELD_COUNT];
+};
+
+enum ofp_exp_state_mod_command {
+    OFPSC_SET_L_EXTRACTOR = 0,
+    OFPSC_SET_U_EXTRACTOR,
+    OFPSC_ADD_FLOW_STATE,   
+    OFPSC_DEL_FLOW_STATE
+};
+
+
+
 
 /****************************************************************
  *

@@ -35,8 +35,10 @@
 
 #include "../oflib/ofl-structs.h"
 #include "../oflib/ofl-messages.h"
-
-/*experimenter messages ofl_exp*/
+#include "../include/openflow/openflow-ext.h"
+/**************************************************************************/
+/*                        experimenter messages ofl_exp                   */
+/**************************************************************************/
 struct ofl_exp_openflow_msg_header {
     struct ofl_msg_experimenter   header; /* OPENFLOW_VENDOR_ID */
 
@@ -57,8 +59,32 @@ struct ofl_exp_openflow_msg_set_dp_desc {
     char  *dp_desc;
 };
 
+
+
+struct ofl_exp_msg_state_mod {
+    struct ofl_exp_openflow_msg_header header;   /* OFP_EXP_STATE_MOD */
+    uint64_t cookie;
+    uint64_t cookie_mask;
+    uint8_t table_id;
+    enum ofp_exp_state_mod_command command;
+    uint8_t payload[8+OFPSC_MAX_KEY_LEN]; //ugly! for now it's ok XXX
+};
+
+struct ofl_exp_msg_state_entry {
+    uint32_t key_len;
+    uint32_t state;
+    uint8_t key[OFPSC_MAX_KEY_LEN];
+};
+
+struct ofl_exp_msg_extraction {
+    uint32_t field_count;
+    uint32_t fields[OFPSC_MAX_FIELD_COUNT];
+};
+
+
 /*************************************************************************/
-/*experimenter actions ofl_exp*/
+/*                        experimenter actions ofl_exp                   */
+/*************************************************************************/
 struct ofl_exp_openflow_act_header {
     struct ofl_action_experimenter   header; /* OPENFLOW_VENDOR_ID */
 
@@ -79,6 +105,10 @@ struct ofl_exp_action_set_flag {
     uint32_t value;
     uint32_t mask;
 };
+
+
+
+
 
 int
 ofl_exp_openflow_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf, size_t *buf_len);

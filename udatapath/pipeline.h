@@ -104,7 +104,7 @@ pipeline_handle_flag_mod(struct pipeline *pl, struct ofl_msg_flag_mod *msg,
 
 /* Handles a state_mod message */
 ofl_err
-pipeline_handle_state_mod(struct pipeline *pl, struct ofl_msg_state_mod *msg,
+pipeline_handle_state_mod(struct pipeline *pl, struct ofl_exp_msg_state_mod *msg,
                          const struct sender *sender);
 
 /* Commands pipeline to check if any flow in any table is timed out. */

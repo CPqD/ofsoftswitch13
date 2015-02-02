@@ -476,36 +476,11 @@ struct ofl_msg_queue_get_config_reply {
  * flag mod messages
  ************************/
 struct ofl_msg_flag_mod {
-    struct ofl_msg_header header;   /* OFPT_STATE_MOD */
+    struct ofl_msg_header header;   /* OFPT_FLAG_MOD */
     uint32_t flag;
     uint32_t flag_mask;
     enum ofp_flag_mod_command command;
 };
-
-
-/************************
- * state mod messages
- ************************/
-struct ofl_msg_state_mod {
-    struct ofl_msg_header header;   /* OFPT_STATE_MOD */
-    uint64_t cookie;
-    uint64_t cookie_mask;
-    uint8_t table_id;
-    enum ofp_state_mod_command command;
-    uint8_t payload[8+OFPSC_MAX_KEY_LEN]; //ugly! for now it's ok XXX
-};
-
-struct ofl_msg_state_entry {
-    uint32_t key_len;
-    uint32_t state;
-    uint8_t key[OFPSC_MAX_KEY_LEN];
-};
-
-struct ofl_msg_extraction {
-    uint32_t field_count;
-    uint32_t fields[OFPSC_MAX_FIELD_COUNT];
-};
-
 
 
 /****************************************************************************
