@@ -31,7 +31,7 @@ void state_table_destroy(struct state_table *table) {
 }
 /* having the key extractor field goes to look for these key inside the packet and map to corresponding value and copy the value into buf. */ 
 int __extract_key(uint8_t *buf, struct key_extractor *extractor, struct packet *pkt) {
-	int i, l=0;
+	int i, l=0, a=0;
     struct ofl_match_tlv *f;
 
 	for (i=0; i<extractor->field_count; i++) {
@@ -43,9 +43,17 @@ int __extract_key(uint8_t *buf, struct key_extractor *extractor, struct packet *
 					l = l + OXM_LENGTH(f->header);//keeps only 8 last bits of oxm_header that contains oxm_length(in which length of oxm_payload)
 					break;
 				}
-		}
+		}	
 	}
-	return l;
+	/*check if the full key has been extracted*/
+	for (i=0; i<extractor->field_count; i++) {
+		uint32_t type = (int)extractor->fields[i];
+		a = a + OXM_LENGTH(type);
+	}
+	if (l==a)
+		return 1;
+	else
+		return 0;
 }
 /*having the read_key, look for the state vaule inside the state_table */
 struct state_entry * state_table_lookup(struct state_table* table, struct packet *pkt) {
@@ -121,13 +129,31 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, uint32
 
 
 	if (pkt)
-		__extract_key(key, &table->write_key, pkt);
+	{
+		if(!__extract_key(key, &table->write_key, pkt)){
+			VLOG_WARN_RL(LOG_MODULE, &rl, "lookup key fields not found in the packet's header");
+			return;
+		}
+	}
+			
 
 	else {
-
-		memcpy(key, k, MAX_STATE_KEY_LEN);
-
+		int a,i;
+		struct key_extractor *extractor=&table->write_key;
+		for (i=0; i<extractor->field_count; i++) {
+			uint32_t type = (int)extractor->fields[i];
+			a = a + OXM_LENGTH(type);
+	     }
+	    if(a == len)
+	    {
+			memcpy(key, k, MAX_STATE_KEY_LEN);
 	        printf("state table no pkt exist \n");
+	    }
+	    else
+	    {
+	    	VLOG_WARN_RL(LOG_MODULE, &rl, "wrong key fields received");
+	    	return;
+	    }
 	}
 	
 	HMAP_FOR_EACH_WITH_HASH(e, struct state_entry, 
