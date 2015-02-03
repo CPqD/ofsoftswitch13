@@ -254,7 +254,8 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
 		if (table->features->config &OFPTC_TABLE_STATEFUL) {
 			
 			state_entry = state_table_lookup(table->state_table, pkt);
-			state_table_write_state(state_entry, pkt);
+            if(state_entry!=NULL)
+			     state_table_write_state(state_entry, pkt);
 		}
         
         if (DP_SUPPORTED_CAPABILITIES & OFPC_OPENSTATE){
