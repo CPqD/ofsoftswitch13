@@ -50,19 +50,23 @@ static ofl_err
 ofl_structs_extraction_unpack(struct ofp_exp_extraction *src, size_t *len, struct ofl_exp_msg_extraction *dst) {
     int error=0;
     int i;
-    if(*len < (1+ntohl(src->field_count))*sizeof(uint32_t))
+    if(*len == (1+ntohl(src->field_count))*sizeof(uint32_t))
+    {
+        dst->field_count=ntohl(src->field_count);
+        printf("field count is %d\n",dst->field_count);
+        for (i=0;i<dst->field_count;i++)
+        {
+            dst->fields[i]=ntohl(src->fields[i]);
+            printf("fields array %02x \n.", dst->fields[i]);
+        }
+    }
+    else
     { //control of struct ofp_extraction length.
        OFL_LOG_WARN(LOG_MODULE, "Received state mod extraction is too short (%zu).", *len);
        printf("STATE MODE received extraction struct is too short %zu\n" ,*len);
        return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
     }
-    dst->field_count=ntohl(src->field_count);
-    printf("field count is %d\n",dst->field_count);
-    for (i=0;i<dst->field_count;i++)
-    {
-        dst->fields[i]=ntohl(src->fields[i]);
-        printf("fields array %02x \n.", dst->fields[i]);
-    }
+
     *len -= ((1+ntohl(src->field_count))*sizeof(uint32_t));
  
     return 0;
@@ -74,21 +78,25 @@ ofl_structs_key_unpack(struct ofp_exp_state_entry *src, size_t *len, struct ofl_
     int i;
     uint8_t key[OFPSC_MAX_KEY_LEN] = {0};
 
-    if(*len < (2*sizeof(uint32_t) + ntohl(src->key_len)*sizeof(uint8_t)))
+    if(*len == (2*sizeof(uint32_t) + ntohl(src->key_len)*sizeof(uint8_t)))
+    {
+        dst->key_len=ntohl(src->key_len);
+        dst->state=ntohl(src->state);
+        for (i=0;i<dst->key_len;i++)
+        {
+            key[i]=src->key[i];
+            printf("fields array %02x \n.", dst->key[i]);
+        }
+        memcpy(dst->key, key, OFPSC_MAX_KEY_LEN);
+        OFL_LOG_WARN(LOG_MODULE, "key count is %d\n",dst->key_len);
+        OFL_LOG_WARN(LOG_MODULE, "state is %d\n",dst->state);  
+    }
+    else
     { //control of struct ofp_extraction length.
-       OFL_LOG_WARN(LOG_MODULE, "Received state mod is too short (%zu).", *len);
+       OFL_LOG_WARN(LOG_MODULE, "Received state mod bad (%zu).", *len);
        return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
     }
-    dst->key_len=ntohl(src->key_len);
-    dst->state=ntohl(src->state);
-    for (i=0;i<dst->key_len;i++)
-    {
-        key[i]=src->key[i];
-        printf("fields array %02x \n.", dst->key[i]);
-    }
-    memcpy(dst->key, key, OFPSC_MAX_KEY_LEN);
-    OFL_LOG_WARN(LOG_MODULE, "key count is %d\n",dst->key_len);
-    OFL_LOG_WARN(LOG_MODULE, "state is %d\n",dst->state);   
+ 
 
     *len -= (2*sizeof(uint32_t) + ntohl(src->key_len)*sizeof(uint8_t));
  
