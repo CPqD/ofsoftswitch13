@@ -948,9 +948,16 @@ dp_execute_action(struct packet *pkt,
         }
         case (OFPAT_SET_STATE): {
             struct ofl_action_set_state *wns = (struct ofl_action_set_state *)action;
-            struct state_table *st = pkt->dp->pipeline->tables[wns->stage_id]->state_table;
-            VLOG_WARN_RL(LOG_MODULE, &rl, "executing action NEXT STATE at stage %u\n", wns->stage_id);
-            state_table_set_state(st, pkt, wns->state, NULL, 0);
+            if(pkt->dp->pipeline->tables[wns->stage_id]->features->config &OFPTC_TABLE_STATEFUL)
+            {
+                struct state_table *st = pkt->dp->pipeline->tables[wns->stage_id]->state_table;
+                VLOG_WARN_RL(LOG_MODULE, &rl, "executing action NEXT STATE at stage %u", wns->stage_id);
+                state_table_set_state(st, pkt, wns->state, NULL, 0);
+            }
+            else
+            {
+                VLOG_WARN_RL(LOG_MODULE, &rl, "ERROR NEXT STATE at stage %u\n: stage not stateful", wns->stage_id);
+            }
             break;
         }
         case (OFPAT_SET_FLAG): {
