@@ -1,6 +1,6 @@
 # OpenState
 
-This is an implementation of the OpenState switch based on the OpenFlow 1.3 softswitch developed by CPdQ and available at https://github.com/CPqD/ofsoftswitch13. For any information about OpenState please check the home page of the project at http://openstate-sdn.github.io/.
+This is an implementation of the OpenState switch based on the OpenFlow 1.3 softswitch developed by CPdQ and available at https://github.com/CPqD/ofsoftswitch13. For any information about OpenState please check the home page of the project at http://www.openstate-sdn.org/.
 
 
 # OpenFlow 1.3 Software Switch
@@ -17,7 +17,7 @@ The following components are available in this package:
 
 # Getting Started
 
-These instructions have been tested on Ubuntu 12.04. Other distributions or versions may need different steps.
+These instructions have been tested on Ubuntu 12.04 and Ubuntu 14.04. Other distributions or versions may need different steps.
 
 ## Before building
 The switch makes use of the NetBee library to parse packets, so we need to install it first.
@@ -34,6 +34,14 @@ The switch makes use of the NetBee library to parse packets, so we need to insta
     $ wget http://www.nbee.org/download/nbeesrc-jan-10-2013.zip
     $ unzip nbeesrc-jan-10-2013.zip
     $ cd nbeesrc-jan-10-2013
+    ```
+2.1 If you're running Ubuntu 14.04, before compiling and installing NetBee you need to downgrade the version of bison shipping with your version of Ubuntu:
+
+    ```
+    $ wget -nc http://de.archive.ubuntu.com/ubuntu/pool/main/b/bison/bison_2.5.dfsg-2.1_amd64.deb \
+        http://de.archive.ubuntu.com/ubuntu/pool/main/b/bison/libbison-dev_2.5.dfsg-2.1_amd64.deb
+    $ sudo dpkg -i bison_2.5.dfsg-2.1_amd64.deb libbison-dev_2.5.dfsg-2.1_amd64.deb
+    $ rm bison_2.5.dfsg-2.1_amd64.deb libbison-dev_2.5.dfsg-2.1_amd64.deb
     ```
 
 3. Create the build system
