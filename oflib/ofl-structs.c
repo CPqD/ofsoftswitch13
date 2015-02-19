@@ -292,17 +292,18 @@ ofl_utils_count_ofp_queue_props(void *data, size_t data_len, size_t *count) {
     d = (uint8_t *)data;
     (*count) = 0;
 
-    while (data_len >= sizeof(struct ofp_queue_prop_header)) {
-        prop = (struct ofp_queue_prop_header *)d;
+    //currently only 1 properties are set (min-rate)
+    //while (data_len >= sizeof(struct ofp_queue_prop_header)) {
+    prop = (struct ofp_queue_prop_header *)d;
 
-        if (data_len < ntohs(prop->len) || ntohs(prop->len) < sizeof(struct ofp_queue_prop_header)) {
-            OFL_LOG_WARN(LOG_MODULE, "Received queue prop has invalid length.");
-            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
-        }
-        data_len -= ntohs(prop->len);
-        d += ntohs(prop->len);
-        (*count)++;
+    if (data_len < ntohs(prop->len) || ntohs(prop->len) < sizeof(struct ofp_queue_prop_header)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received queue prop has invalid length.");
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
+    data_len -= ntohs(prop->len);
+    d += ntohs(prop->len);
+    (*count)++;
+    //}
 
     return 0;
 }
