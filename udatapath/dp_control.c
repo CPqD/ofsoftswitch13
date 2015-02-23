@@ -126,10 +126,9 @@ handle_control_packet_out(struct datapath *dp, struct ofl_msg_packet_out *msg,
                                                 const struct sender *sender) {
     struct packet *pkt;
     int error;
-
-    if(sender->remote->role == OFPCR_ROLE_SLAVE)
+    if(sender->remote->role == OFPCR_ROLE_SLAVE){
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_IS_SLAVE);
-
+    }
     error = dp_actions_validate(dp, msg->actions_num, msg->actions);
     if (error) {
         return error;
@@ -137,11 +136,15 @@ handle_control_packet_out(struct datapath *dp, struct ofl_msg_packet_out *msg,
 
     if (msg->buffer_id == NO_BUFFER) {
         struct ofpbuf *buf;
+        /* If there is no packet in the message, send error message */ 
+        if (!msg->data_length){
+             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_PACKET);
+        }
         /* NOTE: the created packet will take the ownership of data in msg. */
         buf = ofpbuf_new(0);
         ofpbuf_use(buf, msg->data, msg->data_length);
-        ofpbuf_put_uninit(buf, msg->data_length);
-        pkt = packet_create(dp, msg->in_port, buf, true);
+        ofpbuf_put_uninit(buf, msg->data_length);        
+        pkt = packet_create(dp, msg->in_port, buf, true);        
     } else {
         /* NOTE: in this case packet should not have data */
         pkt = dp_buffers_retrieve(dp->buffers, msg->buffer_id);
@@ -155,7 +158,7 @@ handle_control_packet_out(struct datapath *dp, struct ofl_msg_packet_out *msg,
     dp_execute_action_list(pkt, msg->actions_num, msg->actions, 0xffffffffffffffff);
 
     packet_destroy(pkt);
-    ofl_msg_free_packet_out(msg, false, dp->exp);
+    ofl_msg_free_packet_out(msg, false, dp->exp);    
     return 0;
 }
 
