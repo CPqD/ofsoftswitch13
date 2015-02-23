@@ -625,8 +625,9 @@ dp_handle_set_desc(struct datapath *dp, struct ofl_exp_openflow_msg_set_dp_desc 
 static ofl_err
 dp_check_generation_id(struct datapath *dp, uint64_t new_gen_id){
 
-    if(dp->generation_id >= 0  && ((uint64_t)(new_gen_id - dp->generation_id) < 0) )
+    if(dp->generation_id >= 0  && ((int64_t)(new_gen_id - dp->generation_id) < 0) ){        
         return ofl_error(OFPET_ROLE_REQUEST_FAILED, OFPRRFC_STALE);
+    }
     else dp->generation_id = new_gen_id;
     return 0;
 
