@@ -154,6 +154,7 @@ struct ofl_flow_stats {
     uint16_t                        idle_timeout;  /* Number of seconds idle before
                                                      expiration. */
     uint16_t                        hard_timeout;  /* Number of seconds before expiration. */
+    uint16_t                        flags;         /* One of OFPFF_*/ 
     uint64_t                        cookie;        /* Opaque controller-issued identifier. */
     uint64_t                        packet_count;  /* Number of packets in flow. */
     uint64_t                        byte_count;    /* Number of bytes in flow. */
