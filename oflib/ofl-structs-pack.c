@@ -543,7 +543,8 @@ ofl_structs_flow_stats_pack(struct ofl_flow_stats *src, uint8_t *dst, struct ofl
     flow_stats->priority = htons(src->priority);
     flow_stats->idle_timeout = htons(src->idle_timeout);
     flow_stats->hard_timeout = htons(src->hard_timeout);
-    memset(flow_stats->pad2, 0x00, 6);
+    flow_stats->flags = htons(src->flags);
+    memset(flow_stats->pad2, 0x00, 4);
     flow_stats->cookie = hton64(src->cookie);
     flow_stats->packet_count = hton64(src->packet_count);
     flow_stats->byte_count = hton64(src->byte_count);

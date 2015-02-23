@@ -344,6 +344,7 @@ flow_entry_create(struct datapath *dp, struct flow_table *table, struct ofl_msg_
     entry->stats->priority         = mod->priority;
     entry->stats->idle_timeout     = mod->idle_timeout;
     entry->stats->hard_timeout     = mod->hard_timeout;
+    entry->stats->flags            = mod->flags;
     entry->stats->cookie           = mod->cookie;
     entry->no_pkt_count = ((mod->flags & OFPFF_NO_PKT_COUNTS) != 0 );
     entry->no_byt_count = ((mod->flags & OFPFF_NO_BYT_COUNTS) != 0 ); 
