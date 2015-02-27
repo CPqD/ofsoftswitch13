@@ -1086,8 +1086,11 @@ dp_actions_output_port(struct packet *pkt, uint32_t out_port, uint32_t out_queue
         case (OFPP_TABLE): {
             if (pkt->packet_out) {
                 // NOTE: hackish; makes sure packet cannot be resubmit to pipeline again.
-                pkt->packet_out = false;
-                pipeline_process_packet(pkt->dp->pipeline, pkt);
+                //       pipeline_process_packet takes overship of the packet, we need a copy.
+                struct packet *pkt_copy = packet_clone(pkt);
+
+                pkt_copy->packet_out = false;
+                pipeline_process_packet(pkt->dp->pipeline, pkt_copy);
             } else {
                 VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to resubmit packet to pipeline.");
             }
