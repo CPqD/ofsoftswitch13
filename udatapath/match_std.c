@@ -236,23 +236,22 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet, struct ofl_
                 switch (packet_header) {
                     case OXM_OF_VLAN_VID: {
                         /* Special handling for VLAN ID */
-                        uint16_t *flow_vlan_id = (uint16_t*) flow_val;
-                        if (*flow_vlan_id == OFPVID_NONE) {
+                        uint16_t flow_vlan_id = *((uint16_t*) flow_val);
+                        if (flow_vlan_id == OFPVID_NONE) {
                             /* Packet has a VLAN tag when none should be there */
                             return false;
-                        } 
-                        else if (*flow_vlan_id == OFPVID_PRESENT) {
+                        } else if (flow_vlan_id == OFPVID_PRESENT) {
                             /* Any VLAN ID is acceptable. No further checks */
                         } else {
                             /* Check the VLAN ID */
-                            *flow_vlan_id &= VLAN_VID_MASK;
+                            flow_vlan_id &= VLAN_VID_MASK;
                             if (has_mask){
-                                if (!match_mask16(flow_val, flow_mask, packet_val)){
+                                if (!match_mask16((uint8_t*) &flow_vlan_id, flow_mask, packet_val)){
                                     return false;
                                 }
                             }
                             else {
-                                if (!match_16(flow_val, packet_val)){
+                                if (!match_16((uint8_t*) &flow_vlan_id, packet_val)){
                                     return false;
                                 }
                             }
