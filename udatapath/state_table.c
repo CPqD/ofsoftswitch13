@@ -138,20 +138,21 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, uint32
 			
 
 	else {
-		int a,i;
+		//SET_STATE message
+		int i;
+		uint32_t key_len=0; //update-scope key extractor length
 		struct key_extractor *extractor=&table->write_key;
 		for (i=0; i<extractor->field_count; i++) {
 			uint32_t type = (int)extractor->fields[i];
-			a = a + OXM_LENGTH(type);
+			key_len = key_len + OXM_LENGTH(type);
 	     }
-	    if(a == len)
+	    if(key_len == len)
 	    {
 			memcpy(key, k, MAX_STATE_KEY_LEN);
-	        printf("state table no pkt exist \n");
 	    }
 	    else
 	    {
-	    	VLOG_WARN_RL(LOG_MODULE, &rl, "wrong key fields received");
+	    	VLOG_WARN_RL(LOG_MODULE, &rl, "Wrong key length received");
 	    	return;
 	    }
 	}
