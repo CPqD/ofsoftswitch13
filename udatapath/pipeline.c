@@ -321,9 +321,14 @@ pipeline_handle_flag_mod(struct pipeline *pl, struct ofl_exp_msg_flag_mod *msg,
     
     uint32_t global_states = pl->dp->global_states;
     ofl_err error;
+    //FILE *pFile;
+    //pFile = fopen("/tmp/myfile.txt","a+");
     if (msg->command == OFPSC_MODIFY_FLAGS) {
+        //fprintf(pFile,"\n GLOBAL STATES PRIMA = %"PRIu32"", pl->dp->global_states);
         global_states = (global_states & ~(msg->flag_mask)) | (msg->flag & msg->flag_mask);
-        pl->dp->global_states = global_states;       
+        pl->dp->global_states = global_states;
+        //fprintf(pFile,"\n GLOBAL STATES DOPO = %"PRIu32"\n", pl->dp->global_states);
+        //fclose(pFile);
     }
     else if (msg->command == OFPSC_RESET_FLAGS) {
         pl->dp->global_states = OFP_GLOBAL_STATES_DEFAULT;
@@ -339,6 +344,7 @@ pipeline_handle_state_mod(struct pipeline *pl, struct ofl_exp_msg_state_mod *msg
     ofl_err error;
 	struct state_table *st = pl->tables[msg->table_id]->state_table;
 //	int update;
+    int i;
 
 	if (msg->command == OFPSC_SET_L_EXTRACTOR || msg->command == OFPSC_SET_U_EXTRACTOR) {
 		struct ofl_exp_msg_extraction *p = (struct ofl_exp_msg_extraction *) msg->payload;	
@@ -814,7 +820,7 @@ void pipeline_global_states_write_flags(struct packet *pkt){
     struct  ofl_match_tlv *f;
 
     HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv, 
-        hmap_node, hash_int(OXM_OF_FLAGS,0), &pkt->handle_std->match.match_fields){
+        hmap_node, hash_int(OXM_EXP_FLAGS,0), &pkt->handle_std->match.match_fields){
                 uint32_t *flags = (uint32_t*) f->value;
                 *flags = (*flags & 0x0) | (pkt->dp->global_states);
     }

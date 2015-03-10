@@ -42,6 +42,9 @@
 #include "oxm-match.h"
 #include "openflow/openflow.h"
 
+ /*bonny*/
+#include "lib/hash.h"
+
 #define LOG_MODULE ofl_str_u
 OFL_LOG_INIT(LOG_MODULE)
 
@@ -1143,9 +1146,15 @@ static ofl_err
 ofl_structs_oxm_match_unpack(struct ofp_match* src, uint8_t* buf, size_t *len, struct ofl_match **dst){
 
      int error = 0;
+
      struct ofpbuf *b = ofpbuf_new(0);
      struct ofl_match *m = (struct ofl_match *) malloc(sizeof(struct ofl_match));
+     FILE *pFile;
+     pFile = fopen("/tmp/myfile.txt","a+");
+     fprintf(pFile,"\n\nLen %"PRIu16"", *len);
     *len -= ROUND_UP(ntohs(src->length),8);
+    fprintf(pFile,"\n\nLen aggiornata togliendo len di ofp_match %"PRIu16"", *len);
+    fclose(pFile);
      if(ntohs(src->length) > sizeof(struct ofp_match)){
          ofpbuf_put(b, buf, ntohs(src->length) - (sizeof(struct ofp_match) -4)); 
          error = oxm_pull_match(b, m, ntohs(src->length) - (sizeof(struct ofp_match) -4));

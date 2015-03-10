@@ -330,18 +330,6 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
             ofl_structs_match_put64m(match, f->header, ntoh64(*((uint64_t*) value)), ntoh64(*((uint64_t*) mask)));
             return 0;
         }
-        case OFI_OXM_OF_STATE:{
-            ofl_structs_match_put32(match, f->header, ntohl(*((uint32_t*) value)));
-            return 0;
-        }
-        case OFI_OXM_OF_FLAGS:{
-            ofl_structs_match_put32(match, f->header, ntohl(*((uint32_t*) value)));
-            return 0;
-        }
-        case OFI_OXM_OF_FLAGS_W:{
-            ofl_structs_match_put32m(match, f->header, ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)));
-            return 0;
-        }
         /* Ethernet header. */
         case OFI_OXM_OF_ETH_DST:
         case OFI_OXM_OF_ETH_SRC:{
@@ -553,6 +541,36 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
     }
     NOT_REACHED();
 }
+
+
+static int
+parse_exp_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
+                const void *value, const void *mask){
+    //FILE *pFile;
+    /*pFile = fopen("/tmp/myfile.txt","a+");*/
+    switch (f->index) {
+        case OFI_OXM_EXP_STATE:{
+            ofl_structs_match_put32(match, f->header, ntohl(*((uint32_t*) value)));
+            return 0;
+        }
+        case OFI_OXM_EXP_FLAGS:{
+            ofl_structs_match_put32(match, f->header, ntohl(*((uint32_t*) value)));
+            return 0;
+        }
+        case OFI_OXM_EXP_FLAGS_W:{
+            /*fprintf(pFile,"\nsiamo in OFI_OXM_EXP_FLAGS_W");
+            fprintf(pFile,"\nvalue = %"PRIu32"", ntohl(*((uint32_t*)value)));
+            fprintf(pFile,"\nmask = %"PRIu32"", ntohl(*((uint32_t*)mask)));
+            fclose(pFile);*/
+            ofl_structs_match_put32m(match, f->header, ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)));
+            return 0;
+        }
+        default:
+            NOT_REACHED();
+    }
+    NOT_REACHED();
+}
+
  /*hmap_insert(match_dst, &f->hmap_node,
                 hash_int(f->header, 0));               */
 
@@ -568,6 +586,8 @@ oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len)
     uint32_t header;
     uint8_t *p;
     p = ofpbuf_try_pull(buf, match_len);
+    //FILE *pFile;
+    /*pFile= fopen("/tmp/myfile.txt","a+");*/
 
     if (!p) {
         VLOG_DBG_RL(LOG_MODULE,&rl, "oxm_match length %u, rounded up to a "
@@ -600,10 +620,33 @@ oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len)
             error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_DUP_FIELD);
         }
         else {
-            /* 'hasmask' and 'length' are known to be correct at this point
-             * because they are included in 'header' and oxm_field_lookup()
-             * checked them already. */
-            error = parse_oxm_entry(match_dst, f, p + 4, p + 4 + length / 2);
+
+              switch (OXM_VENDOR(header))
+              {
+                    case(OFPXMC_OPENFLOW_BASIC):
+                        /* 'hasmask' and 'length' are known to be correct at this point
+                         * because they are included in 'header' and oxm_field_lookup()
+                         * checked them already. */
+                        error = parse_oxm_entry(match_dst, f, p + 4, p + 4 + length / 2);
+                        break;
+                    case(OFPXMC_EXPERIMENTER):
+                        /* 'hasmask' and 'length' are known to be correct at this point
+                         * because they are included in 'header' and oxm_field_lookup()
+                         * checked them already. */
+                         //parse_exp_oxm_entry accepts value and mask as input
+                         //experimenter_id has not been considered (p + 8 => p + header + experimenter_id)
+                        
+                        /*fprintf(pFile,"\nChiamata della funzione parse_exp_oxm_entry()");
+                        fprintf(pFile,"\nLENGTH = %u", length);
+                        fprintf(pFile,"\nvalue = %"PRIu32"", ntohl(*((uint32_t*)(p + 8))));
+                        if(OXM_HASMASK(header))
+                            fprintf(pFile,"\nmask = %"PRIu32"\n\n",ntohl(*((uint32_t*)(p + 8 + (length-4) / 2))));
+                        fclose(pFile);*/
+                        error = parse_exp_oxm_entry(match_dst, f, p + 8, p + 8 + (length-4) / 2);
+                        break;
+                    default:
+                        error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_FIELD);
+              }
         }
         if (error) {
             VLOG_DBG_RL(LOG_MODULE,&rl, "bad oxm_entry with vendor=%"PRIu32", "
@@ -614,8 +657,9 @@ oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len)
                         error);
             return error;
         }
-        p += 4 + length;
-        match_len -= 4 + length;
+    /*fclose(pFile);*/
+    p += 4 + length;
+    match_len -= 4 + length;
     }
     return match_len ? ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_LEN) : 0;
 }
@@ -842,7 +886,10 @@ int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt){
             /*We already inserted  fields that are pre requisites to others */
              continue;
         else {
-            uint8_t length = OXM_LENGTH(oft->header) ;
+            uint8_t length = OXM_LENGTH(oft->header);
+            /* TODO daddy bonny
+                qui sto leggendo la length dall'header. devo controllare se è EXP?!
+            */
             bool has_mask =false;
             if (OXM_HASMASK(oft->header)){
                length = length / 2;
@@ -878,7 +925,8 @@ int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt){
                     memcpy(&value, oft->value,sizeof(uint32_t));
 					if(!has_mask)
 						if (oft->header == OXM_OF_IPV4_DST || oft->header == OXM_OF_IPV4_SRC
-							||oft->header == OXM_OF_ARP_SPA || oft->header == OXM_OF_ARP_TPA)
+							||oft->header == OXM_OF_ARP_SPA || oft->header == OXM_OF_ARP_TPA
+                            || oft->header == OXM_EXP_STATE || oft->header == OXM_EXP_FLAGS)
 							oxm_put_32(buf,oft->header, value);
 						else
 							oxm_put_32(buf,oft->header, htonl(value));
@@ -886,7 +934,8 @@ int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt){
                          uint32_t mask;
                          memcpy(&mask,oft->value + length ,sizeof(uint32_t));
 						 if (oft->header == OXM_OF_IPV4_DST_W|| oft->header == OXM_OF_IPV4_SRC_W
-							||oft->header == OXM_OF_ARP_SPA_W || oft->header == OXM_OF_ARP_TPA_W){
+							||oft->header == OXM_OF_ARP_SPA_W || oft->header == OXM_OF_ARP_TPA_W
+                            ||oft->header == OXM_EXP_FLAGS_W){
                             oxm_put_32w(buf, oft->header, value, mask);
                             }
 						 else {

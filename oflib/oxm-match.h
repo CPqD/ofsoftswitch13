@@ -224,12 +224,9 @@
 #define OXM_OF_IPV6_EXTHDR  OXM_HEADER      (0x8000, 39, 2)
 #define OXM_OF_IPV6_EXTHDR_W  OXM_HEADER_W  (0x8000, 39, 2)
 
-/* Global States */
-#define OXM_OF_FLAGS OXM_HEADER     (0x8000, 40, 4)
-#define OXM_OF_FLAGS_W OXM_HEADER_W (0x8000, 40, 4)
-
-/* Flow State */
-#define OXM_OF_STATE OXM_HEADER     (0x8000, 41, 4)
+#define OXM_EXP_FLAGS OXM_HEADER     (0xFFFF, 40, 8)
+#define OXM_EXP_FLAGS_W OXM_HEADER_W (0xFFFF, 40, 6)  /*(experimenter_id + flag + mask)/2*/
+#define OXM_EXP_STATE OXM_HEADER     (0xFFFF, 41, 8)
 
 /* ## ------------------------------- ## */
 /* ## IPv6 compatible fields. ## */

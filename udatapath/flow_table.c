@@ -53,7 +53,7 @@ uint32_t  oxm_ids[]={OXM_OF_IN_PORT,OXM_OF_IN_PHY_PORT,OXM_OF_METADATA, OXM_OF_E
                         OXM_OF_ARP_SHA, OXM_OF_ARP_THA, OXM_OF_IPV6_SRC, OXM_OF_IPV6_DST, OXM_OF_IPV6_FLABEL,
                         OXM_OF_ICMPV6_TYPE, OXM_OF_ICMPV6_CODE, OXM_OF_IPV6_ND_TARGET, OXM_OF_IPV6_ND_SLL,
                         OXM_OF_IPV6_ND_TLL, OXM_OF_MPLS_LABEL, OXM_OF_MPLS_TC, OXM_OF_MPLS_BOS, OXM_OF_PBB_ISID,
-                        OXM_OF_TUNNEL_ID, OXM_OF_IPV6_EXTHDR, OXM_OF_FLAGS, OXM_OF_STATE};
+                        OXM_OF_TUNNEL_ID, OXM_OF_IPV6_EXTHDR, OXM_EXP_FLAGS, OXM_EXP_STATE};
 
 #define NUM_OXM_IDS     (sizeof(oxm_ids) / sizeof(uint32_t))
 /* Do *NOT* use N_OXM_FIELDS, it's ligically wrong and can run over
@@ -61,7 +61,7 @@ uint32_t  oxm_ids[]={OXM_OF_IN_PORT,OXM_OF_IN_PHY_PORT,OXM_OF_METADATA, OXM_OF_E
 
 uint32_t wildcarded[] = {OXM_OF_METADATA, OXM_OF_ETH_DST, OXM_OF_ETH_SRC, OXM_OF_VLAN_VID, OXM_OF_IPV4_SRC,
                                OXM_OF_IPV4_DST, OXM_OF_ARP_SPA, OXM_OF_ARP_TPA, OXM_OF_ARP_SHA, OXM_OF_ARP_THA, OXM_OF_IPV6_SRC,
-                               OXM_OF_IPV6_DST , OXM_OF_IPV6_FLABEL, OXM_OF_PBB_ISID, OXM_OF_TUNNEL_ID, OXM_OF_IPV6_EXTHDR, OXM_OF_FLAGS};                        
+                               OXM_OF_IPV6_DST , OXM_OF_IPV6_FLABEL, OXM_OF_PBB_ISID, OXM_OF_TUNNEL_ID, OXM_OF_IPV6_EXTHDR, OXM_EXP_FLAGS};                        
 
 #define NUM_WILD_IDS    (sizeof(wildcarded) / sizeof(uint32_t))
 
@@ -214,6 +214,8 @@ flow_table_lookup(struct flow_table *table, struct packet *pkt) {
 
     table->stats->lookup_count++;
 
+    //FILE *pFile;
+
     LIST_FOR_EACH(entry, struct flow_entry, match_node, &table->match_entries) {
         struct ofl_match_header *m;
 
@@ -231,8 +233,14 @@ flow_table_lookup(struct flow_table *table, struct packet *pkt) {
                     entry->last_used = time_msec();
 
                     table->stats->matched_count++;
-
+                    /*pFile=fopen("/tmp/myfile.txt","a+");
+                    fprintf(pFile,"\npacket_handle_std_match returns TRUE");
+                    /*fclose(pFile);*/
                     return entry;
+                } else {
+                    /*pFile=fopen("/tmp/myfile.txt","a+");
+                    fprintf(pFile,"\npacket_handle_std_match returns FALSE");
+                    /*fclose(pFile);*/
                 }
                 break;
 

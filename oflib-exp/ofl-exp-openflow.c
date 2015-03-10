@@ -93,7 +93,7 @@ ofl_structs_key_unpack(struct ofp_exp_state_entry *src, size_t *len, struct ofl_
     }
     else
     { //control of struct ofp_extraction length.
-       OFL_LOG_WARN(LOG_MODULE, "Received state mod bad (%zu).", *len);
+       OFL_LOG_WARN(LOG_MODULE, "Received bad state mod (%zu).", *len);
        return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
     }
  

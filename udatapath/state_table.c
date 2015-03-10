@@ -88,7 +88,7 @@ void state_table_write_state(struct state_entry *entry, struct packet *pkt) {
 	struct  ofl_match_tlv *f;
     
 	HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv, 
-		hmap_node, hash_int(OXM_OF_STATE,0), &pkt->handle_std->match.match_fields){
+		hmap_node, hash_int(OXM_EXP_STATE,0), &pkt->handle_std->match.match_fields){
                 uint32_t *state = (uint32_t*) f->value;
                 *state = (*state & 0x0) | (entry->state);
     }
@@ -126,10 +126,14 @@ void state_table_set_extractor(struct state_table *table, struct key_extractor *
 void state_table_set_state(struct state_table *table, struct packet *pkt, uint32_t state, uint8_t *k, uint32_t len) {
 	uint8_t key[MAX_STATE_KEY_LEN] = {0};	
 	struct state_entry *e;
-
+	//FILE *pFile;
+    //pFile = fopen("/tmp/myfile.txt","a+");
+		
 
 	if (pkt)
-	{
+	{	
+		//SET_STATE action
+		//fprintf(pFile,"\nstate mod: Key_len = %"PRIu32", state = %"PRIu32"", len, state);
 		if(!__extract_key(key, &table->write_key, pkt)){
 			VLOG_WARN_RL(LOG_MODULE, &rl, "lookup key fields not found in the packet's header");
 			return;
@@ -138,20 +142,26 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, uint32
 			
 
 	else {
-		int a,i;
+		//SET_STATE message
+		int i;
+		uint32_t key_len=0; //update-scope key extractor length
 		struct key_extractor *extractor=&table->write_key;
 		for (i=0; i<extractor->field_count; i++) {
 			uint32_t type = (int)extractor->fields[i];
-			a = a + OXM_LENGTH(type);
+			key_len = key_len + OXM_LENGTH(type);
 	     }
-	    if(a == len)
+	    /*FILE *pFile;
+			pFile = fopen ("/tmp/myfile.txt","a+");
+			fprintf(pFile,"\nlunghezza extractor %"PRIu32":", key_len);
+			fprintf(pFile,"\nlen passata alla funzione %"PRIu32":", len);
+			fclose(pFile);*/
+	    if(key_len == len)
 	    {
 			memcpy(key, k, MAX_STATE_KEY_LEN);
-	        printf("state table no pkt exist \n");
 	    }
 	    else
 	    {
-	    	VLOG_WARN_RL(LOG_MODULE, &rl, "wrong key fields received");
+	    	VLOG_WARN_RL(LOG_MODULE, &rl, "Wrong key length received");
 	    	return;
 	    }
 	}

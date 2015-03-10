@@ -67,8 +67,8 @@
 #define DP_SUPPORTED_MATCH_FIELDS ( OFPXMT_OFB_IN_PORT        \
                                   | OFPXMT_OFB_IN_PHY_PORT    \
                                   | OFPXMT_OFB_METADATA       \
-                                  | OFPXMT_OFB_FLAGS          \
-                                  | OFPXMT_OFB_STATE          \
+                                  | OFPXMT_EXP_FLAGS          \
+                                  | OFPXMT_EXP_STATE          \
                                   | OFPXMT_OFB_ETH_DST        \
                                   | OFPXMT_OFB_ETH_SRC        \
                                   | OFPXMT_OFB_ETH_TYPE       \

@@ -329,9 +329,12 @@ enum oxm_ofb_match_fields {
     OFPXMT_OFB_MPLS_BOS = 36,       /* MPLS BoS bit. */
     OFPXMT_OFB_PBB_ISID = 37,       /* PBB I-SID. */
     OFPXMT_OFB_TUNNEL_ID = 38,      /* Logical Port Metadata. */
-    OFPXMT_OFB_IPV6_EXTHDR = 39,     /* IPv6 Extension Header pseudo-field */
-    OFPXMT_OFB_FLAGS = 40,        /* Global States */
-    OFPXMT_OFB_STATE = 41,        /* Flow State */
+    OFPXMT_OFB_IPV6_EXTHDR = 39     /* IPv6 Extension Header pseudo-field */
+};
+
+enum oxm_exp_match_fields {
+    OFPXMT_EXP_FLAGS = 40,        /* Global States */
+    OFPXMT_EXP_STATE = 41       /* Flow State */
 };
 
 /* The VLAN id is 12-bits, so we can use the entire 16 bits to indicate

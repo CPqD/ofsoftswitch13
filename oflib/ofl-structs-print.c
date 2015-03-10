@@ -37,6 +37,7 @@
 #include <ctype.h>
 #include <inttypes.h>
 #include <netinet/in.h>
+#include <math.h>
 #include "oxm-match.h"
 #include "openflow/openflow.h"
 
@@ -234,215 +235,237 @@ ofl_structs_oxm_tlv_to_string(struct ofl_match_tlv *f) {
 void
 ofl_structs_oxm_tlv_print(FILE *stream, struct ofl_match_tlv *f)
 {
+	uint16_t class = OXM_VENDOR(f->header);
 	uint8_t field = OXM_FIELD(f->header);
 
-	switch (field) {
+	switch (class) {
+		case(OFPXMC_OPENFLOW_BASIC):
+				switch (field) {
 
-		case OFPXMT_OFB_IN_PORT:
-			fprintf(stream, "in_port=\"%d\"", *((uint32_t*) f->value));
-			break;
-		case OFPXMT_OFB_IN_PHY_PORT:
-			fprintf(stream, "in_phy_port=\"%d\"", *((uint32_t*) f->value));
-			break;
-		case OFPXMT_OFB_VLAN_VID: {
-			uint16_t v = *((uint16_t *) f->value);
-			if (v == OFPVID_NONE)
-				fprintf(stream, "vlan_vid= none");
-			else if (v == OFPVID_PRESENT && OXM_HASMASK(f->header))
-				fprintf(stream, "vlan_vid= any");
-			else
-				fprintf(stream, "vlan_vid=\"%d\"",v & VLAN_VID_MASK);
-			break;
-		}
-		case OFPXMT_OFB_VLAN_PCP:
-			fprintf(stream, "vlan_pcp=\"%d\"", *f->value & 0x7);
-			break;
-		case OFPXMT_OFB_ETH_TYPE:
-			fprintf(stream, "eth_type=\"0x%x\"",  *((uint16_t *) f->value));
-			break;
-		case OFPXMT_OFB_TCP_SRC:
-			fprintf(stream, "tcp_src=\"%d\"", *((uint16_t*) f->value));
-			break;
-		case OFPXMT_OFB_TCP_DST:
-			fprintf(stream, "tcp_dst=\"%d\"", *((uint16_t*) f->value));
-			break;
-		case OFPXMT_OFB_UDP_SRC:
-			fprintf(stream, "udp_src=\"%d\"", *((uint16_t*) f->value));
-			break;
-		case OFPXMT_OFB_UDP_DST:
-			fprintf(stream, "udp_dst=\"%d\"", *((uint16_t*) f->value));
-			break;
-		case OFPXMT_OFB_SCTP_SRC:
-			fprintf(stream, "sctp_src=\"%d\"", *((uint16_t*) f->value));
-			break;
-		case OFPXMT_OFB_SCTP_DST:
-			fprintf(stream, "sctp_dst=\"%d\"", *((uint16_t*) f->value));
-			break;
-		case OFPXMT_OFB_ETH_SRC:
-			fprintf(stream, "eth_src=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value));
-			if (OXM_HASMASK(f->header)) {
-				fprintf(stream, ", eth_src_mask=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value + 6));
-			}
-			break;
-		case OFPXMT_OFB_ETH_DST:
-			fprintf(stream, "eth_dst=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value));
-			if (OXM_HASMASK(f->header)) {
-				fprintf(stream, ", eth_dst_mask=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value + 6));
-			}
-			break;
-		case OFPXMT_OFB_IPV4_DST:
-			fprintf(stream, "ipv4_dst=\""IP_FMT"\"", IP_ARGS(f->value));
-			if (OXM_HASMASK(f->header)) {
-				fprintf(stream, ", ipv4_dst_mask=\""IP_FMT"\"", IP_ARGS(f->value + 4));
-			}
-			break;
-		case OFPXMT_OFB_IPV4_SRC:
-			fprintf(stream, "ipv4_src=\""IP_FMT"\"", IP_ARGS(f->value));
-			if (OXM_HASMASK(f->header)) {
-				fprintf(stream, ", ipv4_src_mask=\""IP_FMT"\"", IP_ARGS(f->value + 4));
-			}
-			break;
-		case OFPXMT_OFB_IP_PROTO:
-			fprintf(stream, "ip_proto=\"%d\"", *f->value);
-			break;
-		case OFPXMT_OFB_IP_DSCP:
-			fprintf(stream, "ip_dscp=\"%d\"", *f->value & 0x3f);
-			break;
-		case OFPXMT_OFB_IP_ECN:
-			fprintf(stream, "ip_ecn=\"%d\"", *f->value & 0x3);
-			break;
-		case OFPXMT_OFB_ICMPV4_TYPE:
-			fprintf(stream, "icmpv4_type= \"%d\"", *f->value);
-			break;
-		case OFPXMT_OFB_ICMPV4_CODE:
-			fprintf(stream, "icmpv4_code=\"%d\"", *f->value);
-			break;
-		case OFPXMT_OFB_ARP_SHA:
-			fprintf(stream, "arp_sha=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value));
-			if (OXM_HASMASK(f->header)) {
-				fprintf(stream, ", arp_sha_mask=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value + 6));
-			}
-			break;
-		case OFPXMT_OFB_ARP_THA:
-			fprintf(stream, "arp_tha=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value));
-			if (OXM_HASMASK(f->header)) {
-				fprintf(stream, ", arp_tha_mask=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value + 6));
-			}
-			break;
-		case OFPXMT_OFB_ARP_SPA:
-			fprintf(stream, "arp_spa=\""IP_FMT"\"", IP_ARGS(f->value));
-			if (OXM_HASMASK(f->header)) {
-				fprintf(stream, ", arp_sha_mask=\""IP_FMT"\"", IP_ARGS(f->value + 4));
-			}
-			break;
-		case OFPXMT_OFB_ARP_TPA:
-			fprintf(stream, "arp_tpa=\""IP_FMT"\"", IP_ARGS(f->value));
-			if (OXM_HASMASK(f->header)) {
-				fprintf(stream, ", arp_tpa_mask=\""IP_FMT"\"", IP_ARGS(f->value + 4));
-			}
-			break;
-		case OFPXMT_OFB_ARP_OP:
-			fprintf(stream, "arp_op=\"0x%x\"", *((uint16_t*) f->value));
-			break;
-		case OFPXMT_OFB_IPV6_SRC: {
-			char addr_str[INET6_ADDRSTRLEN];
-			inet_ntop(AF_INET6, f->value, addr_str, INET6_ADDRSTRLEN);
-			fprintf(stream, "nw_src_ipv6=\"%s\"", addr_str);
-			if (OXM_HASMASK(f->header)) {
-				inet_ntop(AF_INET6, f->value + 16, addr_str, INET6_ADDRSTRLEN);
-				fprintf(stream, ", nw_src_ipv6_mask=\"%s\"", addr_str);
-			}
-			break;
-		}
-		case OFPXMT_OFB_IPV6_DST: {
-			char addr_str[INET6_ADDRSTRLEN];
-			inet_ntop(AF_INET6, f->value, addr_str, INET6_ADDRSTRLEN);
-			fprintf(stream, "nw_dst_ipv6=\"%s\"", addr_str);
-			if (OXM_HASMASK(f->header)) {
-				inet_ntop(AF_INET6, f->value + 16, addr_str, INET6_ADDRSTRLEN);
-				fprintf(stream, ", nw_dst_ipv6_mask=\"%s\"", addr_str);
-			}
-			break;
-		}
-		case OFPXMT_OFB_IPV6_ND_TARGET: {
-			char addr_str[INET6_ADDRSTRLEN];
-			inet_ntop(AF_INET6, f->value, addr_str, INET6_ADDRSTRLEN);
-			fprintf(stream, "ipv6_nd_target=\"%s\"", addr_str);
-			break;
-		}
-		case OFPXMT_OFB_IPV6_ND_SLL:
-			fprintf(stream, "ipv6_nd_sll=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value));
-			break;
-		case OFPXMT_OFB_IPV6_ND_TLL:
-			fprintf(stream, "ipv6_nd_tll=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value));
-			break;
-		case OFPXMT_OFB_IPV6_FLABEL:
-			fprintf(stream, "ipv6_flow_label=\"%d\"", *((uint32_t*) f->value) & 0x000fffff);
-			if (OXM_HASMASK(f->header)) {
-				fprintf(stream, ", ipv6_flow_label_mask=\"%d\"", *((uint32_t*) (f->value+4)));
-			}
-			break;
-		case OFPXMT_OFB_ICMPV6_TYPE:
-			fprintf(stream, "icmpv6_type=\"%d\"", *f->value);
-			break;
-		case OFPXMT_OFB_ICMPV6_CODE:
-			fprintf(stream, "icmpv6_code=\"%d\"", *f->value);
-			break;
-		case OFPXMT_OFB_MPLS_LABEL:
-			fprintf(stream, "mpls_label=\"%d\"",((uint32_t) *f->value) & 0x000fffff);
-			break;
-		case OFPXMT_OFB_MPLS_TC:
-			fprintf(stream, "mpls_tc=\"%d\"", *f->value & 0x3);
-			break;
-		case OFPXMT_OFB_MPLS_BOS:
-			fprintf(stream, "mpls_bos=\"%d\"", *f->value & 0x1);
-			break;
-		case OFPXMT_OFB_METADATA:
-			fprintf(stream, "metadata=\"0x%"PRIx64"\"", *((uint64_t*) f->value));
-			if (OXM_HASMASK(f->header)) {
-				fprintf(stream, ", metadata_mask=\"0x%"PRIx64"\"", *((uint64_t*)(f->value+8)));
-			}
-			break;
-		case OFPXMT_OFB_STATE:
-			fprintf(stream, "state=\"%u\"", *((uint32_t*) f->value));
-			break;
-		case OFPXMT_OFB_FLAGS:
-			/*
-			fprintf(stream, "flags=\"%d\"", *((uint32_t*) f->value));
-			if (OXM_HASMASK(f->header)) {
-				fprintf(stream, ", flags_mask=\"%d\"", *((uint32_t*)(f->value+4)));
-			}*/
-			if (!OXM_HASMASK(f->header)) {
-				fprintf(stream, "flags=\"%d\"", *((uint32_t*) f->value));
-			} else {
-				fprintf(stream, "flags=");
-				char string_value[33];
-	            masked_value_print(string_value,decimal_to_binary(*((uint32_t*) f->value)),decimal_to_binary(*((uint32_t*)(f->value+4))));
-	            fprintf(stream,"%s",string_value);
-	        }
-			break;
-		case OFPXMT_OFB_PBB_ISID   :
-			fprintf(stream, "pbb_isid=\"%d\"", *((uint32_t*) f->value));
-			if (OXM_HASMASK(f->header)) {
-				fprintf(stream, ", pbb_isid_mask=\"%d\"", *((uint32_t*)(f->value+4)));
-			}
-			break;
-		case OFPXMT_OFB_TUNNEL_ID:
-			fprintf(stream, "tunnel_id=\"%"PRIu64"\"", *((uint64_t*) f->value));
-			if (OXM_HASMASK(f->header)) {
-				fprintf(stream, ", tunnel_id_mask=\"%"PRIu64"\"", *((uint64_t*)(f->value+8)));
-			}
-			break;
-		case OFPXMT_OFB_IPV6_EXTHDR:
-			fprintf(stream, "ext_hdr=\"");
-			ofl_ipv6_ext_hdr_print(stream, *((uint16_t*) f->value));
-			fprintf(stream, "\"");
-			if (OXM_HASMASK(f->header)) {
-				fprintf(stream, ", ext_hdr_mask=\"0x%x\"", *((uint16_t*)(f->value+4)));
+					case OFPXMT_OFB_IN_PORT:
+						fprintf(stream, "in_port=\"%d\"", *((uint32_t*) f->value));
+						break;
+					case OFPXMT_OFB_IN_PHY_PORT:
+						fprintf(stream, "in_phy_port=\"%d\"", *((uint32_t*) f->value));
+						break;
+					case OFPXMT_OFB_VLAN_VID: {
+						uint16_t v = *((uint16_t *) f->value);
+						if (v == OFPVID_NONE)
+							fprintf(stream, "vlan_vid= none");
+						else if (v == OFPVID_PRESENT && OXM_HASMASK(f->header))
+							fprintf(stream, "vlan_vid= any");
+						else
+							fprintf(stream, "vlan_vid=\"%d\"",v & VLAN_VID_MASK);
+						break;
+					}
+					case OFPXMT_OFB_VLAN_PCP:
+						fprintf(stream, "vlan_pcp=\"%d\"", *f->value & 0x7);
+						break;
+					case OFPXMT_OFB_ETH_TYPE:
+						fprintf(stream, "eth_type=\"0x%x\"",  *((uint16_t *) f->value));
+						break;
+					case OFPXMT_OFB_TCP_SRC:
+						fprintf(stream, "tcp_src=\"%d\"", *((uint16_t*) f->value));
+						break;
+					case OFPXMT_OFB_TCP_DST:
+						fprintf(stream, "tcp_dst=\"%d\"", *((uint16_t*) f->value));
+						break;
+					case OFPXMT_OFB_UDP_SRC:
+						fprintf(stream, "udp_src=\"%d\"", *((uint16_t*) f->value));
+						break;
+					case OFPXMT_OFB_UDP_DST:
+						fprintf(stream, "udp_dst=\"%d\"", *((uint16_t*) f->value));
+						break;
+					case OFPXMT_OFB_SCTP_SRC:
+						fprintf(stream, "sctp_src=\"%d\"", *((uint16_t*) f->value));
+						break;
+					case OFPXMT_OFB_SCTP_DST:
+						fprintf(stream, "sctp_dst=\"%d\"", *((uint16_t*) f->value));
+						break;
+					case OFPXMT_OFB_ETH_SRC:
+						fprintf(stream, "eth_src=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value));
+						if (OXM_HASMASK(f->header)) {
+							fprintf(stream, ", eth_src_mask=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value + 6));
+						}
+						break;
+					case OFPXMT_OFB_ETH_DST:
+						fprintf(stream, "eth_dst=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value));
+						if (OXM_HASMASK(f->header)) {
+							fprintf(stream, ", eth_dst_mask=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value + 6));
+						}
+						break;
+					case OFPXMT_OFB_IPV4_DST:
+						fprintf(stream, "ipv4_dst=\""IP_FMT"\"", IP_ARGS(f->value));
+						if (OXM_HASMASK(f->header)) {
+							fprintf(stream, ", ipv4_dst_mask=\""IP_FMT"\"", IP_ARGS(f->value + 4));
+						}
+						break;
+					case OFPXMT_OFB_IPV4_SRC:
+						fprintf(stream, "ipv4_src=\""IP_FMT"\"", IP_ARGS(f->value));
+						if (OXM_HASMASK(f->header)) {
+							fprintf(stream, ", ipv4_src_mask=\""IP_FMT"\"", IP_ARGS(f->value + 4));
+						}
+						break;
+					case OFPXMT_OFB_IP_PROTO:
+						fprintf(stream, "ip_proto=\"%d\"", *f->value);
+						break;
+					case OFPXMT_OFB_IP_DSCP:
+						fprintf(stream, "ip_dscp=\"%d\"", *f->value & 0x3f);
+						break;
+					case OFPXMT_OFB_IP_ECN:
+						fprintf(stream, "ip_ecn=\"%d\"", *f->value & 0x3);
+						break;
+					case OFPXMT_OFB_ICMPV4_TYPE:
+						fprintf(stream, "icmpv4_type= \"%d\"", *f->value);
+						break;
+					case OFPXMT_OFB_ICMPV4_CODE:
+						fprintf(stream, "icmpv4_code=\"%d\"", *f->value);
+						break;
+					case OFPXMT_OFB_ARP_SHA:
+						fprintf(stream, "arp_sha=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value));
+						if (OXM_HASMASK(f->header)) {
+							fprintf(stream, ", arp_sha_mask=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value + 6));
+						}
+						break;
+					case OFPXMT_OFB_ARP_THA:
+						fprintf(stream, "arp_tha=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value));
+						if (OXM_HASMASK(f->header)) {
+							fprintf(stream, ", arp_tha_mask=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value + 6));
+						}
+						break;
+					case OFPXMT_OFB_ARP_SPA:
+						fprintf(stream, "arp_spa=\""IP_FMT"\"", IP_ARGS(f->value));
+						if (OXM_HASMASK(f->header)) {
+							fprintf(stream, ", arp_sha_mask=\""IP_FMT"\"", IP_ARGS(f->value + 4));
+						}
+						break;
+					case OFPXMT_OFB_ARP_TPA:
+						fprintf(stream, "arp_tpa=\""IP_FMT"\"", IP_ARGS(f->value));
+						if (OXM_HASMASK(f->header)) {
+							fprintf(stream, ", arp_tpa_mask=\""IP_FMT"\"", IP_ARGS(f->value + 4));
+						}
+						break;
+					case OFPXMT_OFB_ARP_OP:
+						fprintf(stream, "arp_op=\"0x%x\"", *((uint16_t*) f->value));
+						break;
+					case OFPXMT_OFB_IPV6_SRC: {
+						char addr_str[INET6_ADDRSTRLEN];
+						inet_ntop(AF_INET6, f->value, addr_str, INET6_ADDRSTRLEN);
+						fprintf(stream, "nw_src_ipv6=\"%s\"", addr_str);
+						if (OXM_HASMASK(f->header)) {
+							inet_ntop(AF_INET6, f->value + 16, addr_str, INET6_ADDRSTRLEN);
+							fprintf(stream, ", nw_src_ipv6_mask=\"%s\"", addr_str);
+						}
+						break;
+					}
+					case OFPXMT_OFB_IPV6_DST: {
+						char addr_str[INET6_ADDRSTRLEN];
+						inet_ntop(AF_INET6, f->value, addr_str, INET6_ADDRSTRLEN);
+						fprintf(stream, "nw_dst_ipv6=\"%s\"", addr_str);
+						if (OXM_HASMASK(f->header)) {
+							inet_ntop(AF_INET6, f->value + 16, addr_str, INET6_ADDRSTRLEN);
+							fprintf(stream, ", nw_dst_ipv6_mask=\"%s\"", addr_str);
+						}
+						break;
+					}
+					case OFPXMT_OFB_IPV6_ND_TARGET: {
+						char addr_str[INET6_ADDRSTRLEN];
+						inet_ntop(AF_INET6, f->value, addr_str, INET6_ADDRSTRLEN);
+						fprintf(stream, "ipv6_nd_target=\"%s\"", addr_str);
+						break;
+					}
+					case OFPXMT_OFB_IPV6_ND_SLL:
+						fprintf(stream, "ipv6_nd_sll=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value));
+						break;
+					case OFPXMT_OFB_IPV6_ND_TLL:
+						fprintf(stream, "ipv6_nd_tll=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value));
+						break;
+					case OFPXMT_OFB_IPV6_FLABEL:
+						fprintf(stream, "ipv6_flow_label=\"%d\"", *((uint32_t*) f->value) & 0x000fffff);
+						if (OXM_HASMASK(f->header)) {
+							fprintf(stream, ", ipv6_flow_label_mask=\"%d\"", *((uint32_t*) (f->value+4)));
+						}
+						break;
+					case OFPXMT_OFB_ICMPV6_TYPE:
+						fprintf(stream, "icmpv6_type=\"%d\"", *f->value);
+						break;
+					case OFPXMT_OFB_ICMPV6_CODE:
+						fprintf(stream, "icmpv6_code=\"%d\"", *f->value);
+						break;
+					case OFPXMT_OFB_MPLS_LABEL:
+						fprintf(stream, "mpls_label=\"%d\"",((uint32_t) *f->value) & 0x000fffff);
+						break;
+					case OFPXMT_OFB_MPLS_TC:
+						fprintf(stream, "mpls_tc=\"%d\"", *f->value & 0x3);
+						break;
+					case OFPXMT_OFB_MPLS_BOS:
+						fprintf(stream, "mpls_bos=\"%d\"", *f->value & 0x1);
+						break;
+					case OFPXMT_OFB_METADATA:
+						fprintf(stream, "metadata=\"0x%"PRIx64"\"", *((uint64_t*) f->value));
+						if (OXM_HASMASK(f->header)) {
+							fprintf(stream, ", metadata_mask=\"0x%"PRIx64"\"", *((uint64_t*)(f->value+8)));
+						}
+						break;
+					case OFPXMT_OFB_PBB_ISID   :
+						fprintf(stream, "pbb_isid=\"%d\"", *((uint32_t*) f->value));
+						if (OXM_HASMASK(f->header)) {
+							fprintf(stream, ", pbb_isid_mask=\"%d\"", *((uint32_t*)(f->value+4)));
+						}
+						break;
+					case OFPXMT_OFB_TUNNEL_ID:
+						fprintf(stream, "tunnel_id=\"%"PRIu64"\"", *((uint64_t*) f->value));
+						if (OXM_HASMASK(f->header)) {
+							fprintf(stream, ", tunnel_id_mask=\"%"PRIu64"\"", *((uint64_t*)(f->value+8)));
+						}
+						break;
+					case OFPXMT_OFB_IPV6_EXTHDR:
+						fprintf(stream, "ext_hdr=\"");
+						ofl_ipv6_ext_hdr_print(stream, *((uint16_t*) f->value));
+						fprintf(stream, "\"");
+						if (OXM_HASMASK(f->header)) {
+							fprintf(stream, ", ext_hdr_mask=\"0x%x\"", *((uint16_t*)(f->value+4)));
+						}
+						break;
+			                        
+			        default:
+						fprintf(stream, "unknown type %d", field);					
+					
+					}
+					break;
+
+
+        case(OFPXMC_EXPERIMENTER):
+        	switch (field) {
+
+		        	case OFPXMT_EXP_STATE:
+					fprintf(stream, "state=\"%u\"", *((uint32_t*) f->value));
+					break;
+
+					case OFPXMT_EXP_FLAGS:
+						/*
+						fprintf(stream, "flags=\"%d\"", *((uint32_t*) f->value));
+						if (OXM_HASMASK(f->header)) {
+							fprintf(stream, ", flags_mask=\"%d\"", *((uint32_t*)(f->value+4)));
+						}*/
+						fprintf(stream, "flags=");
+						if (!OXM_HASMASK(f->header)) {
+							char string_value[33];
+				            masked_value_print(string_value,decimal_to_binary(*((uint32_t*) f->value)),decimal_to_binary((uint32_t)(pow(2,32)-1)));
+				            fprintf(stream,"%s",string_value);
+						} else {
+							char string_value[33];
+				            masked_value_print(string_value,decimal_to_binary(*((uint32_t*) f->value)),decimal_to_binary(*((uint32_t*)(f->value+4))));
+				            fprintf(stream,"%s",string_value);
+				        }
+						break;
+		
+					default:
+						fprintf(stream, "unknown type %d", field);
 			}
 			break;
 		default:
-			fprintf(stream, "unknown type %d", field);
+			fprintf(stream, "unknown vendor %"PRIu16"", class);	
 	}
 }
 

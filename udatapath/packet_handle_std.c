@@ -73,8 +73,8 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
     /* Add global register value to the hash_map */
 
     if (DP_SUPPORTED_CAPABILITIES & OFPC_OPENSTATE){
-            ofl_structs_match_put32(&handle->match, OXM_OF_STATE, 0x00000000);
-            ofl_structs_match_put32(&handle->match, OXM_OF_FLAGS, OFP_GLOBAL_STATES_DEFAULT);
+            ofl_structs_match_put32(&handle->match, OXM_EXP_STATE, 0x00000000);
+            ofl_structs_match_put32(&handle->match, OXM_EXP_FLAGS, OFP_GLOBAL_STATES_DEFAULT);
     }
     
     return;
@@ -153,14 +153,12 @@ packet_handle_std_is_fragment(struct packet_handle_std *handle) {
 
 bool
 packet_handle_std_match(struct packet_handle_std *handle, struct ofl_match *match){
-
     if (!handle->valid){
         packet_handle_std_validate(handle);
         if (!handle->valid){
             return false;
         }
     }
-
     return packet_match(match ,&handle->match );
 }
 
