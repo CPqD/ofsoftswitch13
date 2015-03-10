@@ -321,14 +321,9 @@ pipeline_handle_flag_mod(struct pipeline *pl, struct ofl_exp_msg_flag_mod *msg,
     
     uint32_t global_states = pl->dp->global_states;
     ofl_err error;
-    //FILE *pFile;
-    //pFile = fopen("/tmp/myfile.txt","a+");
     if (msg->command == OFPSC_MODIFY_FLAGS) {
-        //fprintf(pFile,"\n GLOBAL STATES PRIMA = %"PRIu32"", pl->dp->global_states);
         global_states = (global_states & ~(msg->flag_mask)) | (msg->flag & msg->flag_mask);
         pl->dp->global_states = global_states;
-        //fprintf(pFile,"\n GLOBAL STATES DOPO = %"PRIu32"\n", pl->dp->global_states);
-        //fclose(pFile);
     }
     else if (msg->command == OFPSC_RESET_FLAGS) {
         pl->dp->global_states = OFP_GLOBAL_STATES_DEFAULT;
