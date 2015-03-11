@@ -126,14 +126,10 @@ void state_table_set_extractor(struct state_table *table, struct key_extractor *
 void state_table_set_state(struct state_table *table, struct packet *pkt, uint32_t state, uint8_t *k, uint32_t len) {
 	uint8_t key[MAX_STATE_KEY_LEN] = {0};	
 	struct state_entry *e;
-	//FILE *pFile;
-    //pFile = fopen("/tmp/myfile.txt","a+");
-		
 
 	if (pkt)
 	{	
 		//SET_STATE action
-		//fprintf(pFile,"\nstate mod: Key_len = %"PRIu32", state = %"PRIu32"", len, state);
 		if(!__extract_key(key, &table->write_key, pkt)){
 			VLOG_WARN_RL(LOG_MODULE, &rl, "lookup key fields not found in the packet's header");
 			return;
@@ -150,11 +146,6 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, uint32
 			uint32_t type = (int)extractor->fields[i];
 			key_len = key_len + OXM_LENGTH(type);
 	     }
-	    /*FILE *pFile;
-			pFile = fopen ("/tmp/myfile.txt","a+");
-			fprintf(pFile,"\nlunghezza extractor %"PRIu32":", key_len);
-			fprintf(pFile,"\nlen passata alla funzione %"PRIu32":", len);
-			fclose(pFile);*/
 	    if(key_len == len)
 	    {
 			memcpy(key, k, MAX_STATE_KEY_LEN);

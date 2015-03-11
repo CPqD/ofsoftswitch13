@@ -95,50 +95,26 @@ ofl_structs_match_put16m(struct ofl_match *match, uint32_t header, uint16_t valu
 void
 ofl_structs_match_put32(struct ofl_match *match, uint32_t header, uint32_t value){
     struct ofl_match_tlv *m = xmalloc(sizeof (struct ofl_match_tlv));
-
     int len = sizeof(uint32_t);
-    FILE *pFile;
-    pFile= fopen("/tmp/myfile.txt","a+");
 
     m->header = header;
     m->value = malloc(len);
     memcpy(m->value, &value, len);
-    fprintf(pFile,"\nofl_structs_match_put32\n");
-    fprintf(pFile,"\nvalue = %"PRIu32"\n",*((uint32_t*)(m->value)));
-    fclose(pFile);
     hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
     match->header.length += len + 4;
-
 }
 
 void
 ofl_structs_match_put32m(struct ofl_match *match, uint32_t header, uint32_t value, uint32_t mask){
     struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
-    
-    struct  ofl_match_tlv *f;
-
     int len = sizeof(uint32_t);
-    FILE *pFile;
-    pFile= fopen("/tmp/myfile.txt","a+");
+
     m->header = header;
     m->value = malloc(len*2);
     memcpy(m->value, &value, len);
     memcpy(m->value + len, &mask, len);
-    fprintf(pFile,"\nofl_structs_match_put32m\n");
-    fprintf(pFile,"\nvalue = %"PRIu32"", *((uint32_t*)(m->value)));
-    fprintf(pFile,"mask = %"PRIu32"\n\n",*((uint32_t*)(m->value + len)));
-    fprintf(pFile,"value + mask = %"PRIu64"\n\n",*((uint64_t*)(m->value)));
     hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
-    HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
-                    hmap_node, hash_int(header,0), &match->match_fields){
-                    uint32_t *flag = (uint32_t*) f->value;
-                    uint32_t *mask = (uint32_t*) (f->value + 4);
-                    fprintf(pFile,"\nHMAP: value = %"PRIu32"", *((uint32_t*)(flag)));
-                    fprintf(pFile," mask = %"PRIu32"\n\n",*((uint32_t*)(mask)));
-                }
-    fclose(pFile);
     match->header.length += len*2 + 4;
-
 }
 
 void

@@ -145,15 +145,10 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
     uint8_t *packet_val;
 
 
-    FILE * pFile;
-    pFile = fopen ("/tmp/myfile.txt","a+");
 
-    if (flow_match->header.length == 0){
-        fprintf(pFile, "\nFlow match header.length = 0\n");
-        fclose(pFile);    
+    if (flow_match->header.length == 0)
         return true;
-    }
-    fprintf(pFile, "\nPacket match");
+    
     /* Loop over the flow entry's match fields */
     HMAP_FOR_EACH(f, struct ofl_match_tlv, hmap_node, &flow_match->match_fields)
     {
@@ -161,11 +156,9 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
         
         has_mask = OXM_HASMASK(f->header);
         packet_header = f->header;
-        fprintf(pFile, "\nFaccio partire il match sulla class del campo");
         switch (OXM_VENDOR(f->header))
         {
             case(OFPXMC_OPENFLOW_BASIC):
-                fprintf(pFile, "\nmatch su OFPXMC_OPENFLOW_BASIC");
                 field_len =  OXM_LENGTH(f->header);
                 flow_val = f->value;
                 if (has_mask) {
@@ -178,11 +171,8 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
                 break;
 
             case(OFPXMC_EXPERIMENTER):
-                fprintf(pFile, "\nmatch su OFPXMC_EXPERIMENTER");
                 field_len =  (OXM_LENGTH(f->header)-4);
-                fprintf(pFile, "\nLunghezza del campo %d: ", field_len);
                 flow_val = f->value;
-                fprintf(pFile, "\nValore del campo %lu: ", *((uint32_t *)flow_val));
                 if (has_mask) {
 
                     /* Clear the has_mask bit and divide the field_len by two in the packet field header */
@@ -190,12 +180,10 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
                     packet_header &= 0xfffffe00;
                     packet_header |= (field_len + 4);
                     flow_mask = f->value + field_len;
-                    fprintf(pFile, "\nValore del mask %lu: ", *((uint32_t *)flow_mask));
                 }
             break;
 
             default:
-                fprintf(pFile, "\nmatch su DEFAUTL");
                 break;
         }
         
@@ -207,8 +195,6 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
         		/* There is no VLAN tag, as required */
         		continue;
         	}
-            fprintf(pFile,"\nciao ciao me ne esco");
-            fclose(pFile);
         	return false;
         }
 
@@ -216,42 +202,30 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
         packet_val = packet_f->value;
         switch (field_len) {
             case 1:
-                //fprintf(pFile, "\nmatch su 1byte");
-                
                 if (has_mask) {
                     if (!match_mask8(flow_val, flow_mask, packet_val))
-                    {
-                        //fprintf(pFile, "\nmatch su 1byte ritorna false");
-                        //fclose(pFile);
                         return false;
-                    }
                 }
                 else {
                     if (!match_8(flow_val, packet_val))
-                    {
-                        //fprintf(pFile, "\nmatch su 1byte ritorna false");
-                        //fclose(pFile);
-                        return false;
-                    }
+                        return false;                    
                 }
                 break;
             case 2:
-                //fprintf(pFile, "\nmatch su 2byte");
                 switch (packet_header) {
                     case OXM_OF_VLAN_VID: {
                         /* Special handling for VLAN ID */
                         uint16_t *flow_vlan_id = (uint16_t*) flow_val;
                         if (*flow_vlan_id == OFPVID_NONE) {
                             /* Packet has a VLAN tag when none should be there */
-                            //fclose(pFile);
                             return false;
-                        } else if (*flow_vlan_id == OFPVID_PRESENT) {
+                        } 
+                        else if (*flow_vlan_id == OFPVID_PRESENT) {
                             /* Any VLAN ID is acceptable. No further checks */
                         } else {
                             /* Check the VLAN ID */
                             *flow_vlan_id &= VLAN_VID_MASK; 
                             if (!match_16(flow_val, packet_val))
-                                //fclose(pFile);
                                 return false;
                         }
                         break;
@@ -262,7 +236,6 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
                         uint16_t packet_eh = *((uint16_t *) packet_val);
                         if ((flow_eh & packet_eh) != flow_eh) {
                             /* The packet doesn't have all extension headers specified in the flow */
-                            //fclose(pFile);
                             return false;
                         }
                         break;
@@ -270,71 +243,55 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
                     default:
                         if (has_mask) {
                             if (!match_mask16(flow_val, flow_mask, packet_val))
-                                //fclose(pFile);
                                 return false;
                         }
                         else {
                             if (!match_16(flow_val, packet_val))
-                                //fclose(pFile);
                                 return false;
                         }
                         break;
                 }
                 break;
             case 4:
-                //fprintf(pFile, "\nmatch su 4byte");
-                
                 if (has_mask) {
                     if (!match_mask32(flow_val, flow_mask, packet_val))
-                        //fclose(pFile);
                         return false;
                 }
                 else {
                     if (!match_32(flow_val, packet_val))
                     {
-                        //fprintf(pFile, "\nmatch su 4byte ritorna false");
-                        //fclose(pFile);
                         return false;
                     }
                     
                 }
                 break;
             case 6:
-                //fprintf(pFile, "\nmatch su 6byte");
                 if (has_mask) {
                     if (!match_mask48(flow_val, flow_mask, packet_val))
-                        //fclose(pFile);
                         return false;
                 }
                 else {
                     if (!match_48(flow_val, packet_val))
-                        //fclose(pFile);
                         return false;
                 }
                 break;
             case 8:
-                //fprintf(pFile, "\nmatch su 8byte");
                 if (has_mask) {
                     if (!match_mask64(flow_val, flow_mask, packet_val))
-                        //fclose(pFile);
                         return false;
                 }
                 else {
                     if (!match_64(flow_val, packet_val))
-                        //fclose(pFile);
                         return false;
                 }
                 break;
             case 16:
-                //fprintf(pFile, "\nmatch su 16byte");
                 if (has_mask) {
                     if (!match_mask128(flow_val, flow_mask, packet_val))
-                        //fclose(pFile);
                         return false;
                 }
                 else {
                     if (!match_128(flow_val, packet_val))
-                        //fclose(pFile);
                         return false;
                 }
                 break;
@@ -343,7 +300,6 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
                 break;
         }
     }
-    fclose(pFile);
     /* If we get here, all match fields in the flow entry matched the packet */
     return true;
 }

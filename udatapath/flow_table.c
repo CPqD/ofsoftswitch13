@@ -214,8 +214,6 @@ flow_table_lookup(struct flow_table *table, struct packet *pkt) {
 
     table->stats->lookup_count++;
 
-    //FILE *pFile;
-
     LIST_FOR_EACH(entry, struct flow_entry, match_node, &table->match_entries) {
         struct ofl_match_header *m;
 
@@ -233,15 +231,8 @@ flow_table_lookup(struct flow_table *table, struct packet *pkt) {
                     entry->last_used = time_msec();
 
                     table->stats->matched_count++;
-                    /*pFile=fopen("/tmp/myfile.txt","a+");
-                    fprintf(pFile,"\npacket_handle_std_match returns TRUE");
-                    /*fclose(pFile);*/
                     return entry;
-                } else {
-                    /*pFile=fopen("/tmp/myfile.txt","a+");
-                    fprintf(pFile,"\npacket_handle_std_match returns FALSE");
-                    /*fclose(pFile);*/
-                }
+                } 
                 break;
 
                 break;
