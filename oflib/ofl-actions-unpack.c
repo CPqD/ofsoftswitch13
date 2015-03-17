@@ -252,11 +252,22 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
                 OFL_LOG_WARN(LOG_MODULE, "Received SET STATE action has invalid length (%zu).", *len);
                 return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
             }
+
             sa = (struct ofp_action_set_state*)src;
             da = (struct ofl_action_set_state *)malloc(sizeof(struct ofl_action_set_state));
 
             da->state = ntohl(sa->state);
             da->stage_id = sa->stage_id;
+
+            if (da->stage_id >= PIPELINE_TABLES) {
+                if (OFL_LOG_IS_WARN_ENABLED(LOG_MODULE)) {
+                    char *ts = ofl_table_to_string(da->stage_id);
+                    OFL_LOG_WARN(LOG_MODULE, "Received SET STATE action has invalid stage_id (%s).", ts);
+                    free(ts);
+                }
+                free(da);
+                return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
+            }
 
             *dst = (struct ofl_action_header *)da;
             *len -= sizeof(struct ofp_action_set_state);

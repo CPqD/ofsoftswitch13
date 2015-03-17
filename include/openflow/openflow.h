@@ -630,7 +630,7 @@ OFP_ASSERT(sizeof(struct ofp_action_set_state) == 16);
 /* Action structure for OFPAT_SET_FLAG */
 struct ofp_action_set_flag {
     uint16_t type; /* OFPAT_SET_FLAG */
-    uint16_t len;  /* Length is 8. */
+    uint16_t len;  /* Length is 16. */
     uint32_t value; /* flag value */
     uint32_t mask;    /*flag mask*/
     uint8_t pad[4];   /* Align to 64-bits. */
