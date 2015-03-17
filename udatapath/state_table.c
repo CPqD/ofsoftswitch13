@@ -97,6 +97,19 @@ void state_table_del_state(struct state_table *table, uint8_t *key, uint32_t len
 	struct state_entry *e;
 	int found = 0;
 
+	int i;
+	uint32_t key_len=0; //update-scope key extractor length
+	struct key_extractor *extractor=&table->write_key;
+	for (i=0; i<extractor->field_count; i++) {
+		uint32_t type = (int)extractor->fields[i];
+		key_len = key_len + OXM_LENGTH(type);
+     }
+    if(key_len != len)
+    {
+    	VLOG_WARN_RL(LOG_MODULE, &rl, "key extractor length != received key length");
+    	return;
+    }
+
 	HMAP_FOR_EACH_WITH_HASH(e, struct state_entry, 
 		hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries){
 			if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
@@ -127,9 +140,9 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, uint32
 	uint8_t key[MAX_STATE_KEY_LEN] = {0};	
 	struct state_entry *e;
 
-
 	if (pkt)
 	{
+		//SET_STATE action
 		if(!__extract_key(key, &table->write_key, pkt)){
 			VLOG_WARN_RL(LOG_MODULE, &rl, "lookup key fields not found in the packet's header");
 			return;
@@ -152,7 +165,7 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, uint32
 	    }
 	    else
 	    {
-	    	VLOG_WARN_RL(LOG_MODULE, &rl, "Wrong key length received");
+	    	VLOG_WARN_RL(LOG_MODULE, &rl, "key extractor length != received key length");
 	    	return;
 	    }
 	}
