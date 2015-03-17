@@ -404,6 +404,17 @@ ofl_exp_openflow_act_unpack(struct ofp_action_header *src, size_t *len, struct o
                 sa = (struct ofp_exp_action_set_state *)ext;
                 da = (struct ofl_exp_action_set_state *)malloc(sizeof(struct ofl_exp_action_set_state));
 
+
+                if (sa->stage_id >= PIPELINE_TABLES) {
+                    if (OFL_LOG_IS_WARN_ENABLED(LOG_MODULE)) {
+                        char *ts = ofl_table_to_string(sa->stage_id);
+                        OFL_LOG_WARN(LOG_MODULE, "Received SET STATE action has invalid stage_id (%s).", ts);
+                        free(ts);
+                    }
+                    free(da);
+                    return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
+                }
+
                 da->header.header.experimenter_id = ntohl(exp->experimenter);
                 da->header.act_type = ntohl(ext->act_type);
                 da->state = ntohl(sa->state);
