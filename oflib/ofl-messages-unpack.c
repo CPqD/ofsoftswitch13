@@ -1577,7 +1577,7 @@ static ofl_err
 ofl_structs_extraction_unpack(struct ofp_extraction *src, size_t *len, struct ofl_msg_extraction *dst) {
     int error=0;
     int i;
-    if(*len == (1+ntohl(src->field_count))*sizeof(uint32_t))
+    if(*len == (1+ntohl(src->field_count))*sizeof(uint32_t) && (ntohl(src->field_count)>0))
     {
         dst->field_count=ntohl(src->field_count);
         printf("field count is %d\n",dst->field_count);
@@ -1590,7 +1590,6 @@ ofl_structs_extraction_unpack(struct ofp_extraction *src, size_t *len, struct of
     else
     { //control of struct ofp_extraction length.
        OFL_LOG_WARN(LOG_MODULE, "Received state mod extraction is too short (%zu).", *len);
-       printf("STATE MODE received extraction struct is too short %zu\n" ,*len);
        return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
     }
     
@@ -1605,7 +1604,7 @@ ofl_structs_key_unpack(struct ofp_state_entry *src, size_t *len, struct ofl_msg_
     int i;
     uint8_t key[OFPSC_MAX_KEY_LEN] = {0};
 
-    if(*len == (2*sizeof(uint32_t) + ntohl(src->key_len)*sizeof(uint8_t)))
+    if((*len == (2*sizeof(uint32_t) + ntohl(src->key_len)*sizeof(uint8_t))) && (ntohl(src->key_len)>0))
     {
         dst->key_len=ntohl(src->key_len);
         dst->state=ntohl(src->state);
@@ -1620,7 +1619,7 @@ ofl_structs_key_unpack(struct ofp_state_entry *src, size_t *len, struct ofl_msg_
     }
     else
     { //control of struct ofp_extraction length.
-       OFL_LOG_WARN(LOG_MODULE, "Received state mod bad (%zu).", *len);
+       OFL_LOG_WARN(LOG_MODULE, "Received state mod add flow is too short (%zu).", *len);
        return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
     }
 
