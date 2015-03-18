@@ -1580,11 +1580,9 @@ ofl_structs_extraction_unpack(struct ofp_extraction *src, size_t *len, struct of
     if(*len == (1+ntohl(src->field_count))*sizeof(uint32_t) && (ntohl(src->field_count)>0))
     {
         dst->field_count=ntohl(src->field_count);
-        printf("field count is %d\n",dst->field_count);
         for (i=0;i<dst->field_count;i++)
         {
             dst->fields[i]=ntohl(src->fields[i]);
-            printf("fields array %02x \n.", dst->fields[i]);
         }
     }
     else
@@ -1611,7 +1609,6 @@ ofl_structs_key_unpack(struct ofp_state_entry *src, size_t *len, struct ofl_msg_
         for (i=0;i<dst->key_len;i++)
         {
             key[i]=src->key[i];
-            printf("fields array %02x \n.", dst->key[i]);
         }
         memcpy(dst->key, key, OFPSC_MAX_KEY_LEN);
         OFL_LOG_WARN(LOG_MODULE, "key count is %d\n",dst->key_len);
