@@ -257,12 +257,12 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             da = (struct ofl_action_set_state *)malloc(sizeof(struct ofl_action_set_state));
 
             da->state = ntohl(sa->state);
-            da->stage_id = sa->stage_id;
+            da->table_id = sa->table_id;
 
-            if (da->stage_id >= PIPELINE_TABLES) {
+            if (da->table_id >= PIPELINE_TABLES) {
                 if (OFL_LOG_IS_WARN_ENABLED(LOG_MODULE)) {
-                    char *ts = ofl_table_to_string(da->stage_id);
-                    OFL_LOG_WARN(LOG_MODULE, "Received SET STATE action has invalid stage_id (%s).", ts);
+                    char *ts = ofl_table_to_string(da->table_id);
+                    OFL_LOG_WARN(LOG_MODULE, "Received SET STATE action has invalid table_id (%s).", ts);
                     free(ts);
                 }
                 free(da);

@@ -620,7 +620,7 @@ struct ofp_action_set_state {
     uint16_t type; /* OFPAT_SET_STATE */
     uint16_t len;  /* Length is 16. */
     uint32_t state; /* State instance. */
-    uint8_t stage_id; /*Stage destination*/
+    uint8_t table_id; /*Stage destination*/
     uint8_t pad[7];           /* Align to 64-bits. */
     //uint64_t state;
     //uint8_t pad[3];           /* Align to 64-bits. */
