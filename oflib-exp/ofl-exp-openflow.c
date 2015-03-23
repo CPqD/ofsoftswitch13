@@ -536,7 +536,7 @@ ofl_exp_openflow_act_to_string(struct ofl_action_header *act)
                 struct ofl_exp_action_set_flag *a = (struct ofl_exp_action_set_flag *)ext;
                 char *string = malloc(100);
                 char string_value[33];
-                masked_value_print(string_value,decimal_to_binary(a->value),decimal_to_binary(a->mask));
+                masked_value_print(string_value,decimal_to_binary(a->flag),decimal_to_binary(a->flag_mask));
                 sprintf(string, "{set_flag=[flag=%s]}", string_value);
                 return string;
                 break;

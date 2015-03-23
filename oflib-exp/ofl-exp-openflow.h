@@ -115,8 +115,8 @@ struct ofl_exp_action_set_state {
 struct ofl_exp_action_set_flag {
     struct ofl_exp_openflow_act_header   header; /* OFPAT_EXP_SET_FLAG */
 
-    uint32_t value;
-    uint32_t mask;
+    uint32_t flag;
+    uint32_t flag_mask;
 };
 
 
