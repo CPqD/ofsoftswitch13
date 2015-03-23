@@ -109,7 +109,7 @@ struct ofl_exp_action_set_state {
     struct ofl_exp_openflow_act_header  header; /* OFPAT_EXP_SET_STATE */
 
     uint32_t state;
-    uint8_t stage_id; /*we have 64 flow table in the pipeline*/
+    uint8_t table_id; /*we have 64 flow table in the pipeline*/
 };
 
 struct ofl_exp_action_set_flag {

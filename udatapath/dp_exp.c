@@ -62,15 +62,15 @@ dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
             case(OFPAT_EXP_SET_STATE):
             {
                 struct ofl_exp_action_set_state *wns = (struct ofl_exp_action_set_state *)action;
-                if(pkt->dp->pipeline->tables[wns->stage_id]->features->config &OFPTC_TABLE_STATEFUL)
+                if(pkt->dp->pipeline->tables[wns->table_id]->features->config &OFPTC_TABLE_STATEFUL)
                 {
-                    struct state_table *st = pkt->dp->pipeline->tables[wns->stage_id]->state_table;
-                    VLOG_WARN_RL(LOG_MODULE, &rl, "executing action NEXT STATE at stage %u", wns->stage_id);
+                    struct state_table *st = pkt->dp->pipeline->tables[wns->table_id]->state_table;
+                    VLOG_WARN_RL(LOG_MODULE, &rl, "executing action NEXT STATE at stage %u", wns->table_id);
                     state_table_set_state(st, pkt, wns->state, NULL, 0);
                 }
                 else
                 {
-                    VLOG_WARN_RL(LOG_MODULE, &rl, "ERROR NEXT STATE at stage %u\n: stage not stateful", wns->stage_id);
+                    VLOG_WARN_RL(LOG_MODULE, &rl, "ERROR NEXT STATE at stage %u\n: stage not stateful", wns->table_id);
                 }
                 break;
             }

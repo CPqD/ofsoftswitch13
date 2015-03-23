@@ -401,10 +401,10 @@ ofl_exp_openflow_act_unpack(struct ofp_action_header *src, size_t *len, struct o
                 da = (struct ofl_exp_action_set_state *)malloc(sizeof(struct ofl_exp_action_set_state));
 
 
-                if (sa->stage_id >= PIPELINE_TABLES) {
+                if (sa->table_id >= PIPELINE_TABLES) {
                     if (OFL_LOG_IS_WARN_ENABLED(LOG_MODULE)) {
-                        char *ts = ofl_table_to_string(sa->stage_id);
-                        OFL_LOG_WARN(LOG_MODULE, "Received SET STATE action has invalid stage_id (%s).", ts);
+                        char *ts = ofl_table_to_string(sa->table_id);
+                        OFL_LOG_WARN(LOG_MODULE, "Received SET STATE action has invalid table_id (%s).", ts);
                         free(ts);
                     }
                     free(da);
@@ -414,7 +414,7 @@ ofl_exp_openflow_act_unpack(struct ofp_action_header *src, size_t *len, struct o
                 da->header.header.experimenter_id = ntohl(exp->experimenter);
                 da->header.act_type = ntohl(ext->act_type);
                 da->state = ntohl(sa->state);
-                da->stage_id = sa->stage_id;
+                da->table_id = sa->table_id;
 
                 *dst = (struct ofl_action_header *)da;
                 *len -= sizeof(struct ofp_exp_action_set_state);
@@ -469,7 +469,7 @@ ofl_exp_openflow_act_pack(struct ofl_action_header *src, struct ofp_action_heade
                 da->header.act_type = htonl(ext->act_type);
                 memset(da->header.pad, 0x00, 4);
                 da->state = htonl(sa->state);
-                da->stage_id = sa->stage_id;
+                da->table_id = sa->table_id;
                 memset(da->pad, 0x00, 3);
                 dst->len = htons(sizeof(struct ofp_exp_action_set_state));
 
@@ -527,7 +527,7 @@ ofl_exp_openflow_act_to_string(struct ofl_action_header *act)
             {
                 struct ofl_exp_action_set_state *a = (struct ofl_exp_action_set_state *)ext;
                 char *string = malloc(50);
-                sprintf(string, "{set_state=[state=\"%u\",stage_id=\"%u\"]}", a->state, a->stage_id);
+                sprintf(string, "{set_state=[state=\"%u\",table_id=\"%u\"]}", a->state, a->table_id);
                 return string;
                 break;
             }

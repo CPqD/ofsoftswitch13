@@ -59,7 +59,7 @@ OFP_ASSERT(sizeof(struct ofp_action_extension_header) == 16);
 struct ofp_exp_action_set_state {
     struct ofp_action_extension_header header;
     uint32_t state; /* State instance. */
-    uint8_t stage_id; /*Stage destination*/
+    uint8_t table_id; /*Stage destination*/
     uint8_t pad[3];   /* Align to 64-bits. */
 };
 OFP_ASSERT(sizeof(struct ofp_exp_action_set_state) == 24);
