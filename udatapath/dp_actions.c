@@ -882,7 +882,7 @@ set_flag(struct packet *pkt, struct ofl_action_set_flag *action) {
     struct ofl_action_set_flag *wns = (struct ofl_action_set_flag *)action;
     uint32_t global_states = pkt->dp->global_states;
     
-    global_states = (global_states & ~(wns->mask)) | (wns->value & wns->mask);
+    global_states = (global_states & ~(wns->flag_mask)) | (wns->flag & wns->flag_mask);
     pkt->dp->global_states = global_states;
 }
 

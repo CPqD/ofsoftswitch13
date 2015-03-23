@@ -168,11 +168,8 @@ ofl_action_print(FILE *stream, struct ofl_action_header *act, struct ofl_exp *ex
             struct ofl_action_set_flag *a = (struct ofl_action_set_flag *)act;
 
             fprintf(stream, "{flag=");
-            masked_value_print(stream,decimal_to_binary(a->value),decimal_to_binary(a->mask));
+            masked_value_print(stream,decimal_to_binary(a->flag),decimal_to_binary(a->flag_mask));
             fprintf(stream, "}");
-            //fprintf(stream, "{flag=\"%u\"", a->value);
-            //fprintf(stream, ",flag_mask=\"%u\"}", a->mask);
-
             break;
         }
     }

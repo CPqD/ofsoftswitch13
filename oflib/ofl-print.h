@@ -204,6 +204,6 @@ char
 *decimal_to_binary(int);
 
 void
-masked_value_print(FILE *stream, char *value, char *mask);
+masked_value_print(FILE *stream, char *flag, char *flag_mask);
 
 #endif /* OFL_PRINT_H */

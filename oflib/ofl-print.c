@@ -65,16 +65,16 @@ char *decimal_to_binary(int n)
    return  pointer;
 }
 
-void masked_value_print(FILE *stream,char *value, char *mask){
+void masked_value_print(FILE *stream,char *flag, char *flag_mask){
     int i=0;
 
     for(i=0;i<32;i++){
 
-        if (mask[i]=='0'){
+        if (flag_mask[i]=='0'){
             fprintf(stream,"*");
         }
         else {
-            fprintf(stream,"%c",*(value+i));
+            fprintf(stream,"%c",*(flag+i));
         }
     }
 }
