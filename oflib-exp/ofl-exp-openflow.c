@@ -434,8 +434,8 @@ ofl_exp_openflow_act_unpack(struct ofp_action_header *src, size_t *len, struct o
 
                 da->header.header.experimenter_id = ntohl(exp->experimenter);
                 da->header.act_type = ntohl(ext->act_type);
-                da->value = ntohl(sa->value);
-                da->mask = ntohl(sa->mask);
+                da->flag = ntohl(sa->flag);
+                da->flag_mask = ntohl(sa->flag_mask);
 
                 *dst = (struct ofl_action_header *)da;
                 *len -= sizeof(struct ofp_exp_action_set_flag);
@@ -483,8 +483,8 @@ ofl_exp_openflow_act_pack(struct ofl_action_header *src, struct ofp_action_heade
                 da->header.header.experimenter = htonl(exp->experimenter_id);
                 da->header.act_type = htonl(ext->act_type);
                 memset(da->header.pad, 0x00, 4);
-                da->value = htonl(sa->value);
-                da->mask = htonl(sa->mask);
+                da->flag = htonl(sa->flag);
+                da->flag_mask = htonl(sa->flag_mask);
                 dst->len = htons(sizeof(struct ofp_exp_action_set_flag));
 
                 return sizeof(struct ofp_exp_action_set_flag);

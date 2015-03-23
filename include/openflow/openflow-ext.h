@@ -68,8 +68,8 @@ OFP_ASSERT(sizeof(struct ofp_exp_action_set_state) == 24);
 /* Action structure for OFPAT_EXP_SET_FLAG */
 struct ofp_exp_action_set_flag {
     struct ofp_action_extension_header header;
-    uint32_t value; /* flag value */
-    uint32_t mask;    /*flag mask*/
+    uint32_t flag; /* flag value */
+    uint32_t flag_mask;    /*flag mask*/
 };
 OFP_ASSERT(sizeof(struct ofp_exp_action_set_flag) == 24);
 
