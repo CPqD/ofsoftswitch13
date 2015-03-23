@@ -1655,7 +1655,7 @@ ofl_msg_unpack_state_mod(struct ofp_header *src, size_t *len, struct ofl_msg_hea
     *len -= sizeof(dm->cookie) + sizeof(dm->cookie_mask) + sizeof(dm->table_id) + 1;
 
     
-    if (dm->command == OFPSC_ADD_FLOW_STATE || dm->command == OFPSC_DEL_FLOW_STATE){
+    if (dm->command == OFPSC_SET_FLOW_STATE || dm->command == OFPSC_DEL_FLOW_STATE){
 	//state_entry_pos = sizeof(struct ofp_state_mod);
 	error = ofl_structs_key_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
         if (error) {

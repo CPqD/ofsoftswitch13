@@ -146,7 +146,7 @@ struct ofp_extraction {
 enum ofp_state_mod_command {
 	OFPSC_SET_L_EXTRACTOR = 0,
 	OFPSC_SET_U_EXTRACTOR,
-	OFPSC_ADD_FLOW_STATE,	
+	OFPSC_SET_FLOW_STATE,	
 	OFPSC_DEL_FLOW_STATE
 };
 
