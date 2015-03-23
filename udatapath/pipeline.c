@@ -348,7 +348,7 @@ pipeline_handle_state_mod(struct pipeline *pl, struct ofl_exp_msg_state_mod *msg
 			update = 1;
 		state_table_set_extractor(st, (struct key_extractor *)p, update);
 	}
-	else if (msg->command == OFPSC_ADD_FLOW_STATE) {
+	else if (msg->command == OFPSC_SET_FLOW_STATE) {
 		struct ofl_exp_msg_state_entry *p = (struct ofl_exp_msg_state_entry *) msg->payload;
 		state_table_set_state(st, NULL, p->state, p->key, p->key_len);
 	}
