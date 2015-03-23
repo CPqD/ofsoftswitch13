@@ -284,8 +284,8 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             sa = (struct ofp_action_set_flag*)src;
             da = (struct ofl_action_set_flag *)malloc(sizeof(struct ofl_action_set_flag));
 
-            da->value = ntohl(sa->value);
-            da->mask = ntohl(sa->mask);
+            da->flag = ntohl(sa->flag);
+            da->flag_mask = ntohl(sa->flag_mask);
 
             *dst = (struct ofl_action_header *)da;
             *len -= sizeof(struct ofp_action_set_flag);

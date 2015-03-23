@@ -265,8 +265,8 @@ ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, u
             struct ofp_action_set_flag *da = (struct ofp_action_set_flag *) dst;
 
             da->len = htons(sizeof(struct ofp_action_set_flag));
-            da->value = htonl(sa->value);
-            da->mask = htonl(sa->mask);
+            da->flag = htonl(sa->flag);
+            da->flag_mask = htonl(sa->flag_mask);
 
             return sizeof(struct ofp_action_set_flag);
         }
