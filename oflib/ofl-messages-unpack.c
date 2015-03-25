@@ -1647,12 +1647,10 @@ ofl_msg_unpack_state_mod(struct ofp_header *src, size_t *len, struct ofl_msg_hea
     } 
     *len -= sizeof(struct ofp_header);
 
-    dm->cookie = ntoh64(sm->cookie);
-    dm->cookie_mask = ntoh64(sm->cookie_mask);
     dm->table_id = sm->table_id;
     dm->command = (enum ofp_state_mod_command)sm->command;
     
-    *len -= sizeof(dm->cookie) + sizeof(dm->cookie_mask) + sizeof(dm->table_id) + 1;
+    *len -= sizeof(dm->table_id) + 1;
 
     
     if (dm->command == OFPSC_SET_FLOW_STATE || dm->command == OFPSC_DEL_FLOW_STATE){

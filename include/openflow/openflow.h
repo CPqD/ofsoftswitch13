@@ -122,13 +122,9 @@ enum ofp_flag_mod_command {
 
 struct ofp_state_mod {
     struct ofp_header header;
-    uint64_t cookie;
-    uint64_t cookie_mask;
     uint8_t table_id;
     uint8_t command;
-    //uint8_t pad[];
     uint8_t payload[];
-    //uint8_t *payload;
 };
 
 struct ofp_state_entry {
