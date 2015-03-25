@@ -191,7 +191,7 @@ flow_entry_hard_timeout(struct flow_entry *entry) {
 void
 flow_entry_update(struct flow_entry *entry) {
     entry->stats->duration_sec  =  (time_msec() - entry->created) / 1000;
-    entry->stats->duration_nsec = ((time_msec() - entry->created) % 1000) * 1000;
+    entry->stats->duration_nsec = ((time_msec() - entry->created) % 1000) * 1000000;
 }
 
 /* Returns true if the flow entry has a reference to the given group. */
