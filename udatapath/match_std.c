@@ -339,6 +339,15 @@ strict_mask32(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
 }
 
 static inline bool
+strict_mask_ip(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
+    uint32_t *a1 = (uint32_t *) a;
+    uint32_t *b1 = (uint32_t *) b;
+    uint32_t *mask_a = (uint32_t *) am;
+    uint32_t *mask_b = (uint32_t *) bm;
+    return ((*mask_a == *mask_b) && ((*a1 ^ *b1) & (*mask_a))) == 0;
+}
+
+static inline bool
 strict_mask48(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
     return strict_mask32(a, b, am, bm) &&
            strict_mask16(a+4, b+4, am+4, bm+4);
@@ -375,6 +384,7 @@ match_std_strict(struct ofl_match *a, struct ofl_match *b) {
     int field_len;
     uint8_t *flow_mod_val, *flow_mod_mask=0;
     uint8_t *flow_entry_val, *flow_entry_mask=0;
+    uint8_t oxm_field;
     bool has_mask;
 
     /* Both matches all wildcarded */
@@ -395,6 +405,7 @@ match_std_strict(struct ofl_match *a, struct ofl_match *b) {
         }
 
         /* At this point match length and has_mask are equal */
+        oxm_field = OXM_FIELD(flow_mod_match->header);
         has_mask = OXM_HASMASK(flow_mod_match->header);
         field_len =  OXM_LENGTH(flow_mod_match->header);
         flow_mod_val = flow_mod_match->value;
@@ -408,22 +419,26 @@ match_std_strict(struct ofl_match *a, struct ofl_match *b) {
         switch (field_len) {
             case 1:
                 if (has_mask) {
-                    if (!strict_mask8(flow_mod_val, flow_entry_val, flow_mod_mask, flow_entry_mask))
+                    if (!strict_mask8(flow_mod_val, flow_entry_val, flow_mod_mask, flow_entry_mask)){
                         return false;
+                    }
                 }
                 else {
-                    if (!match_8(flow_mod_val, flow_entry_val))
+                    if (!match_8(flow_mod_val, flow_entry_val)){
                         return false;
+                    }
                 }
                 break;
             case 2:
                 if (has_mask) {
-                    if (!strict_mask16(flow_mod_val, flow_entry_val, flow_mod_mask, flow_entry_mask))
+                    if (!strict_mask16(flow_mod_val, flow_entry_val, flow_mod_mask, flow_entry_mask)){
                         return false;
+                    }
                 }
                 else {
-                    if (!match_16(flow_mod_val, flow_entry_val))
+                    if (!match_16(flow_mod_val, flow_entry_val)){
                         return false;
+                    }
                 }
                 break;
             case 3:
@@ -431,49 +446,69 @@ match_std_strict(struct ofl_match *a, struct ofl_match *b) {
                     if (!strict_mask24(flow_mod_val, flow_entry_val, flow_mod_mask, flow_entry_mask))
                         return false;
                 }
-                else {
-                    if (!match_24(flow_mod_val, flow_entry_val))
+                else {                    
+                    if (!match_24(flow_mod_val, flow_entry_val)){
                         return false;
+                    }
                 }
                 break;
             case 4:
                 if (has_mask) {
-                    if (!strict_mask32(flow_mod_val, flow_entry_val, flow_mod_mask, flow_entry_mask))
+                    /* Quick and dirty fix for IP addresses matching 
+                       TODO: Matching needs a huge refactoring  */
+                    if (oxm_field == OFPXMT_OFB_IPV4_SRC ||
+                        oxm_field == OFPXMT_OFB_IPV4_DST ||
+                        oxm_field == OFPXMT_OFB_ARP_SPA ||
+                        oxm_field == OFPXMT_OFB_ARP_TPA) {
+                        if (!strict_mask_ip(flow_mod_val, flow_entry_val, flow_mod_mask, flow_entry_mask)){
+                            return false;
+                        }
+                    }
+                    if (!strict_mask32(flow_mod_val, flow_entry_val, flow_mod_mask, flow_entry_mask)){
                         return false;
+                    }
                 }
                 else {
-                    if (!match_32(flow_mod_val, flow_entry_val))
+
+                    if (!match_32(flow_mod_val, flow_entry_val)){
                         return false;
+                    }
                 }
                 break;
             case 6:
                 if (has_mask) {
-                    if (!strict_mask48(flow_mod_val, flow_entry_val, flow_mod_mask, flow_entry_mask))
+                    if (!strict_mask48(flow_mod_val, flow_entry_val, flow_mod_mask, flow_entry_mask)){
                         return false;
+                    }
                 }
                 else {
-                    if (!match_48(flow_mod_val, flow_entry_val))
+                    if (!match_48(flow_mod_val, flow_entry_val)){
                         return false;
+                    }
                 }
                 break;
             case 8:
                 if (has_mask) {
-                    if (!strict_mask64(flow_mod_val, flow_entry_val, flow_mod_mask, flow_entry_mask))
+                    if (!strict_mask64(flow_mod_val, flow_entry_val, flow_mod_mask, flow_entry_mask)){
                         return false;
+                    }
                 }
                 else {
-                    if (!match_64(flow_mod_val, flow_entry_val))
+                    if (!match_64(flow_mod_val, flow_entry_val)){
                         return false;
+                    }
                 }
                 break;
             case 16:
                 if (has_mask) {
-                    if (!strict_mask128(flow_mod_val, flow_entry_val, flow_mod_mask, flow_entry_mask))
+                    if (!strict_mask128(flow_mod_val, flow_entry_val, flow_mod_mask, flow_entry_mask)){
                         return false;
+                    }
                 }
                 else {
-                    if (!match_128(flow_mod_val, flow_entry_val))
+                    if (!match_128(flow_mod_val, flow_entry_val)){
                         return false;
+                    }
                 }
                 break;
             default:
