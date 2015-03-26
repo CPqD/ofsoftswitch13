@@ -1602,17 +1602,17 @@ ofl_structs_key_unpack(struct ofp_state_entry *src, size_t *len, struct ofl_msg_
     int i;
     uint8_t key[OFPSC_MAX_KEY_LEN] = {0};
 
-    if((*len == (2*sizeof(uint32_t) + ntohl(src->key_len)*sizeof(uint8_t))) && (ntohl(src->key_len)>0))
+    if((*len == (3*sizeof(uint32_t) + ntohl(src->key_len)*sizeof(uint8_t))) && (ntohl(src->key_len)>0))
     {
         dst->key_len=ntohl(src->key_len);
         dst->state=ntohl(src->state);
+        dst->state_mask=ntohl(src->state_mask);
         for (i=0;i<dst->key_len;i++)
-        {
             key[i]=src->key[i];
-        }
         memcpy(dst->key, key, OFPSC_MAX_KEY_LEN);
         OFL_LOG_WARN(LOG_MODULE, "key count is %d\n",dst->key_len);
-        OFL_LOG_WARN(LOG_MODULE, "state is %d\n",dst->state);  
+        OFL_LOG_WARN(LOG_MODULE, "state is %d\n",dst->state);
+        OFL_LOG_WARN(LOG_MODULE, "state_mask is %d\n",dst->state_mask);    
     }
     else
     { //control of struct ofp_extraction length.
@@ -1620,7 +1620,7 @@ ofl_structs_key_unpack(struct ofp_state_entry *src, size_t *len, struct ofl_msg_
        return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
     }
 
-    *len -= (2*sizeof(uint32_t) + ntohl(src->key_len)*sizeof(uint8_t));
+    *len -= (3*sizeof(uint32_t) + ntohl(src->key_len)*sizeof(uint8_t));
  
     return 0;
 }
@@ -1632,7 +1632,7 @@ ofl_msg_unpack_state_mod(struct ofp_header *src, size_t *len, struct ofl_msg_hea
     ofl_err error;
     size_t i;
     int state_entry_pos;
-   
+    
     
     if (*len < sizeof(struct ofp_state_mod)) {
         OFL_LOG_WARN(LOG_MODULE, "Received STATE_MOD message has invalid length (%zu).", *len);

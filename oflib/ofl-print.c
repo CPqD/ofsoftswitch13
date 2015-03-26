@@ -79,7 +79,6 @@ void masked_value_print(FILE *stream,char *flag, char *flag_mask){
     }
 }
 
-
 char *
 ofl_port_to_string(uint32_t port) {
     char *str;

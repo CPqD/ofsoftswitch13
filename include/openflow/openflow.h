@@ -134,7 +134,7 @@ struct ofp_state_mod {
 struct ofp_state_entry {
     uint32_t key_len;
     uint32_t state;
-   // uint64_t state;
+    uint32_t state_mask;
     uint8_t key[OFPSC_MAX_KEY_LEN];
 };
 
@@ -618,12 +618,11 @@ OFP_ASSERT(sizeof(struct ofp_action_experimenter_header) == 8);
 /* Action structure for OFPAT_SET_STATE */
 struct ofp_action_set_state {
     uint16_t type; /* OFPAT_SET_STATE */
-    uint16_t len;  /* Length is 16. */
-    uint32_t state; /* State instance. */
-    uint8_t table_id; /*Stage destination*/
-    uint8_t pad[7];           /* Align to 64-bits. */
-    //uint64_t state;
-    //uint8_t pad[3];           /* Align to 64-bits. */
+    uint16_t len;           /* Length is 16. */
+    uint32_t state;         /* State instance. */
+    uint32_t state_mask;     /*State mask*/
+    uint8_t table_id;      /*Stage destination*/
+    uint8_t pad[3];        /* Align to 64-bits. */
 };
 OFP_ASSERT(sizeof(struct ofp_action_set_state) == 16);
 

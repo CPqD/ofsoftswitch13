@@ -111,8 +111,8 @@ struct ofl_action_experimenter {
 struct ofl_action_set_state {
     struct ofl_action_header   header; /* OFPAT_SET_STATE */
     uint32_t state;
+    uint32_t state_mask;
     uint8_t table_id; /*we have 64 flow table in the pipeline*/
-    //uint64_t state;
 };
 
 struct ofl_action_set_flag {

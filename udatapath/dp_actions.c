@@ -952,7 +952,7 @@ dp_execute_action(struct packet *pkt,
             {
                 struct state_table *st = pkt->dp->pipeline->tables[wns->table_id]->state_table;
                 VLOG_WARN_RL(LOG_MODULE, &rl, "executing action NEXT STATE at stage %u", wns->table_id);
-                state_table_set_state(st, pkt, wns->state, NULL, 0);
+                state_table_set_state(st, pkt, wns->state, wns->state_mask, NULL, 0);
             }
             else
             {

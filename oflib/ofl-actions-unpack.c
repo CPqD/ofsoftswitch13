@@ -257,6 +257,7 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             da = (struct ofl_action_set_state *)malloc(sizeof(struct ofl_action_set_state));
 
             da->state = ntohl(sa->state);
+            da->state_mask = ntohl(sa->state_mask);
             da->table_id = sa->table_id;
 
             if (da->table_id >= PIPELINE_TABLES) {

@@ -149,7 +149,7 @@ void state_table_set_extractor(struct state_table *table, struct key_extractor *
 	return;
 }
 
-void state_table_set_state(struct state_table *table, struct packet *pkt, uint32_t state, uint8_t *k, uint32_t len) {
+void state_table_set_state(struct state_table *table, struct packet *pkt, uint32_t state, uint32_t state_mask, uint8_t *k, uint32_t len) {
 	uint8_t key[MAX_STATE_KEY_LEN] = {0};	
 	struct state_entry *e;
 
@@ -187,14 +187,14 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, uint32
 		hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries){
 			if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
 				VLOG_WARN_RL(LOG_MODULE, &rl, "state value is %u updated to hash map", state);
-				e->state = state;
+				e->state = (e->state & ~(state_mask)) | (state & state_mask);
 				return;
 			}
 	}
 
 	e = malloc(sizeof(struct state_entry));
 	memcpy(e->key, key, MAX_STATE_KEY_LEN);
-	e->state = state;
+	e->state = state & state_mask;
 	VLOG_WARN_RL(LOG_MODULE, &rl, "state value is %u inserted to hash map", e->state);
         hmap_insert(&table->state_entries, &e->hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
 }
