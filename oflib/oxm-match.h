@@ -229,7 +229,7 @@
 #define OXM_EXP_FLAGS OXM_HEADER     (0xFFFF, 40, 8)
 #define OXM_EXP_FLAGS_W OXM_HEADER_W (0xFFFF, 40, 6)  /*(experimenter_id + flag + mask)/2*/
 #define OXM_EXP_STATE OXM_HEADER     (0xFFFF, 41, 8)
-#define OXM_EXP_STATE_W OXM_HEADER_W (0xFFFF, 41, 8)
+#define OXM_EXP_STATE_W OXM_HEADER_W (0xFFFF, 41, 6)
 
 /* ## ------------------------------- ## */
 /* ## IPv6 compatible fields. ## */
