@@ -882,7 +882,7 @@ set_flag(struct packet *pkt, struct ofl_action_set_flag *action) {
     struct ofl_action_set_flag *wns = (struct ofl_action_set_flag *)action;
     uint32_t global_states = pkt->dp->global_states;
     
-    global_states = (global_states & ~(wns->mask)) | (wns->value & wns->mask);
+    global_states = (global_states & ~(wns->flag_mask)) | (wns->flag & wns->flag_mask);
     pkt->dp->global_states = global_states;
 }
 
@@ -948,9 +948,16 @@ dp_execute_action(struct packet *pkt,
         }
         case (OFPAT_SET_STATE): {
             struct ofl_action_set_state *wns = (struct ofl_action_set_state *)action;
-            struct state_table *st = pkt->dp->pipeline->tables[wns->stage_id]->state_table;
-            VLOG_WARN_RL(LOG_MODULE, &rl, "executing action NEXT STATE at stage %u\n", wns->stage_id);
-            state_table_set_state(st, pkt, wns->state, NULL, 0);
+            if(pkt->dp->pipeline->tables[wns->table_id]->features->config &OFPTC_TABLE_STATEFUL)
+            {
+                struct state_table *st = pkt->dp->pipeline->tables[wns->table_id]->state_table;
+                VLOG_WARN_RL(LOG_MODULE, &rl, "executing action NEXT STATE at stage %u", wns->table_id);
+                state_table_set_state(st, pkt, wns->state, wns->state_mask, NULL, 0);
+            }
+            else
+            {
+                VLOG_WARN_RL(LOG_MODULE, &rl, "ERROR NEXT STATE at stage %u\n: stage not stateful", wns->table_id);
+            }
             break;
         }
         case (OFPAT_SET_FLAG): {

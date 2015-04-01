@@ -159,8 +159,9 @@ ofl_action_print(FILE *stream, struct ofl_action_header *act, struct ofl_exp *ex
         case OFPAT_SET_STATE: {
             struct ofl_action_set_state *a = (struct ofl_action_set_state *)act;
 
-            fprintf(stream, "{state=\"%u\"", a->state);
-            fprintf(stream, ",stage_id=\"%u\"}", a->stage_id);
+            fprintf(stream, "{state=\"%"PRIu32"\"", a->state);
+            fprintf(stream, ",state_mask=\"%"PRIu32"\"", a->state_mask);
+            fprintf(stream, ",table_id=\"%u\"}", a->table_id);
 
             break;
         }
@@ -168,11 +169,8 @@ ofl_action_print(FILE *stream, struct ofl_action_header *act, struct ofl_exp *ex
             struct ofl_action_set_flag *a = (struct ofl_action_set_flag *)act;
 
             fprintf(stream, "{flag=");
-            masked_value_print(stream,decimal_to_binary(a->value),decimal_to_binary(a->mask));
+            masked_value_print(stream,decimal_to_binary(a->flag),decimal_to_binary(a->flag_mask));
             fprintf(stream, "}");
-            //fprintf(stream, "{flag=\"%u\"", a->value);
-            //fprintf(stream, ",flag_mask=\"%u\"}", a->mask);
-
             break;
         }
     }

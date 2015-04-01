@@ -122,19 +122,15 @@ enum ofp_flag_mod_command {
 
 struct ofp_state_mod {
     struct ofp_header header;
-    uint64_t cookie;
-    uint64_t cookie_mask;
     uint8_t table_id;
     uint8_t command;
-    //uint8_t pad[];
     uint8_t payload[];
-    //uint8_t *payload;
 };
 
 struct ofp_state_entry {
     uint32_t key_len;
     uint32_t state;
-   // uint64_t state;
+    uint32_t state_mask;
     uint8_t key[OFPSC_MAX_KEY_LEN];
 };
 
@@ -146,7 +142,7 @@ struct ofp_extraction {
 enum ofp_state_mod_command {
 	OFPSC_SET_L_EXTRACTOR = 0,
 	OFPSC_SET_U_EXTRACTOR,
-	OFPSC_ADD_FLOW_STATE,	
+	OFPSC_SET_FLOW_STATE,	
 	OFPSC_DEL_FLOW_STATE
 };
 
@@ -618,21 +614,20 @@ OFP_ASSERT(sizeof(struct ofp_action_experimenter_header) == 8);
 /* Action structure for OFPAT_SET_STATE */
 struct ofp_action_set_state {
     uint16_t type; /* OFPAT_SET_STATE */
-    uint16_t len;  /* Length is 8. */
-    uint32_t state; /* State instance. */
-    uint8_t stage_id; /*Stage destination*/
-    uint8_t pad[7];           /* Align to 64-bits. */
-    //uint64_t state;
-    //uint8_t pad[3];           /* Align to 64-bits. */
+    uint16_t len;           /* Length is 16. */
+    uint32_t state;         /* State instance. */
+    uint32_t state_mask;     /*State mask*/
+    uint8_t table_id;      /*Stage destination*/
+    uint8_t pad[3];        /* Align to 64-bits. */
 };
 OFP_ASSERT(sizeof(struct ofp_action_set_state) == 16);
 
 /* Action structure for OFPAT_SET_FLAG */
 struct ofp_action_set_flag {
     uint16_t type; /* OFPAT_SET_FLAG */
-    uint16_t len;  /* Length is 8. */
-    uint32_t value; /* flag value */
-    uint32_t mask;    /*flag mask*/
+    uint16_t len;  /* Length is 16. */
+    uint32_t flag; /* flag value */
+    uint32_t flag_mask; /*flag mask*/
     uint8_t pad[4];   /* Align to 64-bits. */
 };
 OFP_ASSERT(sizeof(struct ofp_action_set_flag) == 16);

@@ -254,7 +254,8 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
 		if (table->features->config &OFPTC_TABLE_STATEFUL) {
 			
 			state_entry = state_table_lookup(table->state_table, pkt);
-			state_table_write_state(state_entry, pkt);
+            if(state_entry!=NULL)
+			     state_table_write_state(state_entry, pkt);
 		}
         
         if (DP_SUPPORTED_CAPABILITIES & OFPC_OPENSTATE){
@@ -346,9 +347,9 @@ pipeline_handle_state_mod(struct pipeline *pl, struct ofl_msg_state_mod *msg,
 			update = 1;
 		state_table_set_extractor(st, (struct key_extractor *)p, update);
 	}
-	else if (msg->command == OFPSC_ADD_FLOW_STATE) {
+	else if (msg->command == OFPSC_SET_FLOW_STATE) {
 		struct ofl_msg_state_entry *p = (struct ofl_msg_state_entry *) msg->payload;
-		state_table_set_state(st, NULL, p->state, p->key, p->key_len);
+		state_table_set_state(st, NULL, p->state, p->state_mask, p->key, p->key_len);
 	}
 	else if (msg->command == OFPSC_DEL_FLOW_STATE) {
 		struct ofl_msg_state_entry *p = (struct ofl_msg_state_entry *) msg->payload;

@@ -214,6 +214,7 @@ static struct names16 band_names[] = {
 #define MATCH_METADATA       "meta"
 #define MATCH_METADATA_MASK  "meta_mask"
 #define MATCH_STATE          "state"
+#define MATCH_STATE_MASK     "state_mask"
 #define MATCH_FLAGS          "flags"
 #define MATCH_FLAGS_MASK     "flags_mask"
 #define MATCH_PBB_ISID       "pbb_isid"

@@ -404,20 +404,21 @@ ofl_structs_oxm_tlv_print(FILE *stream, struct ofl_match_tlv *f)
 			}
 			break;
 		case OFPXMT_OFB_STATE:
-			fprintf(stream, "state=\"%u\"", *((uint32_t*) f->value));
+			fprintf(stream, "state=\"%"PRIu32"\"", *((uint32_t*) f->value));
+			if (OXM_HASMASK(f->header)) {
+				fprintf(stream, ",state_mask=\"%"PRIu32"\"", *((uint32_t*)(f->value+4)));
+			}
 			break;
 		case OFPXMT_OFB_FLAGS:
-			/*
-			fprintf(stream, "flags=\"%d\"", *((uint32_t*) f->value));
-			if (OXM_HASMASK(f->header)) {
-				fprintf(stream, ", flags_mask=\"%d\"", *((uint32_t*)(f->value+4)));
-			}*/
+			
 			if (!OXM_HASMASK(f->header)) {
 				fprintf(stream, "flags=\"%d\"", *((uint32_t*) f->value));
-			} else {
+			}
+			else
+			{
 				fprintf(stream, "flags=");
 	            masked_value_print(stream,decimal_to_binary(*((uint32_t*) f->value)),decimal_to_binary(*((uint32_t*)(f->value+4))));
-	        }
+			}
 			break;
 		case OFPXMT_OFB_PBB_ISID   :
 			fprintf(stream, "pbb_isid=\"%d\"", *((uint32_t*) f->value));

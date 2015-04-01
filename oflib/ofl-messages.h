@@ -488,16 +488,15 @@ struct ofl_msg_flag_mod {
  ************************/
 struct ofl_msg_state_mod {
     struct ofl_msg_header header;   /* OFPT_STATE_MOD */
-    uint64_t cookie;
-    uint64_t cookie_mask;
     uint8_t table_id;
     enum ofp_state_mod_command command;
-    uint8_t payload[8+OFPSC_MAX_KEY_LEN]; //ugly! for now it's ok XXX
+    uint8_t payload[12+OFPSC_MAX_KEY_LEN]; //ugly! for now it's ok XXX
 };
 
 struct ofl_msg_state_entry {
     uint32_t key_len;
     uint32_t state;
+    uint32_t state_mask;
     uint8_t key[OFPSC_MAX_KEY_LEN];
 };
 
