@@ -59,10 +59,11 @@ OFP_ASSERT(sizeof(struct ofp_action_extension_header) == 16);
 struct ofp_exp_action_set_state {
     struct ofp_action_extension_header header;
     uint32_t state; /* State instance. */
+    uint32_t state_mask; /* State mask */
     uint8_t table_id; /*Stage destination*/
-    uint8_t pad[3];   /* Align to 64-bits. */
+    uint8_t pad[7];   /* Align to 64-bits. */
 };
-OFP_ASSERT(sizeof(struct ofp_exp_action_set_state) == 24);
+OFP_ASSERT(sizeof(struct ofp_exp_action_set_state) == 32);
 
 
 /* Action structure for OFPAT_EXP_SET_FLAG */
@@ -85,18 +86,15 @@ OFP_ASSERT(sizeof(struct ofp_exp_action_set_flag) == 24);
 
 struct ofp_exp_state_mod {
     struct ofp_message_extension_header header;
-    uint64_t cookie;
-    uint64_t cookie_mask;
     uint8_t table_id;
     uint8_t command;
-    //uint8_t pad[];
     uint8_t payload[];
-    //uint8_t *payload;
 };
 
 struct ofp_exp_state_entry {
     uint32_t key_len;
     uint32_t state;
+    uint32_t state_mask;
     uint8_t key[OFPSC_MAX_KEY_LEN];
 };
 

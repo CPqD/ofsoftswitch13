@@ -439,8 +439,11 @@ ofl_structs_oxm_tlv_print(FILE *stream, struct ofl_match_tlv *f)
         	switch (field) {
 
 	        	case OFPXMT_EXP_STATE:
-				fprintf(stream, "state=\"%u\"", *((uint32_t*) f->value));
-				break;
+	        	fprintf(stream, "state=\"%"PRIu32"\"", *((uint32_t*) f->value));
+				if (OXM_HASMASK(f->header)) {
+					fprintf(stream, ",state_mask=\"%"PRIu32"\"", *((uint32_t*)(f->value+4)));
+				}
+	 			break;
 
 				case OFPXMT_EXP_FLAGS:
 					/*

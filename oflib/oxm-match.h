@@ -229,6 +229,7 @@
 #define OXM_EXP_FLAGS OXM_HEADER     (0xFFFF, 40, 8)
 #define OXM_EXP_FLAGS_W OXM_HEADER_W (0xFFFF, 40, 6)  /*(experimenter_id + flag + mask)/2*/
 #define OXM_EXP_STATE OXM_HEADER     (0xFFFF, 41, 8)
+#define OXM_EXP_STATE_W OXM_HEADER_W (0xFFFF, 41, 8)
 
 /* ## ------------------------------- ## */
 /* ## IPv6 compatible fields. ## */
@@ -290,7 +291,7 @@ enum oxm_field_index {
 #define DEFINE_FIELD(HEADER,DL_TYPES, NW_PROTO, MASKABLE) \
         OFI_OXM_##HEADER,
 #include "oxm-match.def"
-    NUM_OXM_FIELDS = 59
+    NUM_OXM_FIELDS = 60
 };
 
 struct oxm_field {

@@ -66,16 +66,15 @@ struct ofl_exp_openflow_msg_set_dp_desc {
 
 struct ofl_exp_msg_state_mod {
     struct ofl_exp_openflow_msg_header header;   /* OFP_EXP_STATE_MOD */
-    uint64_t cookie;
-    uint64_t cookie_mask;
     uint8_t table_id;
     enum ofp_exp_state_mod_command command;
-    uint8_t payload[8+OFPSC_MAX_KEY_LEN]; //ugly! for now it's ok XXX
+    uint8_t payload[12+OFPSC_MAX_KEY_LEN]; //ugly! for now it's ok XXX
 };
 
 struct ofl_exp_msg_state_entry {
     uint32_t key_len;
     uint32_t state;
+    uint32_t state_mask;
     uint8_t key[OFPSC_MAX_KEY_LEN];
 };
 
@@ -109,6 +108,7 @@ struct ofl_exp_action_set_state {
     struct ofl_exp_openflow_act_header  header; /* OFPAT_EXP_SET_STATE */
 
     uint32_t state;
+    uint32_t state_mask;
     uint8_t table_id; /*we have 64 flow table in the pipeline*/
 };
 

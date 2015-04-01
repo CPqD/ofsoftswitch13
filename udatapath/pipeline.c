@@ -350,7 +350,7 @@ pipeline_handle_state_mod(struct pipeline *pl, struct ofl_exp_msg_state_mod *msg
 	}
 	else if (msg->command == OFPSC_SET_FLOW_STATE) {
 		struct ofl_exp_msg_state_entry *p = (struct ofl_exp_msg_state_entry *) msg->payload;
-		state_table_set_state(st, NULL, p->state, p->key, p->key_len);
+		state_table_set_state(st, NULL, p->state, p->state_mask, p->key, p->key_len);
 	}
 	else if (msg->command == OFPSC_DEL_FLOW_STATE) {
 		struct ofl_exp_msg_state_entry *p = (struct ofl_exp_msg_state_entry *) msg->payload;

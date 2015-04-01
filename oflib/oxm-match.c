@@ -551,11 +551,21 @@ parse_exp_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
             ofl_structs_match_put32(match, f->header, ntohl(*((uint32_t*) value)));
             return 0;
         }
+        case OFI_OXM_EXP_STATE_W:{
+            if (check_bad_wildcard32(ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)))){
+                return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
+            }
+            ofl_structs_match_put32m(match, f->header, ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)));
+            return 0;
+        }
         case OFI_OXM_EXP_FLAGS:{
             ofl_structs_match_put32(match, f->header, ntohl(*((uint32_t*) value)));
             return 0;
         }
         case OFI_OXM_EXP_FLAGS_W:{
+            if (check_bad_wildcard32(ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)))){
+                return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
+            }
             ofl_structs_match_put32m(match, f->header, ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)));
             return 0;
         }

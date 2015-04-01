@@ -75,17 +75,17 @@ ofl_structs_key_unpack(struct ofp_exp_state_entry *src, size_t *len, struct ofl_
     int i;
     uint8_t key[OFPSC_MAX_KEY_LEN] = {0};
 
-    if((*len == (2*sizeof(uint32_t) + ntohl(src->key_len)*sizeof(uint8_t))) && (ntohl(src->key_len)>0))
+    if((*len == (3*sizeof(uint32_t) + ntohl(src->key_len)*sizeof(uint8_t))) && (ntohl(src->key_len)>0))
     {
         dst->key_len=ntohl(src->key_len);
         dst->state=ntohl(src->state);
+        dst->state_mask=ntohl(src->state_mask);
         for (i=0;i<dst->key_len;i++)
-        {
             key[i]=src->key[i];
-        }
         memcpy(dst->key, key, OFPSC_MAX_KEY_LEN);
         OFL_LOG_WARN(LOG_MODULE, "key count is %d\n",dst->key_len);
-        OFL_LOG_WARN(LOG_MODULE, "state is %d\n",dst->state);  
+        OFL_LOG_WARN(LOG_MODULE, "state is %d\n",dst->state);
+        OFL_LOG_WARN(LOG_MODULE, "state_mask is %d\n",dst->state_mask);  
     }
     else
     { //control of struct ofp_extraction length.
@@ -94,7 +94,7 @@ ofl_structs_key_unpack(struct ofp_exp_state_entry *src, size_t *len, struct ofl_
     }
  
 
-    *len -= (2*sizeof(uint32_t) + ntohl(src->key_len)*sizeof(uint8_t));
+    *len -= (3*sizeof(uint32_t) + ntohl(src->key_len)*sizeof(uint8_t));
  
     return 0;
 }
@@ -237,12 +237,10 @@ ofl_exp_openflow_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_e
 
                 dm->header.header.experimenter_id = ntohl(exp->vendor);
                 dm->header.type                   = ntohl(exp->subtype);
-                dm->cookie = ntoh64(sm->cookie);
-                dm->cookie_mask = ntoh64(sm->cookie_mask);
                 dm->table_id = sm->table_id;
                 dm->command = (enum ofp_exp_state_mod_command)sm->command;
                 
-                *len -= sizeof(dm->cookie) + sizeof(dm->cookie_mask) + sizeof(dm->table_id) + 1;
+                *len -= sizeof(dm->table_id) + 1;
 
                 
                 if (dm->command == OFPSC_SET_FLOW_STATE || dm->command == OFPSC_DEL_FLOW_STATE){
@@ -414,6 +412,7 @@ ofl_exp_openflow_act_unpack(struct ofp_action_header *src, size_t *len, struct o
                 da->header.header.experimenter_id = ntohl(exp->experimenter);
                 da->header.act_type = ntohl(ext->act_type);
                 da->state = ntohl(sa->state);
+                da->state_mask = ntohl(sa->state_mask);
                 da->table_id = sa->table_id;
 
                 *dst = (struct ofl_action_header *)da;
@@ -469,6 +468,7 @@ ofl_exp_openflow_act_pack(struct ofl_action_header *src, struct ofp_action_heade
                 da->header.act_type = htonl(ext->act_type);
                 memset(da->header.pad, 0x00, 4);
                 da->state = htonl(sa->state);
+                da->state_mask = htonl(sa->state_mask);
                 da->table_id = sa->table_id;
                 memset(da->pad, 0x00, 3);
                 dst->len = htons(sizeof(struct ofp_exp_action_set_state));
@@ -526,8 +526,8 @@ ofl_exp_openflow_act_to_string(struct ofl_action_header *act)
             case (OFPAT_EXP_SET_STATE):
             {
                 struct ofl_exp_action_set_state *a = (struct ofl_exp_action_set_state *)ext;
-                char *string = malloc(50);
-                sprintf(string, "{set_state=[state=\"%u\",table_id=\"%u\"]}", a->state, a->table_id);
+                char *string = malloc(80);
+                sprintf(string, "{set_state=[state=\"%u\",state_mask=\"%"PRIu32"\",table_id=\"%u\"]}", a->state, a->state_mask, a->table_id);
                 return string;
                 break;
             }
