@@ -365,9 +365,9 @@ ofl_msg_pack_async_config(struct ofl_msg_async_config *msg, uint8_t **buf, size_
 
     ac = (struct ofp_async_config*)(*buf);
     for(i = 0; i < 2; i++){
-        ac->packet_in_mask[i] = msg->config->packet_in_mask[i];
-        ac->port_status_mask[i] = msg->config->port_status_mask[i];
-        ac->flow_removed_mask[i] =  msg->config->flow_removed_mask[i];
+        ac->packet_in_mask[i] = htonl(msg->config->packet_in_mask[i]);
+        ac->port_status_mask[i] = htonl(msg->config->port_status_mask[i]);
+        ac->flow_removed_mask[i] =  htonl(msg->config->flow_removed_mask[i]);
     }
     return 0;
 }

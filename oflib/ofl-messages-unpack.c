@@ -201,9 +201,9 @@ ofl_msg_unpack_async_config(struct ofp_header *src, size_t *len, struct ofl_msg_
     dac = (struct ofl_msg_async_config*)malloc(sizeof(struct ofl_msg_async_config));
     dac->config = (struct ofl_async_config*) malloc(sizeof(struct ofl_async_config));
     for(i = 0; i < 2; i++){
-        dac->config->packet_in_mask[i] = sac->packet_in_mask[i];
-        dac->config->port_status_mask[i] = sac->port_status_mask[i];
-        dac->config->flow_removed_mask[i] =  sac->flow_removed_mask[i];
+        dac->config->packet_in_mask[i] = ntohl(sac->packet_in_mask[i]);
+        dac->config->port_status_mask[i] = ntohl(sac->port_status_mask[i]);
+        dac->config->flow_removed_mask[i] =  ntohl(sac->flow_removed_mask[i]);
     }
     
     *msg = (struct ofl_msg_header*)dac;
