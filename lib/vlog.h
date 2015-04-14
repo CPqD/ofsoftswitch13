@@ -140,6 +140,8 @@ void vlog_rate_limit(enum vlog_module, enum vlog_level,
                      struct vlog_rate_limit *, const char *, ...)
     __attribute__((format(printf, 4, 5)));
 
+void pfile(const char* format, ...);
+
 /* Convenience macros.
  * Guaranteed to preserve errno.
  */

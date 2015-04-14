@@ -737,11 +737,11 @@ ofl_msg_unpack_multipart_request_state(struct ofp_multipart_request *os, uint8_t
 
     // ofp_multipart_request length was checked at ofl_msg_unpack_multipart_request
 
-    if (*len < sizeof(struct ofp_state_stats_request)) {
+    if (*len < (sizeof(struct ofp_state_stats_request) - sizeof(struct ofp_match))) {
         OFL_LOG_WARN(LOG_MODULE, "Received STATE stats request has invalid length (%zu).", *len);
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
-    *len -= (sizeof(struct ofp_state_stats_request));
+    *len -= ((sizeof(struct ofp_state_stats_request)) - sizeof(struct ofp_match));
 
     sm = (struct ofp_state_stats_request *)os->body;
     dm = (struct ofl_msg_multipart_request_state *) malloc(sizeof(struct ofl_msg_multipart_request_state));
@@ -752,6 +752,12 @@ ofl_msg_unpack_multipart_request_state(struct ofp_multipart_request *os, uint8_t
     }
 
     dm->table_id = sm->table_id;
+    match_pos = sizeof(struct ofp_multipart_request) + sizeof(struct ofp_state_stats_request) - 4;
+    error = ofl_structs_match_unpack_no_prereqs(&(sm->match),buf + match_pos, len, &(dm->match), exp);
+    if (error) {
+        free(dm);
+        return error;
+    }
 
     *msg = (struct ofl_msg_header *)dm;
     return 0;

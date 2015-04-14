@@ -212,6 +212,38 @@ state_table_stats(struct state_table *table, struct ofl_msg_multipart_request_st
 		fields[i] = (int)extractor->fields[i];
 		key_len = key_len + OXM_LENGTH(fields[i]);
      }
+
+    struct ofl_match * a = (struct ofl_match *)msg->match;
+    struct ofl_match_tlv *state_key_match;
+    uint8_t count = 0; 
+    uint8_t found = 0;
+    uint16_t len = 0;
+    uint8_t aux = 0;
+
+    uint16_t offset[MAX_EXTRACTION_FIELD_COUNT] = {0};
+    uint16_t length[MAX_EXTRACTION_FIELD_COUNT] = {0};
+
+    //for each received match_field verify if it can be found in the key extractor and (if yes) save its offset in the key and its length
+    HMAP_FOR_EACH(state_key_match, struct ofl_match_tlv, hmap_node, &a->match_fields)
+    {
+    	len = 0;
+    	found = 0;
+    	for (i=0;i<extractor->field_count;i++)
+    	{
+				if(OXM_TYPE(state_key_match->header)==OXM_TYPE(fields[i]))
+				{
+					offset[count] = len;
+					length[count] = OXM_LENGTH(fields[i]);				
+					count++;
+					found = 1;
+				}
+				len += OXM_LENGTH(fields[i]);
+		}
+	if(!found)
+		return; //If at least one of the match field is not found in the key extractor, the function returns
+	}
+
+	//for each state entry
     HMAP_FOR_EACH(entry, struct state_entry, hmap_node, &table->state_entries) {
         if ((*stats_size) == (*stats_num)) {
                 (*stats) = xrealloc(*stats, (sizeof(struct ofl_state_stats *)) * (*stats_size) * 2);
@@ -219,15 +251,29 @@ state_table_stats(struct state_table *table, struct ofl_msg_multipart_request_st
             }
 			if(entry == NULL)
 				break;
-			(*stats)[(*stats_num)] = malloc(sizeof(struct ofl_state_stats));
-    		(*stats)[(*stats_num)]->table_id = table_id;
-    		(*stats)[(*stats_num)]->field_count = extractor->field_count;
-    		for (i=0;i<extractor->field_count;i++)
-           		(*stats)[(*stats_num)]->fields[i]=fields[i];
-            (*stats)[(*stats_num)]->entry.key_len = key_len;
-            for (i=0;i<key_len;i++)
-           		(*stats)[(*stats_num)]->entry.key[i]=entry->key[i];
-            (*stats)[(*stats_num)]->entry.state = entry->state;
-            (*stats_num)++;
+
+			//for each received match_field compare the received value with the state entry's key
+			aux = 0;
+			found = 1;		
+			HMAP_FOR_EACH(state_key_match, struct ofl_match_tlv, hmap_node, &a->match_fields)
+	    	{	    		
+    			if(memcmp(state_key_match->value,&entry->key[offset[aux]], length[aux])) 
+	    			found = 0;
+		    	aux+=1;
+	    	}
+	    
+		    if(found)
+		    {
+			    (*stats)[(*stats_num)] = malloc(sizeof(struct ofl_state_stats));
+			    for (i=0;i<extractor->field_count;i++)
+			    	(*stats)[(*stats_num)]->fields[i]=fields[i];
+	    		(*stats)[(*stats_num)]->table_id = table_id;
+	    		(*stats)[(*stats_num)]->field_count = extractor->field_count;           		
+	            (*stats)[(*stats_num)]->entry.key_len = key_len;
+	            for (i=0;i<key_len;i++)
+	           		(*stats)[(*stats_num)]->entry.key[i]=entry->key[i];
+	            (*stats)[(*stats_num)]->entry.state = entry->state;
+	            (*stats_num)++;
+	         }
         }
 }

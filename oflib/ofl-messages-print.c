@@ -258,6 +258,8 @@ static void
 ofl_msg_print_stats_request_state(struct ofl_msg_multipart_request_state *msg, FILE *stream, struct ofl_exp *exp) {
     fprintf(stream, ", table=\"");
     ofl_table_print(stream, msg->table_id);
+    fprintf(stream, "\", match=");
+    ofl_structs_match_print(stream, msg->match, exp);
 }
 
 static void

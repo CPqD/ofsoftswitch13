@@ -298,8 +298,7 @@ struct ofl_msg_multipart_request_state {
     uint8_t                  table_id; /* ID of table to read
                                            (from ofp_table_multipart), 0xff for all
                                            tables. */
-    //struct                   ofl_state_entry entry;
-    //struct ofl_match_header  *match;       /* Fields to match. */
+    struct ofl_match_header  *match;       /* Fields to match. */
 };
 
 struct ofl_msg_multipart_request_port {

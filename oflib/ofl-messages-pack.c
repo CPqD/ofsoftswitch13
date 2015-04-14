@@ -403,8 +403,7 @@ ofl_msg_pack_multipart_request_state(struct ofl_msg_multipart_request_state *msg
     struct ofp_multipart_request *req;
     struct ofp_state_stats_request *stats;
     uint8_t *ptr;
-    //*buf_len = sizeof(struct ofp_multipart_request) + sizeof(struct ofp_state_stats_request) + msg->match->length;
-    *buf_len = sizeof(struct ofp_multipart_request) + sizeof(struct ofp_state_stats_request);
+    *buf_len = sizeof(struct ofp_multipart_request) + sizeof(struct ofp_state_stats_request) + msg->match->length;
     *buf     = (uint8_t *)malloc(*buf_len);
 
     req = (struct ofp_multipart_request *)(*buf);
@@ -412,8 +411,8 @@ ofl_msg_pack_multipart_request_state(struct ofl_msg_multipart_request_state *msg
     stats->table_id = msg->table_id;
     memset(stats->pad, 0x00, 7);
 
-    //ptr = (*buf) + sizeof(struct ofp_multipart_request) + sizeof(struct ofp_state_stats_request);
-    //ofl_structs_match_pack(msg->match, &(stats->match),ptr, exp);
+    ptr = (*buf) + sizeof(struct ofp_multipart_request) + sizeof(struct ofp_state_stats_request);
+    ofl_structs_match_pack(msg->match, &(stats->match),ptr, exp);
 
     return 0;
 }

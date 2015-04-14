@@ -571,6 +571,9 @@ ofl_err
 ofl_structs_match_unpack(struct ofp_match *src,uint8_t *buf, size_t *len, struct ofl_match_header **dst, struct ofl_exp *exp);
 
 ofl_err
+ofl_structs_match_unpack_no_prereqs(struct ofp_match *src,uint8_t *buf, size_t *len, struct ofl_match_header **dst, struct ofl_exp *exp);
+
+ofl_err
 ofl_structs_meter_band_stats_unpack(struct ofp_meter_band_stats *src, size_t *len, struct ofl_meter_band_stats **dst);
 
 ofl_err
