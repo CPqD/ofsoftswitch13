@@ -225,11 +225,9 @@ dpctl_transact(struct vconn *vconn, struct ofl_msg_header *req,
         ofp_fatal(0, "Error during transaction.");
     }
     error = ofl_msg_unpack(ofpbufrepl->data, ofpbufrepl->size, repl, repl_xid_p, &dpctl_exp);
-
     if (error) {
         ofp_fatal(0, "Error unpacking reply.");
     }
-
     /* NOTE: if unpack was successful, message takes over ownership of buffer's
      *       data. Rconn and vconn does not allocate headroom, so the ofpbuf
      *       wrapper can simply be deleted, keeping the data for the message. */
@@ -474,6 +472,19 @@ stats_flow(struct vconn *vconn, int argc, char *argv[]) {
         make_all_match(&(req.match));
     }
 
+    dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&req, NULL);
+}
+
+static void
+stats_state(struct vconn *vconn, int argc, char *argv[]) {
+    struct ofl_msg_multipart_request_state req =
+            {{{.type = OFPT_MULTIPART_REQUEST},
+              .type = OFPMP_STATE, .flags = 0x0000},
+             .table_id = 0xff,
+             //.match = NULL};
+         };
+   
+    //make_all_match(&(req.match));
     dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&req, NULL);
 }
 
@@ -912,6 +923,7 @@ static struct command all_commands[] = {
     {"group-features", 0, 0, group_features},
     {"meter-features", 0, 0, meter_features},
     {"stats-desc", 0, 0, stats_desc },
+    {"stats-state", 0, 0, stats_state},
     {"stats-flow", 0, 2, stats_flow},
     {"stats-aggr", 0, 2, stats_aggr},
     {"stats-table", 0, 0, stats_table },

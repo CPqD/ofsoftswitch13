@@ -2,6 +2,7 @@
 #include "oflib/ofl-structs.h" 
 #include "oflib/oxm-match.h"
 #include "lib/hash.h"
+
 #include <sys/types.h>
 #include <sys/socket.h>
 
@@ -197,4 +198,36 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, uint32
 	e->state = state & state_mask;
 	VLOG_WARN_RL(LOG_MODULE, &rl, "state value is %u inserted to hash map", e->state);
         hmap_insert(&table->state_entries, &e->hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
+}
+
+void
+state_table_stats(struct state_table *table, struct ofl_msg_multipart_request_state *msg,
+                 struct ofl_state_stats ***stats, size_t *stats_size, size_t *stats_num, uint8_t table_id) {
+    struct state_entry *entry;
+    size_t  i;
+    uint32_t key_len=0; //update-scope key extractor length
+    uint32_t fields[MAX_EXTRACTION_FIELD_COUNT] = {0};
+	struct key_extractor *extractor=&table->read_key;
+	for (i=0; i<extractor->field_count; i++) {
+		fields[i] = (int)extractor->fields[i];
+		key_len = key_len + OXM_LENGTH(fields[i]);
+     }
+    HMAP_FOR_EACH(entry, struct state_entry, hmap_node, &table->state_entries) {
+        if ((*stats_size) == (*stats_num)) {
+                (*stats) = xrealloc(*stats, (sizeof(struct ofl_state_stats *)) * (*stats_size) * 2);
+                *stats_size *= 2;
+            }
+			if(entry == NULL)
+				break;
+			(*stats)[(*stats_num)] = malloc(sizeof(struct ofl_state_stats));
+    		(*stats)[(*stats_num)]->table_id = table_id;
+    		(*stats)[(*stats_num)]->field_count = extractor->field_count;
+    		for (i=0;i<extractor->field_count;i++)
+           		(*stats)[(*stats_num)]->fields[i]=fields[i];
+            (*stats)[(*stats_num)]->entry.key_len = key_len;
+            for (i=0;i<key_len;i++)
+           		(*stats)[(*stats_num)]->entry.key[i]=entry->key[i];
+            (*stats)[(*stats_num)]->entry.state = entry->state;
+            (*stats_num)++;
+        }
 }

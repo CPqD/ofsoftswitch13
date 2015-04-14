@@ -79,6 +79,12 @@ pipeline_handle_stats_request_flow(struct pipeline *pl,
                                    struct ofl_msg_multipart_request_flow *msg,
                                    const struct sender *sender);
 
+/* Handles a state stats request. */
+ofl_err
+pipeline_handle_stats_request_state(struct pipeline *pl,
+                                   struct ofl_msg_multipart_request_state *msg,
+                                   const struct sender *sender);
+
 /* Handles a table stats request. */
 ofl_err
 pipeline_handle_stats_request_table(struct pipeline *pl,

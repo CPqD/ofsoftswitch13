@@ -146,6 +146,19 @@ enum ofp_state_mod_command {
 	OFPSC_DEL_FLOW_STATE
 };
 
+struct ofp_dpctl_state_entry{
+    uint32_t            key_len;
+    uint8_t             key[OFPSC_MAX_KEY_LEN];
+    uint32_t            state;
+};
+OFP_ASSERT(sizeof(struct ofp_dpctl_state_entry) == 56);
+
+struct ofl_state_entry{
+    uint32_t            key_len;
+    uint8_t             key[OFPSC_MAX_KEY_LEN];
+    uint32_t            state;
+};
+
 /* OFPT_HELLO.  This message has an empty body, but implementations must
  * ignore any data included in the body, to allow for future extensions. */
 struct ofp_hello {
@@ -1025,6 +1038,10 @@ enum ofp_multipart_types {
     * The request body is empty.
     * The reply body is an array of struct ofp_port. */
     OFPMP_PORT_DESC = 13,
+   /* Individual state table statistics.
+    * The request body is struct ofp_state_multipart_request.
+    * The reply body is an array of struct ofp_state_stats. */
+    OFPMP_STATE = 20,
     /* Experimenter extension.
     * The request and reply bodies begin with
     * struct ofp_experimenter_stats_header.
@@ -1085,6 +1102,30 @@ struct ofp_flow_stats {
     //struct ofp_instruction instructions[0]; /* Instruction set. */
 };
 OFP_ASSERT(sizeof(struct ofp_flow_stats) == 56);
+
+/* Body for ofp_multipart_request of type OFPMP_STATE. */
+struct ofp_state_stats_request {
+    uint8_t table_id;       /* ID of table to read (from ofp_table_stats),
+                               OFPTT_ALL for all tables. */
+    uint8_t pad[7];         /* Align to 64 bits. */
+    
+    //struct ofp_match match; /* Fields to match. Variable size. */
+};
+//OFP_ASSERT(sizeof(struct ofp_state_stats_request) == 16);
+OFP_ASSERT(sizeof(struct ofp_state_stats_request) == 8);
+
+/* Body of reply to OFPMP_STATE request. */
+struct ofp_state_stats {
+    uint16_t length;        /* Length of this entry. */
+    uint8_t table_id;       /* ID of table flow came from. */
+    uint8_t pad;
+    uint32_t field_count;    /*number of extractor fields*/
+    uint32_t fields[OFPSC_MAX_FIELD_COUNT]; /*extractor fields*/    
+    struct ofp_dpctl_state_entry entry;
+    
+    //struct ofp_match match; /* Description of fields. Variable size. */
+};
+OFP_ASSERT(sizeof(struct ofp_state_stats) == 88);
 
 /* Body for ofp_multipart_request of type OFPMP_AGGREGATE. */
 struct ofp_aggregate_stats_request {

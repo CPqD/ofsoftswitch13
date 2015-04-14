@@ -729,6 +729,35 @@ ofl_msg_unpack_multipart_request_flow(struct ofp_multipart_request *os, uint8_t*
 }
 
 static ofl_err
+ofl_msg_unpack_multipart_request_state(struct ofp_multipart_request *os, uint8_t* buf, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp) {
+    struct ofp_state_stats_request *sm;
+    struct ofl_msg_multipart_request_state *dm;
+    ofl_err error = 0;
+    int match_pos;
+
+    // ofp_multipart_request length was checked at ofl_msg_unpack_multipart_request
+
+    if (*len < sizeof(struct ofp_state_stats_request)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received STATE stats request has invalid length (%zu).", *len);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+    *len -= (sizeof(struct ofp_state_stats_request));
+
+    sm = (struct ofp_state_stats_request *)os->body;
+    dm = (struct ofl_msg_multipart_request_state *) malloc(sizeof(struct ofl_msg_multipart_request_state));
+
+    if (sm->table_id != OFPTT_ALL && sm->table_id >= PIPELINE_TABLES) {
+         OFL_LOG_WARN(LOG_MODULE, "Received MULTIPART REQUEST STATE message has invalid table id (%d).", sm->table_id );
+         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
+    }
+
+    dm->table_id = sm->table_id;
+
+    *msg = (struct ofl_msg_header *)dm;
+    return 0;
+}
+
+static ofl_err
 ofl_msg_unpack_multipart_request_port(struct ofp_multipart_request *os, size_t *len, struct ofl_msg_header **msg) {
     struct ofp_port_stats_request *sm;
     struct ofl_msg_multipart_request_port *dm;
@@ -902,6 +931,10 @@ ofl_msg_unpack_multipart_request(struct ofp_header *src,uint8_t *buf, size_t *le
             error = ofl_msg_unpack_multipart_request_flow(os,buf, len, msg, exp);
             break;
         }
+        case OFPMP_STATE: {
+            error = ofl_msg_unpack_multipart_request_state(os,buf, len, msg, exp);
+            break;
+        }
         case OFPMP_TABLE: {
             error = ofl_msg_unpack_multipart_request_empty(os, len, msg);
             break;
@@ -1025,6 +1058,41 @@ ofl_msg_unpack_multipart_reply_flow(struct ofp_multipart_reply *os, uint8_t *buf
             return error;
         }
         stat = (struct ofp_flow_stats *)((uint8_t *)stat + ntohs(stat->length));
+    }
+
+    *msg = (struct ofl_msg_header *)dm;
+    return 0;
+}
+
+static ofl_err
+ofl_msg_unpack_multipart_reply_state(struct ofp_multipart_reply *os, uint8_t *buf, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp) {
+    struct ofp_state_stats *stat;
+    struct ofl_msg_multipart_reply_state *dm;
+    ofl_err error;
+    size_t i, ini_len;
+    uint8_t *ptr;
+
+    // ofp_multipart_reply was already checked and subtracted in unpack_multipart_reply
+    stat = (struct ofp_state_stats *)os->body;
+    dm = (struct ofl_msg_multipart_reply_state *)malloc(sizeof(struct ofl_msg_multipart_reply_state));
+    error = ofl_utils_count_ofp_state_stats(stat, *len, &dm->stats_num);
+    if (error) {
+        free(dm);
+        return error;
+    }
+    dm->stats = (struct ofl_state_stats **)malloc(dm->stats_num * sizeof(struct ofl_state_stats *));
+
+    ini_len = *len;
+    ptr = buf + sizeof(struct ofp_multipart_reply);
+    for (i = 0; i < dm->stats_num; i++) {
+        error = ofl_structs_state_stats_unpack(stat, ptr, len, &(dm->stats[i]), exp);
+        ptr += ini_len - *len;
+        ini_len = *len;
+        if (error) {
+            free (dm);
+            return error;
+        }
+        stat = (struct ofp_state_stats *)((uint8_t *)stat + ntohs(stat->length));
     }
 
     *msg = (struct ofl_msg_header *)dm;
@@ -1420,6 +1488,10 @@ ofl_msg_unpack_multipart_reply(struct ofp_header *src, uint8_t *buf, size_t *len
         }
         case OFPMP_FLOW: {
             error = ofl_msg_unpack_multipart_reply_flow(os,buf, len, msg, exp);
+            break;
+        }
+        case OFPMP_STATE: {
+            error = ofl_msg_unpack_multipart_reply_state(os,buf, len, msg, exp);
             break;
         }
         case OFPMP_AGGREGATE: {

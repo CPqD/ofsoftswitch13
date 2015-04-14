@@ -566,6 +566,56 @@ ofl_structs_flow_stats_unpack(struct ofp_flow_stats *src, uint8_t *buf, size_t *
     return 0;
 }
 
+ofl_err
+ofl_structs_state_stats_unpack(struct ofp_state_stats *src, uint8_t *buf, size_t *len, struct ofl_state_stats **dst, struct ofl_exp *exp) {
+    struct ofl_state_stats *s;
+    ofl_err error;
+    size_t slen;
+    size_t i;
+    int match_pos;
+    if (*len < sizeof(struct ofp_state_stats) ) {
+        OFL_LOG_WARN(LOG_MODULE, "Received flow stats has invalid length (%zu).", *len);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+
+    if (*len < ntohs(src->length)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received flow stats reply has invalid length (set to %u, but only %zu received).", ntohs(src->length), *len);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+
+    if (src->table_id >= PIPELINE_TABLES) {
+        if (OFL_LOG_IS_WARN_ENABLED(LOG_MODULE)) {
+            char *ts = ofl_table_to_string(src->table_id);
+            OFL_LOG_WARN(LOG_MODULE, "Received flow stats has invalid table_id (%s).", ts);
+            free(ts);
+        }
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
+    }
+
+    slen = ntohs(src->length) - sizeof(struct ofp_state_stats);
+
+    s = (struct ofl_state_stats *)malloc(sizeof(struct ofl_state_stats));
+    s->table_id =  src->table_id;
+    s->field_count = ntohl(src->field_count);
+    for (i=0;i<s->field_count;i++)
+               s->fields[i]=ntohl(src->fields[i]);
+
+    s->entry.key_len = ntohl(src->entry.key_len);
+    for (i=0;i<s->entry.key_len;i++)
+               s->entry.key[i]=src->entry.key[i];
+    s->entry.state = ntohl(src->entry.state);
+    
+    if (slen != 0) {
+        *len = *len - ntohs(src->length) + slen;
+        OFL_LOG_WARN(LOG_MODULE, "The received flow stats contained extra bytes (%zu).", slen);
+        ofl_structs_free_flow_stats(s, exp);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+    *len -= ntohs(src->length);
+    *dst = s;
+    return 0;
+}
+
 
 ofl_err
 ofl_structs_group_stats_unpack(struct ofp_group_stats *src, size_t *len, struct ofl_group_stats **dst) {

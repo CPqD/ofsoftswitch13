@@ -292,6 +292,16 @@ struct ofl_msg_multipart_request_flow {
     struct ofl_match_header  *match;       /* Fields to match. */
 };
 
+struct ofl_msg_multipart_request_state {
+    struct ofl_msg_multipart_request_header   header; /* OFPMP_STATE */
+
+    uint8_t                  table_id; /* ID of table to read
+                                           (from ofp_table_multipart), 0xff for all
+                                           tables. */
+    //struct                   ofl_state_entry entry;
+    //struct ofl_match_header  *match;       /* Fields to match. */
+};
+
 struct ofl_msg_multipart_request_port {
     struct ofl_msg_multipart_request_header   header; /* OFPMP_PORT_STATS */
     uint32_t   port_no; /* OFPMP_PORT_STATS message must request statistics
@@ -352,6 +362,13 @@ struct ofl_msg_multipart_reply_flow {
 
     size_t                  stats_num;
     struct ofl_flow_stats **stats;
+};
+
+struct ofl_msg_multipart_reply_state {
+    struct ofl_msg_multipart_reply_header   header; /* OFPMP_STATE */
+
+    size_t                  stats_num;
+    struct ofl_state_stats **stats;
 };
 
 struct ofl_msg_multipart_reply_aggregate {

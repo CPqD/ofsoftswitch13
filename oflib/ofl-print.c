@@ -878,6 +878,7 @@ ofl_stats_type_print(FILE *stream, uint16_t type) {
     switch (type) {
         case (OFPMP_DESC):          { fprintf(stream, "desc"); return; }
         case (OFPMP_FLOW):          { fprintf(stream, "flow"); return; }
+        case (OFPMP_STATE):          { fprintf(stream, "state"); return; }
         case (OFPMP_AGGREGATE):     { fprintf(stream, "aggr"); return; }
         case (OFPMP_TABLE):         { fprintf(stream, "table"); return; }
         case (OFPMP_TABLE_FEATURES):{ fprintf(stream, "table-features"); return; }
