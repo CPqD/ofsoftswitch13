@@ -101,8 +101,6 @@ parse_options(int argc, char *argv[]);
 
 static uint8_t mask_all[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
-
-
 static void
 parse_flow_mod_args(char *str, struct ofl_msg_flow_mod *req);
 
@@ -117,6 +115,9 @@ parse_bucket(char *str, struct ofl_bucket *b);
 
 static void
 parse_flow_stat_args(char *str, struct ofl_msg_multipart_request_flow *req);
+
+static void
+parse_state_stat_args(char *str, struct ofl_msg_multipart_request_state *req);
 
 static void
 parse_match(char *str, struct ofl_match_header **match);
@@ -483,8 +484,9 @@ stats_state(struct vconn *vconn, int argc, char *argv[]) {
              .table_id = 0xff,
              //.match = NULL};
          };
-   
-    //make_all_match(&(req.match));
+    if (argc > 0) {
+        parse_state_stat_args(argv[0], &req);
+    }
     dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&req, NULL);
 }
 
@@ -923,7 +925,7 @@ static struct command all_commands[] = {
     {"group-features", 0, 0, group_features},
     {"meter-features", 0, 0, meter_features},
     {"stats-desc", 0, 0, stats_desc },
-    {"stats-state", 0, 0, stats_state},
+    {"stats-state", 0, 1, stats_state},
     {"stats-flow", 0, 2, stats_flow},
     {"stats-aggr", 0, 2, stats_aggr},
     {"stats-table", 0, 0, stats_table },
@@ -2170,7 +2172,20 @@ parse_flow_stat_args(char *str, struct ofl_msg_multipart_request_flow *req) {
     }
 }
 
+static void
+parse_state_stat_args(char *str, struct ofl_msg_multipart_request_state *req) {
+    char *token, *saveptr = NULL;
 
+    for (token = strtok_r(str, KEY_SEP, &saveptr); token != NULL; token = strtok_r(NULL, KEY_SEP, &saveptr)) {
+        if (strncmp(token, FLOW_MOD_TABLE_ID KEY_VAL, strlen(FLOW_MOD_TABLE_ID KEY_VAL)) == 0) {
+            if (parse8(token + strlen(FLOW_MOD_TABLE_ID KEY_VAL), table_names, NUM_ELEMS(table_names), 254,  &req->table_id)) {
+                ofp_fatal(0, "Error parsing state_stat table: %s.", token);
+            }
+            continue;
+        }
+        ofp_fatal(0, "Error parsing state_stat arg: %s.", token);
+    }
+}
 
 static void
 parse_flow_mod_args(char *str, struct ofl_msg_flow_mod *req) {
