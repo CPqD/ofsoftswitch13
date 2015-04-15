@@ -532,6 +532,10 @@ ofl_msg_pack_multipart_request(struct ofl_msg_multipart_request_header *msg, uin
         error = ofl_msg_pack_multipart_request_state((struct ofl_msg_multipart_request_state *)msg, buf, buf_len, exp);
         break;
     }
+    case OFPMP_FLAGS: {
+        error = ofl_msg_pack_multipart_request_empty(msg, buf, buf_len);
+        break;
+    }
     case OFPMP_TABLE: {
         error = ofl_msg_pack_multipart_request_empty(msg, buf, buf_len);
         break;
@@ -656,6 +660,23 @@ ofl_msg_pack_multipart_reply_state(struct ofl_msg_multipart_reply_state *msg, ui
     for (i=0; i<msg->stats_num; i++) {
         data += ofl_structs_state_stats_pack(msg->stats[i], data, exp);
     }
+    return 0;
+}
+
+static int
+ofl_msg_pack_multipart_reply_global_state(struct ofl_msg_multipart_reply_global_state *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
+    struct ofp_multipart_reply *resp;
+    struct ofp_global_state_stats *stats;
+
+    *buf_len = sizeof(struct ofp_multipart_reply) + sizeof(struct ofp_global_state_stats);
+    *buf     = (uint8_t *)malloc(*buf_len);
+    
+    resp = (struct ofp_multipart_reply *)(*buf);
+    stats = (struct ofp_global_state_stats *)resp->body;
+    stats->enabled=msg->enabled;
+    memset(stats->pad, 0x00, 3);
+    stats->global_states=htonl(msg->global_states);
+    
     return 0;
 }
 
@@ -900,6 +921,10 @@ ofl_msg_pack_multipart_reply(struct ofl_msg_multipart_reply_header *msg, uint8_t
         }
         case OFPMP_STATE: {
             error = ofl_msg_pack_multipart_reply_state((struct ofl_msg_multipart_reply_state *)msg, buf, buf_len, exp);
+            break;
+        }
+        case OFPMP_FLAGS: {
+            error = ofl_msg_pack_multipart_reply_global_state((struct ofl_msg_multipart_reply_global_state *)msg, buf, buf_len, exp);
             break;
         }
         case OFPMP_AGGREGATE: {

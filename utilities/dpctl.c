@@ -217,7 +217,6 @@ dpctl_transact(struct vconn *vconn, struct ofl_msg_header *req,
     if (error) {
         ofp_fatal(0, "Error packing request.");
     }
-
     ofpbufreq = ofpbuf_new(0);
     ofpbuf_use(ofpbufreq, bufreq, bufreq_size);
     ofpbuf_put_uninit(ofpbufreq, bufreq_size);
@@ -492,6 +491,14 @@ stats_state(struct vconn *vconn, int argc, char *argv[]) {
         make_all_match(&(req.match));
     }
 
+    dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&req, NULL);
+}
+
+static void
+stats_global_state(struct vconn *vconn, int argc, char *argv[]) {
+    struct ofl_msg_multipart_request_global_state req =
+            {{{.type = OFPT_MULTIPART_REQUEST},
+              .type = OFPMP_FLAGS, .flags = 0x0000}};
     dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&req, NULL);
 }
 
@@ -931,6 +938,7 @@ static struct command all_commands[] = {
     {"meter-features", 0, 0, meter_features},
     {"stats-desc", 0, 0, stats_desc },
     {"stats-state", 0, 2, stats_state},
+    {"stats-global-state", 0, 0, stats_global_state},
     {"stats-flow", 0, 2, stats_flow},
     {"stats-aggr", 0, 2, stats_aggr},
     {"stats-table", 0, 0, stats_table },

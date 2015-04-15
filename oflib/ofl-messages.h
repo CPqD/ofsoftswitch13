@@ -301,6 +301,10 @@ struct ofl_msg_multipart_request_state {
     struct ofl_match_header  *match;       /* Fields to match. */
 };
 
+struct ofl_msg_multipart_request_global_state {
+    struct ofl_msg_multipart_request_header   header; /* OFPMP_FLAGS */
+};
+
 struct ofl_msg_multipart_request_port {
     struct ofl_msg_multipart_request_header   header; /* OFPMP_PORT_STATS */
     uint32_t   port_no; /* OFPMP_PORT_STATS message must request statistics
@@ -368,6 +372,12 @@ struct ofl_msg_multipart_reply_state {
 
     size_t                  stats_num;
     struct ofl_state_stats **stats;
+};
+
+struct ofl_msg_multipart_reply_global_state {
+    struct ofl_msg_multipart_reply_header   header; /* OFPMP_STATE */
+    uint8_t enabled;
+    uint32_t global_states;
 };
 
 struct ofl_msg_multipart_reply_aggregate {

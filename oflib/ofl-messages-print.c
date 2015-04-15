@@ -337,6 +337,9 @@ ofl_msg_print_multipart_request(struct ofl_msg_multipart_request_header *msg, FI
             ofl_msg_print_stats_request_state((struct ofl_msg_multipart_request_state *)msg, stream, exp);
             break;
         }
+        case OFPMP_FLAGS: {
+            break;
+        }
         case OFPMP_TABLE: {
             break;
         }
@@ -432,6 +435,19 @@ ofl_msg_print_stats_reply_state(struct ofl_msg_multipart_reply_state *msg, FILE 
     }
     fprintf(stream, "]}");
     fprintf(stream, "]");
+}
+
+static void
+ofl_msg_print_stats_reply_global_state(struct ofl_msg_multipart_reply_global_state *msg, FILE *stream, struct ofl_exp *exp) {
+    size_t i;
+    size_t last_table_id = -1;
+    extern int colors;
+
+    if (msg->enabled)
+        fprintf(stream, ", global_states=\"%s\"",decimal_to_binary(msg->global_states));
+    else
+        fprintf(stream, ", global_states=NONE");
+
 }
 
 static void
@@ -646,6 +662,10 @@ ofl_msg_print_multipart_reply(struct ofl_msg_multipart_reply_header *msg, FILE *
         }
         case (OFPMP_STATE): {
             ofl_msg_print_stats_reply_state((struct ofl_msg_multipart_reply_state *)msg, stream, exp);
+            break;
+        }
+        case (OFPMP_FLAGS): {
+            ofl_msg_print_stats_reply_global_state((struct ofl_msg_multipart_reply_global_state *)msg, stream, exp);
             break;
         }
         case OFPMP_AGGREGATE: {

@@ -764,6 +764,14 @@ ofl_msg_unpack_multipart_request_state(struct ofp_multipart_request *os, uint8_t
 }
 
 static ofl_err
+ofl_msg_unpack_multipart_request_global_state(struct ofp_multipart_request *os, uint8_t* buf, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp) {
+    len -= sizeof(struct ofp_multipart_request);
+
+    *msg = (struct ofl_msg_header *)malloc(sizeof(struct ofl_msg_multipart_request_header));
+    return 0;
+}
+
+static ofl_err
 ofl_msg_unpack_multipart_request_port(struct ofp_multipart_request *os, size_t *len, struct ofl_msg_header **msg) {
     struct ofp_port_stats_request *sm;
     struct ofl_msg_multipart_request_port *dm;
@@ -926,7 +934,6 @@ ofl_msg_unpack_multipart_request(struct ofp_header *src,uint8_t *buf, size_t *le
     *len -= sizeof(struct ofp_multipart_request);
 
     os = (struct ofp_multipart_request *)src;
-
     switch (ntohs(os->type)) {
         case OFPMP_DESC: {
             error = ofl_msg_unpack_multipart_request_empty(os, len, msg);
@@ -939,6 +946,10 @@ ofl_msg_unpack_multipart_request(struct ofp_header *src,uint8_t *buf, size_t *le
         }
         case OFPMP_STATE: {
             error = ofl_msg_unpack_multipart_request_state(os,buf, len, msg, exp);
+            break;
+        }
+        case OFPMP_FLAGS: {
+            error = ofl_msg_unpack_multipart_request_global_state(os,buf, len, msg, exp);
             break;
         }
         case OFPMP_TABLE: {
@@ -999,11 +1010,9 @@ ofl_msg_unpack_multipart_request(struct ofp_header *src,uint8_t *buf, size_t *le
     if (error) {
         return error;
     }
-
     ofls = (struct ofl_msg_multipart_request_header *)(*msg);
     ofls->type = (enum ofp_multipart_types)ntohs(os->type);
     ofls->flags = ntohs(os->flags);
-
     return 0;
 }
 
@@ -1100,6 +1109,27 @@ ofl_msg_unpack_multipart_reply_state(struct ofp_multipart_reply *os, uint8_t *bu
         }
         stat = (struct ofp_state_stats *)((uint8_t *)stat + ntohs(stat->length));
     }
+
+    *msg = (struct ofl_msg_header *)dm;
+    return 0;
+}
+
+static ofl_err
+ofl_msg_unpack_multipart_reply_global_state(struct ofp_multipart_reply *os, uint8_t *buf, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp) {
+    struct ofp_global_state_stats *sm;
+    struct ofl_msg_multipart_reply_global_state *dm;
+
+    if (*len < sizeof(struct ofp_global_state_stats)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received FLAGS stats reply has invalid length (%zu).", *len);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+    *len -= sizeof(struct ofp_global_state_stats);
+
+    sm = (struct ofp_global_state_stats *)os->body;
+    dm = (struct ofl_msg_multipart_reply_global_state *) malloc(sizeof(struct ofl_msg_multipart_reply_global_state));
+
+    dm->enabled = sm->enabled;
+    dm->global_states =  ntohl(sm->global_states);
 
     *msg = (struct ofl_msg_header *)dm;
     return 0;
@@ -1500,6 +1530,10 @@ ofl_msg_unpack_multipart_reply(struct ofp_header *src, uint8_t *buf, size_t *len
             error = ofl_msg_unpack_multipart_reply_state(os,buf, len, msg, exp);
             break;
         }
+        case OFPMP_FLAGS: {
+            error = ofl_msg_unpack_multipart_reply_global_state(os,buf, len, msg, exp);
+            break;
+        }
         case OFPMP_AGGREGATE: {
             error = ofl_msg_unpack_multipart_reply_aggregate(os, len, msg);
             break;
@@ -1708,9 +1742,6 @@ ofl_msg_unpack_state_mod(struct ofp_header *src, size_t *len, struct ofl_msg_hea
     struct ofp_state_mod *sm;
     struct ofl_msg_state_mod *dm;
     ofl_err error;
-    size_t i;
-    int state_entry_pos;
-    
     
     if (*len < sizeof(struct ofp_state_mod)) {
         OFL_LOG_WARN(LOG_MODULE, "Received STATE_MOD message has invalid length (%zu).", *len);
@@ -1732,7 +1763,6 @@ ofl_msg_unpack_state_mod(struct ofp_header *src, size_t *len, struct ofl_msg_hea
 
     
     if (dm->command == OFPSC_SET_FLOW_STATE || dm->command == OFPSC_DEL_FLOW_STATE){
-	//state_entry_pos = sizeof(struct ofp_state_mod);
 	error = ofl_structs_key_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
         if (error) {
             free(dm);
@@ -1757,9 +1787,6 @@ static ofl_err
 ofl_msg_unpack_flag_mod(struct ofp_header *src, size_t *len, struct ofl_msg_header **msg) {
     struct ofp_flag_mod *sm;
     struct ofl_msg_flag_mod *dm;
-    ofl_err error;
-    size_t i;
-   
     
     if (*len < sizeof(struct ofp_flag_mod)) {
         OFL_LOG_WARN(LOG_MODULE, "Received FLAG_MOD message has invalid length (%zu).", *len);

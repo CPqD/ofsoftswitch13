@@ -1042,6 +1042,10 @@ enum ofp_multipart_types {
     * The request body is struct ofp_state_multipart_request.
     * The reply body is an array of struct ofp_state_stats. */
     OFPMP_STATE = 20,
+   /* Global stats.
+    * The request body is empty.
+    * The reply body is a struct ofp_global_state_stats. */
+    OFPMP_FLAGS = 21,
     /* Experimenter extension.
     * The request and reply bodies begin with
     * struct ofp_experimenter_stats_header.
@@ -1125,6 +1129,14 @@ struct ofp_state_stats {
     //struct ofp_match match; /* Description of fields. Variable size. */
 };
 OFP_ASSERT(sizeof(struct ofp_state_stats) == 88);
+
+/* Body of reply to OFPMP_FLAGS request. */
+struct ofp_global_state_stats {
+    uint8_t enabled;
+    uint8_t pad[3];
+    uint32_t global_states;
+};
+OFP_ASSERT(sizeof(struct ofp_global_state_stats) == 8);
 
 /* Body for ofp_multipart_request of type OFPMP_AGGREGATE. */
 struct ofp_aggregate_stats_request {

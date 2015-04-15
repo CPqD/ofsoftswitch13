@@ -193,6 +193,9 @@ handle_control_stats_request(struct datapath *dp,
         case (OFPMP_STATE): {
             return pipeline_handle_stats_request_state(dp->pipeline, (struct ofl_msg_multipart_request_state *)msg, sender);
         }
+        case (OFPMP_FLAGS): {
+            return pipeline_handle_stats_request_global_state(dp->pipeline, (struct ofl_msg_multipart_request_global_state *)msg, sender);
+        }
         case (OFPMP_AGGREGATE): {
             return pipeline_handle_stats_request_aggregate(dp->pipeline, (struct ofl_msg_multipart_request_flow *)msg, sender);
         }
