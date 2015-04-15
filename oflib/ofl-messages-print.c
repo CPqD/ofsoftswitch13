@@ -430,7 +430,7 @@ ofl_msg_print_stats_reply_state(struct ofl_msg_multipart_reply_state *msg, FILE 
             else
                 fprintf(stream, ", "); };
     }
-
+    fprintf(stream, "]}");
     fprintf(stream, "]");
 }
 

@@ -277,4 +277,13 @@ state_table_stats(struct state_table *table, struct ofl_msg_multipart_request_st
 	            (*stats_num)++;
 	         }
         }
+     /*DEFAULT ENTRY*/
+    (*stats)[(*stats_num)] = malloc(sizeof(struct ofl_state_stats));
+    for (i=0;i<extractor->field_count;i++)
+    	(*stats)[(*stats_num)]->fields[i]=fields[i];
+	(*stats)[(*stats_num)]->table_id = table_id;
+	(*stats)[(*stats_num)]->field_count = extractor->field_count;           		
+    (*stats)[(*stats_num)]->entry.key_len = 0;
+    (*stats)[(*stats_num)]->entry.state = 0;
+    (*stats_num)++;
 }
