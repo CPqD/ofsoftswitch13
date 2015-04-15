@@ -1109,10 +1109,9 @@ struct ofp_state_stats_request {
                                OFPTT_ALL for all tables. */
     uint8_t pad[7];         /* Align to 64 bits. */
     
-    //struct ofp_match match; /* Fields to match. Variable size. */
+    struct ofp_match match; /* Fields to match. Variable size. */
 };
-//OFP_ASSERT(sizeof(struct ofp_state_stats_request) == 16);
-OFP_ASSERT(sizeof(struct ofp_state_stats_request) == 8);
+OFP_ASSERT(sizeof(struct ofp_state_stats_request) == 16);
 
 /* Body of reply to OFPMP_STATE request. */
 struct ofp_state_stats {
