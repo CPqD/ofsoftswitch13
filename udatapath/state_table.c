@@ -205,7 +205,7 @@ state_table_stats(struct state_table *table, struct ofl_msg_multipart_request_st
                  struct ofl_state_stats ***stats, size_t *stats_size, size_t *stats_num, uint8_t table_id) {
     struct state_entry *entry;
     size_t  i;
-    uint32_t key_len=0; //update-scope key extractor length
+    uint32_t key_len = 0; //update-scope key extractor length
     uint32_t fields[MAX_EXTRACTION_FIELD_COUNT] = {0};
 	struct key_extractor *extractor=&table->read_key;
 	for (i=0; i<extractor->field_count; i++) {
@@ -217,13 +217,13 @@ state_table_stats(struct state_table *table, struct ofl_msg_multipart_request_st
     struct ofl_match_tlv *state_key_match;
     uint8_t count = 0; 
     uint8_t found = 0;
-    uint16_t len = 0;
+    uint8_t len = 0;
     uint8_t aux = 0;
 
-    uint16_t offset[MAX_EXTRACTION_FIELD_COUNT] = {0};
-    uint16_t length[MAX_EXTRACTION_FIELD_COUNT] = {0};
+    uint8_t offset[MAX_EXTRACTION_FIELD_COUNT] = {0};
+    uint8_t length[MAX_EXTRACTION_FIELD_COUNT] = {0};
 
-    //for each received match_field verify if it can be found in the key extractor and (if yes) save its offset in the key and its length
+    //for each received match_field we must verify if it can be found in the key extractor and (if yes) save its position in the key (offset) and its length
     HMAP_FOR_EACH(state_key_match, struct ofl_match_tlv, hmap_node, &a->match_fields)
     {
     	len = 0;
@@ -236,11 +236,12 @@ state_table_stats(struct state_table *table, struct ofl_msg_multipart_request_st
 					length[count] = OXM_LENGTH(fields[i]);				
 					count++;
 					found = 1;
+					break;
 				}
 				len += OXM_LENGTH(fields[i]);
 		}
-	if(!found)
-		return; //If at least one of the match field is not found in the key extractor, the function returns
+		if(!found)
+			return; //If at least one of the received match_field is not found in the key extractor, the function returns an empty list of entries
 	}
 
 	//for each state entry
