@@ -188,16 +188,21 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, uint32
 		hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries){
 			if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
 				VLOG_WARN_RL(LOG_MODULE, &rl, "state value is %u updated to hash map", state);
-				e->state = (e->state & ~(state_mask)) | (state & state_mask);
+				if(((e->state & ~(state_mask)) | (state & state_mask)) == STATE_DEFAULT)
+					state_table_del_state(table, k, len);
+				else
+					e->state = (e->state & ~(state_mask)) | (state & state_mask);
 				return;
 			}
 	}
-
-	e = malloc(sizeof(struct state_entry));
-	memcpy(e->key, key, MAX_STATE_KEY_LEN);
-	e->state = state & state_mask;
-	VLOG_WARN_RL(LOG_MODULE, &rl, "state value is %u inserted to hash map", e->state);
-        hmap_insert(&table->state_entries, &e->hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
+	if((state & state_mask) != STATE_DEFAULT)
+	{
+		e = malloc(sizeof(struct state_entry));
+		memcpy(e->key, key, MAX_STATE_KEY_LEN);
+		e->state = state & state_mask;
+		VLOG_WARN_RL(LOG_MODULE, &rl, "state value is %u inserted to hash map", e->state);
+	        hmap_insert(&table->state_entries, &e->hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
+	}
 }
 
 void
@@ -284,6 +289,6 @@ state_table_stats(struct state_table *table, struct ofl_msg_multipart_request_st
 	(*stats)[(*stats_num)]->table_id = table_id;
 	(*stats)[(*stats_num)]->field_count = extractor->field_count;           		
     (*stats)[(*stats_num)]->entry.key_len = 0;
-    (*stats)[(*stats_num)]->entry.state = 0;
+    (*stats)[(*stats_num)]->entry.state = STATE_DEFAULT;
     (*stats_num)++;
 }
