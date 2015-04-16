@@ -283,6 +283,10 @@ state_table_stats(struct state_table *table, struct ofl_msg_multipart_request_st
 	         }
         }
      /*DEFAULT ENTRY*/
+    if ((*stats_size) == (*stats_num)) {
+                (*stats) = xrealloc(*stats, (sizeof(struct ofl_state_stats *)) * (*stats_size) * 2);
+                *stats_size *= 2;
+    }
     (*stats)[(*stats_num)] = malloc(sizeof(struct ofl_state_stats));
     for (i=0;i<extractor->field_count;i++)
     	(*stats)[(*stats_num)]->fields[i]=fields[i];
