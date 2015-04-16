@@ -213,6 +213,27 @@ ofl_utils_count_ofp_flow_stats(void *data, size_t data_len, size_t *count) {
 }
 
 ofl_err
+ofl_utils_count_ofp_state_stats(void *data, size_t data_len, size_t *count) {
+    struct ofp_state_stats *stat;
+    uint8_t *d;
+
+    d = (uint8_t *)data;
+    *count = 0;
+    while (data_len >= sizeof(struct ofp_state_stats)) {
+        stat = (struct ofp_state_stats *)d;
+        if (data_len < ntohs(stat->length) || ntohs(stat->length) < sizeof(struct ofp_state_stats)) {
+            OFL_LOG_WARN(LOG_MODULE, "Received state stat has invalid length.");
+            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+        }
+        data_len -= ntohs(stat->length);
+        d += ntohs(stat->length);
+        (*count)++;
+    }
+
+    return 0;
+}
+
+ofl_err
 ofl_utils_count_ofp_group_stats(void *data, size_t data_len, size_t *count) {
     struct ofp_group_stats *stat;
     uint8_t *d;
@@ -448,6 +469,7 @@ ofl_structs_free_flow_stats(struct ofl_flow_stats *stats, struct ofl_exp *exp) {
     ofl_structs_free_match(stats->match, exp);
     free(stats);
 }
+
 
 void
 ofl_structs_free_port(struct ofl_port *port) {

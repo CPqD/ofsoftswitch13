@@ -398,6 +398,26 @@ ofl_msg_pack_multipart_request_flow(struct ofl_msg_multipart_request_flow *msg, 
 }
 
 static int
+ofl_msg_pack_multipart_request_state(struct ofl_msg_multipart_request_state *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
+
+    struct ofp_multipart_request *req;
+    struct ofp_state_stats_request *stats;
+    uint8_t *ptr;
+    *buf_len = sizeof(struct ofp_multipart_request) + sizeof(struct ofp_state_stats_request) + msg->match->length;
+    *buf     = (uint8_t *)malloc(*buf_len);
+
+    req = (struct ofp_multipart_request *)(*buf);
+    stats = (struct ofp_state_stats_request *)req->body;
+    stats->table_id = msg->table_id;
+    memset(stats->pad, 0x00, 7);
+
+    ptr = (*buf) + sizeof(struct ofp_multipart_request) + sizeof(struct ofp_state_stats_request);
+    ofl_structs_match_pack(msg->match, &(stats->match),ptr, exp);
+
+    return 0;
+}
+
+static int
 ofl_msg_pack_multipart_request_port(struct ofl_msg_multipart_request_port *msg, uint8_t **buf, size_t *buf_len) {
     struct ofp_multipart_request *req;
     struct ofp_port_stats_request *stats;
@@ -508,6 +528,14 @@ ofl_msg_pack_multipart_request(struct ofl_msg_multipart_request_header *msg, uin
         error = ofl_msg_pack_multipart_request_flow((struct ofl_msg_multipart_request_flow *)msg, buf, buf_len, exp);
         break;
     }
+    case OFPMP_STATE: {
+        error = ofl_msg_pack_multipart_request_state((struct ofl_msg_multipart_request_state *)msg, buf, buf_len, exp);
+        break;
+    }
+    case OFPMP_FLAGS: {
+        error = ofl_msg_pack_multipart_request_empty(msg, buf, buf_len);
+        break;
+    }
     case OFPMP_TABLE: {
         error = ofl_msg_pack_multipart_request_empty(msg, buf, buf_len);
         break;
@@ -615,6 +643,40 @@ ofl_msg_pack_multipart_reply_flow(struct ofl_msg_multipart_reply_flow *msg, uint
     for (i=0; i<msg->stats_num; i++) {
         data += ofl_structs_flow_stats_pack(msg->stats[i], data, exp);
     }
+    return 0;
+}
+
+static int
+ofl_msg_pack_multipart_reply_state(struct ofl_msg_multipart_reply_state *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
+    struct ofp_multipart_reply *resp;
+    size_t i;
+    uint8_t * data;
+
+    *buf_len = sizeof(struct ofp_multipart_reply) + ofl_structs_state_stats_ofp_total_len(msg->stats, msg->stats_num, exp);
+    *buf     = (uint8_t *)malloc(*buf_len);
+    
+    resp = (struct ofp_multipart_reply *)(*buf);
+    data = (uint8_t*) resp->body;
+    for (i=0; i<msg->stats_num; i++) {
+        data += ofl_structs_state_stats_pack(msg->stats[i], data, exp);
+    }
+    return 0;
+}
+
+static int
+ofl_msg_pack_multipart_reply_global_state(struct ofl_msg_multipart_reply_global_state *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
+    struct ofp_multipart_reply *resp;
+    struct ofp_global_state_stats *stats;
+
+    *buf_len = sizeof(struct ofp_multipart_reply) + sizeof(struct ofp_global_state_stats);
+    *buf     = (uint8_t *)malloc(*buf_len);
+    
+    resp = (struct ofp_multipart_reply *)(*buf);
+    stats = (struct ofp_global_state_stats *)resp->body;
+    stats->enabled=msg->enabled;
+    memset(stats->pad, 0x00, 3);
+    stats->global_states=htonl(msg->global_states);
+    
     return 0;
 }
 
@@ -857,6 +919,14 @@ ofl_msg_pack_multipart_reply(struct ofl_msg_multipart_reply_header *msg, uint8_t
             error = ofl_msg_pack_multipart_reply_flow((struct ofl_msg_multipart_reply_flow *)msg, buf, buf_len, exp);
             break;
         }
+        case OFPMP_STATE: {
+            error = ofl_msg_pack_multipart_reply_state((struct ofl_msg_multipart_reply_state *)msg, buf, buf_len, exp);
+            break;
+        }
+        case OFPMP_FLAGS: {
+            error = ofl_msg_pack_multipart_reply_global_state((struct ofl_msg_multipart_reply_global_state *)msg, buf, buf_len, exp);
+            break;
+        }
         case OFPMP_AGGREGATE: {
             error = ofl_msg_pack_multipart_reply_aggregate((struct ofl_msg_multipart_reply_aggregate *)msg, buf, buf_len);
             break;
@@ -927,7 +997,6 @@ ofl_msg_pack_multipart_reply(struct ofl_msg_multipart_reply_header *msg, uint8_t
     resp->type  = htons(msg->type);
     resp->flags = htons(msg->flags);
     memset(resp->pad, 0x00, 4);
-
     return 0;
 }
 

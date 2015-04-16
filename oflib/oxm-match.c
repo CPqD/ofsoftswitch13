@@ -630,6 +630,62 @@ oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len)
     return match_len ? ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_LEN) : 0;
 }
 
+/* Puts the match in a hash_map structure */
+int
+oxm_pull_match_no_prereqs(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len)
+{
+
+    uint32_t header;
+    uint8_t *p;
+    p = ofpbuf_try_pull(buf, match_len);
+
+    if (!p) {
+        VLOG_DBG_RL(LOG_MODULE,&rl, "oxm_match length %u, rounded up to a "
+                    "multiple of 8, is longer than space in message (max "
+                    "length %zd)", match_len, buf->size);
+
+        return ofp_mkerr(OFPET_BAD_MATCH, OFPBRC_BAD_LEN);
+    }
+
+    /* Initialize the match hashmap */
+    ofl_structs_match_init(match_dst);
+
+    while ((header = oxm_entry_ok(p, match_len)) != 0) {
+
+        unsigned length = OXM_LENGTH(header);
+        const struct oxm_field *f;
+        int error;
+        f = oxm_field_lookup(header);
+
+        if (!f) {
+            error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_FIELD);
+        }
+        else if (OXM_HASMASK(header) && !f->maskable){
+            error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_MASK);
+        }
+        else if (check_oxm_dup(match_dst,f)){
+            error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_DUP_FIELD);
+        }
+        else {
+            /* 'hasmask' and 'length' are known to be correct at this point
+             * because they are included in 'header' and oxm_field_lookup()
+             * checked them already. */
+            error = parse_oxm_entry(match_dst, f, p + 4, p + 4 + length / 2);
+        }
+        if (error) {
+            VLOG_DBG_RL(LOG_MODULE,&rl, "bad oxm_entry with vendor=%"PRIu32", "
+                        "field=%"PRIu32", hasmask=%"PRIu32", type=%"PRIu32" "
+                        "(error %x)",
+                        OXM_VENDOR(header), OXM_FIELD(header),
+                        OXM_HASMASK(header), OXM_TYPE(header),
+                        error);
+            return error;
+        }
+        p += 4 + length;
+        match_len -= 4 + length;
+    }
+    return match_len ? ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_LEN) : 0;
+}
 
 uint32_t
 oxm_entry_ok(const void *p, unsigned int match_len)

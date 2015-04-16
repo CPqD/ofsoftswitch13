@@ -255,6 +255,14 @@ ofl_msg_print_stats_request_flow(struct ofl_msg_multipart_request_flow *msg, FIL
 }
 
 static void
+ofl_msg_print_stats_request_state(struct ofl_msg_multipart_request_state *msg, FILE *stream, struct ofl_exp *exp) {
+    fprintf(stream, ", table=\"");
+    ofl_table_print(stream, msg->table_id);
+    fprintf(stream, "\", match=");
+    ofl_structs_match_print(stream, msg->match, exp);
+}
+
+static void
 ofl_msg_print_stats_request_port(struct ofl_msg_multipart_request_port *msg, FILE *stream) {
     fprintf(stream, ", port=\"");
     ofl_port_print(stream, msg->port_no);
@@ -323,6 +331,13 @@ ofl_msg_print_multipart_request(struct ofl_msg_multipart_request_header *msg, FI
         case OFPMP_FLOW:
         case OFPMP_AGGREGATE: {
             ofl_msg_print_stats_request_flow((struct ofl_msg_multipart_request_flow *)msg, stream, exp);
+            break;
+        }
+        case OFPMP_STATE: {
+            ofl_msg_print_stats_request_state((struct ofl_msg_multipart_request_state *)msg, stream, exp);
+            break;
+        }
+        case OFPMP_FLAGS: {
             break;
         }
         case OFPMP_TABLE: {
@@ -396,6 +411,43 @@ ofl_msg_print_stats_reply_flow(struct ofl_msg_multipart_reply_flow *msg, FILE *s
     }
 
     fprintf(stream, "]");
+}
+
+static void
+ofl_msg_print_stats_reply_state(struct ofl_msg_multipart_reply_state *msg, FILE *stream, struct ofl_exp *exp) {
+    size_t i;
+    size_t last_table_id = -1;
+    extern int colors;
+
+    fprintf(stream, ", stats=[");
+    
+    for (i=0; i<msg->stats_num; i++) {
+
+        if(last_table_id != msg->stats[i]->table_id && colors)
+            fprintf(stream, "\n\n\x1B[33mTABLE = %d\x1B[0m\n\n",msg->stats[i]->table_id);
+        last_table_id = msg->stats[i]->table_id;
+        ofl_structs_state_stats_print(stream, msg->stats[i], exp);
+        if (i < msg->stats_num - 1) { 
+            if(colors)
+                fprintf(stream, ",\n\n");
+            else
+                fprintf(stream, ", "); };
+    }
+    fprintf(stream, "]}");
+    fprintf(stream, "]");
+}
+
+static void
+ofl_msg_print_stats_reply_global_state(struct ofl_msg_multipart_reply_global_state *msg, FILE *stream, struct ofl_exp *exp) {
+    size_t i;
+    size_t last_table_id = -1;
+    extern int colors;
+
+    if (msg->enabled)
+        fprintf(stream, ", global_states=\"%s\"",decimal_to_binary(msg->global_states));
+    else
+        fprintf(stream, ", global_states=NONE");
+
 }
 
 static void
@@ -606,6 +658,14 @@ ofl_msg_print_multipart_reply(struct ofl_msg_multipart_reply_header *msg, FILE *
         }
         case (OFPMP_FLOW): {
             ofl_msg_print_stats_reply_flow((struct ofl_msg_multipart_reply_flow *)msg, stream, exp);
+            break;
+        }
+        case (OFPMP_STATE): {
+            ofl_msg_print_stats_reply_state((struct ofl_msg_multipart_reply_state *)msg, stream, exp);
+            break;
+        }
+        case (OFPMP_FLAGS): {
+            ofl_msg_print_stats_reply_global_state((struct ofl_msg_multipart_reply_global_state *)msg, stream, exp);
             break;
         }
         case OFPMP_AGGREGATE: {

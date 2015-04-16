@@ -4,14 +4,13 @@
 #include "hmap.h"
 #include "packet.h"
 
-#define MAX_EXTRACTION_FIELD_COUNT 8
+#define MAX_EXTRACTION_FIELD_COUNT 6
 #define MAX_STATE_KEY_LEN 48
 
 #define STATE_DEFAULT 0
 
 struct key_extractor {
 	uint32_t    				field_count;
-//	uint8_t 					fields[MAX_EXTRACTION_FIELD_COUNT];
 	uint32_t 					fields[MAX_EXTRACTION_FIELD_COUNT];
 };
 
@@ -19,7 +18,6 @@ struct state_entry {
     struct hmap_node 			hmap_node;
     uint8_t				key[MAX_STATE_KEY_LEN];
     uint32_t				state;
-    //uint64_t 				state;
 };
 
 struct state_table {
@@ -37,4 +35,7 @@ void state_table_write_state(struct state_entry *, struct packet *);
 void state_table_set_state(struct state_table *, struct packet *, uint32_t, uint32_t, uint8_t *, uint32_t);
 void state_table_set_extractor(struct state_table *, struct key_extractor *, int);
 void state_table_del_state(struct state_table *, uint8_t *, uint32_t);
+/* Collects statistics of the state entries of the table. */
+void state_table_stats(struct state_table *, struct ofl_msg_multipart_request_state *,struct ofl_state_stats ***, size_t *, size_t *, uint8_t);
+
 #endif /* FLOW_TABLE_H */

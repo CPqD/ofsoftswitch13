@@ -2,6 +2,7 @@
 #include "oflib/ofl-structs.h" 
 #include "oflib/oxm-match.h"
 #include "lib/hash.h"
+
 #include <sys/types.h>
 #include <sys/socket.h>
 
@@ -187,14 +188,111 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, uint32
 		hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries){
 			if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
 				VLOG_WARN_RL(LOG_MODULE, &rl, "state value is %u updated to hash map", state);
-				e->state = (e->state & ~(state_mask)) | (state & state_mask);
+				if(((e->state & ~(state_mask)) | (state & state_mask)) == STATE_DEFAULT)
+					state_table_del_state(table, k, len);
+				else
+					e->state = (e->state & ~(state_mask)) | (state & state_mask);
 				return;
 			}
 	}
+	if((state & state_mask) != STATE_DEFAULT)
+	{
+		e = malloc(sizeof(struct state_entry));
+		memcpy(e->key, key, MAX_STATE_KEY_LEN);
+		e->state = state & state_mask;
+		VLOG_WARN_RL(LOG_MODULE, &rl, "state value is %u inserted to hash map", e->state);
+	        hmap_insert(&table->state_entries, &e->hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
+	}
+}
 
-	e = malloc(sizeof(struct state_entry));
-	memcpy(e->key, key, MAX_STATE_KEY_LEN);
-	e->state = state & state_mask;
-	VLOG_WARN_RL(LOG_MODULE, &rl, "state value is %u inserted to hash map", e->state);
-        hmap_insert(&table->state_entries, &e->hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
+void
+state_table_stats(struct state_table *table, struct ofl_msg_multipart_request_state *msg,
+                 struct ofl_state_stats ***stats, size_t *stats_size, size_t *stats_num, uint8_t table_id) {
+    struct state_entry *entry;
+    size_t  i;
+    uint32_t key_len = 0; //update-scope key extractor length
+    uint32_t fields[MAX_EXTRACTION_FIELD_COUNT] = {0};
+	struct key_extractor *extractor=&table->read_key;
+	for (i=0; i<extractor->field_count; i++) {
+		fields[i] = (int)extractor->fields[i];
+		key_len = key_len + OXM_LENGTH(fields[i]);
+     }
+
+    struct ofl_match * a = (struct ofl_match *)msg->match;
+    struct ofl_match_tlv *state_key_match;
+    uint8_t count = 0; 
+    uint8_t found = 0;
+    uint8_t len = 0;
+    uint8_t aux = 0;
+
+    uint8_t offset[MAX_EXTRACTION_FIELD_COUNT] = {0};
+    uint8_t length[MAX_EXTRACTION_FIELD_COUNT] = {0};
+
+    //for each received match_field we must verify if it can be found in the key extractor and (if yes) save its position in the key (offset) and its length
+    HMAP_FOR_EACH(state_key_match, struct ofl_match_tlv, hmap_node, &a->match_fields)
+    {
+    	len = 0;
+    	found = 0;
+    	for (i=0;i<extractor->field_count;i++)
+    	{
+				if(OXM_TYPE(state_key_match->header)==OXM_TYPE(fields[i]))
+				{
+					offset[count] = len;
+					length[count] = OXM_LENGTH(fields[i]);				
+					count++;
+					found = 1;
+					break;
+				}
+				len += OXM_LENGTH(fields[i]);
+		}
+		if(!found)
+			return; //If at least one of the received match_field is not found in the key extractor, the function returns an empty list of entries
+	}
+
+	//for each state entry
+    HMAP_FOR_EACH(entry, struct state_entry, hmap_node, &table->state_entries) {
+        if ((*stats_size) == (*stats_num)) {
+                (*stats) = xrealloc(*stats, (sizeof(struct ofl_state_stats *)) * (*stats_size) * 2);
+                *stats_size *= 2;
+            }
+			if(entry == NULL)
+				break;
+
+			//for each received match_field compare the received value with the state entry's key
+			aux = 0;
+			found = 1;		
+			HMAP_FOR_EACH(state_key_match, struct ofl_match_tlv, hmap_node, &a->match_fields)
+	    	{	    		
+    			if(memcmp(state_key_match->value,&entry->key[offset[aux]], length[aux])) 
+	    			found = 0;
+		    	aux+=1;
+	    	}
+	    
+		    if(found)
+		    {
+			    (*stats)[(*stats_num)] = malloc(sizeof(struct ofl_state_stats));
+			    for (i=0;i<extractor->field_count;i++)
+			    	(*stats)[(*stats_num)]->fields[i]=fields[i];
+	    		(*stats)[(*stats_num)]->table_id = table_id;
+	    		(*stats)[(*stats_num)]->field_count = extractor->field_count;           		
+	            (*stats)[(*stats_num)]->entry.key_len = key_len;
+	            for (i=0;i<key_len;i++)
+	           		(*stats)[(*stats_num)]->entry.key[i]=entry->key[i];
+	            (*stats)[(*stats_num)]->entry.state = entry->state;
+	            (*stats_num)++;
+	         }
+        }
+     /*DEFAULT ENTRY*/
+    if ((*stats_size) == (*stats_num)) {
+                (*stats) = xrealloc(*stats, (sizeof(struct ofl_state_stats *)) * (*stats_size) * 2);
+                *stats_size *= 2;
+    }
+    (*stats)[(*stats_num)] = malloc(sizeof(struct ofl_state_stats));
+    for (i=0;i<extractor->field_count;i++)
+    	(*stats)[(*stats_num)]->fields[i]=fields[i];
+	(*stats)[(*stats_num)]->table_id = table_id;
+	(*stats)[(*stats_num)]->field_count = extractor->field_count;           		
+    (*stats)[(*stats_num)]->entry.key_len = 0;
+    (*stats)[(*stats_num)]->entry.state = STATE_DEFAULT;
+    (*stats_num)++;
 }

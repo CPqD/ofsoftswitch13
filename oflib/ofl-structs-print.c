@@ -445,6 +445,276 @@ ofl_structs_oxm_tlv_print(FILE *stream, struct ofl_match_tlv *f)
 	}
 }
 
+void
+ofl_structs_state_entry_print(FILE *stream, uint32_t field, uint8_t *key, uint8_t *offset)
+{
+
+	switch (OXM_FIELD(field)) {
+
+		case OFPXMT_OFB_IN_PORT:
+			fprintf(stream, "in_port=\"%d\"", *((uint32_t*) key));
+			break;
+		case OFPXMT_OFB_IN_PHY_PORT:
+			fprintf(stream, "in_phy_port=\"%d\"", *((uint32_t*) key));
+			break;
+		case OFPXMT_OFB_VLAN_VID: {
+			uint16_t v = *((uint16_t *) key);
+			fprintf(stream, "vlan_vid=\"%d\"",v & VLAN_VID_MASK);
+			break;
+		}
+		case OFPXMT_OFB_VLAN_PCP:
+			fprintf(stream, "vlan_pcp=\"%d\"", *key & 0x7);
+			break;
+		case OFPXMT_OFB_ETH_TYPE:
+			fprintf(stream, "eth_type=\"0x%x\"",  *((uint16_t *) key));
+			break;
+		case OFPXMT_OFB_TCP_SRC:
+			fprintf(stream, "tcp_src=\"%d\"", *((uint16_t*) key));
+			break;
+		case OFPXMT_OFB_TCP_DST:
+			fprintf(stream, "tcp_dst=\"%d\"", *((uint16_t*) key));
+			break;
+		case OFPXMT_OFB_UDP_SRC:
+			fprintf(stream, "udp_src=\"%d\"", *((uint16_t*) key));
+			break;
+		case OFPXMT_OFB_UDP_DST:
+			fprintf(stream, "udp_dst=\"%d\"", *((uint16_t*) key));
+			break;
+		case OFPXMT_OFB_SCTP_SRC:
+			fprintf(stream, "sctp_src=\"%d\"", *((uint16_t*) key));
+			break;
+		case OFPXMT_OFB_SCTP_DST:
+			fprintf(stream, "sctp_dst=\"%d\"", *((uint16_t*) key));
+			break;
+		case OFPXMT_OFB_ETH_SRC:
+			fprintf(stream, "eth_src=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(key));
+			break;
+		case OFPXMT_OFB_ETH_DST:
+			fprintf(stream, "eth_dst=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(key));
+			break;
+		case OFPXMT_OFB_IPV4_DST:
+			fprintf(stream, "ipv4_dst=\""IP_FMT"\"", IP_ARGS(key));			
+			break;
+		case OFPXMT_OFB_IPV4_SRC:
+			fprintf(stream, "ipv4_src=\""IP_FMT"\"", IP_ARGS(key));			
+			break;
+		case OFPXMT_OFB_IP_PROTO:
+			fprintf(stream, "ip_proto=\"%d\"", *key);
+			break;
+		case OFPXMT_OFB_IP_DSCP:
+			fprintf(stream, "ip_dscp=\"%d\"", *key & 0x3f);
+			break;
+		case OFPXMT_OFB_IP_ECN:
+			fprintf(stream, "ip_ecn=\"%d\"", *key & 0x3);
+			break;
+		case OFPXMT_OFB_ICMPV4_TYPE:
+			fprintf(stream, "icmpv4_type= \"%d\"", *key);
+			break;
+		case OFPXMT_OFB_ICMPV4_CODE:
+			fprintf(stream, "icmpv4_code=\"%d\"", *key);
+			break;
+		case OFPXMT_OFB_ARP_SHA:
+			fprintf(stream, "arp_sha=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(key));
+			break;
+		case OFPXMT_OFB_ARP_THA:
+			fprintf(stream, "arp_tha=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(key));
+			break;
+		case OFPXMT_OFB_ARP_SPA:
+			fprintf(stream, "arp_spa=\""IP_FMT"\"", IP_ARGS(key));
+			break;
+		case OFPXMT_OFB_ARP_TPA:
+			fprintf(stream, "arp_tpa=\""IP_FMT"\"", IP_ARGS(key));
+			break;
+		case OFPXMT_OFB_ARP_OP:
+			fprintf(stream, "arp_op=\"0x%x\"", *((uint16_t*) key));
+			break;
+		case OFPXMT_OFB_IPV6_SRC: {
+			char addr_str[INET6_ADDRSTRLEN];
+			inet_ntop(AF_INET6, key, addr_str, INET6_ADDRSTRLEN);
+			fprintf(stream, "nw_src_ipv6=\"%s\"", addr_str);
+			break;
+		}
+		case OFPXMT_OFB_IPV6_DST: {
+			char addr_str[INET6_ADDRSTRLEN];
+			inet_ntop(AF_INET6, key, addr_str, INET6_ADDRSTRLEN);
+			fprintf(stream, "nw_dst_ipv6=\"%s\"", addr_str);
+			break;
+		}
+		case OFPXMT_OFB_IPV6_ND_TARGET: {
+			char addr_str[INET6_ADDRSTRLEN];
+			inet_ntop(AF_INET6, key, addr_str, INET6_ADDRSTRLEN);
+			fprintf(stream, "ipv6_nd_target=\"%s\"", addr_str);
+			break;
+		}
+		case OFPXMT_OFB_IPV6_ND_SLL:
+			fprintf(stream, "ipv6_nd_sll=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(key));
+			break;
+		case OFPXMT_OFB_IPV6_ND_TLL:
+			fprintf(stream, "ipv6_nd_tll=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(key));
+			break;
+		case OFPXMT_OFB_IPV6_FLABEL:
+			fprintf(stream, "ipv6_flow_label=\"%d\"", *((uint32_t*) key) & 0x000fffff);
+			break;
+		case OFPXMT_OFB_ICMPV6_TYPE:
+			fprintf(stream, "icmpv6_type=\"%d\"", *key);
+			break;
+		case OFPXMT_OFB_ICMPV6_CODE:
+			fprintf(stream, "icmpv6_code=\"%d\"", *key);
+			break;
+		case OFPXMT_OFB_MPLS_LABEL:
+			fprintf(stream, "mpls_label=\"%d\"",((uint32_t) *key) & 0x000fffff);
+			break;
+		case OFPXMT_OFB_MPLS_TC:
+			fprintf(stream, "mpls_tc=\"%d\"", *key & 0x3);
+			break;
+		case OFPXMT_OFB_MPLS_BOS:
+			fprintf(stream, "mpls_bos=\"%d\"", *key & 0x1);
+			break;
+		case OFPXMT_OFB_PBB_ISID   :
+			fprintf(stream, "pbb_isid=\"%d\"", *((uint32_t*) key));
+			break;
+		case OFPXMT_OFB_TUNNEL_ID:
+			fprintf(stream, "tunnel_id=\"%"PRIu64"\"", *((uint64_t*) key));
+			break;
+		case OFPXMT_OFB_IPV6_EXTHDR:
+			fprintf(stream, "ext_hdr=\"");
+			ofl_ipv6_ext_hdr_print(stream, *((uint16_t*) key));
+			fprintf(stream, "\"");
+			break;
+		default:
+			fprintf(stream, "unknown type %d", field);
+	}
+	*offset += OXM_LENGTH(field);
+}
+
+void
+ofl_structs_state_entry_print_default(FILE *stream, uint32_t field)
+{
+
+	switch (OXM_FIELD(field)) {
+
+		case OFPXMT_OFB_IN_PORT:
+			fprintf(stream, "in_port=\"*\"");
+			break;
+		case OFPXMT_OFB_IN_PHY_PORT:
+			fprintf(stream, "in_phy_port=\"*\"");
+			break;
+		case OFPXMT_OFB_VLAN_VID:
+			fprintf(stream, "vlan_vid=\"*\"");
+			break;
+		case OFPXMT_OFB_VLAN_PCP:
+			fprintf(stream, "vlan_pcp=\"*\"");
+			break;
+		case OFPXMT_OFB_ETH_TYPE:
+			fprintf(stream, "eth_type=\"*\"");
+			break;
+		case OFPXMT_OFB_TCP_SRC:
+			fprintf(stream, "tcp_src=\"*\"");
+			break;
+		case OFPXMT_OFB_TCP_DST:
+			fprintf(stream, "tcp_dst=\"*\"");
+			break;
+		case OFPXMT_OFB_UDP_SRC:
+			fprintf(stream, "udp_src=\"*\"");
+			break;
+		case OFPXMT_OFB_UDP_DST:
+			fprintf(stream, "udp_dst=\"*\"");
+			break;
+		case OFPXMT_OFB_SCTP_SRC:
+			fprintf(stream, "sctp_src=\"*\"");
+			break;
+		case OFPXMT_OFB_SCTP_DST:
+			fprintf(stream, "sctp_dst=\"*\"");
+			break;
+		case OFPXMT_OFB_ETH_SRC:
+			fprintf(stream, "eth_src=\"*\"");
+			break;
+		case OFPXMT_OFB_ETH_DST:
+			fprintf(stream, "eth_dst=\"*\"");
+			break;
+		case OFPXMT_OFB_IPV4_DST:
+			fprintf(stream, "ipv4_dst=\"*\"");			
+			break;
+		case OFPXMT_OFB_IPV4_SRC:
+			fprintf(stream, "ipv4_src=\"*\"");			
+			break;
+		case OFPXMT_OFB_IP_PROTO:
+			fprintf(stream, "ip_proto=\"*\"");
+			break;
+		case OFPXMT_OFB_IP_DSCP:
+			fprintf(stream, "ip_dscp=\"*\"");
+			break;
+		case OFPXMT_OFB_IP_ECN:
+			fprintf(stream, "ip_ecn=\"*\"");
+			break;
+		case OFPXMT_OFB_ICMPV4_TYPE:
+			fprintf(stream, "icmpv4_type= \"*\"");
+			break;
+		case OFPXMT_OFB_ICMPV4_CODE:
+			fprintf(stream, "icmpv4_code=\"*\"");
+			break;
+		case OFPXMT_OFB_ARP_SHA:
+			fprintf(stream, "arp_sha=\"*\"");
+			break;
+		case OFPXMT_OFB_ARP_THA:
+			fprintf(stream, "arp_tha=\"*\"");
+			break;
+		case OFPXMT_OFB_ARP_SPA:
+			fprintf(stream, "arp_spa=\"*\"");
+			break;
+		case OFPXMT_OFB_ARP_TPA:
+			fprintf(stream, "arp_tpa=\"*\"");
+			break;
+		case OFPXMT_OFB_ARP_OP:
+			fprintf(stream, "arp_op=\"*\"");
+			break;
+		case OFPXMT_OFB_IPV6_SRC:
+			fprintf(stream, "nw_src_ipv6=\"*\"");
+			break;
+		case OFPXMT_OFB_IPV6_DST:
+			fprintf(stream, "nw_dst_ipv6=\"*\"");
+			break;
+		case OFPXMT_OFB_IPV6_ND_TARGET:
+			fprintf(stream, "ipv6_nd_target=\"*\"");
+			break;
+		case OFPXMT_OFB_IPV6_ND_SLL:
+			fprintf(stream, "ipv6_nd_sll=\"*\"");
+			break;
+		case OFPXMT_OFB_IPV6_ND_TLL:
+			fprintf(stream, "ipv6_nd_tll=\"*\"");
+			break;
+		case OFPXMT_OFB_IPV6_FLABEL:
+			fprintf(stream, "ipv6_flow_label=\"*\"");
+			break;
+		case OFPXMT_OFB_ICMPV6_TYPE:
+			fprintf(stream, "icmpv6_type=\"*\"");
+			break;
+		case OFPXMT_OFB_ICMPV6_CODE:
+			fprintf(stream, "icmpv6_code=\"*\"");
+			break;
+		case OFPXMT_OFB_MPLS_LABEL:
+			fprintf(stream, "mpls_label=\"*\"");
+			break;
+		case OFPXMT_OFB_MPLS_TC:
+			fprintf(stream, "mpls_tc=\"*\"");
+			break;
+		case OFPXMT_OFB_MPLS_BOS:
+			fprintf(stream, "mpls_bos=\"*\"");
+			break;
+		case OFPXMT_OFB_PBB_ISID   :
+			fprintf(stream, "pbb_isid=\"*\"");
+			break;
+		case OFPXMT_OFB_TUNNEL_ID:
+			fprintf(stream, "tunnel_id=\"*\"");
+			break;
+		case OFPXMT_OFB_IPV6_EXTHDR:
+			fprintf(stream, "ext_hdr=\"*\"");
+			fprintf(stream, "\"");
+			break;
+		default:
+			fprintf(stream, "unknown type %d", field);
+	}
+}
 
 char *
 ofl_structs_config_to_string(struct ofl_config *c) {
@@ -592,6 +862,52 @@ ofl_structs_flow_stats_print(FILE *stream, struct ofl_flow_stats *s, struct ofl_
         ofl_structs_instruction_print(stream, s->instructions[i], exp);
         if (i < s->instructions_num - 1) { fprintf(stream, ", "); };
     }
+
+    fprintf(stream, "]}");
+}
+
+void
+ofl_structs_state_stats_print(FILE *stream, struct ofl_state_stats *s, struct ofl_exp *exp) {
+    size_t i;
+    uint8_t offset=0;
+    extern int colors;
+    if(colors) 
+    {
+	    fprintf(stream, "{\x1B[31mtable\x1B[0m=\"");
+	    ofl_table_print(stream, s->table_id);
+	    fprintf(stream, "\", \x1B[31mkey\x1B[0m={");
+
+	    for(i=0;i<s->field_count;i++)
+	    {
+	    	if(s->entry.key_len==0)
+	    		ofl_structs_state_entry_print_default(stream,s->fields[i]);	
+	    	else
+	    		ofl_structs_state_entry_print(stream,s->fields[i], s->entry.key+offset, &offset);
+	    	if (s->field_count!=1 && i<s->field_count-1)
+	    		fprintf(stream, ", ");
+	    }
+	    fprintf(stream, "}, \x1B[31mstate\x1B[0m=\"");
+	    fprintf(stream, "%"PRIu32"\"", s->entry.state);    
+	}
+
+	else 
+	{
+		fprintf(stream, "{table=\"");
+	    ofl_table_print(stream, s->table_id);
+	    fprintf(stream, "\", key={");
+
+	    for(i=0;i<s->field_count;i++)
+	    {
+	    	if(s->entry.key_len==0)
+	    		ofl_structs_state_entry_print_default(stream,s->fields[i]);
+	    	else
+	    		ofl_structs_state_entry_print(stream,s->fields[i], s->entry.key+offset, &offset);
+	    	if (s->field_count!=1 && i<s->field_count-1)
+	    		fprintf(stream, ", ");
+	    }
+	    fprintf(stream, "}, state=\"");
+	    fprintf(stream, "%"PRIu32"\"", s->entry.state);
+	}
 
     fprintf(stream, "]}");
 }

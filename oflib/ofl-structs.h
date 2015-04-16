@@ -162,6 +162,13 @@ struct ofl_flow_stats {
     struct ofl_instruction_header **instructions; /* Instruction set. */
 };
 
+struct ofl_state_stats {
+    uint8_t                         table_id;      /* ID of table flow came from. */
+    uint32_t                        field_count;    /*number of extractor fields*/
+    uint32_t                        fields[OFPSC_MAX_FIELD_COUNT]; /*extractor fields*/
+    struct ofl_state_entry          entry;         /* Description of the state entry. */
+};
+
 
 
 struct ofl_table_stats {
@@ -481,6 +488,9 @@ size_t
 ofl_structs_flow_stats_pack(struct ofl_flow_stats *src, uint8_t *dst, struct ofl_exp *exp);
 
 size_t
+ofl_structs_state_stats_pack(struct ofl_state_stats *src, uint8_t *dst, struct ofl_exp *exp);
+
+size_t
 ofl_structs_group_stats_pack(struct ofl_group_stats *src, struct ofp_group_stats *dst);
 
 size_t
@@ -525,6 +535,9 @@ ofl_err
 ofl_structs_flow_stats_unpack(struct ofp_flow_stats *src,uint8_t *buf, size_t *len, struct ofl_flow_stats **dst, struct ofl_exp *exp);
 
 ofl_err
+ofl_structs_state_stats_unpack(struct ofp_state_stats *src, uint8_t *buf, size_t *len, struct ofl_state_stats **dst, struct ofl_exp *exp);
+
+ofl_err
 ofl_structs_queue_prop_unpack(struct ofp_queue_prop_header *src, size_t *len, struct ofl_queue_prop_header **dst);
 
 ofl_err
@@ -556,6 +569,9 @@ ofl_structs_bucket_counter_unpack(struct ofp_bucket_counter *src, size_t *len, s
 
 ofl_err
 ofl_structs_match_unpack(struct ofp_match *src,uint8_t *buf, size_t *len, struct ofl_match_header **dst, struct ofl_exp *exp);
+
+ofl_err
+ofl_structs_match_unpack_no_prereqs(struct ofp_match *src,uint8_t *buf, size_t *len, struct ofl_match_header **dst, struct ofl_exp *exp);
 
 ofl_err
 ofl_structs_meter_band_stats_unpack(struct ofp_meter_band_stats *src, size_t *len, struct ofl_meter_band_stats **dst);
@@ -638,6 +654,9 @@ ofl_err
 ofl_utils_count_ofp_flow_stats(void *data, size_t data_len, size_t *count);
 
 ofl_err
+ofl_utils_count_ofp_state_stats(void *data, size_t data_len, size_t *count);
+
+ofl_err
 ofl_utils_count_ofp_group_stats(void *data, size_t data_len, size_t *count);
 
 ofl_err
@@ -699,6 +718,12 @@ ofl_structs_flow_stats_ofp_total_len(struct ofl_flow_stats ** stats, size_t stat
 
 size_t
 ofl_structs_flow_stats_ofp_len(struct ofl_flow_stats *stats, struct ofl_exp *exp);
+
+size_t
+ofl_structs_state_stats_ofp_total_len(struct ofl_state_stats ** stats, size_t stats_num, struct ofl_exp *exp);
+
+size_t
+ofl_structs_state_stats_ofp_len(struct ofl_state_stats *stats, struct ofl_exp *exp);
 
 size_t
 ofl_structs_group_stats_ofp_total_len(struct ofl_group_stats ** stats, size_t stats_num);
@@ -815,6 +840,9 @@ ofl_structs_flow_stats_to_string(struct ofl_flow_stats *s, struct ofl_exp *exp);
 
 void
 ofl_structs_flow_stats_print(FILE *stream, struct ofl_flow_stats *s, struct ofl_exp *exp);
+
+void
+ofl_structs_state_stats_print(FILE *stream, struct ofl_state_stats *s, struct ofl_exp *exp);
 
 char *
 ofl_structs_bucket_counter_to_string(struct ofl_bucket_counter *s);

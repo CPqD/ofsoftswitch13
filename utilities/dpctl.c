@@ -101,8 +101,6 @@ parse_options(int argc, char *argv[]);
 
 static uint8_t mask_all[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
-
-
 static void
 parse_flow_mod_args(char *str, struct ofl_msg_flow_mod *req);
 
@@ -117,6 +115,9 @@ parse_bucket(char *str, struct ofl_bucket *b);
 
 static void
 parse_flow_stat_args(char *str, struct ofl_msg_multipart_request_flow *req);
+
+static void
+parse_state_stat_args(char *str, struct ofl_msg_multipart_request_state *req);
 
 static void
 parse_match(char *str, struct ofl_match_header **match);
@@ -216,7 +217,6 @@ dpctl_transact(struct vconn *vconn, struct ofl_msg_header *req,
     if (error) {
         ofp_fatal(0, "Error packing request.");
     }
-
     ofpbufreq = ofpbuf_new(0);
     ofpbuf_use(ofpbufreq, bufreq, bufreq_size);
     ofpbuf_put_uninit(ofpbufreq, bufreq_size);
@@ -225,11 +225,9 @@ dpctl_transact(struct vconn *vconn, struct ofl_msg_header *req,
         ofp_fatal(0, "Error during transaction.");
     }
     error = ofl_msg_unpack(ofpbufrepl->data, ofpbufrepl->size, repl, repl_xid_p, &dpctl_exp);
-
     if (error) {
         ofp_fatal(0, "Error unpacking reply.");
     }
-
     /* NOTE: if unpack was successful, message takes over ownership of buffer's
      *       data. Rconn and vconn does not allocate headroom, so the ofpbuf
      *       wrapper can simply be deleted, keeping the data for the message. */
@@ -474,6 +472,33 @@ stats_flow(struct vconn *vconn, int argc, char *argv[]) {
         make_all_match(&(req.match));
     }
 
+    dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&req, NULL);
+}
+
+static void
+stats_state(struct vconn *vconn, int argc, char *argv[]) {
+    struct ofl_msg_multipart_request_state req =
+            {{{.type = OFPT_MULTIPART_REQUEST},
+              .type = OFPMP_STATE, .flags = 0x0000},
+             .table_id = 0xff,
+             .match = NULL};         
+    if (argc > 0) {
+        parse_state_stat_args(argv[0], &req);
+    }
+    if (argc > 1) {
+        parse_match(argv[1], &(req.match));
+    } else {
+        make_all_match(&(req.match));
+    }
+
+    dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&req, NULL);
+}
+
+static void
+stats_global_state(struct vconn *vconn, int argc, char *argv[]) {
+    struct ofl_msg_multipart_request_global_state req =
+            {{{.type = OFPT_MULTIPART_REQUEST},
+              .type = OFPMP_FLAGS, .flags = 0x0000}};
     dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&req, NULL);
 }
 
@@ -912,6 +937,8 @@ static struct command all_commands[] = {
     {"group-features", 0, 0, group_features},
     {"meter-features", 0, 0, meter_features},
     {"stats-desc", 0, 0, stats_desc },
+    {"stats-state", 0, 2, stats_state},
+    {"stats-global-state", 0, 0, stats_global_state},
     {"stats-flow", 0, 2, stats_flow},
     {"stats-aggr", 0, 2, stats_aggr},
     {"stats-table", 0, 0, stats_table },
@@ -1531,6 +1558,26 @@ parse_match(char *str, struct ofl_match_header **match) {
                 ofp_fatal(0, "Error parsing %s: %s.", MATCH_METADATA, token);
             }
             else ofl_structs_match_put64(m, OXM_OF_METADATA, metadata);
+            continue;
+        }
+
+        /* State */
+         if (strncmp(token, MATCH_STATE KEY_VAL, strlen(MATCH_STATE KEY_VAL)) == 0) {
+            uint32_t state;
+            if (parse_port(token + strlen(MATCH_STATE KEY_VAL), &state)) {
+                ofp_fatal(0, "Error parsing state: %s.", token);
+            }
+            else ofl_structs_match_put32(m,OXM_OF_STATE,state);
+            continue;
+        }
+
+        /* Flags */
+         if (strncmp(token, MATCH_FLAGS KEY_VAL, strlen(MATCH_FLAGS KEY_VAL)) == 0) {
+            uint32_t flags;
+            if (parse_port(token + strlen(MATCH_FLAGS KEY_VAL), &flags)) {
+                ofp_fatal(0, "Error parsing flags: %s.", token);
+            }
+            else ofl_structs_match_put32(m,OXM_OF_FLAGS,flags);
             continue;
         }
         /*PBB ISID*/
@@ -2158,7 +2205,20 @@ parse_flow_stat_args(char *str, struct ofl_msg_multipart_request_flow *req) {
     }
 }
 
+static void
+parse_state_stat_args(char *str, struct ofl_msg_multipart_request_state *req) {
+    char *token, *saveptr = NULL;
 
+    for (token = strtok_r(str, KEY_SEP, &saveptr); token != NULL; token = strtok_r(NULL, KEY_SEP, &saveptr)) {
+        if (strncmp(token, FLOW_MOD_TABLE_ID KEY_VAL, strlen(FLOW_MOD_TABLE_ID KEY_VAL)) == 0) {
+            if (parse8(token + strlen(FLOW_MOD_TABLE_ID KEY_VAL), table_names, NUM_ELEMS(table_names), 254,  &req->table_id)) {
+                ofp_fatal(0, "Error parsing state_stat table: %s.", token);
+            }
+            continue;
+        }
+        ofp_fatal(0, "Error parsing state_stat arg: %s.", token);
+    }
+}
 
 static void
 parse_flow_mod_args(char *str, struct ofl_msg_flow_mod *req) {

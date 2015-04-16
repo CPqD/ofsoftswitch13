@@ -318,9 +318,7 @@ int inst_compare(const void *inst1, const void *inst2){
 ofl_err
 pipeline_handle_flag_mod(struct pipeline *pl, struct ofl_msg_flag_mod *msg,
                                                 const struct sender *sender) {
-    
     uint32_t global_states = pl->dp->global_states;
-    ofl_err error;
     if (msg->command == OFPSC_MODIFY_FLAGS) {
         global_states = (global_states & ~(msg->flag_mask)) | (msg->flag & msg->flag_mask);
         pl->dp->global_states = global_states;       
@@ -336,9 +334,7 @@ pipeline_handle_flag_mod(struct pipeline *pl, struct ofl_msg_flag_mod *msg,
 ofl_err
 pipeline_handle_state_mod(struct pipeline *pl, struct ofl_msg_state_mod *msg,
                                                 const struct sender *sender) {
-    ofl_err error;
 	struct state_table *st = pl->tables[msg->table_id]->state_table;
-//	int update;
 
 	if (msg->command == OFPSC_SET_L_EXTRACTOR || msg->command == OFPSC_SET_U_EXTRACTOR) {
 		struct ofl_msg_extraction *p = (struct ofl_msg_extraction *) msg->payload;	
@@ -480,10 +476,10 @@ pipeline_handle_stats_request_flow(struct pipeline *pl,
     if (msg->table_id == 0xff) {
         size_t i;
         for (i=0; i<PIPELINE_TABLES; i++) {
-            flow_table_stats(pl->tables[i], msg, &stats, &stats_size, &stats_num);
+                flow_table_stats(pl->tables[i], msg, &stats, &stats_size, &stats_num);
         }
     } else {
-        flow_table_stats(pl->tables[msg->table_id], msg, &stats, &stats_size, &stats_num);
+            flow_table_stats(pl->tables[msg->table_id], msg, &stats, &stats_size, &stats_num);
     }
 
     {
@@ -498,6 +494,67 @@ pipeline_handle_stats_request_flow(struct pipeline *pl,
     }
 
     free(stats);
+    ofl_msg_free((struct ofl_msg_header *)msg, pl->dp->exp);
+    return 0;
+}
+
+ofl_err
+pipeline_handle_stats_request_state(struct pipeline *pl,
+                                   struct ofl_msg_multipart_request_state *msg,
+                                   const struct sender *sender) {
+    
+    struct ofl_state_stats **stats = xmalloc(sizeof(struct ofl_state_stats *));
+    size_t stats_size = 1;
+    size_t stats_num = 0;
+    if (msg->table_id == 0xff) {
+        size_t i;
+        for (i=0; i<PIPELINE_TABLES; i++) {
+            if(pl->tables[i]->features->config & OFPTC_TABLE_STATEFUL)
+                state_table_stats(pl->tables[i]->state_table, msg, &stats, &stats_size, &stats_num, i);
+        }
+    } else {
+        if(pl->tables[msg->table_id]->features->config & OFPTC_TABLE_STATEFUL)
+            state_table_stats(pl->tables[msg->table_id]->state_table, msg, &stats, &stats_size, &stats_num, msg->table_id);
+    }
+    {
+        struct ofl_msg_multipart_reply_state reply =
+                {{{.type = OFPT_MULTIPART_REPLY},
+                  .type = OFPMP_STATE, .flags = 0x0000},
+                 .stats     = stats,
+                 .stats_num = stats_num
+                };
+
+        dp_send_message(pl->dp, (struct ofl_msg_header *)&reply, sender);
+    }
+
+    free(stats);
+    ofl_msg_free((struct ofl_msg_header *)msg, pl->dp->exp);
+    return 0;
+}
+
+ofl_err
+pipeline_handle_stats_request_global_state(struct pipeline *pl,
+                                   struct ofl_msg_multipart_request_global_state *msg,
+                                   const struct sender *sender) {
+    uint32_t global_states = 0;
+    uint8_t enabled = 0;
+
+    if (DP_SUPPORTED_CAPABILITIES & OFPC_OPENSTATE){
+        global_states = pl->dp->global_states;
+        enabled = 1;
+    }
+
+    {
+        struct ofl_msg_multipart_reply_global_state reply =
+                {{{.type = OFPT_MULTIPART_REPLY},
+                  .type = OFPMP_FLAGS, .flags = 0x0000},
+                 .enabled       = enabled,
+                 .global_states = global_states
+                };
+
+        dp_send_message(pl->dp, (struct ofl_msg_header *)&reply, sender);
+    }
+
     ofl_msg_free((struct ofl_msg_header *)msg, pl->dp->exp);
     return 0;
 }
