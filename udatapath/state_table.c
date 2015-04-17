@@ -154,6 +154,15 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, uint32
 	uint8_t key[MAX_STATE_KEY_LEN] = {0};	
 	struct state_entry *e;
 
+	int i;
+	uint32_t key_len=0; //update-scope key extractor length
+	struct key_extractor *extractor=&table->write_key;
+	for (i=0; i<extractor->field_count; i++) 
+	{
+		uint32_t type = (int)extractor->fields[i];
+		key_len = key_len + OXM_LENGTH(type);
+    }
+
 	if (pkt)
 	{
 		//SET_STATE action
@@ -166,13 +175,7 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, uint32
 
 	else {
 		//SET_STATE message
-		int i;
-		uint32_t key_len=0; //update-scope key extractor length
-		struct key_extractor *extractor=&table->write_key;
-		for (i=0; i<extractor->field_count; i++) {
-			uint32_t type = (int)extractor->fields[i];
-			key_len = key_len + OXM_LENGTH(type);
-	     }
+		
 	    if(key_len == len)
 	    {
 			memcpy(key, k, MAX_STATE_KEY_LEN);
@@ -189,7 +192,7 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, uint32
 			if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
 				VLOG_WARN_RL(LOG_MODULE, &rl, "state value is %u updated to hash map", state);
 				if(((e->state & ~(state_mask)) | (state & state_mask)) == STATE_DEFAULT)
-					state_table_del_state(table, k, len);
+					state_table_del_state(table, key, key_len);
 				else
 					e->state = (e->state & ~(state_mask)) | (state & state_mask);
 				return;
