@@ -519,14 +519,14 @@ struct ofl_msg_state_mod {
     uint8_t payload[12+OFPSC_MAX_KEY_LEN]; //ugly! for now it's ok XXX
 };
 
-struct ofl_msg_state_entry {
+struct ofl_msg_state_mod_entry {
     uint32_t key_len;
     uint32_t state;
     uint32_t state_mask;
     uint8_t key[OFPSC_MAX_KEY_LEN];
 };
 
-struct ofl_msg_extraction {
+struct ofl_msg_state_mod_extractor {
     uint32_t field_count;
     uint32_t fields[OFPSC_MAX_FIELD_COUNT];
 };

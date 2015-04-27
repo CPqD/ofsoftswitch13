@@ -127,14 +127,14 @@ struct ofp_state_mod {
     uint8_t payload[];
 };
 
-struct ofp_state_entry {
+struct ofp_state_mod_entry {
     uint32_t key_len;
     uint32_t state;
     uint32_t state_mask;
     uint8_t key[OFPSC_MAX_KEY_LEN];
 };
 
-struct ofp_extraction {
+struct ofp_state_mod_extractor {
     uint32_t field_count;
     uint32_t fields[OFPSC_MAX_FIELD_COUNT];
 };
@@ -146,12 +146,12 @@ enum ofp_state_mod_command {
 	OFPSC_DEL_FLOW_STATE
 };
 
-struct ofp_dpctl_state_entry{
+struct ofp_state_entry{
     uint32_t            key_len;
     uint8_t             key[OFPSC_MAX_KEY_LEN];
     uint32_t            state;
 };
-OFP_ASSERT(sizeof(struct ofp_dpctl_state_entry) == 56);
+OFP_ASSERT(sizeof(struct ofp_state_entry) == 56);
 
 struct ofl_state_entry{
     uint32_t            key_len;
@@ -1124,7 +1124,7 @@ struct ofp_state_stats {
     uint8_t pad;
     uint32_t field_count;    /*number of extractor fields*/
     uint32_t fields[OFPSC_MAX_FIELD_COUNT]; /*extractor fields*/    
-    struct ofp_dpctl_state_entry entry;
+    struct ofp_state_entry entry;
     
     //struct ofp_match match; /* Description of fields. Variable size. */
 };
