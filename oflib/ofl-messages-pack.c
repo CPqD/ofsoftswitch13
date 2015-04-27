@@ -212,7 +212,6 @@ ofl_msg_pack_port_status(struct ofl_msg_port_status *msg, uint8_t **buf, size_t 
 static int
 ofl_msg_pack_state_notification(struct ofl_msg_state_notification *msg, uint8_t **buf, size_t *buf_len) {
     struct ofp_state_notification *notification;
-    pfile("salve salvino");
     *buf_len = sizeof(struct ofp_state_notification) + msg->key_length;
     *buf     = (uint8_t *)malloc(*buf_len);
 
@@ -221,7 +220,7 @@ ofl_msg_pack_state_notification(struct ofl_msg_state_notification *msg, uint8_t 
     memset(notification->pad, 0x00, 3);
     notification->state = htonl(msg->state);
     memcpy(notification->key, msg->key, msg->key_length);
-    pfile(":(");
+
     return 0;
 }
 
