@@ -345,11 +345,11 @@ pipeline_handle_state_mod(struct pipeline *pl, struct ofl_msg_state_mod *msg,
 	}
 	else if (msg->command == OFPSC_SET_FLOW_STATE) {
 		struct ofl_msg_state_mod_entry *p = (struct ofl_msg_state_mod_entry *) msg->payload;
-		state_table_set_state(st, NULL, p->state, p->state_mask, p->key, p->key_len);
+		state_table_set_state(st, NULL, p->state, p->state_mask, p->key, p->key_len, msg->table_id, pl->dp);
 	}
 	else if (msg->command == OFPSC_DEL_FLOW_STATE) {
 		struct ofl_msg_state_mod_entry *p = (struct ofl_msg_state_mod_entry *) msg->payload;
-		state_table_del_state(st, p->key, p->key_len);
+		state_table_del_state(st, p->key, p->key_len, msg->table_id, pl->dp);
 	}
 	else
 		return 1;

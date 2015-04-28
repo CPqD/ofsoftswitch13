@@ -158,6 +158,14 @@ struct ofl_msg_port_status {
     struct ofl_port       *desc;
 };
 
+struct ofl_msg_state_notification {
+    struct ofl_msg_header   header; /* OFPT_STATE_NOTIFICATION */
+    uint8_t table_id;
+    uint32_t state;
+    size_t key_length; 
+    uint8_t *key;
+};
+
 /******************************
  * Controller command messages
  ******************************/

@@ -70,12 +70,15 @@ enum ofp_type {
     OFPT_PACKET_IN = 10,    /* Async message */
     OFPT_FLOW_REMOVED = 11, /* Async message */
     OFPT_PORT_STATUS = 12,  /* Async message */
+    OFPT_STATE_NOTIFICATION = 32,  /* Async message */
     /* Controller command messages. */
     OFPT_PACKET_OUT = 13,  /* Controller/switch message */
     OFPT_FLOW_MOD = 14,    /* Controller/switch message */
     OFPT_GROUP_MOD = 15,   /* Controller/switch message */
     OFPT_PORT_MOD = 16,    /* Controller/switch message */
     OFPT_TABLE_MOD = 17,   /* Controller/switch message */
+    OFPT_STATE_MOD = 30, /* Controller/switch message */
+    OFPT_FLAG_MOD = 31,  /* Controller/switch message */
     /* Statistics messages. */
     OFPT_MULTIPART_REQUEST = 18, /* Controller/switch message */
     OFPT_MULTIPART_REPLY = 19,   /* Controller/switch message */
@@ -94,8 +97,7 @@ enum ofp_type {
     OFPT_SET_ASYNC = 28, /* Controller/switch message */
     /* Meters and rate limiters configuration messages. */
     OFPT_METER_MOD = 29, /* Controller/switch message */
-	OFPT_STATE_MOD = 30, /* Controller/switch message */
-    OFPT_FLAG_MOD = 31,  /* Controller/switch message */
+
 };
 
 /*
@@ -1610,6 +1612,16 @@ enum ofp_port_reason {
     OFPPR_DELETE = 1, /* The port was removed. */
     OFPPR_MODIFY = 2, /* Some attribute of the port has changed. */
 };
+
+/* When a state transition occurs a state notification message is sent */
+struct ofp_state_notification {
+    struct ofp_header header;
+    uint8_t pad[3]; /* Align to 64-bits. */
+    uint8_t table_id;
+    uint32_t state;
+    uint8_t key[0];
+};
+OFP_ASSERT(sizeof(struct ofp_state_notification) == 16);
 
 /* OFPT_ERROR: Error message (datapath -> controller). */
 struct ofp_error_msg {

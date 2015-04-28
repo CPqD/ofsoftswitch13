@@ -210,6 +210,22 @@ ofl_msg_pack_port_status(struct ofl_msg_port_status *msg, uint8_t **buf, size_t 
 }
 
 static int
+ofl_msg_pack_state_notification(struct ofl_msg_state_notification *msg, uint8_t **buf, size_t *buf_len) {
+    struct ofp_state_notification *notification;
+    pfile("salve salvino");
+    *buf_len = sizeof(struct ofp_state_notification) + msg->key_length;
+    *buf     = (uint8_t *)malloc(*buf_len);
+
+    notification = (struct ofp_state_notification *)(*buf);
+    notification->table_id = msg->table_id;
+    memset(notification->pad, 0x00, 3);
+    notification->state = htonl(msg->state);
+    memcpy(notification->key, msg->key, msg->key_length);
+    pfile(":(");
+    return 0;
+}
+
+static int
 ofl_msg_pack_packet_out(struct ofl_msg_packet_out *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
     struct ofp_packet_out *packet_out;
     size_t act_len;
@@ -1106,6 +1122,10 @@ ofl_msg_pack(struct ofl_msg_header *msg, uint32_t xid, uint8_t **buf, size_t *bu
         }
         case OFPT_PORT_STATUS: {
             error = ofl_msg_pack_port_status((struct ofl_msg_port_status *)msg, buf, buf_len);
+            break;
+        }
+        case OFPT_STATE_NOTIFICATION: {
+            error = ofl_msg_pack_state_notification((struct ofl_msg_state_notification *)msg, buf, buf_len);
             break;
         }
         /* Controller command messages. */

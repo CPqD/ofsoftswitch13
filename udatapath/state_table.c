@@ -94,7 +94,7 @@ void state_table_write_state(struct state_entry *entry, struct packet *pkt) {
                 *state = (*state & 0x0) | (entry->state);
     }
 }
-void state_table_del_state(struct state_table *table, uint8_t *key, uint32_t len) {
+void state_table_del_state(struct state_table *table, uint8_t *key, uint32_t len, uint8_t table_id, struct datapath *dp) {
 	struct state_entry *e;
 	int found = 0;
 
@@ -119,7 +119,19 @@ void state_table_del_state(struct state_table *table, uint8_t *key, uint32_t len
 			}
 	}
 	if (found)
+	{
 		hmap_remove_and_shrink(&table->state_entries, &e->hmap_node);
+		{
+		    /* Notify the controllers that this port has been added */
+		    struct ofl_msg_state_notification msg =
+		            {{.type = OFPT_STATE_NOTIFICATION},
+		             .table_id = table_id, .state = STATE_DEFAULT,
+		         	 .key_length = key_len, .key = key};
+
+		    dp_send_message(dp, (struct ofl_msg_header *)&msg, NULL/*sender*/);
+		}
+	}
+
 }
 
 void state_table_set_extractor(struct state_table *table, struct key_extractor *ke, int update) {
@@ -150,7 +162,7 @@ void state_table_set_extractor(struct state_table *table, struct key_extractor *
 	return;
 }
 
-void state_table_set_state(struct state_table *table, struct packet *pkt, uint32_t state, uint32_t state_mask, uint8_t *k, uint32_t len) {
+void state_table_set_state(struct state_table *table, struct packet *pkt, uint32_t state, uint32_t state_mask, uint8_t *k, uint32_t len, uint8_t table_id, struct datapath *dp) {
 	uint8_t key[MAX_STATE_KEY_LEN] = {0};	
 	struct state_entry *e;
 
@@ -192,9 +204,23 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, uint32
 			if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
 				VLOG_WARN_RL(LOG_MODULE, &rl, "state value is %u updated to hash map", state);
 				if(((e->state & ~(state_mask)) | (state & state_mask)) == STATE_DEFAULT)
-					state_table_del_state(table, key, key_len);
+					state_table_del_state(table, key, key_len, table_id, dp);
 				else
-					e->state = (e->state & ~(state_mask)) | (state & state_mask);
+				{
+					if (e->state != ((e->state & ~(state_mask)) | (state & state_mask)))
+					{
+						e->state = (e->state & ~(state_mask)) | (state & state_mask);
+						{
+					    /* Notify the controllers that this port has been added */
+					    struct ofl_msg_state_notification msg =
+					            {{.type = OFPT_STATE_NOTIFICATION},
+					             .table_id = table_id, .state = e->state,
+					         	 .key_length = key_len, .key = key};
+
+					    dp_send_message(dp, (struct ofl_msg_header *)&msg, NULL/*sender*/);
+					    }
+					}
+				}
 				return;
 			}
 	}
@@ -204,7 +230,16 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, uint32
 		memcpy(e->key, key, MAX_STATE_KEY_LEN);
 		e->state = state & state_mask;
 		VLOG_WARN_RL(LOG_MODULE, &rl, "state value is %u inserted to hash map", e->state);
-	        hmap_insert(&table->state_entries, &e->hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
+	    hmap_insert(&table->state_entries, &e->hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
+	    {
+		    /* Notify the controllers that this port has been added */
+		    struct ofl_msg_state_notification msg =
+		            {{.type = OFPT_STATE_NOTIFICATION},
+		             .table_id = table_id, .state = e->state,
+		         	 .key_length = key_len, .key = key};
+
+		    dp_send_message(dp, (struct ofl_msg_header *)&msg, NULL/*sender*/);
+		}
 	}
 }
 

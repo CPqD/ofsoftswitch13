@@ -32,9 +32,9 @@ struct state_table * state_table_create(void);
 void state_table_destroy(struct state_table *);
 struct state_entry * state_table_lookup(struct state_table*, struct packet *);
 void state_table_write_state(struct state_entry *, struct packet *);
-void state_table_set_state(struct state_table *, struct packet *, uint32_t, uint32_t, uint8_t *, uint32_t);
+void state_table_set_state(struct state_table *, struct packet *, uint32_t, uint32_t, uint8_t *, uint32_t, uint8_t, struct datapath *);
 void state_table_set_extractor(struct state_table *, struct key_extractor *, int);
-void state_table_del_state(struct state_table *, uint8_t *, uint32_t);
+void state_table_del_state(struct state_table *, uint8_t *, uint32_t, uint8_t, struct datapath *);
 /* Collects statistics of the state entries of the table. */
 void state_table_stats(struct state_table *, struct ofl_msg_multipart_request_state *,struct ofl_state_stats ***, size_t *, size_t *, uint8_t);
 
