@@ -155,11 +155,6 @@ struct ofp_state_entry{
 };
 OFP_ASSERT(sizeof(struct ofp_state_entry) == 56);
 
-struct ofl_state_entry{
-    uint32_t            key_len;
-    uint8_t             key[OFPSC_MAX_KEY_LEN];
-    uint32_t            state;
-};
 
 /* OFPT_HELLO.  This message has an empty body, but implementations must
  * ignore any data included in the body, to allow for future extensions. */
