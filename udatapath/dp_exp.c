@@ -40,9 +40,11 @@
 #include "oflib/ofl-messages.h"
 #include "oflib-exp/ofl-exp-openflow.h"
 #include "oflib-exp/ofl-exp-nicira.h"
+#include "oflib-exp/ofl-exp-openstate.h"
 #include "openflow/openflow.h"
 #include "openflow/openflow-ext.h"
 #include "openflow/nicira-ext.h"
+#include "openflow/openstate-ext.h"
 #include "vlog.h"
 #include "pipeline.h"
 
@@ -53,10 +55,10 @@ static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(60, 60);
 void
 dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
     
-    if(act->experimenter_id == OPENFLOW_VENDOR_ID)
+    if(act->experimenter_id == OPENSTATE_VENDOR_ID)
     {
-        struct ofl_exp_openflow_act_header *action;
-        action = (struct ofl_exp_openflow_act_header *) act;
+        struct ofl_exp_openstate_act_header *action;
+        action = (struct ofl_exp_openstate_act_header *) act;
         switch(action->act_type){
 
             case(OFPAT_EXP_SET_STATE):
@@ -101,18 +103,14 @@ dp_exp_inst(struct packet *pkt UNUSED, struct ofl_instruction_experimenter *inst
 }
 
 ofl_err
-dp_exp_stats(struct datapath *dp UNUSED,
-                                  struct ofl_msg_multipart_request_experimenter *msg,
-                                  const struct sender *sender UNUSED) {
+dp_exp_stats(struct datapath *dp UNUSED, struct ofl_msg_multipart_request_experimenter *msg, const struct sender *sender UNUSED) {
 	VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to handle unknown experimenter stats (%u).", msg->experimenter_id);
     return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
 }
 
 
 ofl_err
-dp_exp_message(struct datapath *dp,
-                                struct ofl_msg_experimenter *msg,
-                               const struct sender *sender) {
+dp_exp_message(struct datapath *dp, struct ofl_msg_experimenter *msg, const struct sender *sender) {
 
     switch (msg->experimenter_id) {
         case (OPENFLOW_VENDOR_ID): {
@@ -128,14 +126,24 @@ dp_exp_message(struct datapath *dp,
                 case (OFP_EXT_SET_DESC): {
                     return dp_handle_set_desc(dp, (struct ofl_exp_openflow_msg_set_dp_desc *)msg, sender);
                 }
-                case (OFP_EXT_STATE_MOD): {
-                    return pipeline_handle_state_mod(dp->pipeline, (struct ofl_exp_msg_state_mod *)msg, sender);
-                }
-                case (OFP_EXT_FLAG_MOD): {
-                    return pipeline_handle_flag_mod(dp->pipeline, (struct ofl_exp_msg_flag_mod *)msg, sender);
-                }
                 default: {
                 	VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to handle unknown experimenter type (%u).", exp->type);
+                    return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+                }
+            }
+        }
+        case (OPENSTATE_VENDOR_ID): {
+            struct ofl_exp_openstate_msg_header *exp = (struct ofl_exp_openstate_msg_header *)msg;
+
+            switch(exp->type) {
+                case (OFP_EXT_STATE_MOD): {
+                    return handle_state_mod(dp->pipeline, (struct ofl_exp_msg_state_mod *)msg, sender);
+                }
+                case (OFP_EXT_FLAG_MOD): {
+                    return handle_flag_mod(dp->pipeline, (struct ofl_exp_msg_flag_mod *)msg, sender);
+                }
+                default: {
+                    VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to handle unknown experimenter type (%u).", exp->type);
                     return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
                 }
             }

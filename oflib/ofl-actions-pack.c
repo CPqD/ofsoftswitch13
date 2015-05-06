@@ -88,8 +88,6 @@ ofl_actions_ofp_len(struct ofl_action_header *action, struct ofl_exp *exp) {
                 OFL_LOG_WARN(LOG_MODULE, "requesting experimenter length, but no callback was given.");
                 return -1;
             }
-            struct ofl_action_experimenter* exp2 = (struct ofl_action_experimenter *) action;
-            struct ofl_exp_openflow_act_header* ext = (struct ofl_exp_openflow_act_header *) exp2;
             return exp->act->ofp_len(action);
         }
     

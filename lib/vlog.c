@@ -676,3 +676,15 @@ vlog_usage(void)
            "                          (default: %s/%s.log)\n",
            ofp_logdir, program_name);
 }
+
+void
+pfile(const char* format, ...) 
+{
+    FILE *f;
+    va_list args;
+    va_start (args, format);
+    f=fopen("/tmp/myfile.txt","a+");
+    vfprintf (f, format, args);
+    va_end (args);
+    fclose(f);
+}

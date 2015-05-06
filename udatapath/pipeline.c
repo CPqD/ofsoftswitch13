@@ -51,8 +51,8 @@
 #include "hash.h"
 #include "oflib/oxm-match.h"
 #include "vlog.h"
-#include "state_table.h"
 #include "dp_capabilities.h"
+ #include "oflib-exp/ofl-exp-openstate.h"
 
 #define LOG_MODULE VLM_pipeline
 
@@ -61,100 +61,6 @@ static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(60, 60);
 static void
 execute_entry(struct pipeline *pl, struct flow_entry *entry,
               struct flow_table **table, struct packet **pkt);
-/****
-struct pipeline *pipeline_create(struct datapath *dp) {
-    struct pipeline *pl;
-    int i;
-    printf("here is the create pipeline\n");
-    printf("capabilities %2x\n",DP_SUPPORTED_CAPABILITIES);
-
-    // hardcoded statefull table init 
-    // in table 0 set OFPCT_TABLE_STATEFULL 
-    pl = xmalloc(sizeof(struct pipeline));
-
-    for (i=0; i<PIPELINE_TABLES; i++)
-    {
-        pl->tables[i] = flow_table_create(dp, i);
-
-    }
-    pl->dp = dp;
-
-    nblink_initialize();
-
-    //Haniehs' added lines
-    if (pl->tables[0])
-    {
-        
-        pl->tables[0]->features->config=OFPTC_TABLE_STATEFUL;
-	
-	struct state_table *stable = pl->tables[0]->state_table;
-        struct key_extractor *kext;
-        kext= xmalloc(sizeof(struct key_extractor));
-	kext->field_count=1;
-	
-	kext->fields[0]=OXM_OF_ETH_SRC;		//update
-	state_table_set_extractor(stable,kext,0);
-	kext->fields[0]=OXM_OF_ETH_SRC;		//lookup	
-	state_table_set_extractor(stable,kext,1);
-
-//	printf("key field extractor is %d \n",kext->fields[0]);	
-	
-      
-	////// int update;
-	///// for (update=0;update<2;++update)
-	////{
-	////    state_table_set_extractor(stable,kext,update);
-	//////}
-	
-
-
-	int number_flow_entry=0;
-	for(number_flow_entry;number_flow_entry<2;number_flow_entry++)
-	{
-		ofl_err error=0;
-		bool match_kept = false;
-		bool insts_kept = false;
-		struct ofl_msg_flow_mod *msg=xmalloc(sizeof(struct ofl_msg_flow_mod));
-		struct ofl_match *m = xmalloc(sizeof(struct ofl_match));
-		ofl_structs_match_init(m);	
-
-		msg->table_id=0;
-		msg->command=OFPFC_ADD;
-		
-		uint64_t metadata=number_flow_entry;
-		ofl_structs_match_put64(m, OXM_OF_METADATA, metadata);
-		msg-> match = (struct ofl_match_header *)m;
-	//	printf("match header is %d \n", msg->match->type);
-		
-		msg->instructions_num=1;
-		msg->instructions=xmalloc(sizeof(struct ofl_instruction_header *) * msg->instructions_num);	
-		struct ofl_instruction_set_state  *i = xmalloc(sizeof(struct ofl_instruction_set_state ));
-		i->header.type = OFPIT_SET_STATE;
-		i->state=number_flow_entry+1;
-		msg->instructions[0]= (struct ofl_instruction_header *)i;
-	//	printf("msg instruction type should be the following %d \n",msg->instructions[0]->type);	
-		
-		msg->hard_timeout=OFP_FLOW_PERMANENT;
-		msg->idle_timeout=OFP_FLOW_PERMANENT;
-		msg->priority = OFP_DEFAULT_PRIORITY;
-
-		
-		error=flow_table_flow_mod(pl->tables[0],msg,&match_kept,&insts_kept);     
-		if (error){
-			printf("error for flow mod\n");
-		}
-		else{
-			ofl_msg_free_flow_mod(msg, !match_kept, !insts_kept, pl->dp->exp);
-			printf("free flow mod msg\n");
-		}
-	}	
-}
-
-   
-    return pl;
-} 
-****/
-/* replaced with upper func. instructions*/
 
 struct pipeline *
 pipeline_create(struct datapath *dp) {
@@ -316,53 +222,6 @@ int inst_compare(const void *inst1, const void *inst2){
 }
 
 ofl_err
-pipeline_handle_flag_mod(struct pipeline *pl, struct ofl_exp_msg_flag_mod *msg,
-                                                const struct sender *sender) {
-    
-    uint32_t global_states = pl->dp->global_states;
-    ofl_err error;
-    if (msg->command == OFPSC_MODIFY_FLAGS) {
-        global_states = (global_states & ~(msg->flag_mask)) | (msg->flag & msg->flag_mask);
-        pl->dp->global_states = global_states;
-    }
-    else if (msg->command == OFPSC_RESET_FLAGS) {
-        pl->dp->global_states = OFP_GLOBAL_STATES_DEFAULT;
-    }
-    else
-        return 1;
-    return 0;
-}
-
-ofl_err
-pipeline_handle_state_mod(struct pipeline *pl, struct ofl_exp_msg_state_mod *msg,
-                                                const struct sender *sender) {
-    ofl_err error;
-	struct state_table *st = pl->tables[msg->table_id]->state_table;
-//	int update;
-    int i;
-
-	if (msg->command == OFPSC_SET_L_EXTRACTOR || msg->command == OFPSC_SET_U_EXTRACTOR) {
-		struct ofl_exp_msg_extraction *p = (struct ofl_exp_msg_extraction *) msg->payload;	
-		int update=0;
-		if (msg->command == OFPSC_SET_U_EXTRACTOR) 
-			update = 1;
-		state_table_set_extractor(st, (struct key_extractor *)p, update);
-	}
-	else if (msg->command == OFPSC_SET_FLOW_STATE) {
-		struct ofl_exp_msg_state_entry *p = (struct ofl_exp_msg_state_entry *) msg->payload;
-		state_table_set_state(st, NULL, p->state, p->state_mask, p->key, p->key_len);
-	}
-	else if (msg->command == OFPSC_DEL_FLOW_STATE) {
-		struct ofl_exp_msg_state_entry *p = (struct ofl_exp_msg_state_entry *) msg->payload;
-		state_table_del_state(st, p->key, p->key_len);
-	}
-	else
-		return 1;
-
-	return 0;
-}
-
-ofl_err
 pipeline_handle_flow_mod(struct pipeline *pl, struct ofl_msg_flow_mod *msg,
                                                 const struct sender *sender) {
     /* Note: the result of using table_id = 0xff is undefined in the spec.
@@ -444,7 +303,6 @@ pipeline_handle_flow_mod(struct pipeline *pl, struct ofl_msg_flow_mod *msg,
         ofl_msg_free_flow_mod(msg, !match_kept, !insts_kept, pl->dp->exp);
         return 0;
     }
-
 }
 
 ofl_err

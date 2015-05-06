@@ -36,11 +36,13 @@
 #include "ofl-exp.h"
 #include "ofl-exp-nicira.h"
 #include "ofl-exp-openflow.h"
+#include "ofl-exp-openstate.h"
 #include "../oflib/ofl-messages.h"
 #include "../oflib/ofl-log.h"
 #include "openflow/openflow.h"
 #include "openflow/nicira-ext.h"
 #include "openflow/openflow-ext.h"
+#include "openflow/openstate-ext.h"
 
 #define LOG_MODULE ofl_exp
 OFL_LOG_INIT(LOG_MODULE)
@@ -55,6 +57,9 @@ ofl_exp_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf, size_t *buf_le
         }
         case (NX_VENDOR_ID): {
             return ofl_exp_nicira_msg_pack(msg, buf, buf_len);
+        }
+        case (OPENSTATE_VENDOR_ID): {
+            return ofl_exp_openstate_msg_pack(msg, buf, buf_len);
         }
         default: {
             OFL_LOG_WARN(LOG_MODULE, "Trying to pack unknown EXPERIMENTER message (%u).", msg->experimenter_id);
@@ -81,6 +86,9 @@ ofl_exp_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_experiment
         case (NX_VENDOR_ID): {
             return ofl_exp_nicira_msg_unpack(oh, len, msg);
         }
+        case (OPENSTATE_VENDOR_ID): {
+            return ofl_exp_openstate_msg_unpack(oh, len, msg);
+        }
         default: {
             OFL_LOG_WARN(LOG_MODULE, "Trying to unpack unknown EXPERIMENTER message (%u).", htonl(exp->experimenter));
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
@@ -96,6 +104,9 @@ ofl_exp_msg_free(struct ofl_msg_experimenter *msg) {
         }
         case (NX_VENDOR_ID): {
             return ofl_exp_nicira_msg_free(msg);
+        }
+        case (OPENSTATE_VENDOR_ID): {
+            return ofl_exp_openstate_msg_free(msg);
         }
         default: {
             OFL_LOG_WARN(LOG_MODULE, "Trying to free unknown EXPERIMENTER message (%u).", msg->experimenter_id);
@@ -113,6 +124,9 @@ ofl_exp_msg_to_string(struct ofl_msg_experimenter *msg) {
         }
         case (NX_VENDOR_ID): {
             return ofl_exp_nicira_msg_to_string(msg);
+        }
+        case (OPENSTATE_VENDOR_ID): {
+            return ofl_exp_openstate_msg_to_string(msg);
         }
         default: {
             char *str;
@@ -132,8 +146,8 @@ ofl_exp_act_pack(struct ofl_action_header *src, struct ofp_action_header *dst){
     struct ofl_action_experimenter *exp = (struct ofl_action_experimenter *) src;
     
     switch (exp->experimenter_id) {
-        case (OPENFLOW_VENDOR_ID): {
-            return ofl_exp_openflow_act_pack(src,dst);
+        case (OPENSTATE_VENDOR_ID): {
+            return ofl_exp_openstate_act_pack(src,dst);
         }
         default: {
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
@@ -156,8 +170,8 @@ ofl_exp_act_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
     exp = (struct ofp_action_experimenter_header *)src;
 
     switch(htonl(exp->experimenter)){
-        case (OPENFLOW_VENDOR_ID): {
-            return ofl_exp_openflow_act_unpack(src,len,dst);
+        case (OPENSTATE_VENDOR_ID): {
+            return ofl_exp_openstate_act_unpack(src,len,dst);
         }
         default: {
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
@@ -173,8 +187,8 @@ ofl_exp_act_free(struct ofl_action_header *act){
     struct ofl_action_experimenter *exp = (struct ofl_action_experimenter *) act;
         
     switch (exp->experimenter_id) {
-        case (OPENFLOW_VENDOR_ID): {
-            return ofl_exp_openflow_act_free(act);
+        case (OPENSTATE_VENDOR_ID): {
+            return ofl_exp_openstate_act_free(act);
         }
         default: {
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
@@ -188,8 +202,8 @@ ofl_exp_act_ofp_len(struct ofl_action_header *act){
 
     struct ofl_action_experimenter *exp = (struct ofl_action_experimenter *) act;
     switch (exp->experimenter_id) {
-        case (OPENFLOW_VENDOR_ID): {
-            return ofl_exp_openflow_act_ofp_len(act);
+        case (OPENSTATE_VENDOR_ID): {
+            return ofl_exp_openstate_act_ofp_len(act);
         }
         default: {
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
@@ -204,8 +218,8 @@ ofl_exp_act_to_string(struct ofl_action_header *act){
     struct ofl_action_experimenter* exp = (struct ofl_action_experimenter *) act;
     
     switch (exp->experimenter_id) {
-        case (OPENFLOW_VENDOR_ID): {
-            return ofl_exp_openflow_act_to_string(act);
+        case (OPENSTATE_VENDOR_ID): {
+            return ofl_exp_openstate_act_to_string(act);
         }
         default: {
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
