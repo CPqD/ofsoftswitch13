@@ -616,16 +616,22 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, uint32
         hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries){
             if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
                 OFL_LOG_WARN(LOG_MODULE, "state value is %u updated to hash map", state);
-                e->state = (e->state & ~(state_mask)) | (state & state_mask);
+                if(((e->state & ~(state_mask)) | (state & state_mask)) == STATE_DEFAULT)
+                   state_table_del_state(table, k, len);
+                else
+                   e->state = (e->state & ~(state_mask)) | (state & state_mask);
                 return;
             }
     }
 
-    e = malloc(sizeof(struct state_entry));
-    memcpy(e->key, key, MAX_STATE_KEY_LEN);
-    e->state = state & state_mask;
-    OFL_LOG_WARN(LOG_MODULE, "state value is %u inserted to hash map", e->state);
+    if((state & state_mask) != STATE_DEFAULT)
+    {
+        e = malloc(sizeof(struct state_entry));
+        memcpy(e->key, key, MAX_STATE_KEY_LEN);
+        e->state = state & state_mask;
+        OFL_LOG_WARN(LOG_MODULE, "state value is %u inserted to hash map", e->state);
         hmap_insert(&table->state_entries, &e->hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
+    }
 }
 
 /*handling functions*/
