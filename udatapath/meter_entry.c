@@ -226,8 +226,8 @@ meter_entry_apply(struct meter_entry *entry, struct packet **pkt){
                 break;
             }
             case OFPMBT_DSCP_REMARK:{
-            	packet_handle_std_validate(pkt->handle_std);
-    		if (pkt->handle_std->valid)
+            	packet_handle_std_validate((*pkt)->handle_std);
+    		if ((*pkt)->handle_std->valid)
     		{
                 struct ofl_meter_band_dscp_remark *band_header = (struct ofl_meter_band_dscp_remark *)  entry->config->bands[b];
                 /* Nothing prevent this band to be used for non-IP packets, so filter them out. Jean II */
@@ -260,7 +260,7 @@ meter_entry_apply(struct meter_entry *entry, struct packet **pkt){
                         ipv6->ipv6_ver_tc_fl = htonl(new_drop | (ipv6_ver_tc_fl & 0xFE3FFFFF));
                     }
                 }
-                pkt->handle_std->valid = false;
+                (*pkt)->handle_std->valid = false;
 		}
                 break;
             }
