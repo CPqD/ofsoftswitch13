@@ -521,20 +521,20 @@ send_openflow_buffer(struct datapath *dp, struct ofpbuf *buffer,
                             continue;
                         if((p->reason == OFPPR_DELETE) && !(r->config.port_status_mask[0] & 0x2))
                             continue;
-                        if((p->reason == OFPPR_MODIFY) && !(r->config.packet_in_mask[0] & 0x4))
+                        if((p->reason == OFPPR_MODIFY) && !(r->config.port_status_mask[0] & 0x4))
                             continue;
                     }
                     case (OFPT_FLOW_REMOVED):{
                         struct ofp_flow_removed *p= (struct ofp_flow_removed *)buffer->data;
-                        if((p->reason == OFPRR_IDLE_TIMEOUT) && !(r->config.port_status_mask[0] & 0x1))
+                        if((p->reason == OFPRR_IDLE_TIMEOUT) && !(r->config.flow_removed_mask[0] & 0x1))
                             continue;
-                        if((p->reason == OFPRR_HARD_TIMEOUT) && !(r->config.port_status_mask[0] & 0x2))
+                        if((p->reason == OFPRR_HARD_TIMEOUT) && !(r->config.flow_removed_mask[0] & 0x2))
                             continue;
-                        if((p->reason == OFPRR_DELETE) && !(r->config.packet_in_mask[0] & 0x4))
+                        if((p->reason == OFPRR_DELETE) && !(r->config.flow_removed_mask[0] & 0x4))
                             continue;
-                        if((p->reason == OFPRR_GROUP_DELETE) && !(r->config.packet_in_mask[0] & 0x8))
+                        if((p->reason == OFPRR_GROUP_DELETE) && !(r->config.flow_removed_mask[0] & 0x8))
                             continue;
-                        if((p->reason == OFPRR_METER_DELETE) && !(r->config.packet_in_mask[0] & 0x10))
+                        if((p->reason == OFPRR_METER_DELETE) && !(r->config.flow_removed_mask[0] & 0x10))
                             continue;
                     }
                 }
@@ -551,7 +551,7 @@ send_openflow_buffer(struct datapath *dp, struct ofpbuf *buffer,
                         continue;
                     if((p->reason == OFPPR_DELETE) && !(r->config.port_status_mask[1] & 0x2))
                         continue;
-                    if((p->reason == OFPPR_MODIFY) && !(r->config.packet_in_mask[1] & 0x4))
+                    if((p->reason == OFPPR_MODIFY) && !(r->config.port_status_mask[1] & 0x4))
                         continue;
                 }
             }
