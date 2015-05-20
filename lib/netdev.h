@@ -76,7 +76,7 @@ int netdev_open(const char *name, int ethertype, struct netdev **);
 int netdev_open_tap(const char *name, struct netdev **);
 void netdev_close(struct netdev *);
 
-int netdev_recv(struct netdev *, struct ofpbuf *);
+int netdev_recv(struct netdev *, struct ofpbuf *, size_t);
 void netdev_recv_wait(struct netdev *);
 int netdev_drain(struct netdev *);
 int netdev_send(struct netdev *, const struct ofpbuf *, uint16_t class_id);

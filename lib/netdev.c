@@ -916,7 +916,7 @@ pad_to_minimum_length(struct ofpbuf *buffer)
  * be returned.
  */
 int
-netdev_recv(struct netdev *netdev, struct ofpbuf *buffer)
+netdev_recv(struct netdev *netdev, struct ofpbuf *buffer, size_t max_mtu)
 {
 
 #ifdef HAVE_PACKET_AUXDATA
@@ -951,7 +951,7 @@ netdev_recv(struct netdev *netdev, struct ofpbuf *buffer)
     msg.msg_controllen  = sizeof(cmsg_buf);
     msg.msg_flags   = 0;
 
-    iov.iov_len   = buffer->allocated;
+    iov.iov_len   = max_mtu;
     iov.iov_base    = buffer->data;
 
 #else
@@ -976,7 +976,6 @@ netdev_recv(struct netdev *netdev, struct ofpbuf *buffer)
             n_bytes = recvfrom(netdev->tap_fd, ofpbuf_tail(buffer),
                                (ssize_t)ofpbuf_tailroom(buffer), 0,
                                (struct sockaddr *)&sll, &sll_len);
-
 #endif /* ifdef HAVE_PACKET_AUXDATA  */
         } while (n_bytes < 0 && errno == EINTR);
     }
@@ -1002,8 +1001,9 @@ netdev_recv(struct netdev *netdev, struct ofpbuf *buffer)
                     continue;
                 }
                 aux = (struct tpacket_auxdata *)CMSG_DATA(cmsg);
-                if (aux->tp_vlan_tci == 0)
+                if (aux->tp_vlan_tci == 0){
                   continue;
+                }
                 /* VLAN tag found. Shift MAC addresses down and insert VLAN tag */
                 /* Create headroom for the VLAN tag */
                 eth_type = ntohs(*((uint16_t *)(buffer->data + ETHER_ADDR_LEN * 2)));                
@@ -1027,15 +1027,14 @@ netdev_recv(struct netdev *netdev, struct ofpbuf *buffer)
         if (sll.sll_pkttype == PACKET_OUTGOING) {
             return EAGAIN;
         }
-        buffer->size += n_bytes;
-
+        buffer->size += n_bytes;        
+#endif
         /* When the kernel internally sends out an Ethernet frame on an
          * interface, it gives us a copy *before* padding the frame to the
          * minimum length.  Thus, when it sends out something like an ARP
          * request, we see a too-short frame.  So pad it out to the minimum
          * length. */
         pad_to_minimum_length(buffer);
-#endif
         return 0;
     }
 
@@ -1085,7 +1084,6 @@ netdev_send(struct netdev *netdev, const struct ofpbuf *buffer,
     do {
         n_bytes = write(netdev->queue_fd[class_id], buffer->data, buffer->size);
     } while (n_bytes < 0 && errno == EINTR);
-
     if (n_bytes < 0) {
         /* The Linux AF_PACKET implementation never blocks waiting for room
          * for packets, instead returning ENOBUFS.  Translate this into EAGAIN

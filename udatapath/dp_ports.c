@@ -269,13 +269,9 @@ dp_ports_run(struct datapath *dp) {
              * to the controller or adding a vlan tag, plus an extra 2 bytes to
              * allow IP headers to be aligned on a 4-byte boundary.  */
             const int headroom = 128 + 2;
-            const int hard_header = VLAN_ETH_HEADER_LEN;
-            buffer = ofpbuf_new_with_headroom(hard_header + max_mtu, headroom);
+            buffer = ofpbuf_new_with_headroom(VLAN_ETH_HEADER_LEN + max_mtu, headroom);
         }
-        error = netdev_recv(p->netdev, buffer);
-        if (error == ENETDOWN){
-            VLOG_ERR(LOG_MODULE, "Não tenho nada mas tô aqui...");
-        }
+        error = netdev_recv(p->netdev, buffer, VLAN_ETH_HEADER_LEN + max_mtu);
         if (!error) {
             p->stats->rx_packets++;
             p->stats->rx_bytes += buffer->size;
@@ -655,7 +651,6 @@ dp_ports_output_all(struct datapath *dp, struct ofpbuf *buffer, int in_port, boo
         if (flood && p->conf->config & OFPPC_NO_FWD) {
             continue;
         }
-
         dp_ports_output(dp, buffer, p->stats->port_no, 0);
     }
 
