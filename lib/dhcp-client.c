@@ -931,7 +931,7 @@ do_receive_msg(struct dhclient *cli, struct dhcp_msg *msg)
         int error;
 
         ofpbuf_clear(&b);
-        error = netdev_recv(cli->netdev, &b);
+        error = netdev_recv(cli->netdev, &b, 0);
         if (error) {
             goto drained;
         }
@@ -1047,7 +1047,7 @@ do_send_msg(struct dhclient *cli, const struct dhcp_msg *msg)
         } else {
             VLOG_INFO(LOG_MODULE, "sending %s", dhcp_type_name(msg->type));
         }
-        error = netdev_send(cli->netdev, &b, 0);
+        error = netdev_send(cli->netdev, &b, ETH_TOTAL_MAX);
         if (error) {
             VLOG_ERR(LOG_MODULE, "send failed on %s: %s",
                      netdev_get_name(cli->netdev), strerror(error));
