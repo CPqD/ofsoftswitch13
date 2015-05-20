@@ -332,10 +332,6 @@ enum oxm_ofb_match_fields {
     OFPXMT_OFB_IPV6_EXTHDR = 39     /* IPv6 Extension Header pseudo-field */
 };
 
-enum oxm_exp_match_fields {
-    OFPXMT_EXP_FLAGS = 40,        /* Global States */
-    OFPXMT_EXP_STATE = 41       /* Flow State */
-};
 
 /* The VLAN id is 12-bits, so we can use the entire 16 bits to indicate
 * special conditions.

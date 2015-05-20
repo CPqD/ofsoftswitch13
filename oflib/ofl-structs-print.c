@@ -40,6 +40,7 @@
 #include <math.h>
 #include "oxm-match.h"
 #include "openflow/openflow.h"
+#include "openflow/openstate-ext.h"
 
 #include "ofl.h"
 #include "ofl-actions.h"
@@ -439,9 +440,9 @@ ofl_structs_oxm_tlv_print(FILE *stream, struct ofl_match_tlv *f)
         	switch (field) {
 
 	        	case OFPXMT_EXP_STATE:
-	        	fprintf(stream, "state=\"%"PRIu32"\"", *((uint32_t*) f->value));
+	        	fprintf(stream, "state=\"%"PRIu32"\"", *((uint32_t*)(f->value + 4)));
 				if (OXM_HASMASK(f->header)) {
-					fprintf(stream, ",state_mask=\"%"PRIu32"\"", *((uint32_t*)(f->value+4)));
+					fprintf(stream, ",state_mask=\"%"PRIu32"\"", *((uint32_t*)(f->value + 8)));
 				}
 	 			break;
 
@@ -454,11 +455,11 @@ ofl_structs_oxm_tlv_print(FILE *stream, struct ofl_match_tlv *f)
 					fprintf(stream, "flags=");
 					if (!OXM_HASMASK(f->header)) {
 						char string_value[33];
-			            masked_value_print(string_value,decimal_to_binary(*((uint32_t*) f->value)),decimal_to_binary((uint32_t)(pow(2,32)-1)));
+			            masked_value_print(string_value,decimal_to_binary(*((uint32_t*) (f->value + 4))),decimal_to_binary((uint32_t)(pow(2,32)-1)));
 			            fprintf(stream,"%s",string_value);
 					} else {
 						char string_value[33];
-			            masked_value_print(string_value,decimal_to_binary(*((uint32_t*) f->value)),decimal_to_binary(*((uint32_t*)(f->value+4))));
+			            masked_value_print(string_value,decimal_to_binary(*((uint32_t*) (f->value + 4))),decimal_to_binary(*((uint32_t*)(f->value + 8))));
 			            fprintf(stream,"%s",string_value);
 			        }
 					break;

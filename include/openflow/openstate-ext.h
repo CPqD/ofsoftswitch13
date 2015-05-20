@@ -13,6 +13,11 @@
 
 #define OPENSTATE_VENDOR_ID 0x0000BEBA
 
+enum oxm_exp_match_fields {
+    OFPXMT_EXP_FLAGS = 0,      /* Global States */
+    OFPXMT_EXP_STATE = 1       /* Flow State */
+};
+
 /****************************************************************
  *
  * OpenFlow experimenter Actions

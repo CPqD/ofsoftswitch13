@@ -105,6 +105,20 @@ ofl_structs_match_put32(struct ofl_match *match, uint32_t header, uint32_t value
 }
 
 void
+ofl_structs_match_put32e(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint32_t value){
+   struct ofl_match_tlv *m = xmalloc(sizeof (struct ofl_match_tlv));
+   int len = sizeof(uint32_t);
+
+   m->header = header;
+   m->value = malloc(len*2);
+   memcpy(m->value, &experimenter_id, len);
+   memcpy(m->value + len, &value, len);
+   pfile("dentro la put32e il valore è %"PRIx64"\n", (*((uint64_t*)(m->value))));
+   hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
+   match->header.length += 2*len + 4;
+}
+
+void
 ofl_structs_match_put32m(struct ofl_match *match, uint32_t header, uint32_t value, uint32_t mask){
     struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
     int len = sizeof(uint32_t);
@@ -118,6 +132,20 @@ ofl_structs_match_put32m(struct ofl_match *match, uint32_t header, uint32_t valu
 }
 
 void
+ofl_structs_match_put32me(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint32_t value, uint32_t mask){
+    struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
+    int len = sizeof(uint32_t);
+
+    m->header = header;
+    m->value = malloc(len*3);
+    memcpy(m->value, &experimenter_id, len);
+    memcpy(m->value + len, &value, len);
+    memcpy(m->value + len*2, &mask, len);
+    hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
+    match->header.length += len*3 + 4;
+}
+
+void
 ofl_structs_match_put64(struct ofl_match *match, uint32_t header, uint64_t value){
     struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
     int len = sizeof(uint64_t);
@@ -127,7 +155,6 @@ ofl_structs_match_put64(struct ofl_match *match, uint32_t header, uint64_t value
     memcpy(m->value, &value, len);
     hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
     match->header.length += len + 4;
-
 }
 
 void

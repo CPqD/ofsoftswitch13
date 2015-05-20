@@ -510,8 +510,8 @@ void state_table_write_state(struct state_entry *entry, struct packet *pkt) {
     
     HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv, 
         hmap_node, hash_int(OXM_EXP_STATE,0), &pkt->handle_std->match.match_fields){
-                uint32_t *state = (uint32_t*) f->value;
-                *state = (*state & 0x0) | (entry->state);
+                uint64_t *state = (uint64_t*) f->value;
+                *state = (*state & 0xFFFFFFFF00000000) | (entry->state);
     }
 }
 void state_table_del_state(struct state_table *table, uint8_t *key, uint32_t len) {

@@ -61,6 +61,7 @@
 #include "unaligned.h"
 #include "byte-order.h"
 #include "../include/openflow/openflow.h"
+#include "../include/openflow/openstate-ext.h"
 
 #define LOG_MODULE VLM_oxm_match
 #include "vlog.h"
@@ -544,35 +545,53 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
 
 
 static int
-parse_exp_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
+parse_exp_oxm_entry(struct ofl_match *match, const struct oxm_field *f, const void *experimenter_id,
                 const void *value, const void *mask){
-    switch (f->index) {
-        case OFI_OXM_EXP_STATE:{
-            ofl_structs_match_put32(match, f->header, ntohl(*((uint32_t*) value)));
-            return 0;
-        }
-        case OFI_OXM_EXP_STATE_W:{
-            if (check_bad_wildcard32(ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)))){
-                return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
-            }
-            ofl_structs_match_put32m(match, f->header, ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)));
-            return 0;
-        }
-        case OFI_OXM_EXP_FLAGS:{
-            ofl_structs_match_put32(match, f->header, ntohl(*((uint32_t*) value)));
-            return 0;
-        }
-        case OFI_OXM_EXP_FLAGS_W:{
-            if (check_bad_wildcard32(ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)))){
-                return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
-            }
-            ofl_structs_match_put32m(match, f->header, ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)));
-            return 0;
-        }
-        default:
-            NOT_REACHED();
-    }
+	switch (ntohl(*((uint32_t*) experimenter_id))) {
+		case OPENSTATE_VENDOR_ID:{
+		    switch (f->index) {
+		        case OFI_OXM_EXP_STATE:{
+		            ofl_structs_match_put32e(match, f->header, ntohl(*((uint32_t*) experimenter_id)), ntohl(*((uint32_t*) value)));
+                    pfile("sono in exp_state\n");
+                    pfile("l'experimenter id è %"PRIx32"\n", ntohl(*((uint32_t*) experimenter_id)));
+                    pfile("il valore è %"PRIx32"\n\n", ntohl(*((uint32_t*) value)));
+		            return 0;
+		        }
+		        case OFI_OXM_EXP_STATE_W:{
+		            if (check_bad_wildcard32(ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)))){
+		                return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
+		            }
+		            ofl_structs_match_put32me(match, f->header, ntohl(*((uint32_t*) experimenter_id)), ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)));
+                    pfile("sono in exp_state + mask\n");
+                    pfile("il valore è %"PRIx32"\n", ntohl(*((uint32_t*) value)));
+                    pfile("la mask è %"PRIx32"\n\n", ntohl(*((uint32_t*) mask)));
+		            return 0;
+		        }
+		        case OFI_OXM_EXP_FLAGS:{
+		            ofl_structs_match_put32e(match, f->header, ntohl(*((uint32_t*) experimenter_id)), ntohl(*((uint32_t*) value)));
+                    pfile("sono in exp_flags\n");
+                    pfile("il valore è %"PRIx32"\n\n", ntohl(*((uint32_t*) value)));
+		            return 0;
+		        }
+		        case OFI_OXM_EXP_FLAGS_W:{
+		            if (check_bad_wildcard32(ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)))){
+		                return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
+		            }
+		            ofl_structs_match_put32me(match, f->header, ntohl(*((uint32_t*) experimenter_id)), ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)));
+		            pfile("sono in exp_flags + mask\n");
+                    pfile("il valore è %"PRIx32"\n", ntohl(*((uint32_t*) value)));
+                    pfile("la mask è %"PRIx32"\n\n", ntohl(*((uint32_t*) mask)));
+                    return 0;
+		        }
+		        default:
+		            NOT_REACHED();
+		    }
+	 	default:
+	            NOT_REACHED();
+    	}
     NOT_REACHED();
+	}
+NOT_REACHED();
 }
 
  /*hmap_insert(match_dst, &f->hmap_node,
@@ -636,8 +655,11 @@ oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len)
                          * because they are included in 'header' and oxm_field_lookup()
                          * checked them already. */
                          //parse_exp_oxm_entry accepts value and mask as input
-                         //experimenter_id has not been considered (p + 8 => p + header + experimenter_id)
-                        error = parse_exp_oxm_entry(match_dst, f, p + 8, p + 8 + (length-4) / 2);
+                         //sizeof(header) is 4 byte
+                         //sizeof(experimenter_id) is 4 byte
+                         //experimenter_id is @ p + 4 (p + header)
+                         //value is @ p + 8 (p + header + experimenter_id)
+                        error = parse_exp_oxm_entry(match_dst, f, p + 4, p + 8, p + 8 + (length-4) / 2);
                         break;
                     default:
                         error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_FIELD);
@@ -1070,13 +1092,19 @@ int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt){
                             case (sizeof(uint32_t)):{
                                 uint8_t value[EXP_ID_LEN+sizeof(uint32_t)] = {0};
                                 uint32_t aux;
-                                aux = htonl(*((uint32_t*)(oft->value)));
-                                memcpy(value+EXP_ID_LEN,&aux,sizeof(uint32_t));
+                                uint32_t experimenter_id;
+                                experimenter_id = htonl(*((uint32_t*)(oft->value)));
+                                aux = htonl(*((uint32_t*)((oft->value )+ EXP_ID_LEN)));
+                                memcpy(value, &experimenter_id, sizeof(uint32_t));
+                                memcpy(value + EXP_ID_LEN, &aux, sizeof(uint32_t));
+                                pfile("sono in oxm_put_32\n");
+                                pfile("l'experimenter è %"PRIx32" \n", *((uint32_t*)(oft->value)));
+                                pfile("il valore è %"PRIx32"\n\n", *((uint32_t*)((oft->value) + 4)));
                                 if(!has_mask)                                   
                                     oxm_put_32e(buf,oft->header, value);
                                 else {
                                     uint32_t mask;
-                                    memcpy(&mask,oft->value + length ,sizeof(uint32_t));
+                                    memcpy(&mask,oft->value + experimenter_id + length ,sizeof(uint32_t));
                                     oxm_put_32we(buf, oft->header, value,htonl(mask));
                                 }
                                   break;

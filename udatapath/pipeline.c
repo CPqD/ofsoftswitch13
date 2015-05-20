@@ -674,7 +674,7 @@ void pipeline_global_states_write_flags(struct packet *pkt){
 
     HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv, 
         hmap_node, hash_int(OXM_EXP_FLAGS,0), &pkt->handle_std->match.match_fields){
-                uint32_t *flags = (uint32_t*) f->value;
-                *flags = (*flags & 0x0) | (pkt->dp->global_states);
+                uint64_t *flags = (uint64_t*) f->value;
+                *flags = (*flags & 0xFFFFFFFF00000000) | (pkt->dp->global_states);
     }
 }

@@ -104,7 +104,6 @@ static inline bool
 match_64(uint8_t *a, uint8_t *b) {
     uint64_t *a1 = (uint64_t *) a;
     uint64_t *b1 = (uint64_t *) b;
-    VLOG_ERR(LOG_MODULE, "Result %"PRIx64" %"PRIx64"", *a1, *b1);
     return (*a1 == *b1);
 }
 
@@ -172,7 +171,7 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
 
             case(OFPXMC_EXPERIMENTER):
                 field_len =  (OXM_LENGTH(f->header)-4);
-                flow_val = f->value;
+                flow_val = f->value + 4; //skip the experimenter_id
                 if (has_mask) {
 
                     /* Clear the has_mask bit and divide the field_len by two in the packet field header */
