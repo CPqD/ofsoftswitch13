@@ -190,19 +190,19 @@ consume_tokens(struct ofl_meter_band_stats *band, uint16_t meter_flag, struct pa
 static size_t
 choose_band(struct meter_entry *entry, struct packet *pkt)
 {
-    size_t i;
-    size_t band_index = -1;
-    uint32_t tmp_rate = 0;
-    for(i = 0; i < entry->stats->meter_bands_num; i++)
-    {
-        struct ofl_meter_band_header *band_header = entry->config->bands[i];
-        if(!consume_tokens(entry->stats->band_stats[i], entry->config->flags, pkt) && band_header->rate > tmp_rate)
-        {
-            tmp_rate = band_header->rate;
-            band_index = i;
-        }
-    }
-    return band_index;
+	size_t i;
+	size_t band_index = -1;
+	uint32_t tmp_rate = 0;
+	for(i = 0; i < entry->stats->meter_bands_num; i++)
+	{
+		struct ofl_meter_band_header *band_header = entry->config->bands[i];
+		if(!consume_tokens(entry->stats->band_stats[i], entry->config->flags, pkt) && band_header->rate > tmp_rate)
+		{
+			tmp_rate = band_header->rate;
+			band_index = i;
+		}
+	}
+	return band_index;
 }
 
 
@@ -322,7 +322,7 @@ refill_bucket(struct meter_entry *entry)
     size_t i;
 
     for(i = 0; i < entry->config->meter_bands_num; i++) {
-        long long int now = time_msec();
+    	long long int now = time_msec();
         uint32_t rate;
         uint32_t burst_size;
         uint64_t tokens;
@@ -333,7 +333,7 @@ refill_bucket(struct meter_entry *entry)
         entry->stats->band_stats[i]->last_fill = now;
         if (!(entry->config->flags & OFPMF_BURST)){
             if(entry->config->flags & OFPMF_KBPS && tokens >= 1){
-                entry->stats->band_stats[i]->tokens = MIN(tokens, rate);
+		        entry->stats->band_stats[i]->tokens = MIN(tokens, rate);
             }
             else{
                 if(tokens >= 1000) {
