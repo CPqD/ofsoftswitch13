@@ -167,7 +167,7 @@ static bool
 consume_tokens(struct ofl_meter_band_stats *band, uint16_t meter_flag, struct packet *pkt){
 
     if(meter_flag & OFPMF_KBPS){
-        uint32_t pkt_size = (pkt->buffer->size*8)/1024;
+        uint32_t pkt_size = pkt->buffer->size * 8;
         if (band->tokens >= pkt_size) {
             band->tokens -= pkt_size;
             return true;
@@ -196,7 +196,6 @@ choose_band(struct meter_entry *entry, struct packet *pkt)
 	for(i = 0; i < entry->stats->meter_bands_num; i++)
 	{
 		struct ofl_meter_band_header *band_header = entry->config->bands[i];
-	
 		if(!consume_tokens(entry->stats->band_stats[i], entry->config->flags, pkt) && band_header->rate > tmp_rate)
 		{
 			tmp_rate = band_header->rate;
@@ -206,8 +205,7 @@ choose_band(struct meter_entry *entry, struct packet *pkt)
 	return band_index;
 }
 
-/// type - conversion
-// Not handle burst size
+
 void
 meter_entry_apply(struct meter_entry *entry, struct packet **pkt){
 	
@@ -271,14 +269,13 @@ meter_entry_apply(struct meter_entry *entry, struct packet **pkt){
         entry->stats->band_stats[b]->byte_band_count += (*pkt)->buffer->size;
         entry->stats->band_stats[b]->packet_band_count++;
         if (drop){
-            VLOG_ERR_RL(LOG_MODULE, &rl, "Dropping packet: rate %d", band_header->rate);
+            VLOG_DBG_RL(LOG_MODULE, &rl, "Dropping packet: rate %d", band_header->rate);
             packet_destroy(*pkt);
             *pkt = NULL;
         }
     }
 
 }
-
 
 /* Returns true if the meter entry has  reference to the flow entry. */
 static bool
@@ -325,34 +322,31 @@ refill_bucket(struct meter_entry *entry)
 
     for(i = 0; i < entry->config->meter_bands_num; i++) {
     	long long int now = time_msec();
-        long long int tokens = !(entry->config->flags & OFPMF_PKTPS) ? 
-                        (now - entry->stats->band_stats[i]->last_fill) * 
-    						entry->config->bands[i]->rate  + entry->stats->band_stats[i]->tokens
-                            : (now - entry->stats->band_stats[i]->last_fill) * 
-                            (entry->config->bands[i]->rate * 1000) + entry->stats->band_stats[i]->tokens;
-
+        uint32_t rate;
+        uint32_t burst_size;
+        uint64_t tokens;
+        rate = entry->config->bands[i]->rate * 1000;
+        burst_size = entry->config->bands[i]->burst_size * 1000;
+        tokens =  (now - entry->stats->band_stats[i]->last_fill) *
+                rate  + entry->stats->band_stats[i]->tokens;
+        entry->stats->band_stats[i]->last_fill = now;
         if (!(entry->config->flags & OFPMF_BURST)){
             if(entry->config->flags & OFPMF_KBPS && tokens >= 1){
-        		  entry->stats->band_stats[i]->tokens = MIN(tokens, entry->config->bands[i]->rate);
-                  entry->stats->band_stats[i]->last_fill = now;
-
+		        entry->stats->band_stats[i]->tokens = MIN(tokens, rate);
             }
             else{
                 if(tokens >= 1000) {
-                    entry->stats->band_stats[i]->tokens = MIN(tokens, entry->config->bands[i]->rate * 1000);
-                            entry->stats->band_stats[i]->last_fill = now;
-
+                    entry->stats->band_stats[i]->tokens = MIN(tokens, rate);
                 }
             }
         }
         else {
-            if(entry->config->flags & OFPMF_KBPS && tokens >= 1 ) {
-                    entry->stats->band_stats[i]->tokens = MIN(tokens, entry->config->bands[i]->burst_size);  
-            
+            if(entry->config->flags & OFPMF_KBPS && tokens >= 1 ){
+                    entry->stats->band_stats[i]->tokens = MIN(tokens,burst_size);
             }
             else {
                 if(tokens >= 1000) {
-                    entry->stats->band_stats[i]->tokens = MIN(tokens, entry->config->bands[i]->burst_size * 1000);
+                    entry->stats->band_stats[i]->tokens = MIN(tokens,burst_size);
                 }
             }
         }
