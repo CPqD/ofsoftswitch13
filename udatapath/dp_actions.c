@@ -94,10 +94,8 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 break;
             }
             case OXM_OF_ETH_TYPE:{
-                uint16_t *v = (uint16_t*) act->field->value;
-                *v = htons(*v);
-                memcpy(&pkt->handle_std->proto->eth->eth_type,
-                    v, OXM_LENGTH(act->field->header));
+                uint16_t v = *((uint16_t*) act->field->value);
+                pkt->handle_std->proto->eth->eth_type = htons(v);
                 break;
             }
             case OXM_OF_VLAN_VID:{
@@ -105,8 +103,7 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 /* VLAN existence is no guaranteed by match prerquisite*/
                 if(vlan != NULL){
                     uint16_t v = (*(uint16_t*)act->field->value);
-                    vlan->vlan_tci = htons((ntohs(vlan->vlan_tci) & ~VLAN_VID_MASK)
-                                                    | (v & VLAN_VID_MASK));
+                    vlan->vlan_tci = htons((ntohs(vlan->vlan_tci) & ~VLAN_VID_MASK) | (v & VLAN_VID_MASK));
                 }
                 break;
             }
@@ -209,29 +206,28 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 struct tcp_header *tcp = pkt->handle_std->proto->tcp;
                 uint16_t v = htons(*(uint16_t*) act->field->value);
                 tcp->tcp_csum = recalc_csum16(tcp->tcp_csum, tcp->tcp_src, v);
-                memcpy(&tcp->tcp_src, &v, OXM_LENGTH(act->field->header));
+                tcp->tcp_src = v;
                 break;
             }
             case OXM_OF_TCP_DST:{
                 struct tcp_header *tcp = pkt->handle_std->proto->tcp;
                 uint16_t v = htons(*(uint16_t*) act->field->value);
                 tcp->tcp_csum = recalc_csum16(tcp->tcp_csum, tcp->tcp_dst, v);
-                memcpy(&tcp->tcp_dst, &v, OXM_LENGTH(act->field->header));
+                tcp->tcp_dst = v;
                 break;
             }
             case OXM_OF_UDP_SRC:{
                 struct udp_header *udp = pkt->handle_std->proto->udp;
                 uint16_t v = htons(*(uint16_t*) act->field->value);
                 udp->udp_csum = recalc_csum16(udp->udp_csum, udp->udp_src, v);
-                memcpy(&udp->udp_src, &v, OXM_LENGTH(act->field->header));
-
+                udp->udp_src = v;
                 break;
             }
             case OXM_OF_UDP_DST:{
                 struct udp_header *udp = pkt->handle_std->proto->udp;
                 uint16_t v = htons(*(uint16_t*) act->field->value);
                 udp->udp_csum = recalc_csum16(udp->udp_csum, udp->udp_dst, v);
-                memcpy(&udp->udp_dst, &v, OXM_LENGTH(act->field->header));
+                udp->udp_dst = v;
                 break;
             }
             /*TODO recalculate SCTP checksum*/
@@ -241,7 +237,7 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 size_t len = ((uint8_t*) ofpbuf_tail(pkt->handle_std->pkt->buffer)) - (uint8_t *) sctp;
                 uint16_t v = htons(*(uint16_t*) act->field->value);
                 sctp->sctp_csum = 0;
-                memcpy(&sctp->sctp_src, &v, OXM_LENGTH(act->field->header));
+                sctp->sctp_src = v;
                 crc = crc_init();
                 crc = crc_update(crc, (unsigned char*)sctp, len);                            
                 crc = crc_finalize(crc);
@@ -254,7 +250,7 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 size_t len = ((uint8_t*) ofpbuf_tail(pkt->handle_std->pkt->buffer)) - (uint8_t *) sctp;
                 uint16_t v = htons(*(uint16_t*) act->field->value);
                 sctp->sctp_csum = 0;
-                memcpy(&sctp->sctp_dst, &v, OXM_LENGTH(act->field->header));
+                sctp->sctp_dst = v;
                 crc = crc_init();
                 crc = crc_update(crc, (unsigned char*)sctp, len);                            
                 crc = crc_finalize(crc);
@@ -1227,3 +1223,4 @@ dp_actions_check_set_field_req(struct ofl_msg_flow_mod *msg, size_t actions_num,
     }
     return 0;
 }
+
