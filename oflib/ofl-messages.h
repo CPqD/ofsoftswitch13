@@ -539,14 +539,7 @@ struct ofl_msg_state_mod_extractor {
     uint32_t fields[OFPSC_MAX_FIELD_COUNT];
 };
 
-/*************************
-* Multipart reply message: State entry statistics
-*************************/
-struct ofl_state_entry{
-    uint32_t            key_len;
-    uint8_t             key[OFPSC_MAX_KEY_LEN];
-    uint32_t            state;
-};
+
 /****************************************************************************
  * Functions for (un)packing message structures
  ****************************************************************************/

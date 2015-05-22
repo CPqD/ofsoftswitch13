@@ -162,6 +162,15 @@ struct ofl_flow_stats {
     struct ofl_instruction_header **instructions; /* Instruction set. */
 };
 
+/*************************
+* Multipart reply message: State entry statistics
+*************************/
+struct ofl_state_entry{
+    uint32_t            key_len;
+    uint8_t             key[OFPSC_MAX_KEY_LEN];
+    uint32_t            state;
+};
+
 struct ofl_state_stats {
     uint8_t                         table_id;      /* ID of table flow came from. */
     uint32_t                        field_count;    /*number of extractor fields*/
