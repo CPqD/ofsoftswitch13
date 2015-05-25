@@ -552,9 +552,6 @@ parse_exp_oxm_entry(struct ofl_match *match, const struct oxm_field *f, const vo
 		    switch (f->index) {
 		        case OFI_OXM_EXP_STATE:{
 		            ofl_structs_match_put32e(match, f->header, ntohl(*((uint32_t*) experimenter_id)), ntohl(*((uint32_t*) value)));
-                    pfile("sono in exp_state\n");
-                    pfile("l'experimenter id è %"PRIx32"\n", ntohl(*((uint32_t*) experimenter_id)));
-                    pfile("il valore è %"PRIx32"\n\n", ntohl(*((uint32_t*) value)));
 		            return 0;
 		        }
 		        case OFI_OXM_EXP_STATE_W:{
@@ -562,15 +559,10 @@ parse_exp_oxm_entry(struct ofl_match *match, const struct oxm_field *f, const vo
 		                return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
 		            }
 		            ofl_structs_match_put32me(match, f->header, ntohl(*((uint32_t*) experimenter_id)), ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)));
-                    pfile("sono in exp_state + mask\n");
-                    pfile("il valore è %"PRIx32"\n", ntohl(*((uint32_t*) value)));
-                    pfile("la mask è %"PRIx32"\n\n", ntohl(*((uint32_t*) mask)));
 		            return 0;
 		        }
 		        case OFI_OXM_EXP_FLAGS:{
 		            ofl_structs_match_put32e(match, f->header, ntohl(*((uint32_t*) experimenter_id)), ntohl(*((uint32_t*) value)));
-                    pfile("sono in exp_flags\n");
-                    pfile("il valore è %"PRIx32"\n\n", ntohl(*((uint32_t*) value)));
 		            return 0;
 		        }
 		        case OFI_OXM_EXP_FLAGS_W:{
@@ -578,9 +570,6 @@ parse_exp_oxm_entry(struct ofl_match *match, const struct oxm_field *f, const vo
 		                return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
 		            }
 		            ofl_structs_match_put32me(match, f->header, ntohl(*((uint32_t*) experimenter_id)), ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)));
-		            pfile("sono in exp_flags + mask\n");
-                    pfile("il valore è %"PRIx32"\n", ntohl(*((uint32_t*) value)));
-                    pfile("la mask è %"PRIx32"\n\n", ntohl(*((uint32_t*) mask)));
                     return 0;
 		        }
 		        default:
@@ -654,11 +643,12 @@ oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len)
                         /* 'hasmask' and 'length' are known to be correct at this point
                          * because they are included in 'header' and oxm_field_lookup()
                          * checked them already. */
-                         //parse_exp_oxm_entry accepts value and mask as input
+                         //parse_exp_oxm_entry accepts match, oxm_fields, experimenter_id, value and mask
                          //sizeof(header) is 4 byte
                          //sizeof(experimenter_id) is 4 byte
                          //experimenter_id is @ p + 4 (p + header)
                          //value is @ p + 8 (p + header + experimenter_id)
+                         //mask depends on field's size
                         error = parse_exp_oxm_entry(match_dst, f, p + 4, p + 8, p + 8 + (length-4) / 2);
                         break;
                     default:
@@ -1056,7 +1046,7 @@ int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt){
                         }
                         break;
                     case (OFPXMC_EXPERIMENTER):
-                        length = length-4;      /*length is the field length -> the experimenter_id is excluded*/                
+                        length = length - EXP_ID_LEN;      /*length is the field length -> the experimenter_id is excluded*/                
                         if (OXM_HASMASK(oft->header)){
                             length = length / 2;
                             has_mask = true;
@@ -1091,20 +1081,19 @@ int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt){
                             }
                             case (sizeof(uint32_t)):{
                                 uint8_t value[EXP_ID_LEN+sizeof(uint32_t)] = {0};
-                                uint32_t aux;
+                                uint32_t field_value;
                                 uint32_t experimenter_id;
-                                experimenter_id = htonl(*((uint32_t*)(oft->value)));
-                                aux = htonl(*((uint32_t*)((oft->value )+ EXP_ID_LEN)));
+                                /*We use these auxiliary variables to change the endianness of each single field*/
+                                /// ROBA CONTORTA INUTILE!!!! VEDI FOGLIO DI SANVITZ
+                                experimenter_id = htonl(*((uint32_t*)(oft->value + EXP_ID_LEN)));
+                                field_value = htonl(*((uint32_t*)((oft->value))));
                                 memcpy(value, &experimenter_id, sizeof(uint32_t));
-                                memcpy(value + EXP_ID_LEN, &aux, sizeof(uint32_t));
-                                pfile("sono in oxm_put_32\n");
-                                pfile("l'experimenter è %"PRIx32" \n", *((uint32_t*)(oft->value)));
-                                pfile("il valore è %"PRIx32"\n\n", *((uint32_t*)((oft->value) + 4)));
+                                memcpy(value + EXP_ID_LEN, &field_value, sizeof(uint32_t));
                                 if(!has_mask)                                   
                                     oxm_put_32e(buf,oft->header, value);
                                 else {
                                     uint32_t mask;
-                                    memcpy(&mask,oft->value + experimenter_id + length ,sizeof(uint32_t));
+                                    memcpy(&mask, (uint32_t*)(oft->value + EXP_ID_LEN + length), sizeof(uint32_t));
                                     oxm_put_32we(buf, oft->header, value,htonl(mask));
                                 }
                                   break;

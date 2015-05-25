@@ -213,7 +213,6 @@ flow_table_lookup(struct flow_table *table, struct packet *pkt) {
     struct flow_entry *entry;
 
     table->stats->lookup_count++;
-
     LIST_FOR_EACH(entry, struct flow_entry, match_node, &table->match_entries) {
         struct ofl_match_header *m;
 

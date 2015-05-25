@@ -110,12 +110,15 @@ ofl_structs_match_put32e(struct ofl_match *match, uint32_t header, uint32_t expe
    int len = sizeof(uint32_t);
 
    m->header = header;
-   m->value = malloc(len*2);
-   memcpy(m->value, &experimenter_id, len);
-   memcpy(m->value + len, &value, len);
-   pfile("dentro la put32e il valore è %"PRIx64"\n", (*((uint64_t*)(m->value))));
+   m->value = malloc(EXP_ID_LEN + len); //TODO: da fare anche la versione 8,16,64...
+    /* poi faremo
+    memcpy(m->value, &experimenter_id, EXP_ID_LEN);
+    memcpy(m->value + EXP_ID_LEN, &value, len);
+    */
+   memcpy(m->value, &value, len);
+   memcpy(m->value + len, &experimenter_id, len);
    hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
-   match->header.length += 2*len + 4;
+   match->header.length += len + EXP_ID_LEN + 4;
 }
 
 void
@@ -137,12 +140,17 @@ ofl_structs_match_put32me(struct ofl_match *match, uint32_t header, uint32_t exp
     int len = sizeof(uint32_t);
 
     m->header = header;
-    m->value = malloc(len*3);
-    memcpy(m->value, &experimenter_id, len);
-    memcpy(m->value + len, &value, len);
+    m->value = malloc(EXP_ID_LEN + len*2);
+    /* poi faremo
+    memcpy(m->value, &experimenter_id, EXP_ID_LEN);
+    memcpy(m->value + EXP_ID_LEN, &value, len);
+    memcpy(m->value + EXP_ID_LEN + len, &mask, len);
+    */
+    memcpy(m->value, &value, len);
+    memcpy(m->value + len, &experimenter_id, len);
     memcpy(m->value + len*2, &mask, len);
     hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
-    match->header.length += len*3 + 4;
+    match->header.length += len*2 + EXP_ID_LEN + 4;
 }
 
 void

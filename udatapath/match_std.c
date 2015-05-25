@@ -34,6 +34,7 @@
 #include "lib/hash.h"
 #include "oflib/oxm-match.h"
 #include "match_std.h"
+#include "openflow/openstate-ext.h"
 
 
 #include "vlog.h"
@@ -170,15 +171,21 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
                 break;
 
             case(OFPXMC_EXPERIMENTER):
-                field_len =  (OXM_LENGTH(f->header)-4);
-                flow_val = f->value + 4; //skip the experimenter_id
-                if (has_mask) {
-
-                    /* Clear the has_mask bit and divide the field_len by two in the packet field header */
-                    field_len /= 2;
-                    packet_header &= 0xfffffe00;
-                    packet_header |= (field_len + 4);
-                    flow_mask = f->value + field_len;
+                switch((*((uint32_t*) (f->value + 4))))
+                {
+                    case OPENSTATE_VENDOR_ID:
+                        field_len = (OXM_LENGTH(f->header) - EXP_ID_LEN);
+                        flow_val = f->value;
+                        if (has_mask) {
+                            /* Clear the has_mask bit and divide the field_len by two in the packet field header */
+                            field_len /= 2;
+                            packet_header &= 0xfffffe00;
+                            packet_header |= (field_len + 4);
+                            flow_mask = f->value + EXP_ID_LEN + field_len;
+                        }
+                        break;
+                    default:
+                        break;             
                 }
             break;
 
@@ -258,10 +265,7 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
                 }
                 else {
                     if (!match_32(flow_val, packet_val))
-                    {
                         return false;
-                    }
-                    
                 }
                 break;
             case 6:
@@ -384,15 +388,38 @@ match_std_strict(struct ofl_match *a, struct ofl_match *b) {
 
         /* At this point match length and has_mask are equal */
         has_mask = OXM_HASMASK(flow_mod_match->header);
-        field_len =  OXM_LENGTH(flow_mod_match->header);
         flow_mod_val = flow_mod_match->value;
         flow_entry_val = flow_entry_match->value;
-        if (has_mask)
+        switch (OXM_VENDOR(flow_mod_match->header))
         {
-            field_len /= 2;
-            flow_mod_mask = flow_mod_match->value + field_len;
-            flow_entry_mask = flow_entry_match->value + field_len;
+            case (OFPXMC_OPENFLOW_BASIC):          
+                field_len =  OXM_LENGTH(flow_mod_match->header);
+                if (has_mask)
+                    {
+                        field_len /= 2;
+                        flow_mod_mask = flow_mod_val + field_len;
+                        flow_entry_mask = flow_entry_val + field_len;
+                    }
+                break;
+            case (OFPXMC_EXPERIMENTER):
+                switch((*((uint32_t*) (flow_mod_val + 4))))
+                {
+                    case OPENSTATE_VENDOR_ID:
+                    field_len =  OXM_LENGTH(flow_mod_match->header) - EXP_ID_LEN;
+                    if (has_mask)
+                        {
+                            field_len /= 2;
+                            flow_mod_mask = flow_mod_val + field_len + EXP_ID_LEN;
+                            flow_entry_mask = flow_entry_val + field_len + EXP_ID_LEN;
+                        }
+                    break;
+                default:
+                    break;
+                }
+            default:
+                break;
         }
+        
         switch (field_len) {
             case 1:
                 if (has_mask) {
@@ -546,15 +573,38 @@ match_std_nonstrict(struct ofl_match *a, struct ofl_match *b)
 
         /* At this point match length and has_mask are equal */
         has_mask = OXM_HASMASK(flow_mod_match->header);
-        field_len =  OXM_LENGTH(flow_mod_match->header);
         flow_mod_val = flow_mod_match->value;
         flow_entry_val = flow_entry_match->value;
-        if (has_mask)
+        switch (OXM_VENDOR(flow_mod_match->header))
         {
-            field_len /= 2;
-            flow_mod_mask = flow_mod_match->value + field_len;
-            flow_entry_mask = flow_entry_match->value + field_len;
+            case (OFPXMC_OPENFLOW_BASIC):
+                field_len =  OXM_LENGTH(flow_mod_match->header);
+                if (has_mask)
+                {
+                    field_len /= 2;
+                    flow_mod_mask = flow_mod_match->value + field_len;
+                    flow_entry_mask = flow_entry_match->value + field_len;
+                }
+                break;
+            case (OFPXMC_EXPERIMENTER):
+                switch((*((uint32_t*) (flow_mod_val + 4))))
+                {
+                    case OPENSTATE_VENDOR_ID:
+                        field_len =  OXM_LENGTH(flow_mod_match->header) - EXP_ID_LEN;          
+                        if (has_mask)
+                        {
+                            field_len /= 2;
+                            flow_mod_mask = flow_mod_val + field_len + EXP_ID_LEN;
+                            flow_entry_mask = flow_entry_val + field_len + EXP_ID_LEN;
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            default:
+                break;
         }
+
         switch (field_len) {
             case 1:
                 if (has_mask) {
@@ -700,75 +750,156 @@ match_std_overlap(struct ofl_match *a, struct ofl_match *b)
     /* Loop through the match fields in flow entry a */
     HMAP_FOR_EACH(f_a, struct ofl_match_tlv, hmap_node, &a->match_fields)
     {
-        field_len = OXM_LENGTH(f_a->header);
         val_a = f_a->value;
-    	if (OXM_HASMASK(f_a->header)) {
-    		field_len /= 2;
-        	header = (f_a->header & 0xfffffe00) | field_len;
-        	header_m = f_a->header;
-        	mask_a = f_a->value + field_len;
-    	} else {
-    		header = f_a->header;
-    		header_m = (f_a->header & 0xfffffe00) | 0x100 | (field_len << 1);
-    		/* Set a dummy mask with all bits set to 0 (valid) */
-        	mask_a = (uint8_t *) all_mask;
-    	}
+        
+        switch (OXM_VENDOR(f_a->header))
+        {
+            case (OFPXMC_OPENFLOW_BASIC):
+                field_len = OXM_LENGTH(f_a->header); 
+                if (OXM_HASMASK(f_a->header)) {
+                	field_len /= 2;
+                	header = (f_a->header & 0xfffffe00) | field_len;
+                	header_m = f_a->header;
+                	mask_a = f_a->value + field_len;
+                } else {
+                	header = f_a->header;
+                	header_m = (f_a->header & 0xfffffe00) | 0x100 | (field_len << 1);
+                	/* Set a dummy mask with all bits set to 0 (valid) */
+                	mask_a = (uint8_t *) all_mask;
+                }
 
-        /* Check presence of corresponding match field in flow entry b
-         * Need to check for both masked and non-masked field */
-    	f_b = oxm_match_lookup(header, b);
-    	if (!f_b) f_b = oxm_match_lookup(header_m, b);
+                /* Check presence of corresponding match field in flow entry b
+                 * Need to check for both masked and non-masked field */
+                f_b = oxm_match_lookup(header, b);
+                if (!f_b) f_b = oxm_match_lookup(header_m, b);
 
-        if (f_b) {
-        	val_b = f_b->value;
-        	if (OXM_HASMASK(f_b->header)) {
-            	mask_b = f_b->value + field_len;
-        	} else {
-        		/* Set a dummy mask with all bits set to 0 (valid) */
-            	mask_b = (uint8_t *) all_mask;
-        	}
-            switch (field_len) {
-                case 1:
-                	if (incompatible_8(val_a, val_b, mask_a, mask_b)) {
-                		return false;
-                    }
-                    break;
-                case 2:
-                	if (incompatible_16(val_a, val_b, mask_a, mask_b)) {
-                		return false;
-                    }
-                    break;
-                case 4:
-                	if (incompatible_32(val_a, val_b, mask_a, mask_b)) {
-                		return false;
-                    }
-                    break;
-                case 6:
-                	if (incompatible_48(val_a, val_b, mask_a, mask_b)) {
-                		return false;
-                    }
-                    break;
-                case 8:
-                	if (incompatible_64(val_a, val_b, mask_a, mask_b)) {
-                		return false;
-                    }
-                    break;
-                case 16:
-                	if (incompatible_128(val_a, val_b, mask_a, mask_b)) {
-                		return false;
-                    }
-                    break;
+                if (f_b) {
+                	val_b = f_b->value;
+                	if (OXM_HASMASK(f_b->header)) {
+                    	mask_b = f_b->value + field_len;
+                	} else {
+                		/* Set a dummy mask with all bits set to 0 (valid) */
+                    	mask_b = (uint8_t *) all_mask;
+                	}
+                    switch (field_len) {
+                        case 1:
+                        	if (incompatible_8(val_a, val_b, mask_a, mask_b)) {
+                        		return false;
+                            }
+                            break;
+                        case 2:
+                        	if (incompatible_16(val_a, val_b, mask_a, mask_b)) {
+                        		return false;
+                            }
+                            break;
+                        case 4:
+                        	if (incompatible_32(val_a, val_b, mask_a, mask_b)) {
+                        		return false;
+                            }
+                            break;
+                        case 6:
+                        	if (incompatible_48(val_a, val_b, mask_a, mask_b)) {
+                        		return false;
+                            }
+                            break;
+                        case 8:
+                        	if (incompatible_64(val_a, val_b, mask_a, mask_b)) {
+                        		return false;
+                            }
+                            break;
+                        case 16:
+                        	if (incompatible_128(val_a, val_b, mask_a, mask_b)) {
+                        		return false;
+                            }
+                            break;
+                        default:
+                            /* Should never happen */
+                            break;
+                    } /* switch (field_len) */
+
+                } /* if (f_b) */
+
+                break;
+                case (OFPXMC_EXPERIMENTER):
+                    field_len = OXM_LENGTH(f_a->header) - EXP_ID_LEN; 
+                    switch((*((uint32_t*) (val_a + 4))))
+                    {
+                        case OPENSTATE_VENDOR_ID:
+                            if (OXM_HASMASK(f_a->header)) {
+                            field_len /= 2;
+                            header = (f_a->header & 0xfffffe00) | field_len;
+                            header_m = f_a->header;
+                            mask_a = f_a->value + field_len + EXP_ID_LEN ; /*plus 4 bytes of experimenter_id*/
+                        } else {
+                            header = f_a->header;
+                            header_m = (f_a->header & 0xfffffe00) | 0x100 | (field_len << 1);
+                            /* Set a dummy mask with all bits set to 0 (valid) */
+                            mask_a = (uint8_t *) all_mask;
+                        }
+
+                        /* Check presence of corresponding match field in flow entry b
+                         * Need to check for both masked and non-masked field */
+                        f_b = oxm_match_lookup(header, b);
+                        if (!f_b) f_b = oxm_match_lookup(header_m, b);
+
+                        if (f_b) {
+                            val_b = f_b->value;
+                            if (OXM_HASMASK(f_b->header)) {
+                                mask_b = f_b->value + field_len + 4;
+                            } else {
+                                /* Set a dummy mask with all bits set to 0 (valid) */
+                                mask_b = (uint8_t *) all_mask;
+                            }
+                            switch (field_len) {
+                                case 1:
+                                    if (incompatible_8(val_a, val_b, mask_a, mask_b)) {
+                                        return false;
+                                    }
+                                    break;
+                                case 2:
+                                    if (incompatible_16(val_a, val_b, mask_a, mask_b)) {
+                                        return false;
+                                    }
+                                    break;
+                                case 4:
+                                    if (incompatible_32(val_a, val_b, mask_a, mask_b)) {
+                                        return false;
+                                    }
+                                    break;
+                                case 6:
+                                    if (incompatible_48(val_a, val_b, mask_a, mask_b)) {
+                                        return false;
+                                    }
+                                    break;
+                                case 8:
+                                    if (incompatible_64(val_a, val_b, mask_a, mask_b)) {
+                                        return false;
+                                    }
+                                    break;
+                                case 16:
+                                    if (incompatible_128(val_a, val_b, mask_a, mask_b)) {
+                                        return false;
+                                    }
+                                    break;
+                                default:
+                                    /* Should never happen */
+                                    break;
+                            } /* switch (field_len) */
+
+                        } /* if (f_b) */
+
+                        break;
+                    default:
+                        break;
+                    } /*switch experimenter*/
                 default:
-                    /* Should never happen */
                     break;
-            } /* switch (field_len) */
-
-        } /* if (f_b) */
+        } /*switch class*/
 
     } /* HMAP_FOR_EACH */
 
-    /* If we get here, none of the common match fields in a and b were found incompatible.
-     * The flow entries overlap */
-    return true;
+/* If we get here, none of the common match fields in a and b were found incompatible.
+* The flow entries overlap */
+return true;
 }
 

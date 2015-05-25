@@ -11,7 +11,7 @@
  * Structures in this file are 64-bit aligned in size.
  */
 
-#define OPENSTATE_VENDOR_ID 0x0000BEBA
+#define OPENSTATE_VENDOR_ID 0xBEBABEBA
 
 enum oxm_exp_match_fields {
     OFPXMT_EXP_FLAGS = 0,      /* Global States */

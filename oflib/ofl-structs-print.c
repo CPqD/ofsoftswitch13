@@ -438,28 +438,22 @@ ofl_structs_oxm_tlv_print(FILE *stream, struct ofl_match_tlv *f)
 
         case(OFPXMC_EXPERIMENTER):
         	switch (field) {
-
 	        	case OFPXMT_EXP_STATE:
-	        	fprintf(stream, "state=\"%"PRIu32"\"", *((uint32_t*)(f->value + 4)));
-				if (OXM_HASMASK(f->header)) {
-					fprintf(stream, ",state_mask=\"%"PRIu32"\"", *((uint32_t*)(f->value + 8)));
-				}
-	 			break;
+		        	fprintf(stream, "state=\"%"PRIu32"\"", *((uint32_t*)(f->value)));
+					if (OXM_HASMASK(f->header)) {
+						fprintf(stream, ",state_mask=\"%"PRIu32"\"", *((uint32_t*)(f->value + 8)));
+					}
+		 			break;
 
 				case OFPXMT_EXP_FLAGS:
-					/*
-					fprintf(stream, "flags=\"%d\"", *((uint32_t*) f->value));
-					if (OXM_HASMASK(f->header)) {
-						fprintf(stream, ", flags_mask=\"%d\"", *((uint32_t*)(f->value+4)));
-					}*/
 					fprintf(stream, "flags=");
 					if (!OXM_HASMASK(f->header)) {
 						char string_value[33];
-			            masked_value_print(string_value,decimal_to_binary(*((uint32_t*) (f->value + 4))),decimal_to_binary((uint32_t)(pow(2,32)-1)));
+			            masked_value_print(string_value,decimal_to_binary(*((uint32_t*) (f->value))),decimal_to_binary((uint32_t)(pow(2,32)-1)));
 			            fprintf(stream,"%s",string_value);
 					} else {
 						char string_value[33];
-			            masked_value_print(string_value,decimal_to_binary(*((uint32_t*) (f->value + 4))),decimal_to_binary(*((uint32_t*)(f->value + 8))));
+			            masked_value_print(string_value,decimal_to_binary(*((uint32_t*) (f->value))),decimal_to_binary(*((uint32_t*)(f->value + 8))));
 			            fprintf(stream,"%s",string_value);
 			        }
 					break;
