@@ -643,13 +643,13 @@ oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len)
                         /* 'hasmask' and 'length' are known to be correct at this point
                          * because they are included in 'header' and oxm_field_lookup()
                          * checked them already. */
-                         //parse_exp_oxm_entry accepts match, oxm_fields, experimenter_id, value and mask
+                         //parse_exp_oxm_entry() args are match, oxm_fields, experimenter_id, value and mask
                          //sizeof(header) is 4 byte
                          //sizeof(experimenter_id) is 4 byte
                          //experimenter_id is @ p + 4 (p + header)
                          //value is @ p + 8 (p + header + experimenter_id)
                          //mask depends on field's size
-                        error = parse_exp_oxm_entry(match_dst, f, p + 4, p + 8, p + 8 + (length-4) / 2);
+                        error = parse_exp_oxm_entry(match_dst, f, p + 4, p + 4 + EXP_ID_LEN, p + 4 + EXP_ID_LEN + (length-EXP_ID_LEN) / 2);
                         break;
                     default:
                         error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_FIELD);
@@ -725,10 +725,11 @@ oxm_put_8(struct ofpbuf *buf, uint32_t header, uint8_t value)
 }
 
 static void
-oxm_put_8e(struct ofpbuf *buf, uint32_t header,const uint8_t value[EXP_ID_LEN+sizeof(uint8_t)])
+oxm_put_8e(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint8_t value)
 {
     oxm_put_header(buf, header);
-    ofpbuf_put(buf, value, EXP_ID_LEN+sizeof(uint8_t));
+    ofpbuf_put(buf, &experimenter_id, EXP_ID_LEN);
+    ofpbuf_put(buf, &value, sizeof value);
 }
 
 static void
@@ -740,10 +741,11 @@ oxm_put_8w(struct ofpbuf *buf, uint32_t header, uint8_t value, uint8_t mask)
 }
 
 static void
-oxm_put_8we(struct ofpbuf *buf, uint32_t header,const uint8_t value[EXP_ID_LEN+sizeof(uint8_t)], uint8_t mask)
+oxm_put_8we(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint8_t value, uint8_t mask)
 {
     oxm_put_header(buf, header);
-    ofpbuf_put(buf, value, EXP_ID_LEN+sizeof(uint8_t));
+    ofpbuf_put(buf, &experimenter_id, EXP_ID_LEN);
+    ofpbuf_put(buf, &value, sizeof value);
     ofpbuf_put(buf, &mask, sizeof mask);
 }
 
@@ -755,10 +757,11 @@ oxm_put_16(struct ofpbuf *buf, uint32_t header, uint16_t value)
 }
 
 static void
-oxm_put_16e(struct ofpbuf *buf, uint32_t header,const uint8_t value[EXP_ID_LEN+sizeof(uint16_t)])
+oxm_put_16e(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint16_t value)
 {
     oxm_put_header(buf, header);
-    ofpbuf_put(buf, value, EXP_ID_LEN+sizeof(uint16_t));
+    ofpbuf_put(buf, &experimenter_id, EXP_ID_LEN);
+    ofpbuf_put(buf, &value, sizeof value);
 }
 
 static void
@@ -770,10 +773,11 @@ oxm_put_16w(struct ofpbuf *buf, uint32_t header, uint16_t value, uint16_t mask)
 }
 
 static void
-oxm_put_16we(struct ofpbuf *buf, uint32_t header,const uint8_t value[EXP_ID_LEN+sizeof(uint16_t)], uint16_t mask)
+oxm_put_16we(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint16_t value, uint16_t mask)
 {
     oxm_put_header(buf, header);
-    ofpbuf_put(buf, value, EXP_ID_LEN+sizeof(uint16_t));
+    ofpbuf_put(buf, &experimenter_id, EXP_ID_LEN);
+    ofpbuf_put(buf, &value, sizeof value);
     ofpbuf_put(buf, &mask, sizeof mask);
 }
 
@@ -785,10 +789,11 @@ oxm_put_32(struct ofpbuf *buf, uint32_t header, uint32_t value)
 }
 
 static void
-oxm_put_32e(struct ofpbuf *buf, uint32_t header,const uint8_t value[EXP_ID_LEN+sizeof(uint32_t)])
+oxm_put_32e(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint32_t value)
 {
     oxm_put_header(buf, header);
-    ofpbuf_put(buf, value, EXP_ID_LEN+sizeof(uint32_t));
+    ofpbuf_put(buf, &experimenter_id, EXP_ID_LEN);
+    ofpbuf_put(buf, &value, sizeof value);
 }
 
 static void
@@ -800,11 +805,12 @@ oxm_put_32w(struct ofpbuf *buf, uint32_t header, uint32_t value, uint32_t mask)
 }
 
 static void
-oxm_put_32we(struct ofpbuf *buf, uint32_t header, const uint8_t value[EXP_ID_LEN+sizeof(uint32_t)], uint32_t mask)
+oxm_put_32we(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint32_t value, uint32_t mask)
 {
     oxm_put_header(buf, header);
-    ofpbuf_put(buf, value, EXP_ID_LEN+sizeof(uint32_t));
-    ofpbuf_put(buf, &mask, sizeof mask);   
+    ofpbuf_put(buf, &experimenter_id, EXP_ID_LEN);
+    ofpbuf_put(buf, &value, sizeof value);
+    ofpbuf_put(buf, &mask, sizeof mask);
 }
 
 static void
@@ -815,10 +821,11 @@ oxm_put_64(struct ofpbuf *buf, uint32_t header, uint64_t value)
 }
 
 static void
-oxm_put_64e(struct ofpbuf *buf, uint32_t header,const uint8_t value[EXP_ID_LEN+sizeof(uint64_t)])
+oxm_put_64e(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint64_t value)
 {
     oxm_put_header(buf, header);
-    ofpbuf_put(buf, value, EXP_ID_LEN+sizeof(uint64_t));
+    ofpbuf_put(buf, &experimenter_id, EXP_ID_LEN);
+    ofpbuf_put(buf, &value, sizeof value);
 }
 
 static void
@@ -830,11 +837,12 @@ oxm_put_64w(struct ofpbuf *buf, uint32_t header, uint64_t value, uint64_t mask)
 }
 
 static void
-oxm_put_64we(struct ofpbuf *buf, uint32_t header, const uint8_t value[EXP_ID_LEN+sizeof(uint64_t)], uint64_t mask)
+oxm_put_64we(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint64_t value, uint64_t mask)
 {
     oxm_put_header(buf, header);
-    ofpbuf_put(buf, value, EXP_ID_LEN+sizeof(uint64_t));
-    ofpbuf_put(buf, &mask, sizeof mask);   
+    ofpbuf_put(buf, &experimenter_id, EXP_ID_LEN);
+    ofpbuf_put(buf, &value, sizeof value);
+    ofpbuf_put(buf, &mask, sizeof mask); 
 }
 
 static void
@@ -1046,73 +1054,66 @@ int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt){
                         }
                         break;
                     case (OFPXMC_EXPERIMENTER):
-                        length = length - EXP_ID_LEN;      /*length is the field length -> the experimenter_id is excluded*/                
+                        length = length - EXP_ID_LEN;      /* field length should exclude experimenter_id */                
                         if (OXM_HASMASK(oft->header)){
                             length = length / 2;
                             has_mask = true;
                         }
-                        /*We have to take into account the experimenter_id. We need 32 bit "padding" (experimenter_id=0) before TLV's value -> |   exp_id   |   value   |*/
                         switch (length){
                             case (sizeof(uint8_t)):{
-                                uint8_t value[EXP_ID_LEN+sizeof(uint8_t)] = {0};                               
-                                memcpy(value,oft->value,sizeof(uint8_t));
+                                uint32_t experimenter_id;
+                                uint8_t value;
+                                memcpy(&experimenter_id, oft->value, sizeof(uint32_t));
+                                memcpy(&value, oft->value + EXP_ID_LEN, sizeof(uint8_t));
                                 if(!has_mask)
-                                    oxm_put_8e(buf,oft->header,value);
+                                    oxm_put_8e(buf,oft->header, htonl(experimenter_id), value);
                                 else {
                                     uint8_t mask;
-                                    memcpy(&mask,oft->value + length ,sizeof(uint8_t));
-                                    oxm_put_8we(buf, oft->header,value,mask);
+                                    memcpy(&mask, oft->value + EXP_ID_LEN + length , sizeof(uint8_t));
+                                    oxm_put_8we(buf, oft->header, htonl(experimenter_id), value, mask);
                                 }
                                 break;
                               }
                             case (sizeof(uint16_t)):{
-                                uint8_t value[EXP_ID_LEN+sizeof(uint16_t)] = {0};
-                                uint16_t aux;
-                                aux = htons(*((uint16_t*)(oft->value)));
-                                memcpy(value+EXP_ID_LEN,&aux,sizeof(uint16_t));
+                                uint32_t experimenter_id;
+                                uint16_t value;
+                                memcpy(&experimenter_id, oft->value, sizeof(uint32_t));
+                                memcpy(&value, oft->value + EXP_ID_LEN, sizeof(uint16_t));
                                 if(!has_mask)
-                                    oxm_put_16e(buf,oft->header, value);
+                                    oxm_put_16e(buf,oft->header, htonl(experimenter_id), htons(value));
                                 else {
                                     uint16_t mask;
-                                    memcpy(&mask,oft->value + length ,sizeof(uint16_t));
-                                    oxm_put_16we(buf, oft->header,value,htons(mask));
+                                    memcpy(&mask, oft->value + EXP_ID_LEN + length , sizeof(uint16_t));
+                                    oxm_put_16we(buf, oft->header, htonl(experimenter_id), htons(value), htons(mask));
                                 }
                                 break;
                             }
                             case (sizeof(uint32_t)):{
-                                uint8_t value[EXP_ID_LEN+sizeof(uint32_t)] = {0};
-                                uint32_t field_value;
-                                uint32_t experimenter_id;
-                                /*We use these auxiliary variables to change the endianness of each single field*/
-                                /// ROBA CONTORTA INUTILE!!!! VEDI FOGLIO DI SANVITZ
-                                experimenter_id = htonl(*((uint32_t*)(oft->value + EXP_ID_LEN)));
-                                field_value = htonl(*((uint32_t*)((oft->value))));
-                                memcpy(value, &experimenter_id, sizeof(uint32_t));
-                                memcpy(value + EXP_ID_LEN, &field_value, sizeof(uint32_t));
-                                if(!has_mask)                                   
-                                    oxm_put_32e(buf,oft->header, value);
+                                uint32_t experimenter_id, value;
+                                memcpy(&experimenter_id, oft->value, sizeof(uint32_t));
+                                memcpy(&value, oft->value + EXP_ID_LEN, sizeof(uint32_t));
+                                if(!has_mask)
+                                    oxm_put_32e(buf,oft->header, htonl(experimenter_id), htonl(value));
                                 else {
                                     uint32_t mask;
-                                    memcpy(&mask, (uint32_t*)(oft->value + EXP_ID_LEN + length), sizeof(uint32_t));
-                                    oxm_put_32we(buf, oft->header, value,htonl(mask));
+                                    memcpy(&mask, oft->value + EXP_ID_LEN + length , sizeof(uint32_t));
+                                    oxm_put_32we(buf, oft->header, htonl(experimenter_id), htonl(value), htonl(mask));
                                 }
-                                  break;
-
+                                break;
                             }
                             case (sizeof(uint64_t)):{
-                                uint8_t value[EXP_ID_LEN+sizeof(uint64_t)] = {0};
-                                uint64_t aux;
-                                aux = hton64(*((uint64_t*)(oft->value)));
-                                memcpy(value+EXP_ID_LEN,&aux,sizeof(uint64_t));
-                                
-                                 if(!has_mask)
-                                     oxm_put_64e(buf,oft->header, value);
-                                 else {
-                                     uint64_t mask;
-                                     memcpy(&mask,oft->value + length ,sizeof(uint64_t));
-                                     oxm_put_64we(buf, oft->header,value,hton64(mask));
-                                 }
-                                 break;
+                                uint32_t experimenter_id;
+                                uint64_t value;
+                                memcpy(&experimenter_id, oft->value, sizeof(uint32_t));
+                                memcpy(&value, oft->value + EXP_ID_LEN, sizeof(uint64_t));
+                                if(!has_mask)
+                                    oxm_put_64e(buf,oft->header, htonl(experimenter_id), hton64(value));
+                                else {
+                                    uint64_t mask;
+                                    memcpy(&mask, oft->value + EXP_ID_LEN + length , sizeof(uint64_t));
+                                    oxm_put_64we(buf, oft->header, htonl(experimenter_id), hton64(value), hton64(mask));
+                                }
+                                break;
                             }
                         }
                         break;
