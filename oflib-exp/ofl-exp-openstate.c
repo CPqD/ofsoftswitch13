@@ -22,6 +22,24 @@ OFL_LOG_INIT(LOG_MODULE)
 
 /* functions used by OFP_EXP_STATE_MOD*/
 static ofl_err
+ofl_structs_statefulness_config_unpack(struct ofp_exp_statefulness_config *src, size_t *len, struct ofl_exp_msg_statefulness_config *dst) {
+    int i;
+    if(*len == sizeof(struct ofp_exp_statefulness_config))
+    {
+        dst->statefulness = src->statefulness;
+    }
+    else
+    { 
+       OFL_LOG_WARN(LOG_MODULE, "Received state mod statefulness is too short (%zu).", *len);
+       return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+    }
+
+    *len -= sizeof(struct ofp_exp_statefulness_config);
+ 
+    return 0;
+}
+
+static ofl_err
 ofl_structs_extraction_unpack(struct ofp_exp_extraction *src, size_t *len, struct ofl_exp_msg_extraction *dst) {
     int i;
     if(*len == (1+ntohl(src->field_count))*sizeof(uint32_t) && (ntohl(src->field_count)>0))
@@ -109,7 +127,7 @@ ofl_exp_openstate_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_
             {
                 struct ofp_exp_state_mod *sm;
                 struct ofl_exp_msg_state_mod *dm;
-
+                
                 if (*len < sizeof(struct ofp_exp_state_mod)) {
                     OFL_LOG_WARN(LOG_MODULE, "Received STATE_MOD message has invalid length (%zu).", *len);
                     return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
@@ -140,7 +158,7 @@ ofl_exp_openstate_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_
 
                 } 
 
-                else if(dm->command ==OFPSC_SET_L_EXTRACTOR || dm->command == OFPSC_SET_U_EXTRACTOR){
+                else if(dm->command == OFPSC_SET_L_EXTRACTOR || dm->command == OFPSC_SET_U_EXTRACTOR){
                 error = ofl_structs_extraction_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
                     if (error) {
                         free(dm);
@@ -148,6 +166,17 @@ ofl_exp_openstate_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_
                     }
 
                 }
+
+                else if(dm->command == OFPSC_STATEFULNESS_CONFIG){
+                error = ofl_structs_statefulness_config_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
+                    if (error) {
+                        free(dm);
+                        return error;
+                    }
+
+                }
+
+
                 (*msg) = (struct ofl_msg_experimenter *)dm;
                 return 0;
             }
@@ -442,8 +471,21 @@ struct state_table * state_table_create(void) {
 
     /* default state entry */
     table->default_state_entry.state = STATE_DEFAULT;
+
+    table->statefulness = 0;
     
     return table;
+}
+
+uint8_t state_table_is_stateful(struct state_table *table){
+    return table->statefulness;
+}
+
+void state_table_configure_statefulness(struct state_table *table, uint8_t statefulness){
+    if (statefulness!=0)
+        table->statefulness = 1;
+    else
+        table->statefulness = 0;
 }
 
 void state_table_destroy(struct state_table *table) {
@@ -661,18 +703,33 @@ handle_state_mod(struct pipeline *pl, struct ofl_exp_msg_state_mod *msg,
 
     if (msg->command == OFPSC_SET_L_EXTRACTOR || msg->command == OFPSC_SET_U_EXTRACTOR) {
         struct ofl_exp_msg_extraction *p = (struct ofl_exp_msg_extraction *) msg->payload;  
-        int update=0;
+        int update = 0;
         if (msg->command == OFPSC_SET_U_EXTRACTOR) 
             update = 1;
         state_table_set_extractor(st, (struct key_extractor *)p, update);
     }
     else if (msg->command == OFPSC_SET_FLOW_STATE) {
-        struct ofl_exp_msg_state_entry *p = (struct ofl_exp_msg_state_entry *) msg->payload;
-        state_table_set_state(st, NULL, p->state, p->state_mask, p->key, p->key_len);
+        if (state_table_is_stateful(st)){
+            struct ofl_exp_msg_state_entry *p = (struct ofl_exp_msg_state_entry *) msg->payload;
+            state_table_set_state(st, NULL, p->state, p->state_mask, p->key, p->key_len);
+        }
+        else{
+            OFL_LOG_WARN(LOG_MODULE, "ERROR STATE MOD at stage %u: stage not stateful", msg->table_id);
+        }
     }
     else if (msg->command == OFPSC_DEL_FLOW_STATE) {
-        struct ofl_exp_msg_state_entry *p = (struct ofl_exp_msg_state_entry *) msg->payload;
-        state_table_del_state(st, p->key, p->key_len);
+        if (state_table_is_stateful(st)){
+            struct ofl_exp_msg_state_entry *p = (struct ofl_exp_msg_state_entry *) msg->payload;
+            state_table_del_state(st, p->key, p->key_len);
+        }
+        else{
+             OFL_LOG_WARN(LOG_MODULE, "ERROR STATE MOD at stage %u: stage not stateful", msg->table_id);
+        }
+
+    }
+    else if (msg->command == OFPSC_STATEFULNESS_CONFIG) {
+        struct ofl_exp_msg_statefulness_config *p = (struct ofl_exp_msg_state_entry *) msg->payload;
+        state_table_configure_statefulness(st, p->statefulness);
     }
     else
         return 1;

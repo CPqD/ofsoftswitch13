@@ -45,6 +45,10 @@ struct ofl_exp_msg_extraction {
     uint32_t fields[OFPSC_MAX_FIELD_COUNT];
 };
 
+struct ofl_exp_msg_statefulness_config {
+    uint8_t statefulness;
+};
+
 /************************
  * flag mod messages
  ************************/
@@ -103,6 +107,7 @@ struct state_table {
     struct key_extractor        write_key;
     struct hmap                 state_entries; 
     struct state_entry          default_state_entry;
+    uint8_t statefulness;
 };
 
 /*experimenter table functions*/
@@ -111,6 +116,9 @@ state_table_create(void);
 
 void 
 state_table_destroy(struct state_table *);
+
+uint8_t 
+state_table_is_stateful(struct state_table *);
 
 struct state_entry * 
 state_table_lookup(struct state_table*, struct packet *);

@@ -156,12 +156,12 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
         table         = next_table;
         next_table    = NULL;
 		
-    		//printf("before controlling the table feature config\n");
-		if (table->features->config &OFPTC_TABLE_STATEFUL) {
-			
+		if (state_table_is_stateful(table->state_table)) {
 			state_entry = state_table_lookup(table->state_table, pkt);
-            if(state_entry!=NULL)
-			     state_table_write_state(state_entry, pkt);
+            if(state_entry!=NULL){
+			     ofl_structs_match_put32e(&pkt->handle_std->match, OXM_EXP_STATE, 0xBEBABEBA, 0x00000000);
+                 state_table_write_state(state_entry, pkt);
+            }
 		}
         
         pipeline_global_states_write_flags(pkt);

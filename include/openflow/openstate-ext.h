@@ -19,6 +19,11 @@ enum oxm_exp_match_fields {
     OFPXMT_EXP_STATE = 1       /* Flow State */
 };
 
+enum ofp_openstate_extension_commands {
+    OFP_EXT_STATE_MOD = 0,
+    OFP_EXT_FLAG_MOD = 1
+};
+
 /****************************************************************
  *
  * OpenFlow experimenter Actions
@@ -63,7 +68,7 @@ OFP_ASSERT(sizeof(struct ofp_exp_action_set_flag) == 24);
 struct ofp_message_os_ext_header {
     struct ofp_header header;
     uint32_t vendor;            /* OPENFLOW_VENDOR_ID. */
-    uint32_t subtype;           /* One of ofp_extension_commands */
+    uint32_t subtype;           /* One of ofp_openstate_extension_commands */
 };
 OFP_ASSERT(sizeof(struct ofp_message_os_ext_header) == 16);
 
@@ -86,11 +91,18 @@ struct ofp_exp_extraction {
     uint32_t fields[OFPSC_MAX_FIELD_COUNT];
 };
 
+struct ofp_exp_statefulness_config {
+    uint8_t statefulness;
+    uint8_t pad; //TODO sanvitz: sizeof adds an extra byte to align to multiple of 4 bytes?!
+};
+
+
 enum ofp_exp_state_mod_command {
     OFPSC_SET_L_EXTRACTOR = 0,
     OFPSC_SET_U_EXTRACTOR,
     OFPSC_SET_FLOW_STATE,   
-    OFPSC_DEL_FLOW_STATE
+    OFPSC_DEL_FLOW_STATE,
+    OFPSC_STATEFULNESS_CONFIG
 };
 
 

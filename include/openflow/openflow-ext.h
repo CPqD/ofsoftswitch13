@@ -23,9 +23,7 @@ enum ofp_extension_commands { /* Queue configuration commands */
     OFP_EXT_QUEUE_MODIFY,  /* Add and/or modify */
     OFP_EXT_QUEUE_DELETE,  /* Remove a queue */
     OFP_EXT_SET_DESC,      /* Set ofp_desc_stat->dp_desc */
-    OFP_EXT_COUNT,
-    OFP_EXT_STATE_MOD,
-    OFP_EXT_FLAG_MOD
+    OFP_EXT_COUNT
 };
 
 enum ofp_action_extension_commands {

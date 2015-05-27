@@ -630,8 +630,7 @@ enum ofp_table_config {
     OFPTC_TABLE_MISS_CONTINUE = 1 << 0, /* Continue to the next table in the
                                            pipeline (OpenFlow 1.0 behavior). */
     OFPTC_TABLE_MISS_DROP = 1 << 1,     /* Drop the packet. */
-    OFPTC_TABLE_MISS_MASK = 3,
-    OFPTC_TABLE_STATEFUL = 1 << 4
+    OFPTC_TABLE_MISS_MASK = 3
 };
 
 #define OFP_DEFAULT_PRIORITY 0x8000
