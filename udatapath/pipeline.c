@@ -52,7 +52,7 @@
 #include "oflib/oxm-match.h"
 #include "vlog.h"
 #include "dp_capabilities.h"
- #include "oflib-exp/ofl-exp-openstate.h"
+#include "oflib-exp/ofl-exp-openstate.h"
 
 #define LOG_MODULE VLM_pipeline
 

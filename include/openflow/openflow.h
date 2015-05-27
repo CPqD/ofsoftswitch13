@@ -40,7 +40,6 @@
 #define OFP_ETH_ALEN 6          /* Bytes in an Ethernet address. */
 /* Number of tables in the pipeline */
 #define PIPELINE_TABLES 64
-#define OFP_GLOBAL_STATES_DEFAULT 0
 
 /* Header on all OpenFlow packets. */
 struct ofp_header {

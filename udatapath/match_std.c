@@ -34,7 +34,6 @@
 #include "lib/hash.h"
 #include "oflib/oxm-match.h"
 #include "match_std.h"
-#include "openflow/openstate-ext.h"
 
 
 #include "vlog.h"

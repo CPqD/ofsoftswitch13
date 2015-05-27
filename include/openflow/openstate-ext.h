@@ -12,6 +12,7 @@
  */
 
 #define OPENSTATE_VENDOR_ID 0xBEBABEBA
+#define OFP_GLOBAL_STATES_DEFAULT 0
 
 enum oxm_exp_match_fields {
     OFPXMT_EXP_FLAGS = 0,      /* Global States */
