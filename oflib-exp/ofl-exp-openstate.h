@@ -17,9 +17,8 @@
 /*                        experimenter messages ofl_exp                   */
 /**************************************************************************/
 struct ofl_exp_openstate_msg_header {
-    struct ofl_msg_experimenter   header; /* OPENSTATE_VENDOR_ID */
-
-    uint32_t   type;
+    struct ofl_msg_experimenter header; /* OPENSTATE_VENDOR_ID */
+    uint32_t type;
 };
 
 /************************
@@ -27,9 +26,9 @@ struct ofl_exp_openstate_msg_header {
  ************************/
 
 struct ofl_exp_msg_state_mod {
-    struct ofl_exp_openstate_msg_header header;   /* OFP_EXP_STATE_MOD */
+    struct ofl_exp_openstate_msg_header header;   /* ofp_exp_message_state_mod */
     uint8_t table_id;
-    enum ofp_exp_state_mod_command command;
+    enum ofp_exp_message_state_mod_commands command;
     uint8_t payload[12+OFPSC_MAX_KEY_LEN]; //ugly! for now it's ok XXX
 };
 
@@ -57,7 +56,7 @@ struct ofl_exp_msg_flag_mod {
     struct ofl_exp_openstate_msg_header header;   /* OFPT_EXP_FLAG_MOD */
     uint32_t flag;
     uint32_t flag_mask;
-    enum ofp_exp_flag_mod_command command;
+    enum ofp_exp_message_flag_mod_command command;
 };
 
 /*************************************************************************/

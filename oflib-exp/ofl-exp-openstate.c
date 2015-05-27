@@ -20,7 +20,7 @@ OFL_LOG_INIT(LOG_MODULE)
 
 
 
-/* functions used by OFP_EXP_STATE_MOD*/
+/* functions used by ofp_exp_message_state_mod*/
 static ofl_err
 ofl_structs_statefulness_config_unpack(struct ofp_exp_statefulness_config *src, size_t *len, struct ofl_exp_msg_statefulness_config *dst) {
     int i;
@@ -110,41 +110,43 @@ ofl_err
 ofl_exp_openstate_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_experimenter **msg) {
     
     ofl_err error;
-    struct ofp_message_os_ext_header *exp;
+    struct ofp_experimenter_header *exp_header;
 
-    if (*len < sizeof(struct ofp_message_os_ext_header)) {
+    if (*len < sizeof(struct ofp_experimenter_header)) {
         OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER message has invalid length (%zu).", *len);
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
 
-    exp = (struct ofp_message_os_ext_header *)oh;
+    exp_header = (struct ofp_experimenter_header *)oh;
 
 
-    if (ntohl(exp->vendor) == OPENSTATE_VENDOR_ID) {
+    if (ntohl(exp_header->experimenter) == OPENSTATE_VENDOR_ID) {
 
-        switch (ntohl(exp->subtype)) {
-            case (OFP_EXT_STATE_MOD): 
+        switch (ntohl(exp_header->exp_type)) {
+            case (OFPT_EXP_STATE_MOD): 
             {
-                struct ofp_exp_state_mod *sm;
+                struct ofp_exp_message_state_mod *sm;
                 struct ofl_exp_msg_state_mod *dm;
                 
-                if (*len < sizeof(struct ofp_exp_state_mod)) {
+                if (*len < sizeof(struct ofp_exp_message_state_mod)) {
                     OFL_LOG_WARN(LOG_MODULE, "Received STATE_MOD message has invalid length (%zu).", *len);
                     return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
                 }
-                sm = (struct ofp_exp_state_mod *)exp;
+
+                *len -= sizeof(struct ofp_experimenter_header);
+
+                sm = (struct ofp_exp_message_state_mod *)exp_header;
                 dm = (struct ofl_exp_msg_state_mod *)malloc(sizeof(struct ofl_exp_msg_state_mod));
                 
                 if (sm->table_id >= PIPELINE_TABLES) {
                     OFL_LOG_WARN(LOG_MODULE, "Received STATE_MOD message has invalid table id (%zu).", sm->table_id );
                     return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
                 } 
-                *len -= sizeof(struct ofp_message_os_ext_header);
-
-                dm->header.header.experimenter_id = ntohl(exp->vendor);
-                dm->header.type                   = ntohl(exp->subtype);
+                
+                dm->header.header.experimenter_id = ntohl(exp_header->experimenter);
+                dm->header.type                   = ntohl(exp_header->exp_type);
                 dm->table_id = sm->table_id;
-                dm->command = (enum ofp_exp_state_mod_command)sm->command;
+                dm->command = (enum ofp_exp_message_state_mod_commands)sm->command;
                 
                 *len -= sizeof(dm->table_id) + 1;
 
@@ -181,25 +183,25 @@ ofl_exp_openstate_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_
                 return 0;
             }
 
-            case (OFP_EXT_FLAG_MOD): 
+            case (OFPT_EXT_FLAG_MOD): 
             {
-                struct ofp_exp_flag_mod *sm;
+                struct ofp_exp_message_flag_mod *sm;
                 struct ofl_exp_msg_flag_mod *dm;
                               
-                if (*len < sizeof(struct ofp_exp_flag_mod)) {
+                if (*len < sizeof(struct ofp_exp_message_flag_mod)) {
                     OFL_LOG_WARN(LOG_MODULE, "Received FLAG_MOD message has invalid length (%zu).", *len);
                     return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
                 }
-                sm = (struct ofp_exp_flag_mod *)exp;
+                sm = (struct ofp_exp_message_flag_mod *)exp_header;
                 dm = (struct ofl_exp_msg_flag_mod *)malloc(sizeof(struct ofl_exp_msg_flag_mod));
                 
-                *len -= sizeof(struct ofp_exp_flag_mod);
+                *len -= sizeof(struct ofp_exp_message_flag_mod);
 
-                dm->header.header.experimenter_id = ntohl(exp->vendor);
-                dm->header.type                   = ntohl(exp->subtype);
+                dm->header.header.experimenter_id = ntohl(exp_header->experimenter);
+                dm->header.type                   = ntohl(exp_header->exp_type);
                 dm->flag = ntohl(sm->flag);
                 dm->flag_mask = ntohl(sm->flag_mask);
-                dm->command = (enum ofp_exp_flag_mod_command)sm->command;
+                dm->command = (enum ofp_exp_message_flag_mod_command)sm->command;
             
                 (*msg) = (struct ofl_msg_experimenter *)dm;
                 return 0;
@@ -271,8 +273,8 @@ ofl_exp_openstate_act_unpack(struct ofp_action_header *src, size_t *len, struct 
     exp = (struct ofp_action_experimenter_header *)src;
 
     if (ntohl(exp->experimenter) == OPENSTATE_VENDOR_ID) {
-        struct ofp_action_extension_header *ext;
-        ext = (struct ofp_action_extension_header *)exp;
+        struct ofp_openstate_action_experimenter_header *ext;
+        ext = (struct ofp_openstate_action_experimenter_header *)exp;
 
         switch (ntohl(ext->act_type)) {
             case (OFPAT_EXP_SET_STATE): 

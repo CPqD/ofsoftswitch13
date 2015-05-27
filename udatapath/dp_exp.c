@@ -136,10 +136,10 @@ dp_exp_message(struct datapath *dp, struct ofl_msg_experimenter *msg, const stru
             struct ofl_exp_openstate_msg_header *exp = (struct ofl_exp_openstate_msg_header *)msg;
 
             switch(exp->type) {
-                case (OFP_EXT_STATE_MOD): {
+                case (OFPT_EXP_STATE_MOD): {
                     return handle_state_mod(dp->pipeline, (struct ofl_exp_msg_state_mod *)msg, sender);
                 }
-                case (OFP_EXT_FLAG_MOD): {
+                case (OFPT_EXT_FLAG_MOD): {
                     return handle_flag_mod(dp->pipeline, (struct ofl_exp_msg_flag_mod *)msg, sender);
                 }
                 default: {

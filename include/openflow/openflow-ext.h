@@ -26,12 +26,6 @@ enum ofp_extension_commands { /* Queue configuration commands */
     OFP_EXT_COUNT
 };
 
-enum ofp_action_extension_commands {
-    OFPAT_EXP_SET_STATE,        /* Write the next state field for use later in
-                                pipeline */
-    OFPAT_EXP_SET_FLAG          /* Set a single flag value of the global state */
-};
-
 struct ofp_message_extension_header {
     struct ofp_header header;
     uint32_t vendor;            /* OPENFLOW_VENDOR_ID. */

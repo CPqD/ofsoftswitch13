@@ -15,13 +15,8 @@
 #define OFP_GLOBAL_STATES_DEFAULT 0
 
 enum oxm_exp_match_fields {
-    OFPXMT_EXP_FLAGS = 0,      /* Global States */
-    OFPXMT_EXP_STATE = 1       /* Flow State */
-};
-
-enum ofp_openstate_extension_commands {
-    OFP_EXT_STATE_MOD = 0,
-    OFP_EXT_FLAG_MOD = 1
+    OFPXMT_EXP_FLAGS,      /* Global States */
+    OFPXMT_EXP_STATE       /* Flow State */
 };
 
 /****************************************************************
@@ -29,16 +24,21 @@ enum ofp_openstate_extension_commands {
  * OpenFlow experimenter Actions
  *
  ****************************************************************/
-struct ofp_action_extension_header {
-    struct ofp_action_experimenter_header header;
-    uint32_t act_type;   /* One of ofp_action_extension_commands */
+enum ofp_exp_actions {
+    OFPAT_EXP_SET_STATE,
+    OFPAT_EXP_SET_FLAG
+};
+
+struct ofp_openstate_action_experimenter_header {
+    struct ofp_action_experimenter_header header;   /*  OpenFlow's standard experimenter action header*/
+    uint32_t act_type;   /* type in header is OFPAT_EXPERIMENTER, act_type is one of ofp_exp_actions */
     uint8_t pad[4];
 };
-OFP_ASSERT(sizeof(struct ofp_action_extension_header) == 16);
+OFP_ASSERT(sizeof(struct ofp_openstate_action_experimenter_header) == 16);
 
 /* Action structure for OFPAT_EXP_SET_STATE */
 struct ofp_exp_action_set_state {
-    struct ofp_action_extension_header header;
+    struct ofp_openstate_action_experimenter_header header;
     uint32_t state; /* State instance. */
     uint32_t state_mask; /* State mask */
     uint8_t table_id; /*Stage destination*/
@@ -49,7 +49,7 @@ OFP_ASSERT(sizeof(struct ofp_exp_action_set_state) == 32);
 
 /* Action structure for OFPAT_EXP_SET_FLAG */
 struct ofp_exp_action_set_flag {
-    struct ofp_action_extension_header header;
+    struct ofp_openstate_action_experimenter_header header;
     uint32_t flag; /* flag value */
     uint32_t flag_mask;    /*flag mask*/
 };
@@ -57,23 +57,21 @@ OFP_ASSERT(sizeof(struct ofp_exp_action_set_flag) == 24);
 
 
 /*EXPERIMENTER MESSAGES*/
+enum ofp_exp_messages {
+    OFPT_EXP_STATE_MOD,
+    OFPT_EXT_FLAG_MOD
+};
+
 /****************************************************************
  *
- *   OFP_EXT_STATE_MOD
+ *   OFPT_EXP_STATE_MOD
  *
 ****************************************************************/
 #define OFPSC_MAX_FIELD_COUNT 6
 #define OFPSC_MAX_KEY_LEN 48
 
-struct ofp_message_os_ext_header {
-    struct ofp_header header;
-    uint32_t vendor;            /* OPENFLOW_VENDOR_ID. */
-    uint32_t subtype;           /* One of ofp_openstate_extension_commands */
-};
-OFP_ASSERT(sizeof(struct ofp_message_os_ext_header) == 16);
-
-struct ofp_exp_state_mod {
-    struct ofp_message_os_ext_header header;
+struct ofp_exp_message_state_mod {
+    struct ofp_experimenter_header header; /* OpenFlow's standard experimenter message header */
     uint8_t table_id;
     uint8_t command;
     uint8_t payload[];
@@ -96,8 +94,7 @@ struct ofp_exp_statefulness_config {
     uint8_t pad; //TODO sanvitz: sizeof adds an extra byte to align to multiple of 4 bytes?!
 };
 
-
-enum ofp_exp_state_mod_command {
+enum ofp_exp_message_state_mod_commands {
     OFPSC_SET_L_EXTRACTOR = 0,
     OFPSC_SET_U_EXTRACTOR,
     OFPSC_SET_FLOW_STATE,   
@@ -105,22 +102,21 @@ enum ofp_exp_state_mod_command {
     OFPSC_STATEFULNESS_CONFIG
 };
 
-
 /****************************************************************
  *
- *   OFP_EXT_FLAG_MOD
+ *   OFPT_EXT_FLAG_MOD
  *
 ****************************************************************/
 
-struct ofp_exp_flag_mod {
-    struct ofp_message_os_ext_header header;
+struct ofp_exp_message_flag_mod {
+    struct ofp_experimenter_header header;  /* OpenFlow's standard experimenter message header*/
     uint32_t flag;
     uint32_t flag_mask;
     uint8_t command;
     uint8_t pad[7];                  /* Pad to 64 bits. */
 };
 
-enum ofp_exp_flag_mod_command { 
+enum ofp_exp_message_flag_mod_command { 
     OFPSC_MODIFY_FLAGS = 0,
     OFPSC_RESET_FLAGS
 };
