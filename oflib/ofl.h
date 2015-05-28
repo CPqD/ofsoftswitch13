@@ -111,14 +111,14 @@ struct ofl_exp_match {
 
 /* Callback functions for handling experimenter statistics. */
 struct ofl_exp_stats {
-    int     (*req_pack)        (struct ofl_msg_multipart_request_header *msg, uint8_t **buf, size_t *buf_len);
-    ofl_err (*req_unpack)      (struct ofp_multipart_request *os, size_t *len, struct ofl_msg_multipart_request_header **msg);
+    int     (*req_pack)        (struct ofl_msg_multipart_request_header *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp);
+    ofl_err (*req_unpack)      (struct ofp_multipart_request *os, uint8_t* buf, size_t *len, struct ofl_msg_multipart_request_header **msg, struct ofl_exp *exp);
     int     (*req_free)        (struct ofl_msg_multipart_request_header *msg);
-    char   *(*req_to_string)   (struct ofl_msg_multipart_request_header *msg);
-    int     (*reply_pack)      (struct ofl_msg_multipart_reply_header *msg, uint8_t **buf, size_t *buf_len);
-    ofl_err (*reply_unpack)    (struct ofp_multipart_reply *os, size_t *len, struct ofl_msg_multipart_reply_header **msg);
+    char   *(*req_to_string)   (struct ofl_msg_multipart_request_header *msg, struct ofl_exp *exp);
+    int     (*reply_pack)      (struct ofl_msg_multipart_reply_header *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp);
+    ofl_err (*reply_unpack)    (struct ofp_multipart_reply *os, uint8_t* buf, size_t *len, struct ofl_msg_multipart_reply_header **msg, struct ofl_exp *exp);
     int     (*reply_free)      (struct ofl_msg_multipart_reply_header *msg);
-    char   *(*reply_to_string) (struct ofl_msg_multipart_reply_header *msg);
+    char   *(*reply_to_string) (struct ofl_msg_multipart_reply_header *msg, struct ofl_exp *exp);
 };
 
 /* Callback functions for handling experimenter messages. */

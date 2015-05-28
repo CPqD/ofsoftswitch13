@@ -80,11 +80,21 @@ static struct ofl_exp_act ofl_exp_act =
          .ofp_len   = ofl_exp_act_ofp_len,
          .to_string = ofl_exp_act_to_string};
 
+static struct ofl_exp_stats ofl_exp_stats =
+        {.req_pack      = ofl_exp_stats_req_pack,
+         .req_unpack    = ofl_exp_stats_req_unpack,
+         .req_free      = ofl_exp_stats_req_free,
+         .req_to_string = ofl_exp_stats_req_to_string,
+         .reply_pack    = ofl_exp_stats_reply_pack,
+         .reply_unpack  = ofl_exp_stats_reply_unpack,
+         .reply_free    = ofl_exp_stats_reply_free,
+         .reply_to_string = ofl_exp_stats_reply_to_string};
+
 static struct ofl_exp ofl_exp =
         {.act   = &ofl_exp_act,
          .inst  = NULL,
          .match = NULL,
-         .stats = NULL,
+         .stats = &ofl_exp_stats,
          .msg   = &ofl_exp_msg};
 
 static struct vconn_class *vconn_classes[] = {

@@ -105,11 +105,21 @@ static struct ofl_exp_act dp_exp_act =
          .to_string = ofl_exp_act_to_string};
 
 
+static struct ofl_exp_stats dp_exp_statistics =
+        {.req_pack      = ofl_exp_stats_req_pack,
+         .req_unpack    = ofl_exp_stats_req_unpack,
+         .req_free      = ofl_exp_stats_req_free,
+         .req_to_string = ofl_exp_stats_req_to_string,
+         .reply_pack    = ofl_exp_stats_reply_pack,
+         .reply_unpack  = ofl_exp_stats_reply_unpack,
+         .reply_free    = ofl_exp_stats_reply_free,
+         .reply_to_string = ofl_exp_stats_reply_to_string};
+
 static struct ofl_exp dp_exp =
         {.act   = &dp_exp_act,
          .inst  = NULL,
          .match = NULL,
-         .stats = NULL,
+         .stats = &dp_exp_statistics,
          .msg   = &dp_exp_msg};
 
 /* Generates and returns a random datapath id. */

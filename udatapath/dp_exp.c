@@ -104,8 +104,38 @@ dp_exp_inst(struct packet *pkt UNUSED, struct ofl_instruction_experimenter *inst
 
 ofl_err
 dp_exp_stats(struct datapath *dp UNUSED, struct ofl_msg_multipart_request_experimenter *msg, const struct sender *sender UNUSED) {
-	VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to handle unknown experimenter stats (%u).", msg->experimenter_id);
-    return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+    ofl_err err;
+    switch (msg->experimenter_id) {
+        case (OPENSTATE_VENDOR_ID): {
+            struct ofl_exp_openstate_msg_multipart_request *exp = (struct ofl_exp_openstate_msg_multipart_request *)msg;
+
+            switch(exp->type) {
+                case (OFPMP_EXP_STATE_STATS): {
+                    struct ofl_exp_msg_multipart_reply_state reply;
+                    err = handle_stats_request_state(dp->pipeline, (struct ofl_exp_msg_state_mod *)msg, sender, &reply);
+                    dp_send_message(dp, (struct ofl_msg_header *)&reply, sender);
+                    free(reply.stats);
+                    ofl_msg_free((struct ofl_msg_header *)msg, dp->exp);
+                    return err;
+                }
+                case (OFPMP_EXP_FLAGS_STATS): {
+                    struct ofl_exp_msg_multipart_reply_state reply;
+                    err = handle_stats_request_global_state(dp->pipeline, (struct ofl_exp_msg_flag_mod *)msg, sender, &reply);
+                    dp_send_message(dp, (struct ofl_msg_header *)&reply, sender);
+                    ofl_msg_free((struct ofl_msg_header *)msg, dp->exp);
+                    return err;
+                }
+                default: {
+                    VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to handle unknown experimenter type (%u).", exp->type);
+                    return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+                }
+            }
+        }
+        default: {
+            VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to handle unknown experimenter stats (%u).", msg->experimenter_id);
+            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+        }
+    }
 }
 
 

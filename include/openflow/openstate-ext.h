@@ -1,5 +1,5 @@
-#ifndef OPENFLOW_OPENSTATE_EXT_H
-#define OPENFLOW_OPENSTATE_EXT_H 1
+#ifndef OPENSTATE_EXT_H
+#define OPENSTATE_EXT_H 1
 
 #include "openflow/openflow.h"
 
@@ -77,7 +77,7 @@ struct ofp_exp_message_state_mod {
     uint8_t payload[];
 };
 
-struct ofp_exp_state_entry {
+struct ofp_exp_state_mod_entry {
     uint32_t key_len;
     uint32_t state;
     uint32_t state_mask;
@@ -121,4 +121,70 @@ enum ofp_exp_message_flag_mod_command {
     OFPSC_RESET_FLAGS
 };
 
-#endif /* OPENFLOW_OPENSTATE_EXT_H */
+/****************************************************************
+ *
+ *   MULTIPART MESSAGE: OFPMP_EXP_STATE_STATS
+ *
+****************************************************************/
+enum ofp_stats_extension_commands {
+    OFPMP_EXP_STATE_STATS,      
+    OFPMP_EXP_FLAGS_STATS
+};
+
+struct ofp_exp_state_entry{
+    uint32_t            key_len;
+    uint8_t             key[OFPSC_MAX_KEY_LEN];
+    uint32_t            state;
+};
+OFP_ASSERT(sizeof(struct ofp_exp_state_entry) == 56);
+
+/* Body for ofp_multipart_request of type OFPMP_EXP_STATE_STATS. */
+struct ofp_exp_state_stats_request {
+    struct ofp_experimenter_stats_header header;
+    uint8_t table_id;       /* ID of table to read (from ofp_table_stats),
+                               OFPTT_ALL for all tables. */
+    uint8_t pad[7];         /* Align to 64 bits. */
+    
+    struct ofp_match match; /* Fields to match. Variable size. */
+};
+OFP_ASSERT(sizeof(struct ofp_exp_state_stats_request) == 24);
+
+/* Body of reply to OFPMP_EXP_STATE_STATS request. */
+struct ofp_exp_state_stats_reply{
+    struct ofp_experimenter_stats_header header;
+    struct ofp_exp_state_stats *stats;
+};
+
+struct ofp_exp_state_stats {
+    uint16_t length;        /* Length of this entry. */
+    uint8_t table_id;       /* ID of table flow came from. */
+    uint8_t pad;
+    uint32_t field_count;    /*number of extractor fields*/
+    uint32_t fields[OFPSC_MAX_FIELD_COUNT]; /*extractor fields*/    
+    struct ofp_exp_state_entry entry;
+    
+    //struct ofp_match match; /* Description of fields. Variable size. */
+};
+OFP_ASSERT(sizeof(struct ofp_exp_state_stats) == 88);
+
+/****************************************************************
+ *
+ *   MULTIPART MESSAGE: OFPMP_EXP_FLAGS_STATS
+ *
+****************************************************************/
+
+/* Body for ofp_multipart_request of type OFPMP_EXP_FLAGS_STATS. */
+struct ofp_exp_global_state_stats_request {
+    struct ofp_experimenter_stats_header header;
+};
+OFP_ASSERT(sizeof(struct ofp_exp_global_state_stats_request) == 8);
+
+/* Body of reply to OFPMP_EXP_FLAGS_STATS request. */
+struct ofp_exp_global_state_stats {
+    struct ofp_experimenter_stats_header header;
+    uint8_t pad[4];
+    uint32_t global_states;
+};
+OFP_ASSERT(sizeof(struct ofp_exp_global_state_stats) == 16);
+
+#endif /* OPENSTATE_EXT_H */

@@ -497,7 +497,6 @@ static int
 ofl_msg_pack_multipart_request(struct ofl_msg_multipart_request_header *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
     struct ofp_multipart_request *req;
     int error = 0;
-
     switch (msg->type) {
     case OFPMP_DESC: {
         error = ofl_msg_pack_multipart_request_empty(msg, buf, buf_len);
@@ -554,7 +553,7 @@ ofl_msg_pack_multipart_request(struct ofl_msg_multipart_request_header *msg, uin
             OFL_LOG_WARN(LOG_MODULE, "Trying to pack experimenter stat req, but no callback was given.");
             error = -1;
         } else {
-            error = exp->stats->req_pack(msg, buf, buf_len);
+            error = exp->stats->req_pack(msg, buf, buf_len, exp);
         }
         break;
     }
@@ -847,7 +846,6 @@ static int
 ofl_msg_pack_multipart_reply(struct ofl_msg_multipart_reply_header *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
     struct ofp_multipart_reply *resp;
     int error;
-
     switch (msg->type) {
         case OFPMP_DESC: {
             error = ofl_msg_pack_multipart_reply_desc((struct ofl_msg_reply_desc *)msg, buf, buf_len);
@@ -910,7 +908,7 @@ ofl_msg_pack_multipart_reply(struct ofl_msg_multipart_reply_header *msg, uint8_t
                 OFL_LOG_WARN(LOG_MODULE, "Trying to pack experimenter stat resp, but no callback was given.");
                 error = -1;
             } else {
-                error = exp->stats->reply_pack(msg, buf, buf_len);
+                error = exp->stats->reply_pack(msg, buf, buf_len, exp);
             }
             break;
         }

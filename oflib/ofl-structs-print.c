@@ -614,8 +614,8 @@ ofl_structs_flow_stats_print(FILE *stream, struct ofl_flow_stats *s, struct ofl_
         ofl_structs_instruction_print(stream, s->instructions[i], exp);
         if (i < s->instructions_num - 1) { fprintf(stream, ", "); };
     }
-
-    fprintf(stream, "]}");
+    if (colors)
+    	fprintf(stream, "]}");
 }
 
 char *

@@ -445,8 +445,8 @@ struct ofl_msg_multipart_reply_experimenter {
 
     uint32_t  experimenter_id;
 
-    size_t    data_length;
-    uint8_t  *data;
+    //size_t    data_length;
+    //uint8_t  *data;
 };
 
 /*******************
