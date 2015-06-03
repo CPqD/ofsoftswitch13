@@ -13,6 +13,7 @@
 #include "oflib/ofl-structs.h" 
 #include "oflib/oxm-match.h"
 #include "lib/hash.h"
+#include "lib/ofp.h"
 
 
 #define LOG_MODULE ofl_exp_os
@@ -563,7 +564,7 @@ ofl_exp_openstate_stats_reply_pack(struct ofl_msg_multipart_reply_experimenter *
 }
 
 ofl_err
-ofl_exp_openstate_stats_req_unpack(struct ofp_multipart_request *os, uint8_t* buf, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp) {
+ofl_exp_openstate_stats_req_unpack(struct ofp_multipart_request *os, uint8_t *buf, size_t *len, struct ofl_msg_multipart_request_header **msg, struct ofl_exp *exp) {
     
     struct ofp_experimenter_stats_header *ext = (struct ofp_experimenter_stats_header *)os->body;    
     switch (ntohl(ext->exp_type)){
@@ -601,7 +602,7 @@ ofl_exp_openstate_stats_req_unpack(struct ofp_multipart_request *os, uint8_t* bu
                 return error;
             }
 
-            *msg = (struct ofl_msg_header *)dm;
+            *msg = (struct ofl_msg_multipart_request_header *)dm;
             return 0;
         }
         case (OFPMP_EXP_FLAGS_STATS):
@@ -611,7 +612,7 @@ ofl_exp_openstate_stats_req_unpack(struct ofp_multipart_request *os, uint8_t* bu
             dm->header.type = ntohl(ext->exp_type);
             dm->header.header.experimenter_id = ntohl(ext->experimenter);
             *len -= sizeof(struct ofp_exp_global_state_stats_request);
-            *msg = (struct ofl_msg_header *)dm;
+            *msg = (struct ofl_msg_multipart_request_header *)dm;
             return 0;
         }
         default:
@@ -620,7 +621,7 @@ ofl_exp_openstate_stats_req_unpack(struct ofp_multipart_request *os, uint8_t* bu
 }
 
 ofl_err
-ofl_exp_openstate_stats_reply_unpack(struct ofp_multipart_reply *os, uint8_t* buf, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp) {
+ofl_exp_openstate_stats_reply_unpack(struct ofp_multipart_reply *os, uint8_t *buf, size_t *len, struct ofl_msg_multipart_request_header **msg, struct ofl_exp *exp) {
 
     struct ofp_experimenter_stats_header *ext = (struct ofp_experimenter_stats_header *)os->body;
     
@@ -659,7 +660,7 @@ ofl_exp_openstate_stats_reply_unpack(struct ofp_multipart_reply *os, uint8_t* bu
                 stat = (struct ofp_state_stats *)((uint8_t *)stat + ntohs(stat->length));
             }
 
-            *msg = (struct ofl_msg_header *)dm;
+            *msg = (struct ofl_msg_multipart_request_header *)dm;
             return 0;
         }
         case (OFPMP_EXP_FLAGS_STATS):
@@ -814,6 +815,190 @@ ofl_exp_openstate_stats_reply_free(struct ofl_msg_multipart_reply_header *msg) {
         }
     }
     return 0;
+}
+
+/*experimenter match fields*/
+
+static void
+oxm_put_exp_header(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id)
+{
+    uint32_t n_header = htonl(header);
+    ofpbuf_put(buf, &n_header, sizeof n_header);
+    ofpbuf_put(buf, &experimenter_id, EXP_ID_LEN);
+
+}
+
+static void
+oxm_put_exp_8(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint8_t value)
+{
+    oxm_put_exp_header(buf, header, experimenter_id);
+    ofpbuf_put(buf, &value, sizeof value);
+}
+
+static void
+oxm_put_exp_8w(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint8_t value, uint8_t mask)
+{
+    oxm_put_exp_header(buf, header, experimenter_id);
+    ofpbuf_put(buf, &value, sizeof value);
+    ofpbuf_put(buf, &mask, sizeof mask);
+}
+
+static void
+oxm_put_exp_16(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint16_t value)
+{
+    oxm_put_exp_header(buf, header, experimenter_id);
+    ofpbuf_put(buf, &value, sizeof value);
+}
+
+static void
+oxm_put_exp_16w(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint16_t value, uint16_t mask)
+{
+    oxm_put_exp_header(buf, header, experimenter_id);
+    ofpbuf_put(buf, &value, sizeof value);
+    ofpbuf_put(buf, &mask, sizeof mask);
+}
+
+static void
+oxm_put_exp_32(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint32_t value)
+{
+    oxm_put_exp_header(buf, header, experimenter_id);
+    ofpbuf_put(buf, &value, sizeof value);
+}
+
+static void
+oxm_put_exp_32w(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint32_t value, uint32_t mask)
+{
+    oxm_put_exp_header(buf, header, experimenter_id);
+    ofpbuf_put(buf, &value, sizeof value);
+    ofpbuf_put(buf, &mask, sizeof mask);
+}
+
+static void
+oxm_put_exp_64(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint64_t value)
+{
+    oxm_put_exp_header(buf, header, experimenter_id);
+    ofpbuf_put(buf, &value, sizeof value);
+}
+
+static void
+oxm_put_exp_64w(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint64_t value, uint64_t mask)
+{
+    oxm_put_exp_header(buf, header, experimenter_id);
+    ofpbuf_put(buf, &value, sizeof value);
+    ofpbuf_put(buf, &mask, sizeof mask); 
+}
+
+int
+ofl_exp_openstate_field_unpack(struct ofl_match *match, struct oxm_field *f, void *experimenter_id, void *value, void *mask) {
+    switch (f->index) {
+        case OFI_OXM_EXP_STATE:{
+            ofl_structs_match_put32e(match, f->header, ntohl(*((uint32_t*) experimenter_id)), ntohl(*((uint32_t*) value)));
+            return 0;
+        }
+        case OFI_OXM_EXP_STATE_W:{
+            if (check_bad_wildcard32(ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)))){
+                return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
+            }
+            ofl_structs_match_put32me(match, f->header, ntohl(*((uint32_t*) experimenter_id)), ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)));
+            return 0;
+        }
+        case OFI_OXM_EXP_FLAGS:{
+            ofl_structs_match_put32e(match, f->header, ntohl(*((uint32_t*) experimenter_id)), ntohl(*((uint32_t*) value)));
+            return 0;
+        }
+        case OFI_OXM_EXP_FLAGS_W:{
+            if (check_bad_wildcard32(ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)))){
+                return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
+            }
+            ofl_structs_match_put32me(match, f->header, ntohl(*((uint32_t*) experimenter_id)), ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)));
+            return 0;
+        }
+        default:
+            NOT_REACHED();
+    }
+}
+
+void  
+ofl_exp_openstate_field_pack(struct ofpbuf *buf, struct ofl_match_tlv *oft){
+    uint8_t length = OXM_LENGTH(oft->header);          
+    bool has_mask =false;
+
+    length = length - EXP_ID_LEN;      /* field length should exclude experimenter_id */                
+    if (OXM_HASMASK(oft->header)){
+        length = length / 2;
+        has_mask = true;
+    }
+    switch (length){
+        case (sizeof(uint8_t)):{
+            uint32_t experimenter_id;
+            uint8_t value;
+            memcpy(&experimenter_id, oft->value, sizeof(uint32_t));
+            memcpy(&value, oft->value + EXP_ID_LEN, sizeof(uint8_t));
+            if(!has_mask)
+                oxm_put_exp_8(buf,oft->header, htonl(experimenter_id), value);
+            else {
+                uint8_t mask;
+                memcpy(&mask, oft->value + EXP_ID_LEN + length , sizeof(uint8_t));
+                oxm_put_exp_8w(buf, oft->header, htonl(experimenter_id), value, mask);
+            }
+            break;
+          }
+        case (sizeof(uint16_t)):{
+            uint32_t experimenter_id;
+            uint16_t value;
+            memcpy(&experimenter_id, oft->value, sizeof(uint32_t));
+            memcpy(&value, oft->value + EXP_ID_LEN, sizeof(uint16_t));
+            if(!has_mask)
+                oxm_put_exp_16(buf,oft->header, htonl(experimenter_id), htons(value));
+            else {
+                uint16_t mask;
+                memcpy(&mask, oft->value + EXP_ID_LEN + length , sizeof(uint16_t));
+                oxm_put_exp_16w(buf, oft->header, htonl(experimenter_id), htons(value), htons(mask));
+            }
+            break;
+        }
+        case (sizeof(uint32_t)):{
+            uint32_t experimenter_id, value;
+            memcpy(&experimenter_id, oft->value, sizeof(uint32_t));
+            memcpy(&value, oft->value + EXP_ID_LEN, sizeof(uint32_t));
+            if(!has_mask)
+                oxm_put_exp_32(buf,oft->header, htonl(experimenter_id), htonl(value));
+            else {
+                uint32_t mask;
+                memcpy(&mask, oft->value + EXP_ID_LEN + length , sizeof(uint32_t));
+                oxm_put_exp_32w(buf, oft->header, htonl(experimenter_id), htonl(value), htonl(mask));
+            }
+            break;
+        }
+        case (sizeof(uint64_t)):{
+            uint32_t experimenter_id;
+            uint64_t value;
+            memcpy(&experimenter_id, oft->value, sizeof(uint32_t));
+            memcpy(&value, oft->value + EXP_ID_LEN, sizeof(uint64_t));
+            if(!has_mask)
+                oxm_put_exp_64(buf,oft->header, htonl(experimenter_id), hton64(value));
+            else {
+                uint64_t mask;
+                memcpy(&mask, oft->value + EXP_ID_LEN + length , sizeof(uint64_t));
+                oxm_put_exp_64w(buf, oft->header, htonl(experimenter_id), hton64(value), hton64(mask));
+            }
+            break;
+        }
+    }
+}
+
+void
+ofl_exp_openstate_field_match(struct ofl_match_tlv *f, int *packet_header, int *field_len, uint8_t **flow_val, uint8_t **flow_mask){
+    bool has_mask = OXM_HASMASK(f->header);
+    (*field_len) = (OXM_LENGTH(f->header) - EXP_ID_LEN);
+    *flow_val = f->value + EXP_ID_LEN;
+    if (has_mask) {
+        /* Clear the has_mask bit and divide the field_len by two in the packet field header */
+        *field_len /= 2;
+        (*packet_header) &= 0xfffffe00;
+        (*packet_header) |= (*field_len) + EXP_ID_LEN;
+        *flow_mask = f->value + EXP_ID_LEN + (*field_len);
+    }
 }
 
 /*experimenter table functions*/
@@ -1114,7 +1299,7 @@ handle_stats_request_state(struct pipeline *pl, struct ofl_exp_msg_multipart_req
 }
 
 ofl_err
-handle_stats_request_global_state(struct pipeline *pl, struct ofl_exp_msg_multipart_request_global_state *msg, const struct sender *sender, struct ofl_exp_msg_multipart_reply_global_state *reply) {
+handle_stats_request_global_state(struct pipeline *pl, const struct sender *sender, struct ofl_exp_msg_multipart_reply_global_state *reply) {
     uint32_t global_states = pl->dp->global_states;
     
     *reply = (struct ofl_exp_msg_multipart_reply_global_state)
@@ -1772,3 +1957,114 @@ oxm_pull_match_no_prereqs(struct ofpbuf *buf, struct ofl_match * match_dst, int 
 }
 
 */
+
+/*Functions used by experimenter match fields*/
+
+void
+ofl_structs_match_put8e(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint8_t value){
+   struct ofl_match_tlv *m = xmalloc(sizeof (struct ofl_match_tlv));
+   int len = sizeof(uint8_t);
+
+   m->header = header;
+   m->value = malloc(EXP_ID_LEN + len);
+   memcpy(m->value, &experimenter_id, EXP_ID_LEN);
+   memcpy(m->value + EXP_ID_LEN, &value, len);
+   hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
+   match->header.length += EXP_ID_LEN + len + 4;
+}
+
+void
+ofl_structs_match_put8me(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint8_t value, uint8_t mask){
+    struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
+    int len = sizeof(uint8_t);
+
+    m->header = header;
+    m->value = malloc(EXP_ID_LEN + len*2);
+    memcpy(m->value, &experimenter_id, EXP_ID_LEN);
+    memcpy(m->value + EXP_ID_LEN, &value, len);
+    memcpy(m->value + EXP_ID_LEN + len, &mask, len);
+    hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
+    match->header.length += EXP_ID_LEN + len*2 + 4;
+}
+
+void
+ofl_structs_match_put16e(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint16_t value){
+   struct ofl_match_tlv *m = xmalloc(sizeof (struct ofl_match_tlv));
+   int len = sizeof(uint16_t);
+
+   m->header = header;
+   m->value = malloc(EXP_ID_LEN + len);
+   memcpy(m->value, &experimenter_id, EXP_ID_LEN);
+   memcpy(m->value + EXP_ID_LEN, &value, len);
+   hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
+   match->header.length += EXP_ID_LEN + len + 4;
+}
+
+void
+ofl_structs_match_put16me(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint16_t value, uint16_t mask){
+    struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
+    int len = sizeof(uint16_t);
+
+    m->header = header;
+    m->value = malloc(EXP_ID_LEN + len*2);
+    memcpy(m->value, &experimenter_id, EXP_ID_LEN);
+    memcpy(m->value + EXP_ID_LEN, &value, len);
+    memcpy(m->value + EXP_ID_LEN + len, &mask, len);
+    hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
+    match->header.length += EXP_ID_LEN + len*2 + 4;
+}
+
+void
+ofl_structs_match_put32e(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint32_t value){
+   struct ofl_match_tlv *m = xmalloc(sizeof (struct ofl_match_tlv));
+   int len = sizeof(uint32_t);
+
+   m->header = header;
+   m->value = malloc(EXP_ID_LEN + len);
+   memcpy(m->value, &experimenter_id, EXP_ID_LEN);
+   memcpy(m->value + EXP_ID_LEN, &value, len);
+   hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
+   match->header.length += EXP_ID_LEN + len + 4;
+}
+
+void
+ofl_structs_match_put32me(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint32_t value, uint32_t mask){
+    struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
+    int len = sizeof(uint32_t);
+
+    m->header = header;
+    m->value = malloc(EXP_ID_LEN + len*2);
+    memcpy(m->value, &experimenter_id, EXP_ID_LEN);
+    memcpy(m->value + EXP_ID_LEN, &value, len);
+    memcpy(m->value + EXP_ID_LEN + len, &mask, len);
+    hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
+    match->header.length += EXP_ID_LEN + len*2 + 4;
+}
+
+void
+ofl_structs_match_put64e(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint64_t value){
+   struct ofl_match_tlv *m = xmalloc(sizeof (struct ofl_match_tlv));
+   int len = sizeof(uint64_t);
+
+   m->header = header;
+   m->value = malloc(EXP_ID_LEN + len);
+   memcpy(m->value, &experimenter_id, EXP_ID_LEN);
+   memcpy(m->value + EXP_ID_LEN, &value, len);
+   hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
+   match->header.length += EXP_ID_LEN + len + 4;
+}
+
+void
+ofl_structs_match_put64me(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint64_t value, uint64_t mask){
+    struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
+    int len = sizeof(uint64_t);
+
+    m->header = header;
+    m->value = malloc(EXP_ID_LEN + len*2);
+    memcpy(m->value, &experimenter_id, EXP_ID_LEN);
+    memcpy(m->value + EXP_ID_LEN, &value, len);
+    memcpy(m->value + EXP_ID_LEN + len, &mask, len);
+    hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
+    match->header.length += EXP_ID_LEN + len*2 + 4;
+}
+

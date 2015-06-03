@@ -140,7 +140,7 @@ ofl_msg_pack_set_config(struct ofl_msg_set_config *msg, uint8_t **buf, size_t *b
 }
 
 static int
-ofl_msg_pack_packet_in(struct ofl_msg_packet_in *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_packet_in(struct ofl_msg_packet_in *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
     struct ofp_packet_in *packet_in;
     uint8_t *ptr;
 
@@ -154,7 +154,7 @@ ofl_msg_pack_packet_in(struct ofl_msg_packet_in *msg, uint8_t **buf, size_t *buf
     packet_in->cookie      = hton64(msg->cookie);
 
     ptr = (*buf) + (sizeof(struct ofp_packet_in) - 4);
-    ofl_structs_match_pack(msg->match,&(packet_in->match),ptr, NULL);
+    ofl_structs_match_pack(msg->match,&(packet_in->match),ptr, exp);
     ptr = (*buf) + ROUND_UP((sizeof(struct ofp_packet_in)-4) + msg->match->length,8);
     /*padding bytes*/
 
@@ -1026,7 +1026,7 @@ ofl_msg_pack(struct ofl_msg_header *msg, uint32_t xid, uint8_t **buf, size_t *bu
 
         /* Asynchronous messages. */
         case OFPT_PACKET_IN: {
-            error = ofl_msg_pack_packet_in((struct ofl_msg_packet_in *)msg, buf, buf_len);
+            error = ofl_msg_pack_packet_in((struct ofl_msg_packet_in *)msg, buf, buf_len, exp);
             break;
         }
         case OFPT_FLOW_REMOVED: {

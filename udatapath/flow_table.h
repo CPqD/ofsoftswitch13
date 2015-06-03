@@ -74,7 +74,7 @@ flow_table_flow_mod(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool
 
 /* Finds the flow entry with the highest priority, which matches the packet. */
 struct flow_entry *
-flow_table_lookup(struct flow_table *table, struct packet *pkt);
+flow_table_lookup(struct flow_table *table, struct packet *pkt, struct ofl_exp *exp);
 
 /* Orders the flow table to check the timeout its flows. */
 void

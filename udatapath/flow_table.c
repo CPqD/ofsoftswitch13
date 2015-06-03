@@ -209,7 +209,7 @@ flow_table_flow_mod(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool
 
 
 struct flow_entry *
-flow_table_lookup(struct flow_table *table, struct packet *pkt) {
+flow_table_lookup(struct flow_table *table, struct packet *pkt, struct ofl_exp *exp) {
     struct flow_entry *entry;
 
     table->stats->lookup_count++;
@@ -221,8 +221,7 @@ flow_table_lookup(struct flow_table *table, struct packet *pkt) {
         /* select appropriate handler, based on match type of flow entry. */
         switch (m->type) {
             case (OFPMT_OXM): {
-               if (packet_handle_std_match(pkt->handle_std,
-                                            (struct ofl_match *)m)) {
+               if (packet_handle_std_match(pkt->handle_std, (struct ofl_match *)m, exp)) {
                     if (!entry->no_byt_count)                                            
                         entry->stats->byte_count += pkt->buffer->size;
                     if (!entry->no_pkt_count)

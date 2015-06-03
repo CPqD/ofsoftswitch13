@@ -54,19 +54,6 @@ ofl_structs_match_put8(struct ofl_match *match, uint32_t header, uint8_t value){
 }
 
 void
-ofl_structs_match_put8e(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint8_t value){
-   struct ofl_match_tlv *m = xmalloc(sizeof (struct ofl_match_tlv));
-   int len = sizeof(uint8_t);
-
-   m->header = header;
-   m->value = malloc(EXP_ID_LEN + len);
-   memcpy(m->value, &experimenter_id, EXP_ID_LEN);
-   memcpy(m->value + EXP_ID_LEN, &value, len);
-   hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
-   match->header.length += EXP_ID_LEN + len + 4;
-}
-
-void
 ofl_structs_match_put8m(struct ofl_match *match, uint32_t header, uint8_t value, uint8_t mask){
     struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
     int len = sizeof(uint8_t);
@@ -80,20 +67,6 @@ ofl_structs_match_put8m(struct ofl_match *match, uint32_t header, uint8_t value,
 }
 
 void
-ofl_structs_match_put8me(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint8_t value, uint8_t mask){
-    struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
-    int len = sizeof(uint8_t);
-
-    m->header = header;
-    m->value = malloc(EXP_ID_LEN + len*2);
-    memcpy(m->value, &experimenter_id, EXP_ID_LEN);
-    memcpy(m->value + EXP_ID_LEN, &value, len);
-    memcpy(m->value + EXP_ID_LEN + len, &mask, len);
-    hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
-    match->header.length += EXP_ID_LEN + len*2 + 4;
-}
-
-void
 ofl_structs_match_put16(struct ofl_match *match, uint32_t header, uint16_t value){
     struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
     int len = sizeof(uint16_t);
@@ -103,19 +76,6 @@ ofl_structs_match_put16(struct ofl_match *match, uint32_t header, uint16_t value
     memcpy(m->value, &value, len);
     hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
     match->header.length += len + 4;
-}
-
-void
-ofl_structs_match_put16e(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint16_t value){
-   struct ofl_match_tlv *m = xmalloc(sizeof (struct ofl_match_tlv));
-   int len = sizeof(uint16_t);
-
-   m->header = header;
-   m->value = malloc(EXP_ID_LEN + len);
-   memcpy(m->value, &experimenter_id, EXP_ID_LEN);
-   memcpy(m->value + EXP_ID_LEN, &value, len);
-   hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
-   match->header.length += EXP_ID_LEN + len + 4;
 }
 
 void
@@ -132,20 +92,6 @@ ofl_structs_match_put16m(struct ofl_match *match, uint32_t header, uint16_t valu
 }
 
 void
-ofl_structs_match_put16me(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint16_t value, uint16_t mask){
-    struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
-    int len = sizeof(uint16_t);
-
-    m->header = header;
-    m->value = malloc(EXP_ID_LEN + len*2);
-    memcpy(m->value, &experimenter_id, EXP_ID_LEN);
-    memcpy(m->value + EXP_ID_LEN, &value, len);
-    memcpy(m->value + EXP_ID_LEN + len, &mask, len);
-    hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
-    match->header.length += EXP_ID_LEN + len*2 + 4;
-}
-
-void
 ofl_structs_match_put32(struct ofl_match *match, uint32_t header, uint32_t value){
     struct ofl_match_tlv *m = xmalloc(sizeof (struct ofl_match_tlv));
     int len = sizeof(uint32_t);
@@ -155,19 +101,6 @@ ofl_structs_match_put32(struct ofl_match *match, uint32_t header, uint32_t value
     memcpy(m->value, &value, len);
     hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
     match->header.length += len + 4;
-}
-
-void
-ofl_structs_match_put32e(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint32_t value){
-   struct ofl_match_tlv *m = xmalloc(sizeof (struct ofl_match_tlv));
-   int len = sizeof(uint32_t);
-
-   m->header = header;
-   m->value = malloc(EXP_ID_LEN + len);
-   memcpy(m->value, &experimenter_id, EXP_ID_LEN);
-   memcpy(m->value + EXP_ID_LEN, &value, len);
-   hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
-   match->header.length += EXP_ID_LEN + len + 4;
 }
 
 void
@@ -184,20 +117,6 @@ ofl_structs_match_put32m(struct ofl_match *match, uint32_t header, uint32_t valu
 }
 
 void
-ofl_structs_match_put32me(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint32_t value, uint32_t mask){
-    struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
-    int len = sizeof(uint32_t);
-
-    m->header = header;
-    m->value = malloc(EXP_ID_LEN + len*2);
-    memcpy(m->value, &experimenter_id, EXP_ID_LEN);
-    memcpy(m->value + EXP_ID_LEN, &value, len);
-    memcpy(m->value + EXP_ID_LEN + len, &mask, len);
-    hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
-    match->header.length += EXP_ID_LEN + len*2 + 4;
-}
-
-void
 ofl_structs_match_put64(struct ofl_match *match, uint32_t header, uint64_t value){
     struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
     int len = sizeof(uint64_t);
@@ -207,19 +126,6 @@ ofl_structs_match_put64(struct ofl_match *match, uint32_t header, uint64_t value
     memcpy(m->value, &value, len);
     hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
     match->header.length += len + 4;
-}
-
-void
-ofl_structs_match_put64e(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint64_t value){
-   struct ofl_match_tlv *m = xmalloc(sizeof (struct ofl_match_tlv));
-   int len = sizeof(uint64_t);
-
-   m->header = header;
-   m->value = malloc(EXP_ID_LEN + len);
-   memcpy(m->value, &experimenter_id, EXP_ID_LEN);
-   memcpy(m->value + EXP_ID_LEN, &value, len);
-   hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
-   match->header.length += EXP_ID_LEN + len + 4;
 }
 
 void
@@ -234,20 +140,6 @@ ofl_structs_match_put64m(struct ofl_match *match, uint32_t header, uint64_t valu
     hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
     match->header.length += len*2 + 4;
 
-}
-
-void
-ofl_structs_match_put64me(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint64_t value, uint64_t mask){
-    struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
-    int len = sizeof(uint64_t);
-
-    m->header = header;
-    m->value = malloc(EXP_ID_LEN + len*2);
-    memcpy(m->value, &experimenter_id, EXP_ID_LEN);
-    memcpy(m->value + EXP_ID_LEN, &value, len);
-    memcpy(m->value + EXP_ID_LEN + len, &mask, len);
-    hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
-    match->header.length += EXP_ID_LEN + len*2 + 4;
 }
 
 void

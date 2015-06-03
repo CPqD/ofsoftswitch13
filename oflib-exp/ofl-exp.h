@@ -70,10 +70,10 @@ int
 ofl_exp_stats_reply_pack (struct ofl_msg_multipart_reply_header *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp);
 
 ofl_err
-ofl_exp_stats_req_unpack (struct ofp_multipart_request *os, uint8_t* buf, size_t *len, struct ofl_msg_multipart_request_header **msg, struct ofl_exp *exp);
+ofl_exp_stats_req_unpack (struct ofp_multipart_request *os, uint8_t *buf, size_t *len, struct ofl_msg_multipart_request_header **msg, struct ofl_exp *exp);
 
 ofl_err
-ofl_exp_stats_reply_unpack (struct ofp_multipart_reply *os, uint8_t* buf, size_t *len, struct ofl_msg_multipart_request_header **msg, struct ofl_exp *exp);
+ofl_exp_stats_reply_unpack (struct ofp_multipart_reply *os, uint8_t *buf, size_t *len, struct ofl_msg_multipart_request_header **msg, struct ofl_exp *exp);
 
 char *
 ofl_exp_stats_req_to_string (struct ofl_msg_multipart_request_header *msg, struct ofl_exp *exp);
@@ -87,6 +87,14 @@ ofl_exp_stats_req_free (struct ofl_msg_multipart_request_header *msg);
 int
 ofl_exp_stats_reply_free (struct ofl_msg_multipart_reply_header *msg);
 
+void
+ofl_exp_field_pack(struct ofpbuf *buf, struct ofl_match_tlv *oft);
+
+int
+ofl_exp_field_unpack(struct ofl_match *match, struct oxm_field *f, void *experimenter_id, void *value, void *mask);
+
+void
+ofl_exp_field_match(struct ofl_match_tlv *f, int *packet_header, int *field_len, uint8_t **flow_val, uint8_t **flow_mask);
 
 
 #endif /* OFL_EXP_H */

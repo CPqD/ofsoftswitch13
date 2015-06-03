@@ -90,7 +90,4 @@ ofl_exp_openflow_act_free(struct ofl_action_header *act);
 char *
 ofl_exp_openflow_act_to_string(struct ofl_action_header *act);
 
-void
-ofl_exp_stats_type_print(FILE *stream, uint32_t type);
-
 #endif /* OFL_EXP_OPENFLOW_H */

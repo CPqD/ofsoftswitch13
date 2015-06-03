@@ -90,7 +90,6 @@ is_table_miss(struct flow_entry *entry){
 static void
 send_packet_to_controller(struct pipeline *pl, struct packet *pkt, uint8_t table_id, uint8_t reason) {
 
-    printf("here is send packet to controller\n");
     struct ofl_msg_packet_in msg;
     struct ofl_match *m;
     msg.header.type = OFPT_PACKET_IN;
@@ -124,7 +123,7 @@ send_packet_to_controller(struct pipeline *pl, struct packet *pkt, uint8_t table
 void
 pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
     struct flow_table *table, *next_table;
-
+    struct ofl_match_tlv *f;
 
     //printf("here is pipeline processing packet\n");
     if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
@@ -172,10 +171,10 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
 			free(m);
 		}
 
-		entry = flow_table_lookup(table, pkt);
+		entry = flow_table_lookup(table, pkt, pkt->dp->exp);
 
         //removes 'state' virtual header field
-        struct ofl_match_tlv *f;
+        
         HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
                     hmap_node, hash_int(OXM_EXP_STATE,0), &pkt->handle_std->match.match_fields){
                         hmap_remove_and_shrink(&pkt->handle_std->match.match_fields,&f->hmap_node);
@@ -677,7 +676,7 @@ void pipeline_global_states_write_flags(struct packet *pkt){
 
     HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv, 
         hmap_node, hash_int(OXM_EXP_FLAGS,0), &pkt->handle_std->match.match_fields){
-                int32_t *flags = (uint32_t*) (f->value + EXP_ID_LEN);
+                uint32_t *flags = (uint32_t*) (f->value + EXP_ID_LEN);
                 *flags = (*flags & 0x00000000 ) | (pkt->dp->global_states);
     }
 }

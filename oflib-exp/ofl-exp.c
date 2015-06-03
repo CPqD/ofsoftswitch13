@@ -261,7 +261,7 @@ ofl_exp_stats_reply_pack (struct ofl_msg_multipart_reply_header *msg, uint8_t **
 }
 
 ofl_err
-ofl_exp_stats_req_unpack (struct ofp_multipart_request *os, uint8_t* buf, size_t *len, struct ofl_msg_multipart_request_header **msg, struct ofl_exp *exp){
+ofl_exp_stats_req_unpack (struct ofp_multipart_request *os, uint8_t *buf, size_t *len, struct ofl_msg_multipart_request_header **msg, struct ofl_exp *exp){
 
     struct ofp_experimenter_stats_header *ext  = (struct ofp_experimenter_stats_header *)os->body;
 
@@ -282,7 +282,7 @@ ofl_exp_stats_req_unpack (struct ofp_multipart_request *os, uint8_t* buf, size_t
 }
 
 ofl_err
-ofl_exp_stats_reply_unpack (struct ofp_multipart_reply *os, uint8_t* buf, size_t *len, struct ofl_msg_multipart_request_header **msg, struct ofl_exp *exp){
+ofl_exp_stats_reply_unpack (struct ofp_multipart_reply *os, uint8_t *buf, size_t *len, struct ofl_msg_multipart_request_header **msg, struct ofl_exp *exp){
     struct ofp_experimenter_stats_header *ext = (struct ofp_experimenter_stats_header *)os->body;
 
     if (*len < sizeof(struct ofp_experimenter_stats_header)) {
@@ -292,7 +292,7 @@ ofl_exp_stats_reply_unpack (struct ofp_multipart_reply *os, uint8_t* buf, size_t
 
     switch (ntohl(ext->experimenter)) {
         case (OPENSTATE_VENDOR_ID): {
-            return ofl_exp_openstate_stats_reply_unpack(os, buf, len, msg, exp);
+            return ofl_exp_openstate_stats_reply_unpack(os, buf, len, (struct ofl_msg_multipart_request_header **)msg, exp);
         }
         default: {
             OFL_LOG_WARN(LOG_MODULE, "Trying to unpack unknown EXPERIMENTER message (%u).", ntohl(ext->experimenter));
@@ -370,3 +370,39 @@ ofl_exp_stats_reply_free (struct ofl_msg_multipart_reply_header *msg){
     }
 }
 
+void
+ofl_exp_field_pack (struct ofpbuf *buf, struct ofl_match_tlv *oft){
+    /*pollins: probabilmente ci sarà da definire una struttura che determina la posizione dell'experimenter ID (come è fatto adesso presuppone che sia il primo valore in value)*/
+    switch(*((uint32_t*) (oft->value)))
+    {
+        case OPENSTATE_VENDOR_ID:{
+            ofl_exp_openstate_field_pack(buf, oft);
+            break;
+        }
+        default:
+            break;
+    }
+}
+
+int
+ofl_exp_field_unpack (struct ofl_match *match, struct oxm_field *f, void *experimenter_id, void *value, void *mask){
+    switch (ntohl(*((uint32_t*) experimenter_id))) {
+        case OPENSTATE_VENDOR_ID:{
+            return ofl_exp_openstate_field_unpack(match, f, experimenter_id, value, mask);
+            }
+        default:
+                NOT_REACHED();
+        }
+    NOT_REACHED();
+}
+
+void
+ofl_exp_field_match (struct ofl_match_tlv *f, int *packet_header, int *field_len, uint8_t **flow_val, uint8_t **flow_mask){
+   switch(*((uint32_t*) (f->value))){
+        case OPENSTATE_VENDOR_ID:
+            ofl_exp_openstate_field_match(f, packet_header, field_len, flow_val, flow_mask);
+            break;
+        default:
+            break;             
+    }
+}

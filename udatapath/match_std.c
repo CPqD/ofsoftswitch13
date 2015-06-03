@@ -133,7 +133,7 @@ match_mask128(uint8_t *a, uint8_t *am, uint8_t *b) {
 
 /* Returns true if the fields in *packet matches the flow entry in *flow_match */
 bool
-packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
+packet_match(struct ofl_match *flow_match, struct ofl_match *packet, struct ofl_exp *exp){
 
     struct ofl_match_tlv *f;
     struct ofl_match_tlv *packet_f;
@@ -150,7 +150,7 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
     HMAP_FOR_EACH(f, struct ofl_match_tlv, hmap_node, &flow_match->match_fields)
     {
         /* Check presence of match field in packet */
-        
+
         has_mask = OXM_HASMASK(f->header);
         packet_header = f->header;
         switch (OXM_VENDOR(f->header))
@@ -168,23 +168,12 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
                 break;
 
             case(OFPXMC_EXPERIMENTER):
-                switch(*((uint32_t*) (f->value)))
-                {
-                    case OPENSTATE_VENDOR_ID:
-                        field_len = (OXM_LENGTH(f->header) - EXP_ID_LEN);
-                        flow_val = f->value + EXP_ID_LEN;
-                        if (has_mask) {
-                            /* Clear the has_mask bit and divide the field_len by two in the packet field header */
-                            field_len /= 2;
-                            packet_header &= 0xfffffe00;
-                            packet_header |= field_len + EXP_ID_LEN;
-                            flow_mask = f->value + EXP_ID_LEN + field_len;
-                        }
-                        break;
-                    default:
-                        break;             
+                if (exp == NULL || exp->field == NULL || exp->field->match == NULL) {
+                    VLOG_WARN(LOG_MODULE,"Received match is experimental, but no callback was given.");
+                    ofl_error(OFPET_BAD_MATCH, OFPBMC_BAD_TYPE);
                 }
-            break;
+                exp->field->match(f, &packet_header, &field_len, &flow_val, &flow_mask);
+                break;
 
             default:
                 break;

@@ -45,6 +45,7 @@
 
 #include "nbee_link/nbee_link.h"
 #include "dp_capabilities.h"
+#include "oflib-exp/ofl-exp-openstate.h"
 
 /* Resets all protocol fields to NULL */
 
@@ -149,14 +150,14 @@ packet_handle_std_is_fragment(struct packet_handle_std *handle) {
 
 
 bool
-packet_handle_std_match(struct packet_handle_std *handle, struct ofl_match *match){
+packet_handle_std_match(struct packet_handle_std *handle, struct ofl_match *match, struct ofl_exp *exp){
     if (!handle->valid){
         packet_handle_std_validate(handle);
         if (!handle->valid){
             return false;
         }
     }
-    return packet_match(match ,&handle->match );
+    return packet_match(match ,&handle->match, exp);
 }
 
 

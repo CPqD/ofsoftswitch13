@@ -104,7 +104,7 @@ static struct ofl_exp_act dp_exp_act =
          .ofp_len   = ofl_exp_act_ofp_len,
          .to_string = ofl_exp_act_to_string};
 
-
+/* Callbacks for processing experimenter stats in OFLib.*/
 static struct ofl_exp_stats dp_exp_statistics =
         {.req_pack      = ofl_exp_stats_req_pack,
          .req_unpack    = ofl_exp_stats_req_unpack,
@@ -115,12 +115,20 @@ static struct ofl_exp_stats dp_exp_statistics =
          .reply_free    = ofl_exp_stats_reply_free,
          .reply_to_string = ofl_exp_stats_reply_to_string};
 
+/* Callbacks for processing experimenter match fields in OFLib.*/
+static struct ofl_exp_field dp_exp_field =
+        {.unpack      = ofl_exp_field_unpack,
+         .pack        = ofl_exp_field_pack,
+         .match       = ofl_exp_field_match};
+
+
 static struct ofl_exp dp_exp =
         {.act   = &dp_exp_act,
          .inst  = NULL,
          .match = NULL,
          .stats = &dp_exp_statistics,
-         .msg   = &dp_exp_msg};
+         .msg   = &dp_exp_msg,
+         .field = &dp_exp_field};
 
 /* Generates and returns a random datapath id. */
 static uint64_t

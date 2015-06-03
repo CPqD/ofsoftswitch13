@@ -234,16 +234,26 @@ char *
 ofl_exp_openstate_stats_reply_to_string(struct ofl_msg_multipart_reply_experimenter *ext, struct ofl_exp *exp);
 
 ofl_err
-ofl_exp_openstate_stats_req_unpack(struct ofp_multipart_request *os, uint8_t* buf, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp);
+ofl_exp_openstate_stats_req_unpack(struct ofp_multipart_request *os, uint8_t *buf, size_t *len, struct ofl_msg_multipart_request_header **msg, struct ofl_exp *exp);
 
 ofl_err
-ofl_exp_openstate_stats_reply_unpack(struct ofp_multipart_reply *os, uint8_t* buf, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp);
+ofl_exp_openstate_stats_reply_unpack(struct ofp_multipart_reply *os, uint8_t *buf, size_t *len, struct ofl_msg_multipart_request_header **msg, struct ofl_exp *exp);
 
 int
 ofl_exp_openstate_stats_req_free(struct ofl_msg_multipart_request_header *msg);
 
 int
 ofl_exp_openstate_stats_reply_free(struct ofl_msg_multipart_reply_header *msg);
+
+/*experimenter match fields functions*/
+int
+ofl_exp_openstate_field_unpack(struct ofl_match *match, struct oxm_field *f, void *experimenter_id, void *value, void *mask);
+
+void  
+ofl_exp_openstate_field_pack(struct ofpbuf *buf, struct ofl_match_tlv *oft);
+
+void
+ofl_exp_openstate_field_match(struct ofl_match_tlv *f, int *packet_header, int *field_len, uint8_t **flow_val, uint8_t **flow_mask);
 
 /* Handles a flag_mod message */
 ofl_err
@@ -259,7 +269,7 @@ handle_stats_request_state(struct pipeline *pl, struct ofl_exp_msg_multipart_req
 
 /* Handles a global state stats request. */
 ofl_err
-handle_stats_request_global_state(struct pipeline *pl, struct ofl_exp_msg_multipart_request_global_state *msg, const struct sender *sender, struct ofl_exp_msg_multipart_reply_global_state *reply);
+handle_stats_request_global_state(struct pipeline *pl, const struct sender *sender, struct ofl_exp_msg_multipart_reply_global_state *reply);
 
 void
 state_table_stats(struct state_table *table, struct ofl_exp_msg_multipart_request_state *msg,
@@ -300,7 +310,31 @@ int
 oxm_pull_match_no_prereqs(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len);
 */
 
+void
+ofl_exp_stats_type_print(FILE *stream, uint32_t type);
 
+void
+ofl_structs_match_put8e(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint8_t value);
 
+void
+ofl_structs_match_put8me(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint8_t value, uint8_t mask);
+
+void
+ofl_structs_match_put16e(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint16_t value);
+
+void
+ofl_structs_match_put16me(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint16_t value, uint16_t mask);
+
+void
+ofl_structs_match_put32e(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint32_t value);
+
+void
+ofl_structs_match_put32me(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint32_t value, uint32_t mask);
+
+void
+ofl_structs_match_put64e(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint64_t value);
+
+void
+ofl_structs_match_put64me(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint64_t value, uint64_t mask);
 
 #endif /* OFL_EXP_OPENSTATE_H */

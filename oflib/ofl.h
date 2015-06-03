@@ -48,6 +48,12 @@ struct ofp_action_header;
 struct ofp_instruction;
 struct ofp_multipart_reply;
 struct ofp_match;
+struct ofl_exp;
+struct ofpbuf;
+struct ofl_match;
+struct oxm_field;
+struct ofl_match_tlv;
+struct ofl_msg_header;
 
 
 /* ofl_err is used to return OpenFlow error type/code's from functions.
@@ -129,13 +135,21 @@ struct ofl_exp_msg {
     char   *(*to_string)        (struct ofl_msg_experimenter *msg);
 };
 
+/* Callback functions for handling experimenter match fields. */
+struct ofl_exp_field {
+    void    (*pack)             (struct ofpbuf *buf, struct ofl_match_tlv *oft);
+    int     (*unpack)           (struct ofl_match *match, struct oxm_field *f, void *experimenter_id, void *value, void *mask);
+    void    (*match)            (struct ofl_match_tlv *f, int * packet_header, int  *field_len, uint8_t **flow_val, uint8_t **flow_mask);
+};
+
 /* Convenience structure for passing all callback groups at once. */
 struct ofl_exp {
-    struct ofl_exp_act    *act;
-    struct ofl_exp_inst   *inst;
-    struct ofl_exp_match  *match;
-    struct ofl_exp_stats  *stats;
-    struct ofl_exp_msg    *msg;
+    struct ofl_exp_act           *act;
+    struct ofl_exp_inst          *inst;
+    struct ofl_exp_match         *match;
+    struct ofl_exp_stats         *stats;
+    struct ofl_exp_msg           *msg;
+    struct ofl_exp_field         *field;
 };
 
 
@@ -164,7 +178,6 @@ static inline uint16_t
 ofl_error_code(ofl_err error) {
     return error & 0x0000ffff;
 }
-
 
 static inline void 
 ofl_enable_colors(){

@@ -196,5 +196,7 @@ void print_file(const char* format, ...);
     } while (0)
 extern enum vlog_level min_vlog_levels[VLM_N_MODULES];
 
+void
+pfile(const char* format, ...);
 
 #endif /* vlog.h */

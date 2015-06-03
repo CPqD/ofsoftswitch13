@@ -90,12 +90,18 @@ static struct ofl_exp_stats ofl_exp_stats =
          .reply_free    = ofl_exp_stats_reply_free,
          .reply_to_string = ofl_exp_stats_reply_to_string};
 
+static struct ofl_exp_field ofl_exp_field =
+        {.unpack      = ofl_exp_field_unpack, 
+         .pack        = ofl_exp_field_pack,
+         .match       = ofl_exp_field_match};
+
 static struct ofl_exp ofl_exp =
         {.act   = &ofl_exp_act,
          .inst  = NULL,
          .match = NULL,
          .stats = &ofl_exp_stats,
-         .msg   = &ofl_exp_msg};
+         .msg   = &ofl_exp_msg,
+         .field = &ofl_exp_field};
 
 static struct vconn_class *vconn_classes[] = {
     &tcp_vconn_class,

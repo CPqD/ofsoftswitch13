@@ -544,45 +544,6 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
 }
 
 
-static int
-parse_exp_oxm_entry(struct ofl_match *match, const struct oxm_field *f, const void *experimenter_id,
-                const void *value, const void *mask){
-	switch (ntohl(*((uint32_t*) experimenter_id))) {
-		case OPENSTATE_VENDOR_ID:{
-		    switch (f->index) {
-		        case OFI_OXM_EXP_STATE:{
-		            ofl_structs_match_put32e(match, f->header, ntohl(*((uint32_t*) experimenter_id)), ntohl(*((uint32_t*) value)));
-		            return 0;
-		        }
-		        case OFI_OXM_EXP_STATE_W:{
-		            if (check_bad_wildcard32(ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)))){
-		                return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
-		            }
-		            ofl_structs_match_put32me(match, f->header, ntohl(*((uint32_t*) experimenter_id)), ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)));
-		            return 0;
-		        }
-		        case OFI_OXM_EXP_FLAGS:{
-		            ofl_structs_match_put32e(match, f->header, ntohl(*((uint32_t*) experimenter_id)), ntohl(*((uint32_t*) value)));
-		            return 0;
-		        }
-		        case OFI_OXM_EXP_FLAGS_W:{
-		            if (check_bad_wildcard32(ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)))){
-		                return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
-		            }
-		            ofl_structs_match_put32me(match, f->header, ntohl(*((uint32_t*) experimenter_id)), ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)));
-                    return 0;
-		        }
-		        default:
-		            NOT_REACHED();
-		    }
-	 	default:
-	            NOT_REACHED();
-    	}
-    NOT_REACHED();
-	}
-NOT_REACHED();
-}
-
  /*hmap_insert(match_dst, &f->hmap_node,
                 hash_int(f->header, 0));               */
 
@@ -592,7 +553,7 @@ NOT_REACHED();
 
 /* Puts the match in a hash_map structure */
 int
-oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len)
+oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len, struct ofl_exp *exp)
 {
 
     uint32_t header;
@@ -640,18 +601,24 @@ oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len)
                          * checked them already. */
                         error = parse_oxm_entry(match_dst, f, p + 4, p + 4 + length / 2);
                         break;
+
                     case(OFPXMC_EXPERIMENTER):
                         /* 'hasmask' and 'length' are known to be correct at this point
                          * because they are included in 'header' and oxm_field_lookup()
-                         * checked them already. */
-                         //parse_exp_oxm_entry() args are match, oxm_fields, experimenter_id, value and mask
-                         //sizeof(header) is 4 byte
-                         //sizeof(experimenter_id) is 4 byte
-                         //experimenter_id is @ p + 4 (p + header)
-                         //value is @ p + 8 (p + header + experimenter_id)
-                         //mask depends on field's size
-                        error = parse_exp_oxm_entry(match_dst, f, p + 4, p + 4 + EXP_ID_LEN, p + 4 + EXP_ID_LEN + (length-EXP_ID_LEN) / 2);
+                         * checked them already.
+                         * exp->field->unpack() args are match, oxm_fields, experimenter_id, value and mask
+                         * sizeof(header) is 4 byte
+                         * sizeof(experimenter_id) is 4 byte
+                         * experimenter_id is @ p + 4 (p + header)
+                         * value is @ p + 8 (p + header + experimenter_id)
+                         * mask depends on field's size*/
+                        if (exp == NULL || exp->field == NULL || exp->field->unpack == NULL) {
+                            VLOG_DBG_RL(LOG_MODULE, &rl,"Received match is experimental, but no callback was given.");
+                            error = ofl_error(OFPET_BAD_MATCH, OFPBMC_BAD_TYPE);
+                        }
+                        error = exp->field->unpack(match_dst, f, p + 4, p + 4 + EXP_ID_LEN, p + 4 + EXP_ID_LEN + (length-EXP_ID_LEN) / 2);
                         break;
+                        
                     default:
                         error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_FIELD);
               }
@@ -726,26 +693,9 @@ oxm_put_8(struct ofpbuf *buf, uint32_t header, uint8_t value)
 }
 
 static void
-oxm_put_8e(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint8_t value)
-{
-    oxm_put_header(buf, header);
-    ofpbuf_put(buf, &experimenter_id, EXP_ID_LEN);
-    ofpbuf_put(buf, &value, sizeof value);
-}
-
-static void
 oxm_put_8w(struct ofpbuf *buf, uint32_t header, uint8_t value, uint8_t mask)
 {
     oxm_put_header(buf, header);
-    ofpbuf_put(buf, &value, sizeof value);
-    ofpbuf_put(buf, &mask, sizeof mask);
-}
-
-static void
-oxm_put_8we(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint8_t value, uint8_t mask)
-{
-    oxm_put_header(buf, header);
-    ofpbuf_put(buf, &experimenter_id, EXP_ID_LEN);
     ofpbuf_put(buf, &value, sizeof value);
     ofpbuf_put(buf, &mask, sizeof mask);
 }
@@ -758,14 +708,6 @@ oxm_put_16(struct ofpbuf *buf, uint32_t header, uint16_t value)
 }
 
 static void
-oxm_put_16e(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint16_t value)
-{
-    oxm_put_header(buf, header);
-    ofpbuf_put(buf, &experimenter_id, EXP_ID_LEN);
-    ofpbuf_put(buf, &value, sizeof value);
-}
-
-static void
 oxm_put_16w(struct ofpbuf *buf, uint32_t header, uint16_t value, uint16_t mask)
 {
    oxm_put_header(buf, header);
@@ -774,26 +716,9 @@ oxm_put_16w(struct ofpbuf *buf, uint32_t header, uint16_t value, uint16_t mask)
 }
 
 static void
-oxm_put_16we(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint16_t value, uint16_t mask)
-{
-    oxm_put_header(buf, header);
-    ofpbuf_put(buf, &experimenter_id, EXP_ID_LEN);
-    ofpbuf_put(buf, &value, sizeof value);
-    ofpbuf_put(buf, &mask, sizeof mask);
-}
-
-static void
 oxm_put_32(struct ofpbuf *buf, uint32_t header, uint32_t value)
 {
     oxm_put_header(buf, header);
-    ofpbuf_put(buf, &value, sizeof value);
-}
-
-static void
-oxm_put_32e(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint32_t value)
-{
-    oxm_put_header(buf, header);
-    ofpbuf_put(buf, &experimenter_id, EXP_ID_LEN);
     ofpbuf_put(buf, &value, sizeof value);
 }
 
@@ -806,26 +731,9 @@ oxm_put_32w(struct ofpbuf *buf, uint32_t header, uint32_t value, uint32_t mask)
 }
 
 static void
-oxm_put_32we(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint32_t value, uint32_t mask)
-{
-    oxm_put_header(buf, header);
-    ofpbuf_put(buf, &experimenter_id, EXP_ID_LEN);
-    ofpbuf_put(buf, &value, sizeof value);
-    ofpbuf_put(buf, &mask, sizeof mask);
-}
-
-static void
 oxm_put_64(struct ofpbuf *buf, uint32_t header, uint64_t value)
 {
     oxm_put_header(buf, header);
-    ofpbuf_put(buf, &value, sizeof value);
-}
-
-static void
-oxm_put_64e(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint64_t value)
-{
-    oxm_put_header(buf, header);
-    ofpbuf_put(buf, &experimenter_id, EXP_ID_LEN);
     ofpbuf_put(buf, &value, sizeof value);
 }
 
@@ -835,15 +743,6 @@ oxm_put_64w(struct ofpbuf *buf, uint32_t header, uint64_t value, uint64_t mask)
     oxm_put_header(buf, header);
     ofpbuf_put(buf, &value, sizeof value);
     ofpbuf_put(buf, &mask, sizeof mask);
-}
-
-static void
-oxm_put_64we(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint64_t value, uint64_t mask)
-{
-    oxm_put_header(buf, header);
-    ofpbuf_put(buf, &experimenter_id, EXP_ID_LEN);
-    ofpbuf_put(buf, &value, sizeof value);
-    ofpbuf_put(buf, &mask, sizeof mask); 
 }
 
 static void
@@ -911,7 +810,7 @@ is_requisite(uint32_t header){
 }
 
 /* Puts the match in the buffer */
-int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt){
+int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt, struct ofl_exp *exp){
 
     struct ofl_match_tlv *oft;
     int start_len = buf->size;
@@ -955,17 +854,19 @@ int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt){
     
     /* Loop through the remaining fields */
     HMAP_FOR_EACH(oft, struct ofl_match_tlv, hmap_node, &omt->match_fields){
+        
+        uint8_t length = OXM_LENGTH(oft->header);          
+        bool has_mask =false;
+        
         if (is_requisite(oft->header))
             /*We already inserted  fields that are pre requisites to others */
              continue;
         else {
-            uint8_t length = OXM_LENGTH(oft->header);
-            
-            bool has_mask =false;
-            
             switch (OXM_VENDOR(oft->header))
                 {
                     case (OFPXMC_OPENFLOW_BASIC):
+                        pfile("pack match field openflow basic\n");
+
                         if (OXM_HASMASK(oft->header)){
                             length = length / 2;
                             has_mask = true;
@@ -1055,68 +956,11 @@ int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt){
                         }
                         break;
                     case (OFPXMC_EXPERIMENTER):
-                        length = length - EXP_ID_LEN;      /* field length should exclude experimenter_id */                
-                        if (OXM_HASMASK(oft->header)){
-                            length = length / 2;
-                            has_mask = true;
+                        if (exp == NULL || exp->field == NULL || exp->field->pack == NULL) {
+                            VLOG_DBG_RL(LOG_MODULE, &rl, "Received match is experimental, but no callback was given.");
+                            break;
                         }
-                        switch (length){
-                            case (sizeof(uint8_t)):{
-                                uint32_t experimenter_id;
-                                uint8_t value;
-                                memcpy(&experimenter_id, oft->value, sizeof(uint32_t));
-                                memcpy(&value, oft->value + EXP_ID_LEN, sizeof(uint8_t));
-                                if(!has_mask)
-                                    oxm_put_8e(buf,oft->header, htonl(experimenter_id), value);
-                                else {
-                                    uint8_t mask;
-                                    memcpy(&mask, oft->value + EXP_ID_LEN + length , sizeof(uint8_t));
-                                    oxm_put_8we(buf, oft->header, htonl(experimenter_id), value, mask);
-                                }
-                                break;
-                              }
-                            case (sizeof(uint16_t)):{
-                                uint32_t experimenter_id;
-                                uint16_t value;
-                                memcpy(&experimenter_id, oft->value, sizeof(uint32_t));
-                                memcpy(&value, oft->value + EXP_ID_LEN, sizeof(uint16_t));
-                                if(!has_mask)
-                                    oxm_put_16e(buf,oft->header, htonl(experimenter_id), htons(value));
-                                else {
-                                    uint16_t mask;
-                                    memcpy(&mask, oft->value + EXP_ID_LEN + length , sizeof(uint16_t));
-                                    oxm_put_16we(buf, oft->header, htonl(experimenter_id), htons(value), htons(mask));
-                                }
-                                break;
-                            }
-                            case (sizeof(uint32_t)):{
-                                uint32_t experimenter_id, value;
-                                memcpy(&experimenter_id, oft->value, sizeof(uint32_t));
-                                memcpy(&value, oft->value + EXP_ID_LEN, sizeof(uint32_t));
-                                if(!has_mask)
-                                    oxm_put_32e(buf,oft->header, htonl(experimenter_id), htonl(value));
-                                else {
-                                    uint32_t mask;
-                                    memcpy(&mask, oft->value + EXP_ID_LEN + length , sizeof(uint32_t));
-                                    oxm_put_32we(buf, oft->header, htonl(experimenter_id), htonl(value), htonl(mask));
-                                }
-                                break;
-                            }
-                            case (sizeof(uint64_t)):{
-                                uint32_t experimenter_id;
-                                uint64_t value;
-                                memcpy(&experimenter_id, oft->value, sizeof(uint32_t));
-                                memcpy(&value, oft->value + EXP_ID_LEN, sizeof(uint64_t));
-                                if(!has_mask)
-                                    oxm_put_64e(buf,oft->header, htonl(experimenter_id), hton64(value));
-                                else {
-                                    uint64_t mask;
-                                    memcpy(&mask, oft->value + EXP_ID_LEN + length , sizeof(uint64_t));
-                                    oxm_put_64we(buf, oft->header, htonl(experimenter_id), hton64(value), hton64(mask));
-                                }
-                                break;
-                            }
-                        }
+                        exp->field->pack(buf, oft);
                         break;
                 }
             

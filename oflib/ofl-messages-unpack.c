@@ -1475,7 +1475,7 @@ ofl_msg_unpack_multipart_reply(struct ofp_header *src, uint8_t *buf, size_t *len
                 OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER stats reply, but no callback was given.");
                 error = ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_MULTIPART);
             } else {
-                error = exp->stats->reply_unpack(os, buf, len, (struct ofl_msg_multipart_reply_header **)msg, exp);
+                error = exp->stats->reply_unpack(os, buf, len, msg, exp);
             }
             break;
         }

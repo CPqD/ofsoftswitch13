@@ -218,12 +218,18 @@ static struct ofl_exp_stats dpctl_exp_stats =
          .reply_free    = ofl_exp_stats_reply_free,
          .reply_to_string = ofl_exp_stats_reply_to_string};
 
+static struct ofl_exp_field dpctl_exp_field =
+        {.unpack      = ofl_exp_field_unpack,
+         .pack        = ofl_exp_field_pack, 
+         .match       = ofl_exp_field_match};
+
 static struct ofl_exp dpctl_exp =
         {.act   = &dpctl_exp_act,
          .inst  = NULL,
          .match = NULL,
          .stats = &dpctl_exp_stats,
-         .msg   = &dpctl_exp_msg};
+         .msg   = &dpctl_exp_msg,
+         .field = &dpctl_exp_field};
 
 
 static void
