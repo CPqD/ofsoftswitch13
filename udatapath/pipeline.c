@@ -174,6 +174,13 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
 
 		entry = flow_table_lookup(table, pkt);
 
+        //removes 'state' virtual header field
+        struct ofl_match_tlv *f;
+        HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
+                    hmap_node, hash_int(OXM_EXP_STATE,0), &pkt->handle_std->match.match_fields){
+                        hmap_remove_and_shrink(&pkt->handle_std->match.match_fields,&f->hmap_node);
+        }
+
         if (entry != NULL) {
 	        if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
                 char *m = ofl_structs_flow_stats_to_string(entry->stats, pkt->dp->exp);
