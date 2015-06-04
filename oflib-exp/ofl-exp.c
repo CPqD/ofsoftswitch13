@@ -398,11 +398,59 @@ ofl_exp_field_unpack (struct ofl_match *match, struct oxm_field *f, void *experi
 
 void
 ofl_exp_field_match (struct ofl_match_tlv *f, int *packet_header, int *field_len, uint8_t **flow_val, uint8_t **flow_mask){
-   switch(*((uint32_t*) (f->value))){
+    switch(*((uint32_t*) (f->value))){
         case OPENSTATE_VENDOR_ID:
             ofl_exp_openstate_field_match(f, packet_header, field_len, flow_val, flow_mask);
             break;
         default:
             break;             
+    }
+}
+
+void
+ofl_exp_field_compare (struct ofl_match_tlv *f, struct ofl_match_tlv *packet_f, uint8_t **packet_val){
+    switch(*((uint32_t*) (f->value)))
+    {
+        case OPENSTATE_VENDOR_ID:
+            ofl_exp_openstate_field_compare(packet_f, packet_val);
+            break;
+        default:
+            break;
+    }
+}
+
+void
+ofl_exp_field_match_std (struct ofl_match_tlv *flow_mod_match, struct ofl_match_tlv *flow_entry_match, int *field_len, uint8_t **flow_mod_val, uint8_t **flow_entry_val, uint8_t **flow_mod_mask, uint8_t **flow_entry_mask){
+    switch(*((uint32_t*)(flow_mod_match->value)))
+    {
+        case OPENSTATE_VENDOR_ID:
+            ofl_exp_openstate_field_match_std(flow_mod_match, flow_mod_match, field_len, flow_mod_val, flow_entry_val, flow_mod_mask, flow_entry_mask);
+            break;
+        default:
+            break;
+    }
+}
+
+void
+ofl_exp_field_overlap_a (struct ofl_match_tlv *f_a, int *field_len, uint8_t **val_a, uint8_t **mask_a, int *header, int *header_m, uint64_t *all_mask){
+    switch(*((uint32_t*) (f_a->value)))
+    {
+        case OPENSTATE_VENDOR_ID:
+            ofl_exp_openstate_field_overlap_a(f_a, field_len, val_a, mask_a, header, header_m, all_mask);
+            break;
+        default:
+            break;
+    }
+}
+
+void
+ofl_exp_field_overlap_b (struct ofl_match_tlv *f_b, int *field_len, uint8_t **val_b, uint8_t **mask_b, uint64_t *all_mask){
+    switch(*((uint32_t*) (f_b->value)))
+    {
+        case OPENSTATE_VENDOR_ID:
+            ofl_exp_openstate_field_overlap_b(f_b, field_len, val_b, mask_b, all_mask);
+            break;
+        default:
+            break;
     }
 }

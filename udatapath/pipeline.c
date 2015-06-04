@@ -270,7 +270,7 @@ pipeline_handle_flow_mod(struct pipeline *pl, struct ofl_msg_flow_mod *msg,
 
             error = 0;
             for (i=0; i < PIPELINE_TABLES; i++) {
-                error = flow_table_flow_mod(pl->tables[i], msg, &match_kept, &insts_kept);
+                error = flow_table_flow_mod(pl->tables[i], msg, &match_kept, &insts_kept, pl->dp->exp);
                 if (error) {
                     break;
                 }
@@ -285,7 +285,7 @@ pipeline_handle_flow_mod(struct pipeline *pl, struct ofl_msg_flow_mod *msg,
             return ofl_error(OFPET_FLOW_MOD_FAILED, OFPFMFC_BAD_TABLE_ID);
         }
     } else {
-        error = flow_table_flow_mod(pl->tables[msg->table_id], msg, &match_kept, &insts_kept);
+        error = flow_table_flow_mod(pl->tables[msg->table_id], msg, &match_kept, &insts_kept, pl->dp->exp);
         if (error) {
             return error;
         }
@@ -341,10 +341,10 @@ pipeline_handle_stats_request_flow(struct pipeline *pl,
     if (msg->table_id == 0xff) {
         size_t i;
         for (i=0; i<PIPELINE_TABLES; i++) {
-            flow_table_stats(pl->tables[i], msg, &stats, &stats_size, &stats_num);
+            flow_table_stats(pl->tables[i], msg, &stats, &stats_size, &stats_num, pl->dp->exp);
         }
     } else {
-        flow_table_stats(pl->tables[msg->table_id], msg, &stats, &stats_size, &stats_num);
+        flow_table_stats(pl->tables[msg->table_id], msg, &stats, &stats_size, &stats_num, pl->dp->exp);
     }
 
     {

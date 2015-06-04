@@ -96,5 +96,16 @@ ofl_exp_field_unpack(struct ofl_match *match, struct oxm_field *f, void *experim
 void
 ofl_exp_field_match(struct ofl_match_tlv *f, int *packet_header, int *field_len, uint8_t **flow_val, uint8_t **flow_mask);
 
+void
+ofl_exp_field_compare (struct ofl_match_tlv *f, struct ofl_match_tlv *value, uint8_t **packet_val);
+
+void
+ofl_exp_field_match_std (struct ofl_match_tlv *flow_mod_match, struct ofl_match_tlv *flow_entry_match, int *field_len, uint8_t **flow_mod_val, uint8_t **flow_entry_val, uint8_t **flow_mod_mask, uint8_t **flow_entry_mask);
+
+void
+ofl_exp_field_overlap_a (struct ofl_match_tlv *f_a, int *field_len, uint8_t **val_a, uint8_t **mask_a, int *header, int *header_m, uint64_t *all_mask);
+
+void
+ofl_exp_field_overlap_b (struct ofl_match_tlv *f_b, int *field_len, uint8_t **val_b, uint8_t **mask_b, uint64_t *all_mask);
 
 #endif /* OFL_EXP_H */

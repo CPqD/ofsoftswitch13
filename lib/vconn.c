@@ -91,9 +91,13 @@ static struct ofl_exp_stats ofl_exp_stats =
          .reply_to_string = ofl_exp_stats_reply_to_string};
 
 static struct ofl_exp_field ofl_exp_field =
-        {.unpack      = ofl_exp_field_unpack, 
-         .pack        = ofl_exp_field_pack,
-         .match       = ofl_exp_field_match};
+        {.unpack     = ofl_exp_field_unpack, 
+         .pack       = ofl_exp_field_pack,
+         .match      = ofl_exp_field_match,
+         .compare    = ofl_exp_field_compare,
+         .match_std  = ofl_exp_field_match_std,
+         .overlap_a  = ofl_exp_field_overlap_a,
+         .overlap_b  = ofl_exp_field_overlap_b};
 
 static struct ofl_exp ofl_exp =
         {.act   = &ofl_exp_act,

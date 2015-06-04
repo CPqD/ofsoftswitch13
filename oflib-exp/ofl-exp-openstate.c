@@ -1001,6 +1001,53 @@ ofl_exp_openstate_field_match(struct ofl_match_tlv *f, int *packet_header, int *
     }
 }
 
+void
+ofl_exp_openstate_field_compare (struct ofl_match_tlv *packet_f, uint8_t **packet_val){
+    *packet_val = packet_f->value + EXP_ID_LEN;
+}                   
+
+void
+ofl_exp_openstate_field_match_std (struct ofl_match_tlv *flow_mod_match, struct ofl_match_tlv *flow_entry_match, int *field_len, uint8_t **flow_mod_val, uint8_t **flow_entry_val, uint8_t **flow_mod_mask, uint8_t **flow_entry_mask){
+    bool has_mask = OXM_HASMASK(flow_mod_match->header);
+    *field_len =  OXM_LENGTH(flow_mod_match->header) - EXP_ID_LEN;
+    *flow_mod_val = ((*flow_mod_val) + EXP_ID_LEN);
+    *flow_entry_val = ((*flow_entry_val) + EXP_ID_LEN);
+    if (has_mask)
+        {
+            *field_len /= 2;
+            *flow_mod_mask = ((*flow_mod_val) + (*field_len));
+            *flow_entry_mask = ((*flow_entry_val) + (*field_len));
+        }
+}
+
+void
+ofl_exp_openstate_field_overlap_a (struct ofl_match_tlv *f_a, int *field_len, uint8_t **val_a, uint8_t **mask_a, int *header, int *header_m, uint64_t *all_mask){
+    *field_len = OXM_LENGTH(f_a->header) - EXP_ID_LEN; 
+    *val_a = f_a->value + EXP_ID_LEN;
+    if (OXM_HASMASK(f_a->header)) {
+        *field_len /= 2;
+        *header = ((f_a->header & 0xfffffe00) | ((*field_len) + EXP_ID_LEN));
+        *header_m = f_a->header;
+        *mask_a = f_a->value + EXP_ID_LEN + (*field_len);
+    } else {
+        *header = f_a->header;
+        *header_m = (f_a->header & 0xfffffe00) | 0x100 | (*field_len << 1);
+        /* Set a dummy mask with all bits set to 0 (valid) */
+        *mask_a = (uint8_t *) all_mask;
+    }
+}
+
+void
+ofl_exp_openstate_field_overlap_b (struct ofl_match_tlv *f_b, int *field_len, uint8_t **val_b, uint8_t **mask_b, uint64_t *all_mask){
+    *val_b = f_b->value + EXP_ID_LEN;
+    if (OXM_HASMASK(f_b->header)) {
+        *mask_b = f_b->value + EXP_ID_LEN + (*field_len);
+    } else {
+        /* Set a dummy mask with all bits set to 0 (valid) */
+        *mask_b = (uint8_t *) all_mask;
+    }
+}
+
 /*experimenter table functions*/
 
 int __extract_key(uint8_t *, struct key_extractor *, struct packet *);
@@ -1094,7 +1141,7 @@ void state_table_write_state(struct state_entry *entry, struct packet *pkt) {
     
     HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv, 
         hmap_node, hash_int(OXM_EXP_STATE,0), &pkt->handle_std->match.match_fields){
-                int32_t *state = (uint32_t*) (f->value + EXP_ID_LEN);
+                uint32_t *state = (uint32_t*) (f->value + EXP_ID_LEN);
                 *state = (*state & 0x00000000) | (entry->state);
     }
 }

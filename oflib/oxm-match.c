@@ -865,7 +865,6 @@ int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt, struct ofl_exp *exp
             switch (OXM_VENDOR(oft->header))
                 {
                     case (OFPXMC_OPENFLOW_BASIC):
-                        pfile("pack match field openflow basic\n");
 
                         if (OXM_HASMASK(oft->header)){
                             length = length / 2;

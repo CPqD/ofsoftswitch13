@@ -197,14 +197,11 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet, struct ofl_
                 packet_val = packet_f->value;
                 break;
             case(OFPXMC_EXPERIMENTER):
-                switch(*((uint32_t*) (f->value)))
-                {
-                    case OPENSTATE_VENDOR_ID:
-                        packet_val = packet_f->value + EXP_ID_LEN;
-                        break;
-                    default:
-                        break;
+                if (exp == NULL || exp->field == NULL || exp->field->compare == NULL) {
+                    VLOG_WARN(LOG_MODULE,"Received match is experimental, but no callback was given.");
+                    ofl_error(OFPET_BAD_MATCH, OFPBMC_BAD_TYPE);
                 }
+                exp->field->compare(f, packet_f, &packet_val);
                 break;
             default:
                 break;
@@ -365,7 +362,7 @@ strict_mask128(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
  * in the field.
  */
 bool
-match_std_strict(struct ofl_match *a, struct ofl_match *b) {
+match_std_strict(struct ofl_match *a, struct ofl_match *b, struct ofl_exp *exp) {
 
     struct ofl_match_tlv *flow_mod_match;
     struct ofl_match_tlv *flow_entry_match;
@@ -396,7 +393,7 @@ match_std_strict(struct ofl_match *a, struct ofl_match *b) {
         flow_entry_val = flow_entry_match->value;
         switch (OXM_VENDOR(flow_mod_match->header))
         {
-            case (OFPXMC_OPENFLOW_BASIC):          
+            case (OFPXMC_OPENFLOW_BASIC):         
                 field_len =  OXM_LENGTH(flow_mod_match->header);
                 if (has_mask)
                     {
@@ -406,22 +403,12 @@ match_std_strict(struct ofl_match *a, struct ofl_match *b) {
                     }
                 break;
             case (OFPXMC_EXPERIMENTER):
-                switch((*((uint32_t*) (flow_mod_val))))
-                {
-                    case OPENSTATE_VENDOR_ID:
-                        field_len =  OXM_LENGTH(flow_mod_match->header) - EXP_ID_LEN;
-                        flow_mod_val = flow_mod_match->value + EXP_ID_LEN;
-                        flow_entry_val = flow_entry_match->value + EXP_ID_LEN;
-                        if (has_mask)
-                            {
-                                field_len /= 2;
-                                flow_mod_mask = flow_mod_match->value + EXP_ID_LEN + field_len;
-                                flow_entry_mask = flow_entry_match->value + EXP_ID_LEN + field_len;
-                            }
-                        break;
-                    default:
-                        break;
+                if (exp == NULL || exp->field == NULL || exp->field->match_std == NULL) {
+                    VLOG_WARN(LOG_MODULE,"Received match is experimental, but no callback was given.");
+                    ofl_error(OFPET_BAD_MATCH, OFPBMC_BAD_TYPE);
                 }
+                exp->field->match_std(flow_mod_match, flow_entry_match, &field_len, &flow_mod_val, &flow_entry_val, &flow_mod_mask, &flow_entry_mask);
+                break;
             default:
                 break;
         }
@@ -555,7 +542,7 @@ nonstrict_mask128(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
  *
  */
 bool
-match_std_nonstrict(struct ofl_match *a, struct ofl_match *b)
+match_std_nonstrict(struct ofl_match *a, struct ofl_match *b, struct ofl_exp *exp)
 {
     struct ofl_match_tlv *flow_mod_match;
     struct ofl_match_tlv *flow_entry_match;
@@ -593,22 +580,12 @@ match_std_nonstrict(struct ofl_match *a, struct ofl_match *b)
                 }
                 break;
             case (OFPXMC_EXPERIMENTER):
-                switch((*((uint32_t*) (flow_mod_val))))
-                {
-                    case OPENSTATE_VENDOR_ID:
-                        flow_mod_val = flow_mod_match->value + EXP_ID_LEN;
-                        flow_entry_val = flow_entry_match->value + EXP_ID_LEN;
-                        field_len =  OXM_LENGTH(flow_mod_match->header) - EXP_ID_LEN;          
-                        if (has_mask)
-                        {
-                            field_len /= 2;
-                            flow_mod_mask = flow_mod_match->value + EXP_ID_LEN + field_len;
-                            flow_entry_mask = flow_entry_match->value + EXP_ID_LEN + field_len;
-                        }
-                        break;
-                    default:
-                        break;
+                if (exp == NULL || exp->field == NULL || exp->field->match_std == NULL) {
+                    VLOG_WARN(LOG_MODULE,"Received match is experimental, but no callback was given.");
+                    ofl_error(OFPET_BAD_MATCH, OFPBMC_BAD_TYPE);
                 }
+                exp->field->match_std(flow_mod_match, flow_entry_match, &field_len, &flow_mod_val, &flow_entry_val, &flow_mod_mask, &flow_entry_mask);
+                break;
             default:
                 break;
         }
@@ -712,7 +689,7 @@ incompatible_32(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
     uint32_t *b1 = (uint32_t *) b;
     uint32_t *mask_a = (uint32_t *) am;
     uint32_t *mask_b = (uint32_t *) bm;
-
+    pfile ("stampa la incompatible %u", ( ~(*mask_a|*mask_b) & (*a1^*b1) ));
     return (( ~(*mask_a|*mask_b) & (*a1^*b1) ) != 0);
 }
 
@@ -744,7 +721,7 @@ incompatible_128(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
  * incompatible value/mask fields that can't match any packet.
  */
 bool
-match_std_overlap(struct ofl_match *a, struct ofl_match *b)
+match_std_overlap(struct ofl_match *a, struct ofl_match *b, struct ofl_exp *exp)
 {
     uint64_t all_mask[2] = {0, 0};
     struct ofl_match_tlv *f_a;
@@ -776,26 +753,12 @@ match_std_overlap(struct ofl_match *a, struct ofl_match *b)
                 }
                 break;
             case (OFPXMC_EXPERIMENTER):
-                switch((*((uint32_t*) (f_a->value))))
-                {
-                    case OPENSTATE_VENDOR_ID:
-                        field_len = OXM_LENGTH(f_a->header) - EXP_ID_LEN; 
-                        val_a = f_a->value + EXP_ID_LEN;
-                        if (OXM_HASMASK(f_a->header)) {
-                            field_len /= 2;
-                            header = (f_a->header & 0xfffffe00) | field_len + EXP_ID_LEN;
-                            header_m = f_a->header;
-                            mask_a = f_a->value + EXP_ID_LEN + field_len;
-                        } else {
-                            header = f_a->header;
-                            header_m = (f_a->header & 0xfffffe00) | 0x100 | (field_len << 1);
-                            /* Set a dummy mask with all bits set to 0 (valid) */
-                            mask_a = (uint8_t *) all_mask;
-                        }
-                        break;
-                    default:
-                        break;
-                } /*switch experimenter*/
+                if (exp == NULL || exp->field == NULL || exp->field->overlap_a == NULL) {
+                    VLOG_WARN(LOG_MODULE,"Received match is experimental, but no callback was given.");
+                    ofl_error(OFPET_BAD_MATCH, OFPBMC_BAD_TYPE);
+                }
+                exp->field->overlap_a(f_a, &field_len, &val_a, &mask_a, &header, &header_m, all_mask);
+                break;
             default:
                 break;
         } /*switch class*/
@@ -806,7 +769,7 @@ match_std_overlap(struct ofl_match *a, struct ofl_match *b)
         if (!f_b) f_b = oxm_match_lookup(header_m, b);
 
         if (f_b) {
-            switch (OXM_VENDOR(f_a->header))
+            switch (OXM_VENDOR(f_b->header))
                 {
                     case (OFPXMC_OPENFLOW_BASIC):
                         val_b = f_b->value;
@@ -818,20 +781,12 @@ match_std_overlap(struct ofl_match *a, struct ofl_match *b)
                         }                     
                         break;
                     case (OFPXMC_EXPERIMENTER):
-                        switch((*((uint32_t*) (f_a->value))))
-                        {
-                            case OPENSTATE_VENDOR_ID:
-                                val_b = f_b->value + EXP_ID_LEN;
-                                if (OXM_HASMASK(f_b->header)) {
-                                    mask_b = f_b->value + EXP_ID_LEN + field_len;
-                                } else {
-                                    /* Set a dummy mask with all bits set to 0 (valid) */
-                                    mask_b = (uint8_t *) all_mask;
-                                }
-                                break;
-                            default:
-                                break;
-                        } /*switch experimenter*/
+                        if (exp == NULL || exp->field == NULL || exp->field->overlap_b == NULL) {
+                            VLOG_WARN(LOG_MODULE,"Received match is experimental, but no callback was given.");
+                            ofl_error(OFPET_BAD_MATCH, OFPBMC_BAD_TYPE);
+                        }
+                        exp->field->overlap_b(f_b, &field_len, &val_b, &mask_b, all_mask);
+                        break;
                     default:
                         break;
                 } /*switch class*/            

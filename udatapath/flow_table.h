@@ -70,7 +70,7 @@ extern struct ofl_instruction_header instructions[];
 extern struct ofl_action_header actions[];
 /* Handles a flow mod message. */
 ofl_err
-flow_table_flow_mod(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool *match_kept, bool *insts_kept);
+flow_table_flow_mod(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool *match_kept, bool *insts_kept, struct ofl_exp *exp);
 
 /* Finds the flow entry with the highest priority, which matches the packet. */
 struct flow_entry *
@@ -91,7 +91,7 @@ flow_table_destroy(struct flow_table *table);
 /* Collects statistics of the flow entries of the table. */
 void
 flow_table_stats(struct flow_table *table, struct ofl_msg_multipart_request_flow *msg,
-                 struct ofl_flow_stats ***stats, size_t *stats_size, size_t *stats_num);
+                 struct ofl_flow_stats ***stats, size_t *stats_size, size_t *stats_num, struct ofl_exp *exp);
 
 /* Collects aggregate statistics of the flow entries of the table. */
 void

@@ -139,7 +139,11 @@ struct ofl_exp_msg {
 struct ofl_exp_field {
     void    (*pack)             (struct ofpbuf *buf, struct ofl_match_tlv *oft);
     int     (*unpack)           (struct ofl_match *match, struct oxm_field *f, void *experimenter_id, void *value, void *mask);
-    void    (*match)            (struct ofl_match_tlv *f, int * packet_header, int  *field_len, uint8_t **flow_val, uint8_t **flow_mask);
+    void    (*match)            (struct ofl_match_tlv *f, int *packet_header, int  *field_len, uint8_t **flow_val, uint8_t **flow_mask);
+    void    (*compare)          (struct ofl_match_tlv *f, struct ofl_match_tlv *value, uint8_t **packet_val);
+    void    (*match_std)        (struct ofl_match_tlv *flow_mod_match, struct ofl_match_tlv *flow_entry_match, int *field_len, uint8_t **flow_mod_val, uint8_t **flow_entry_val, uint8_t **flow_mod_mask, uint8_t **flow_entry_mask);
+    void    (*overlap_a)        (struct ofl_match_tlv *f_a, int *field_len, uint8_t **val_a, uint8_t **mask_a, int *header, int *header_m, uint64_t *all_mask);
+    void    (*overlap_b)        (struct ofl_match_tlv *f_b, int *field_len, uint8_t **val_b, uint8_t **mask_b, uint64_t *all_mask);
 };
 
 /* Convenience structure for passing all callback groups at once. */
