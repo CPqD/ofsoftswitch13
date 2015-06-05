@@ -23,16 +23,16 @@ enum ofp_extension_commands { /* Queue configuration commands */
     OFP_EXT_QUEUE_MODIFY,  /* Add and/or modify */
     OFP_EXT_QUEUE_DELETE,  /* Remove a queue */
     OFP_EXT_SET_DESC,      /* Set ofp_desc_stat->dp_desc */
+
     OFP_EXT_COUNT
 };
 
-struct ofp_message_extension_header {
+struct ofp_extension_header {
     struct ofp_header header;
     uint32_t vendor;            /* OPENFLOW_VENDOR_ID. */
     uint32_t subtype;           /* One of ofp_extension_commands */
 };
-OFP_ASSERT(sizeof(struct ofp_message_extension_header) == 16);
-
+OFP_ASSERT(sizeof(struct ofp_extension_header) == 16);
 
 /****************************************************************
  *
@@ -41,7 +41,7 @@ OFP_ASSERT(sizeof(struct ofp_message_extension_header) == 16);
  ****************************************************************/
 
 struct openflow_queue_command_header {
-    struct ofp_message_extension_header header;
+    struct ofp_extension_header header;
     uint32_t port;              /* Port for operations */
     uint8_t pad[4];             /* Align to 64-bits */
     uint8_t body[0];            /* Body of ofp_queue objects for op. */
@@ -82,7 +82,7 @@ enum openflow_queue_error_code {
 extern char *openflow_queue_error_strings[];
 
 struct openflow_ext_set_dp_desc {
-    struct ofp_message_extension_header header;
+    struct ofp_extension_header header;
     char dp_desc[DESC_STR_LEN];
 };
 OFP_ASSERT(sizeof(struct openflow_ext_set_dp_desc) == 272);

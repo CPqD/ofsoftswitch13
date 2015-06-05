@@ -49,6 +49,7 @@
                             /* | OFPC_IP_REASM       */    \
                                | OFPC_QUEUE_STATS)
                                /*| OFPC_PORT_BLOCKED */    
+    
 #define DP_SUPPORTED_ACTIONS ( (1 << OFPAT_OUTPUT)          \
                              | (2 << OFPAT_COPY_TTL_OUT)    \
                              | (3 << OFPAT_COPY_TTL_IN)     \
@@ -66,8 +67,6 @@
 #define DP_SUPPORTED_MATCH_FIELDS ( OFPXMT_OFB_IN_PORT        \
                                   | OFPXMT_OFB_IN_PHY_PORT    \
                                   | OFPXMT_OFB_METADATA       \
-                                  | OFPXMT_EXP_FLAGS          \
-                                  | OFPXMT_EXP_STATE          \
                                   | OFPXMT_OFB_ETH_DST        \
                                   | OFPXMT_OFB_ETH_SRC        \
                                   | OFPXMT_OFB_ETH_TYPE       \

@@ -38,7 +38,6 @@
 #include "ofl-exp-openflow.h"
 #include "../oflib/ofl-log.h"
 #include "../oflib/ofl-print.h"
-#include "../oflib/ofl-utils.h"
 
 #define LOG_MODULE ofl_exp_of
 OFL_LOG_INIT(LOG_MODULE)
@@ -92,21 +91,20 @@ ofl_exp_openflow_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf, size_
 
 ofl_err
 ofl_exp_openflow_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_experimenter **msg) {
-    struct ofp_message_extension_header *exp;
+    struct ofp_extension_header *exp;
 
-    if (*len < sizeof(struct ofp_message_extension_header)) {
+    if (*len < sizeof(struct ofp_extension_header)) {
         OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER message has invalid length (%zu).", *len);
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
 
-    exp = (struct ofp_message_extension_header *)oh;
+    exp = (struct ofp_extension_header *)oh;
     
     if (ntohl(exp->vendor) == OPENFLOW_VENDOR_ID) {
 
         switch (ntohl(exp->subtype)) {
             case (OFP_EXT_QUEUE_MODIFY):
-            case (OFP_EXT_QUEUE_DELETE): 
-            {
+            case (OFP_EXT_QUEUE_DELETE): {
                 struct openflow_queue_command_header *src;
                 struct ofl_exp_openflow_msg_queue *dst;
                 ofl_err error;
@@ -133,11 +131,9 @@ ofl_exp_openflow_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_e
                 (*msg) = (struct ofl_msg_experimenter *)dst;
                 return 0;
             }
-            case (OFP_EXT_SET_DESC): 
-            {
+            case (OFP_EXT_SET_DESC): {
                 struct openflow_ext_set_dp_desc *src;
                 struct ofl_exp_openflow_msg_set_dp_desc *dst;
-
 
                 if (*len < sizeof(struct openflow_ext_set_dp_desc)) {
                     OFL_LOG_WARN(LOG_MODULE, "Received EXT_SET_DESC message has invalid length (%zu).", *len);

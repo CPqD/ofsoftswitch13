@@ -301,7 +301,6 @@ ofl_msg_print_stats_request_experimenter(struct ofl_msg_multipart_request_experi
 
 static void
 ofl_msg_print_multipart_request(struct ofl_msg_multipart_request_header *msg, FILE *stream, struct ofl_exp *exp) {
-
     if (msg->type == OFPMP_EXPERIMENTER) {
         if (exp != NULL && exp->stats != NULL && exp->stats->req_to_string != NULL) {
             char *c = exp->stats->req_to_string(msg, exp);
@@ -598,6 +597,7 @@ ofl_msg_print_multipart_reply(struct ofl_msg_multipart_reply_header *msg, FILE *
             OFL_LOG_WARN(LOG_MODULE, "Trying to print EXPERIMENTER stats reply, but no callback was given.");
         }
     }
+
     fprintf(stream, "{type=\"");
     ofl_stats_type_print(stream, msg->type);
     fprintf(stream, "\", flags=\"0x%"PRIx32"\"", msg->flags);
@@ -664,6 +664,7 @@ ofl_msg_print_multipart_reply(struct ofl_msg_multipart_reply_header *msg, FILE *
             break;
         }
     }
+
     fprintf(stream, "}");
 }
 

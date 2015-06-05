@@ -42,9 +42,6 @@
 #include "ofl-log.h"
 #include "openflow/openflow.h"
 
-
-
-
 #define LOG_MODULE ofl_act_p
 OFL_LOG_INIT(LOG_MODULE)
 
@@ -90,7 +87,6 @@ ofl_actions_ofp_len(struct ofl_action_header *action, struct ofl_exp *exp) {
             }
             return exp->act->ofp_len(action);
         }
-    
         default:
             return 0;
     }
@@ -247,8 +243,7 @@ ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, u
                 OFL_LOG_WARN(LOG_MODULE, "Trying to pack experimenter, but no callback was given.");
                 return 0;
             }
-            return exp->act->pack(src, dst);
-            
+            return exp->act->pack(src, dst);           
         }
         default:
             return 0;

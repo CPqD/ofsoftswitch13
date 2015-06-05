@@ -163,7 +163,13 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
             }
 		}
         
-        pipeline_global_states_write_flags(pkt);
+
+        //add 'flags' virtual header field
+        HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv, 
+            hmap_node, hash_int(OXM_EXP_FLAGS,0), &pkt->handle_std->match.match_fields){
+                    uint32_t *flags = (uint32_t*) (f->value + EXP_ID_LEN);
+                    *flags = (*flags & 0x00000000 ) | (pkt->dp->global_states);
+        }
         
 		if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
 			char *m = ofl_structs_match_to_string((struct ofl_match_header*)&(pkt->handle_std->match), pkt->dp->exp);
@@ -667,16 +673,5 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
                 break;
             }
         }
-    }
-}
-
-
-void pipeline_global_states_write_flags(struct packet *pkt){
-    struct  ofl_match_tlv *f;
-
-    HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv, 
-        hmap_node, hash_int(OXM_EXP_FLAGS,0), &pkt->handle_std->match.match_fields){
-                uint32_t *flags = (uint32_t*) (f->value + EXP_ID_LEN);
-                *flags = (*flags & 0x00000000 ) | (pkt->dp->global_states);
     }
 }

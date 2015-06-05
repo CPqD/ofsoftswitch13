@@ -99,7 +99,7 @@ ofl_structs_set_flow_state_unpack(struct ofp_exp_set_flow_state *src, size_t *le
        OFL_LOG_WARN(LOG_MODULE, "Received state mod set_flow is too short (%zu).", *len);
        return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
     }
- 
+
     *len -= ((3*sizeof(uint32_t) + ntohl(src->key_len)*sizeof(uint8_t)) + 4*sizeof(uint8_t));
  
     return 0;
@@ -1883,7 +1883,7 @@ ofl_structs_state_stats_unpack(struct ofp_exp_state_stats *src, uint8_t *buf, si
 
     slen = ntohs(src->length) - sizeof(struct ofp_exp_state_stats);
 
-    s = (struct ofl_state_stats *)malloc(sizeof(struct ofl_exp_state_stats));
+    s = (struct ofl_exp_state_stats *)malloc(sizeof(struct ofl_exp_state_stats));
     s->table_id =  src->table_id;
     s->field_count = ntohl(src->field_count);
     for (i=0;i<s->field_count;i++)

@@ -38,7 +38,7 @@
 #include "oflib-exp/ofl-exp-openstate.h"
 
 
-#define FLOW_TABLE_MAX_ENTRIES 4194304
+#define FLOW_TABLE_MAX_ENTRIES 4096
 #define TABLE_FEATURES_NUM 14
 
 /****************************************************************************

@@ -35,10 +35,8 @@
 
 #include "../oflib/ofl-structs.h"
 #include "../oflib/ofl-messages.h"
-#include "../include/openflow/openflow-ext.h"
-/**************************************************************************/
-/*                        experimenter messages ofl_exp                   */
-/**************************************************************************/
+
+
 struct ofl_exp_openflow_msg_header {
     struct ofl_msg_experimenter   header; /* OPENFLOW_VENDOR_ID */
 

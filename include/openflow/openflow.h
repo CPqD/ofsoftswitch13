@@ -95,7 +95,6 @@ enum ofp_type {
     OFPT_METER_MOD = 29, /* Controller/switch message */
 };
 
-
 /* OFPT_HELLO.  This message has an empty body, but implementations must
  * ignore any data included in the body, to allow for future extensions. */
 struct ofp_hello {
@@ -331,7 +330,6 @@ enum oxm_ofb_match_fields {
     OFPXMT_OFB_IPV6_EXTHDR = 39     /* IPv6 Extension Header pseudo-field */
 };
 
-
 /* The VLAN id is 12-bits, so we can use the entire 16 bits to indicate
 * special conditions.
 */
@@ -433,6 +431,7 @@ struct ofp_instruction_meter {
     uint32_t meter_id; /* Meter instance. */
 };
 OFP_ASSERT(sizeof(struct ofp_instruction_meter) == 8);
+
 
 enum ofp_action_type {
     OFPAT_OUTPUT = 0,        /* Output to switch port. */
@@ -556,6 +555,7 @@ struct ofp_action_experimenter_header {
                               ofp_experimenter_header. */
 };
 OFP_ASSERT(sizeof(struct ofp_action_experimenter_header) == 8);
+
 
 /*************Controller-to-Switch Messages******************/
 

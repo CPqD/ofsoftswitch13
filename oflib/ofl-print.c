@@ -637,8 +637,8 @@ ofl_message_type_print(FILE *stream, uint16_t type) {
         case OFPT_GROUP_MOD: {                fprintf(stream, "grp_mod"); return; }
         case OFPT_PORT_MOD: {                 fprintf(stream, "port_mod"); return; }
         case OFPT_TABLE_MOD: {                fprintf(stream, "tab_mod"); return; }
-        case OFPT_MULTIPART_REQUEST: {        fprintf(stream, "stat_req"); return; }
-        case OFPT_MULTIPART_REPLY: {          fprintf(stream, "stat_repl"); return; }
+        case OFPT_MULTIPART_REQUEST: {            fprintf(stream, "stat_req"); return; }
+        case OFPT_MULTIPART_REPLY: {              fprintf(stream, "stat_repl"); return; }
         case OFPT_BARRIER_REQUEST: {          fprintf(stream, "barr_req"); return; }
         case OFPT_BARRIER_REPLY: {            fprintf(stream, "barr_repl"); return; }
         case OFPT_QUEUE_GET_CONFIG_REQUEST: { fprintf(stream, "q_cnf_req"); return; }

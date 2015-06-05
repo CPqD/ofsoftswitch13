@@ -97,6 +97,7 @@ pipeline_handle_stats_request_aggregate(struct pipeline *pl,
                                   struct ofl_msg_multipart_request_flow *msg,
                                   const struct sender *sender);
 
+
 /* Commands pipeline to check if any flow in any table is timed out. */
 void
 pipeline_timeout(struct pipeline *pl);
@@ -105,7 +106,5 @@ pipeline_timeout(struct pipeline *pl);
 void
 pipeline_destroy(struct pipeline *pl);
 
-void
-pipeline_global_states_write_flags(struct packet *pkt);
 
 #endif /* PIPELINE_H */

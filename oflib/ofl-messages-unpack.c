@@ -1,4 +1,4 @@
-/*
+/* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary
  * Copyright (c) 2012, CPqD, Brazil 
  * All rights reserved.
  *
@@ -423,7 +423,7 @@ ofl_msg_unpack_packet_out(struct ofp_header *src, size_t *len, struct ofl_msg_he
 
 
 static ofl_err
-ofl_msg_unpack_flow_mod(struct ofp_header *src,uint8_t* buf, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp ) {
+ofl_msg_unpack_flow_mod(struct ofp_header *src,uint8_t* buf, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp) {
     struct ofp_flow_mod *sm;
     struct ofl_msg_flow_mod *dm;
     struct ofp_instruction *inst;
@@ -1737,6 +1737,6 @@ ofl_msg_unpack(uint8_t *buf, size_t buf_len, struct ofl_msg_header **msg, uint32
     }
 
     (*msg)->type = (enum ofp_type)oh->type;
+
     return 0;
 }
-

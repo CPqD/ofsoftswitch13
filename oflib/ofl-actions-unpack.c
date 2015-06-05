@@ -50,7 +50,7 @@ OFL_LOG_INIT(LOG_MODULE)
 
 ofl_err
 ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action_header **dst, struct ofl_exp *exp) {
-    
+
     if (*len < sizeof(struct ofp_action_header)) {
         OFL_LOG_WARN(LOG_MODULE, "Received action is too short (%zu).", *len);
         return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
@@ -66,7 +66,6 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
         return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
     }
 
-    
     switch (ntohs(src->type)) {
         case OFPAT_OUTPUT: {
             struct ofp_action_output *sa;

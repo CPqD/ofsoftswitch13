@@ -61,7 +61,6 @@
 #include "unaligned.h"
 #include "byte-order.h"
 #include "../include/openflow/openflow.h"
-#include "../include/openflow/openstate-ext.h"
 
 #define LOG_MODULE VLM_oxm_match
 #include "vlog.h"
@@ -307,6 +306,7 @@ static uint8_t* get_oxm_value(struct ofl_match *m, uint32_t header){
 static int
 parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
                 const void *value, const void *mask){
+
     switch (f->index) {
         case OFI_OXM_OF_IN_PORT: {
             uint32_t* in_port = (uint32_t*) value;
@@ -542,8 +542,6 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
     }
     NOT_REACHED();
 }
-
-
  /*hmap_insert(match_dst, &f->hmap_node,
                 hash_int(f->header, 0));               */
 
@@ -592,7 +590,6 @@ oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len, 
             error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_DUP_FIELD);
         }
         else {
-
               switch (OXM_VENDOR(header))
               {
                     case(OFPXMC_OPENFLOW_BASIC):
@@ -632,8 +629,8 @@ oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len, 
                         error);
             return error;
         }
-    p += 4 + length;
-    match_len -= 4 + length;
+        p += 4 + length;
+        match_len -= 4 + length;
     }
     return match_len ? ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_LEN) : 0;
 }
@@ -693,8 +690,8 @@ oxm_put_8(struct ofpbuf *buf, uint32_t header, uint8_t value)
 }
 
 static void
-oxm_put_8w(struct ofpbuf *buf, uint32_t header, uint8_t value, uint8_t mask)
-{
+oxm_put_8w(struct ofpbuf *buf, uint32_t header, uint8_t value, uint8_t mask){
+    
     oxm_put_header(buf, header);
     ofpbuf_put(buf, &value, sizeof value);
     ofpbuf_put(buf, &mask, sizeof mask);

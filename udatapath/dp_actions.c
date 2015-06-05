@@ -1008,7 +1008,6 @@ dp_actions_output_port(struct packet *pkt, uint32_t out_port, uint32_t out_queue
         case (OFPP_TABLE): {
             if (pkt->packet_out) {
                 // NOTE: hackish; makes sure packet cannot be resubmit to pipeline again.
-                printf("submit pkt to first flow table\n");
 		pkt->packet_out = false;
                 pipeline_process_packet(pkt->dp->pipeline, pkt);
             } else {

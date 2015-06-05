@@ -64,7 +64,7 @@ ofl_actions_free(struct ofl_action_header *act, struct ofl_exp *exp) {
         case OFPAT_SET_QUEUE:
         case OFPAT_GROUP:
         case OFPAT_SET_NW_TTL:
-        case OFPAT_DEC_NW_TTL:{
+        case OFPAT_DEC_NW_TTL: {
             break;
         }
         case OFPAT_EXPERIMENTER: {
@@ -83,11 +83,12 @@ ofl_actions_free(struct ofl_action_header *act, struct ofl_exp *exp) {
 
 ofl_err
 ofl_utils_count_ofp_actions(void *data, size_t data_len, size_t *count) {
-
     struct ofp_action_header *act;
     uint8_t *d;
+
     d = (uint8_t *)data;
     *count = 0;
+
     /* this is needed so that buckets are handled correctly */
     while (data_len >= sizeof(struct ofp_action_header) -4 ) {
         act = (struct ofp_action_header *)d;
@@ -99,5 +100,6 @@ ofl_utils_count_ofp_actions(void *data, size_t data_len, size_t *count) {
         d += ntohs(act->len);
         (*count)++;
     }
+
     return 0;
 }
