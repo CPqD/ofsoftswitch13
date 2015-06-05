@@ -64,7 +64,7 @@ dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
             case(OFPAT_EXP_SET_STATE):
             {
                 struct ofl_exp_action_set_state *wns = (struct ofl_exp_action_set_state *)action;
-                if (state_table_is_stateful(pkt->dp->pipeline->tables[wns->table_id]->state_table))
+                if (state_table_is_stateful(pkt->dp->pipeline->tables[wns->table_id]->state_table) && state_table_is_configured(pkt->dp->pipeline->tables[wns->table_id]->state_table))
                 {
                     struct state_table *st = pkt->dp->pipeline->tables[wns->table_id]->state_table;
                     VLOG_WARN_RL(LOG_MODULE, &rl, "executing action NEXT STATE at stage %u", wns->table_id);
@@ -72,6 +72,7 @@ dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
                 }
                 else
                 {
+                    //TODO sanvitz: return an experimenter error msg
                     VLOG_WARN_RL(LOG_MODULE, &rl, "ERROR NEXT STATE at stage %u: stage not stateful", wns->table_id);
                 }
                 break;
@@ -168,9 +169,6 @@ dp_exp_message(struct datapath *dp, struct ofl_msg_experimenter *msg, const stru
             switch(exp->type) {
                 case (OFPT_EXP_STATE_MOD): {
                     return handle_state_mod(dp->pipeline, (struct ofl_exp_msg_state_mod *)msg, sender);
-                }
-                case (OFPT_EXT_FLAG_MOD): {
-                    return handle_flag_mod(dp->pipeline, (struct ofl_exp_msg_flag_mod *)msg, sender);
                 }
                 default: {
                     VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to handle unknown experimenter type (%u).", exp->type);

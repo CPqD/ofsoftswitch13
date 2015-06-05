@@ -282,7 +282,7 @@ ofl_exp_stats_req_unpack (struct ofp_multipart_request *os, uint8_t *buf, size_t
 }
 
 ofl_err
-ofl_exp_stats_reply_unpack (struct ofp_multipart_reply *os, uint8_t *buf, size_t *len, struct ofl_msg_multipart_request_header **msg, struct ofl_exp *exp){
+ofl_exp_stats_reply_unpack (struct ofp_multipart_reply *os, uint8_t *buf, size_t *len, struct ofl_msg_multipart_reply_header **msg, struct ofl_exp *exp){
     struct ofp_experimenter_stats_header *ext = (struct ofp_experimenter_stats_header *)os->body;
 
     if (*len < sizeof(struct ofp_experimenter_stats_header)) {
@@ -292,7 +292,7 @@ ofl_exp_stats_reply_unpack (struct ofp_multipart_reply *os, uint8_t *buf, size_t
 
     switch (ntohl(ext->experimenter)) {
         case (OPENSTATE_VENDOR_ID): {
-            return ofl_exp_openstate_stats_reply_unpack(os, buf, len, (struct ofl_msg_multipart_request_header **)msg, exp);
+            return ofl_exp_openstate_stats_reply_unpack(os, buf, len, (struct ofl_msg_multipart_reply_header **)msg, exp);
         }
         default: {
             OFL_LOG_WARN(LOG_MODULE, "Trying to unpack unknown EXPERIMENTER message (%u).", ntohl(ext->experimenter));

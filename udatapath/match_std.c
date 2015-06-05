@@ -689,7 +689,7 @@ incompatible_32(uint8_t *a, uint8_t *b, uint8_t *am, uint8_t *bm) {
     uint32_t *b1 = (uint32_t *) b;
     uint32_t *mask_a = (uint32_t *) am;
     uint32_t *mask_b = (uint32_t *) bm;
-    pfile ("stampa la incompatible %u", ( ~(*mask_a|*mask_b) & (*a1^*b1) ));
+    
     return (( ~(*mask_a|*mask_b) & (*a1^*b1) ) != 0);
 }
 

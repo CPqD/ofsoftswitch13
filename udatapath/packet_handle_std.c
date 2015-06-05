@@ -73,7 +73,7 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
     ofl_structs_match_put64(&handle->match, OXM_OF_METADATA, 0x0000000000000000);
 
     /* Add global register value to the hash_map */
-    ofl_structs_match_put32e(&handle->match, OXM_EXP_FLAGS, 0xBEBABEBA, OFP_GLOBAL_STATES_DEFAULT);
+    ofl_structs_match_exp_put32(&handle->match, OXM_EXP_FLAGS, 0xBEBABEBA, OFP_GLOBAL_STATES_DEFAULT);
     
     return;
 }

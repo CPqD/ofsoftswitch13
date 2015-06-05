@@ -58,8 +58,7 @@ OFP_ASSERT(sizeof(struct ofp_exp_action_set_flag) == 24);
 
 /*EXPERIMENTER MESSAGES*/
 enum ofp_exp_messages {
-    OFPT_EXP_STATE_MOD,
-    OFPT_EXT_FLAG_MOD
+    OFPT_EXP_STATE_MOD
 };
 
 /****************************************************************
@@ -70,55 +69,54 @@ enum ofp_exp_messages {
 #define OFPSC_MAX_FIELD_COUNT 6
 #define OFPSC_MAX_KEY_LEN 48
 
-struct ofp_exp_message_state_mod {
+struct ofp_exp_msg_state_mod {
     struct ofp_experimenter_header header; /* OpenFlow's standard experimenter message header */
-    uint8_t table_id;
     uint8_t command;
+    uint8_t pad;
     uint8_t payload[];
 };
 
-struct ofp_exp_state_mod_entry {
+struct ofp_exp_stateful_table_config { 
+    uint8_t table_id;
+    uint8_t stateful;
+};
+
+struct ofp_exp_set_extractor {
+    uint8_t table_id;
+    uint8_t pad[3];
+    uint32_t field_count;
+    uint32_t fields[OFPSC_MAX_FIELD_COUNT];
+};
+
+struct ofp_exp_set_flow_state {
+    uint8_t table_id;
+    uint8_t pad[3];
     uint32_t key_len;
     uint32_t state;
     uint32_t state_mask;
     uint8_t key[OFPSC_MAX_KEY_LEN];
 };
 
-struct ofp_exp_extraction {
-    uint32_t field_count;
-    uint32_t fields[OFPSC_MAX_FIELD_COUNT];
+struct ofp_exp_del_flow_state {
+    uint8_t table_id;
+    uint8_t pad[3];
+    uint32_t key_len;
+    uint8_t key[OFPSC_MAX_KEY_LEN];
 };
 
-struct ofp_exp_statefulness_config {
-    uint8_t statefulness;
-    uint8_t pad; //TODO sanvitz: sizeof adds an extra byte to align to multiple of 4 bytes?!
+struct ofp_exp_set_global_state {
+    uint32_t flag;
+    uint32_t flag_mask;
 };
 
-enum ofp_exp_message_state_mod_commands {
-    OFPSC_SET_L_EXTRACTOR = 0,
+enum ofp_exp_msg_state_mod_commands {
+    OFPSC_STATEFUL_TABLE_CONFIG = 0,
+    OFPSC_SET_L_EXTRACTOR,
     OFPSC_SET_U_EXTRACTOR,
     OFPSC_SET_FLOW_STATE,   
     OFPSC_DEL_FLOW_STATE,
-    OFPSC_STATEFULNESS_CONFIG
-};
-
-/****************************************************************
- *
- *   OFPT_EXT_FLAG_MOD
- *
-****************************************************************/
-
-struct ofp_exp_message_flag_mod {
-    struct ofp_experimenter_header header;  /* OpenFlow's standard experimenter message header*/
-    uint32_t flag;
-    uint32_t flag_mask;
-    uint8_t command;
-    uint8_t pad[7];                  /* Pad to 64 bits. */
-};
-
-enum ofp_exp_message_flag_mod_command { 
-    OFPSC_MODIFY_FLAGS = 0,
-    OFPSC_RESET_FLAGS
+    OFPSC_SET_GLOBAL_STATE,
+    OFPSC_RESET_GLOBAL_STATE   
 };
 
 /****************************************************************

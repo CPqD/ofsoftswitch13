@@ -39,37 +39,38 @@ struct ofl_exp_openstate_msg_multipart_reply {
 
 struct ofl_exp_msg_state_mod {
     struct ofl_exp_openstate_msg_header header;   /* OFP_EXP_STATE_MOD */
-    uint8_t table_id;
-    enum ofp_exp_message_state_mod_commands command;
-    uint8_t payload[12+OFPSC_MAX_KEY_LEN]; //ugly! for now it's ok XXX
+    enum ofp_exp_msg_state_mod_commands command;
+    uint8_t payload[13+OFPSC_MAX_KEY_LEN]; //ugly! for now it's ok XXX
 };
 
-struct ofl_exp_msg_state_entry {
+struct ofl_exp_stateful_table_config {
+    uint8_t table_id;
+    uint8_t stateful;
+};
+
+struct ofl_exp_set_extractor {
+    uint8_t table_id;
+    uint32_t field_count;
+    uint32_t fields[OFPSC_MAX_FIELD_COUNT];
+};
+
+struct ofl_exp_set_flow_state {
+    uint8_t table_id;
     uint32_t key_len;
     uint32_t state;
     uint32_t state_mask;
     uint8_t key[OFPSC_MAX_KEY_LEN];
 };
 
-struct ofl_exp_msg_extraction {
-    uint32_t field_count;
-    uint32_t fields[OFPSC_MAX_FIELD_COUNT];
+struct ofl_exp_del_flow_state {
+    uint8_t table_id;
+    uint32_t key_len;
+    uint8_t key[OFPSC_MAX_KEY_LEN];
 };
 
-struct ofl_exp_msg_statefulness_config {
-    uint8_t statefulness;
-};
-
-
-/************************
- * flag mod messages
- ************************/
-
-struct ofl_exp_msg_flag_mod {
-    struct ofl_exp_openstate_msg_header header;   /* OFPT_EXP_FLAG_MOD */
+struct ofl_exp_set_global_state {
     uint32_t flag;
     uint32_t flag_mask;
-    enum ofp_exp_message_flag_mod_command command;
 };
 
 /*************************
@@ -123,7 +124,6 @@ struct ofl_exp_openstate_act_header {
     uint32_t   act_type;
 };
 
-
 struct ofl_exp_action_set_state {
     struct ofl_exp_openstate_act_header  header; /* OFPAT_EXP_SET_STATE */
 
@@ -146,6 +146,7 @@ struct ofl_exp_action_set_flag {
 
 
 struct key_extractor {
+    uint8_t                     table_id;
     uint32_t                    field_count;
     uint32_t                    fields[MAX_EXTRACTION_FIELD_COUNT];
 };
@@ -161,7 +162,7 @@ struct state_table {
     struct key_extractor        write_key;
     struct hmap                 state_entries; 
     struct state_entry          default_state_entry;
-    uint8_t statefulness;
+    uint8_t stateful;
 };
 
 /*experimenter table functions*/
@@ -237,7 +238,7 @@ ofl_err
 ofl_exp_openstate_stats_req_unpack(struct ofp_multipart_request *os, uint8_t *buf, size_t *len, struct ofl_msg_multipart_request_header **msg, struct ofl_exp *exp);
 
 ofl_err
-ofl_exp_openstate_stats_reply_unpack(struct ofp_multipart_reply *os, uint8_t *buf, size_t *len, struct ofl_msg_multipart_request_header **msg, struct ofl_exp *exp);
+ofl_exp_openstate_stats_reply_unpack(struct ofp_multipart_reply *os, uint8_t *buf, size_t *len, struct ofl_msg_multipart_reply_header **msg, struct ofl_exp *exp);
 
 int
 ofl_exp_openstate_stats_req_free(struct ofl_msg_multipart_request_header *msg);
@@ -266,10 +267,6 @@ ofl_exp_openstate_field_overlap_a (struct ofl_match_tlv *f_a, int *field_len, ui
 
 void
 ofl_exp_openstate_field_overlap_b (struct ofl_match_tlv *f_b, int *field_len, uint8_t **val_b, uint8_t **mask_b, uint64_t *all_mask);
-
-/* Handles a flag_mod message */
-ofl_err
-handle_flag_mod(struct pipeline *pl, struct ofl_exp_msg_flag_mod *msg, const struct sender *sender);
 
 /* Handles a state_mod message */
 ofl_err
@@ -326,27 +323,27 @@ void
 ofl_exp_stats_type_print(FILE *stream, uint32_t type);
 
 void
-ofl_structs_match_put8e(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint8_t value);
+ofl_structs_match_exp_put8(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint8_t value);
 
 void
-ofl_structs_match_put8me(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint8_t value, uint8_t mask);
+ofl_structs_match_exp_put8m(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint8_t value, uint8_t mask);
 
 void
-ofl_structs_match_put16e(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint16_t value);
+ofl_structs_match_exp_put16(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint16_t value);
 
 void
-ofl_structs_match_put16me(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint16_t value, uint16_t mask);
+ofl_structs_match_exp_put16m(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint16_t value, uint16_t mask);
 
 void
-ofl_structs_match_put32e(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint32_t value);
+ofl_structs_match_exp_put32(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint32_t value);
 
 void
-ofl_structs_match_put32me(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint32_t value, uint32_t mask);
+ofl_structs_match_exp_put32m(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint32_t value, uint32_t mask);
 
 void
-ofl_structs_match_put64e(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint64_t value);
+ofl_structs_match_exp_put64(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint64_t value);
 
 void
-ofl_structs_match_put64me(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint64_t value, uint64_t mask);
+ofl_structs_match_exp_put64m(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint64_t value, uint64_t mask);
 
 #endif /* OFL_EXP_OPENSTATE_H */
