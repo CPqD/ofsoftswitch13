@@ -598,6 +598,8 @@ pipeline_timeout(struct pipeline *pl) {
 
     for (i = 0; i < PIPELINE_TABLES; i++) {
         flow_table_timeout(pl->tables[i]);
+        if (state_table_is_stateful(pl->tables[i]->state_table) && state_table_is_configured(pl->tables[i]->state_table))
+            state_table_timeout(pl->tables[i]->state_table);
     }
 }
 

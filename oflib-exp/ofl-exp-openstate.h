@@ -59,6 +59,10 @@ struct ofl_exp_set_flow_state {
     uint32_t key_len;
     uint32_t state;
     uint32_t state_mask;
+    uint16_t idle_timeout;
+    uint32_t idle_rollback;
+    uint16_t hard_timeout;
+    uint32_t hard_rollback;
     uint8_t key[OFPSC_MAX_KEY_LEN];
 };
 
@@ -84,9 +88,15 @@ struct ofl_exp_state_entry{
 
 struct ofl_exp_state_stats {
     uint8_t                         table_id;      /* ID of table flow came from. */
+    uint32_t                        duration_sec;  /* Time state entry has been alive in secs. */
+    uint32_t                        duration_nsec; /* Time state entry has been alive in nsecs beyond duration_sec. */
     uint32_t                        field_count;    /*number of extractor fields*/
     uint32_t                        fields[OFPSC_MAX_FIELD_COUNT]; /*extractor fields*/
-    struct ofl_exp_state_entry          entry;         /* Description of the state entry. */
+    uint16_t                        idle_timeout;  /* Number of seconds idle before expiration. */
+    uint32_t                        idle_rollback;
+    uint16_t                        hard_timeout;  /* Number of seconds before expiration. */
+    uint32_t                        hard_rollback;
+    struct ofl_exp_state_entry      entry;         /* Description of the state entry. */
 };
 
 struct ofl_exp_msg_multipart_request_state {
@@ -130,6 +140,10 @@ struct ofl_exp_action_set_state {
     uint32_t state;
     uint32_t state_mask;
     uint8_t table_id; /*we have 64 flow table in the pipeline*/
+    uint16_t idle_timeout;
+    uint32_t idle_rollback;
+    uint16_t hard_timeout;
+    uint32_t hard_rollback;
 };
 
 struct ofl_exp_action_set_flag {
@@ -153,14 +167,23 @@ struct key_extractor {
 
 struct state_entry {
     struct hmap_node            hmap_node;
+    struct hmap_node            hard_node;
+    struct hmap_node            idle_node;
     uint8_t             key[MAX_STATE_KEY_LEN];
     uint32_t                state;
+    struct ofl_exp_state_stats   *stats;
+    uint64_t                created;  /* time the entry was created at. */
+    uint64_t                remove_at; /* time the entry should be removed at
+                                           due to its hard timeout. */
+    uint64_t                last_used; /* last time the flow entry matched a packet */
 };
 
 struct state_table {
     struct key_extractor        read_key;
     struct key_extractor        write_key;
-    struct hmap                 state_entries; 
+    struct hmap                 state_entries;
+    struct hmap                 hard_entries;
+    struct hmap                 idle_entries;
     struct state_entry          default_state_entry;
     uint8_t stateful;
 };
@@ -182,13 +205,16 @@ void
 state_table_write_state(struct state_entry *, struct packet *);
 
 void 
-state_table_set_state(struct state_table *, struct packet *, uint32_t, uint32_t, uint8_t *, uint32_t);
+state_table_set_state(struct state_table *, struct packet *, struct ofl_exp_set_flow_state *msg, struct ofl_exp_action_set_state *act);
 
 void 
 state_table_set_extractor(struct state_table *, struct key_extractor *, int);
 
 void 
 state_table_del_state(struct state_table *, uint8_t *, uint32_t);
+
+void
+state_table_timeout(struct state_table *table);
 
 /*experimenter message functions*/
 

@@ -42,9 +42,13 @@ struct ofp_exp_action_set_state {
     uint32_t state; /* State instance. */
     uint32_t state_mask; /* State mask */
     uint8_t table_id; /*Stage destination*/
-    uint8_t pad[7];   /* Align to 64-bits. */
+    uint8_t pad[3];   /* Align to 64-bits. */
+    uint32_t hard_rollback;
+    uint32_t idle_rollback;
+    uint16_t hard_timeout;
+    uint16_t idle_timeout;
 };
-OFP_ASSERT(sizeof(struct ofp_exp_action_set_state) == 32);
+OFP_ASSERT(sizeof(struct ofp_exp_action_set_state) == 40);
 
 
 /* Action structure for OFPAT_EXP_SET_FLAG */
@@ -94,6 +98,10 @@ struct ofp_exp_set_flow_state {
     uint32_t key_len;
     uint32_t state;
     uint32_t state_mask;
+    uint16_t idle_timeout;
+    uint32_t idle_rollback;
+    uint16_t hard_timeout;
+    uint32_t hard_rollback;
     uint8_t key[OFPSC_MAX_KEY_LEN];
 };
 
@@ -157,13 +165,18 @@ struct ofp_exp_state_stats {
     uint16_t length;        /* Length of this entry. */
     uint8_t table_id;       /* ID of table flow came from. */
     uint8_t pad;
+    uint32_t duration_sec;  /* Time state entry has been alive in secs. */
+    uint32_t duration_nsec; /* Time state entry has been alive in nsecs beyond duration_sec. */
     uint32_t field_count;    /*number of extractor fields*/
-    uint32_t fields[OFPSC_MAX_FIELD_COUNT]; /*extractor fields*/    
+    uint32_t fields[OFPSC_MAX_FIELD_COUNT]; /*extractor fields*/ 
     struct ofp_exp_state_entry entry;
-    
-    //struct ofp_match match; /* Description of fields. Variable size. */
+    uint32_t hard_rollback;
+    uint32_t idle_rollback;
+    uint16_t hard_timeout;
+    uint16_t idle_timeout;
+    uint8_t pad2[4];
 };
-OFP_ASSERT(sizeof(struct ofp_exp_state_stats) == 88);
+OFP_ASSERT(sizeof(struct ofp_exp_state_stats) == 112);
 
 /****************************************************************
  *
