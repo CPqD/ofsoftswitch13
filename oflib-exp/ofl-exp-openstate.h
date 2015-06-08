@@ -59,10 +59,10 @@ struct ofl_exp_set_flow_state {
     uint32_t key_len;
     uint32_t state;
     uint32_t state_mask;
-    uint16_t idle_timeout;
+    uint32_t hard_rollback;
     uint32_t idle_rollback;
     uint16_t hard_timeout;
-    uint32_t hard_rollback;
+    uint16_t idle_timeout;
     uint8_t key[OFPSC_MAX_KEY_LEN];
 };
 
@@ -92,10 +92,10 @@ struct ofl_exp_state_stats {
     uint32_t                        duration_nsec; /* Time state entry has been alive in nsecs beyond duration_sec. */
     uint32_t                        field_count;    /*number of extractor fields*/
     uint32_t                        fields[OFPSC_MAX_FIELD_COUNT]; /*extractor fields*/
-    uint16_t                        idle_timeout;  /* Number of seconds idle before expiration. */
+    uint32_t                        hard_rollback;
     uint32_t                        idle_rollback;
     uint16_t                        hard_timeout;  /* Number of seconds before expiration. */
-    uint32_t                        hard_rollback;
+    uint16_t                        idle_timeout;  /* Number of seconds idle before expiration. */
     struct ofl_exp_state_entry      entry;         /* Description of the state entry. */
 };
 
@@ -140,10 +140,11 @@ struct ofl_exp_action_set_state {
     uint32_t state;
     uint32_t state_mask;
     uint8_t table_id; /*we have 64 flow table in the pipeline*/
-    uint16_t idle_timeout;
+    uint32_t hard_rollback;
     uint32_t idle_rollback;
     uint16_t hard_timeout;
-    uint32_t hard_rollback;
+    uint16_t idle_timeout;
+    
 };
 
 struct ofl_exp_action_set_flag {

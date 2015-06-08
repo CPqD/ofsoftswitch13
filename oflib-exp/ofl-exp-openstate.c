@@ -14,6 +14,7 @@
 #include "oflib/oxm-match.h"
 #include "lib/hash.h"
 #include "lib/ofp.h"
+#include "timeval.h"
 
 
 #define LOG_MODULE ofl_exp_os
@@ -87,10 +88,10 @@ ofl_structs_set_flow_state_unpack(struct ofp_exp_set_flow_state *src, size_t *le
         dst->key_len=ntohl(src->key_len);
         dst->state=ntohl(src->state);
         dst->state_mask=ntohl(src->state_mask);
-        dst->idle_timeout = ntohl(src->idle_timeout);
-        dst->idle_rollback = ntohs(src->idle_rollback);
-        dst->hard_timeout = ntohl(src->hard_timeout);
-        dst->hard_rollback = ntohs(src->hard_rollback);
+        dst->idle_timeout = ntohs(src->idle_timeout);
+        dst->idle_rollback = ntohl(src->idle_rollback);
+        dst->hard_timeout = ntohs(src->hard_timeout);
+        dst->hard_rollback = ntohl(src->hard_rollback);
         for (i=0;i<dst->key_len;i++)
             key[i]=src->key[i];
         memcpy(dst->key, key, OFPSC_MAX_KEY_LEN);
@@ -361,10 +362,10 @@ ofl_exp_openstate_act_unpack(struct ofp_action_header *src, size_t *len, struct 
                 da->state = ntohl(sa->state);
                 da->state_mask = ntohl(sa->state_mask);
                 da->table_id = sa->table_id;
-                da->idle_timeout = ntohl(sa->idle_timeout);
-                da->idle_rollback = ntohs(sa->idle_rollback);
-                da->hard_timeout = ntohl(sa->hard_timeout);
-                da->hard_rollback = ntohs(sa->hard_rollback);
+                da->hard_rollback = ntohl(sa->hard_rollback);
+                da->idle_rollback = ntohl(sa->idle_rollback);
+                da->hard_timeout = ntohs(sa->hard_timeout);
+                da->idle_timeout = ntohs(sa->idle_timeout);
 
                 *dst = (struct ofl_action_header *)da;
                 *len -= sizeof(struct ofp_exp_action_set_state);
@@ -422,10 +423,10 @@ ofl_exp_openstate_act_pack(struct ofl_action_header *src, struct ofp_action_head
                 da->state_mask = htonl(sa->state_mask);
                 da->table_id = sa->table_id;
                 memset(da->pad, 0x00, 3);
-                da->idle_timeout = htonl(sa->idle_timeout);
-                da->idle_rollback = htons(sa->idle_rollback);
-                da->hard_timeout = htonl(sa->hard_timeout);
-                da->hard_rollback = htons(sa->hard_rollback);
+                da->hard_rollback = htonl(sa->hard_rollback);
+                da->idle_rollback = htonl(sa->idle_rollback);
+                da->hard_timeout = htons(sa->hard_timeout);
+                da->idle_timeout = htons(sa->idle_timeout);
                 dst->len = htons(sizeof(struct ofp_exp_action_set_state));
 
                 return sizeof(struct ofp_exp_action_set_state);
@@ -1219,7 +1220,6 @@ void state_table_write_state(struct state_entry *entry, struct packet *pkt) {
 }
 void state_table_del_state(struct state_table *table, uint8_t *key, uint32_t len) {
     struct state_entry *e;
-    int found = 0;
 
     int i;
     uint32_t key_len=0; //update-scope key extractor length
@@ -1237,36 +1237,25 @@ void state_table_del_state(struct state_table *table, uint8_t *key, uint32_t len
     HMAP_FOR_EACH_WITH_HASH(e, struct state_entry, 
         hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries){
             if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
-                found = 1;
+                hmap_remove_and_shrink(&table->state_entries, &e->hmap_node);
                 break;
             }
-    }
-    if (found){
-        hmap_remove_and_shrink(&table->state_entries, &e->hmap_node);
     }
 
-    found = 0;
     HMAP_FOR_EACH_WITH_HASH(e, struct state_entry, 
-        hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->hard_entries){
+        hard_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->hard_entries){
             if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
-                found = 1;
+                hmap_remove_and_shrink(&table->hard_entries, &e->hard_node);
                 break;
             }
-    }
-    if (found){
-        hmap_remove_and_shrink(&table->hard_entries, &e->hard_node);
     }
 
-    found = 0;
     HMAP_FOR_EACH_WITH_HASH(e, struct state_entry, 
-        hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->idle_entries){
+        idle_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->idle_entries){
             if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
-                found = 1;
+                hmap_remove_and_shrink(&table->idle_entries, &e->idle_node);
                 break;
             }
-    }
-    if (found){
-        hmap_remove_and_shrink(&table->idle_entries, &e->idle_node);
     }
 }
 
@@ -1278,24 +1267,22 @@ state_entry_idle_timeout(struct state_table *table, struct state_entry *entry) {
 
     timeout = (entry->stats->idle_timeout != 0) &&
               (time_msec() > entry->last_used + entry->stats->idle_timeout * 1000);
-
+       
     if (timeout) {
-        if(entry->stats->idle_rollback == STATE_DEFAULT){
-            hmap_remove_and_shrink(&table->state_entries, &entry->hmap_node);
-            hmap_remove_and_shrink(&table->state_entries, &entry->idle_node);
+        hmap_remove_and_shrink(&table->idle_entries, &entry->idle_node);
+        if(entry->stats->hard_timeout > 0)
+            hmap_remove_and_shrink(&table->hard_entries, &entry->hard_node);
+        
 
-            HMAP_FOR_EACH(e, struct state_entry, hmap_node, &table->hard_entries){
-                if (entry==e){
-                    found = 1;
-                    break;
-                }
-            }
-            if (found){
-                hmap_remove_and_shrink(&table->hard_entries, &e->hard_node);
-            }
-        }
+        if(entry->stats->idle_rollback == STATE_DEFAULT)
+            hmap_remove_and_shrink(&table->state_entries, &entry->hmap_node);
         else{
             entry->state = entry->stats->idle_rollback;
+            entry->created = time_msec();
+            entry->stats->idle_timeout = 0;
+            entry->stats->hard_timeout = 0;
+            entry->stats->idle_rollback = 0;
+            entry->stats->hard_rollback = 0;
         }
     }
     return timeout;
@@ -1308,24 +1295,23 @@ state_entry_hard_timeout(struct state_table *table, struct state_entry *entry) {
     struct state_entry *e;
 
     timeout = (entry->remove_at != 0) && (time_msec() > entry->remove_at);
-
+    
     if (timeout) {
-        if(entry->stats->hard_rollback == STATE_DEFAULT){
+        hmap_remove_and_shrink(&table->hard_entries, &entry->hard_node);
+        if(entry->stats->idle_timeout > 0)
+            hmap_remove_and_shrink(&table->idle_entries, &entry->idle_node);
+        
+        if(entry->stats->hard_rollback == STATE_DEFAULT)
             hmap_remove_and_shrink(&table->state_entries, &entry->hmap_node);
-            hmap_remove_and_shrink(&table->state_entries, &entry->hard_node);
-
-            HMAP_FOR_EACH(e, struct state_entry, hmap_node, &table->idle_entries){
-                if (entry==e){
-                    found = 1;
-                    break;
-                }
-            }
-            if (found){
-                hmap_remove_and_shrink(&table->idle_entries, &e->idle_node);
-            }
-        }
+        
         else{
             entry->state = entry->stats->hard_rollback;
+            entry->created = time_msec();
+            entry->stats->idle_timeout = 0;
+            entry->stats->hard_timeout = 0;
+            entry->stats->idle_rollback = 0;
+            entry->stats->hard_rollback = 0;
+
         }
     }
     return timeout;
@@ -1337,11 +1323,11 @@ state_table_timeout(struct state_table *table) {
 
     /* NOTE: hard timeout entries are ordered by the time they should be removed at,
      * so if one is not removed, the rest will not be either. */
-    HMAP_FOR_EACH(entry, struct state_entry, hmap_node, &table->hard_entries){
+    HMAP_FOR_EACH(entry, struct state_entry, hard_node, &table->hard_entries){
         state_entry_hard_timeout(table, entry);
     }
 
-    HMAP_FOR_EACH(entry, struct state_entry, hmap_node, &table->idle_entries){
+    HMAP_FOR_EACH(entry, struct state_entry, idle_node, &table->idle_entries){
         state_entry_idle_timeout(table, entry);
     }
 }
@@ -1438,17 +1424,29 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, struct
                 else {
                     e->state = (e->state & ~(state_mask)) | (state & state_mask);
                     now = time_msec();
+
                     e->created = now;
-                    e->stats->idle_timeout = idle_timeout;
-                    e->stats->hard_timeout = hard_timeout;
-                    e->stats->idle_rollback = idle_rollback;
-                    e->stats->hard_rollback = hard_rollback;
-                    if (hard_timeout>0){
-                        e->remove_at = now + hard_timeout * 1000;;
+
+                    if (e->stats->idle_timeout)
+                        hmap_remove_and_shrink(&table->idle_entries, &e->idle_node);
+                    if (e->stats->hard_timeout)
+                        hmap_remove_and_shrink(&table->hard_entries, &e->hard_node);
+
+                    e->stats->idle_timeout = 0;
+                    e->stats->hard_timeout = 0;
+                    e->stats->idle_rollback = 0;
+                    e->stats->hard_rollback = 0;
+                    
+                    if (hard_timeout>0 && hard_rollback!=((e->state & ~(state_mask)) | (state & state_mask))) {
+                        e->stats->hard_timeout = hard_timeout;
+                        e->stats->hard_rollback = hard_rollback;
+                        e->remove_at = now + hard_timeout * 1000;                       
                         hmap_insert(&table->hard_entries, &e->hard_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
                     }
-                    if (idle_timeout>0){
-                        e->last_used = now;
+                    if (idle_timeout>0 && idle_rollback!=((e->state & ~(state_mask)) | (state & state_mask))) {
+                        e->stats->idle_timeout = idle_timeout;
+                        e->stats->idle_rollback = idle_rollback;
+                        e->last_used = now;                        
                         hmap_insert(&table->idle_entries, &e->idle_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
                     }
                 }
@@ -1456,30 +1454,42 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, struct
             }
     }
 
-    // A new state entry with state!=DEF is always installed. Otherwise it will be installed only if at least one timeout is set
-    if ((state & state_mask) != STATE_DEFAULT || (hard_timeout>0 || idle_timeout>0 ))
-    {
-        now = time_msec();
-        e = xmalloc(sizeof(struct state_entry));
-        e->created = now;
-        e->stats = xmalloc(sizeof(struct ofl_flow_stats));
-        e->stats->idle_timeout = idle_timeout;
-        e->stats->hard_timeout = hard_timeout;
-        e->stats->idle_rollback = idle_rollback;
-        e->stats->hard_rollback = hard_rollback;
+    now = time_msec();
+    e = xmalloc(sizeof(struct state_entry));
+    e->created = now;
+    e->stats = xmalloc(sizeof(struct ofl_exp_state_stats));
+    e->stats->idle_timeout = 0;
+    e->stats->hard_timeout = 0;
+    e->stats->idle_rollback = 0;
+    e->stats->hard_rollback = 0;
+    memcpy(e->key, key, MAX_STATE_KEY_LEN);
+    e->state = state & state_mask;
 
-        memcpy(e->key, key, MAX_STATE_KEY_LEN);
-        e->state = state & state_mask;
+    // A new state entry with state!=DEF is always installed.
+    if ((state & state_mask) != STATE_DEFAULT)
+    {       
         OFL_LOG_WARN(LOG_MODULE, "state value is %u inserted to hash map", e->state);
         hmap_insert(&table->state_entries, &e->hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
-        if (hard_timeout>0 && hard_rollback!=(state & state_mask)){
-            e->remove_at = hard_timeout>0 == 0 ? 0 : now + hard_timeout * 1000;
-            hmap_insert(&table->hard_entries, &e->hard_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
-        }
-        if (idle_timeout>0 && idle_rollback!=(state & state_mask)){
-            e->last_used = now;
-            hmap_insert(&table->idle_entries, &e->idle_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
-        }
+    }
+    else
+    {
+        // Otherwise a new state entry with state=DEF will be installed only if at least one timeout is set with rollback!=DEF
+        if ((hard_timeout>0 && hard_rollback!=STATE_DEFAULT) || (idle_timeout>0 && idle_rollback!=STATE_DEFAULT))
+            hmap_insert(&table->state_entries, &e->hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
+    }
+
+    // Configuring a timeout with rollback state=state makes no sense
+    if (hard_timeout>0 && hard_rollback!=(state & state_mask)){
+        e->remove_at = hard_timeout>0 == 0 ? 0 : now + hard_timeout * 1000;
+        e->stats->hard_timeout = hard_timeout;
+        e->stats->hard_rollback = hard_rollback;
+        hmap_insert(&table->hard_entries, &e->hard_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
+    }
+    if (idle_timeout>0 && idle_rollback!=(state & state_mask)){
+        e->stats->idle_timeout = idle_timeout;
+        e->stats->idle_rollback = idle_rollback;
+        e->last_used = now;
+        hmap_insert(&table->idle_entries, &e->idle_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
     }
 }
 

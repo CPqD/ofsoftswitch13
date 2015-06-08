@@ -98,10 +98,10 @@ struct ofp_exp_set_flow_state {
     uint32_t key_len;
     uint32_t state;
     uint32_t state_mask;
-    uint16_t idle_timeout;
+    uint32_t hard_rollback;
     uint32_t idle_rollback;
     uint16_t hard_timeout;
-    uint32_t hard_rollback;
+    uint16_t idle_timeout;
     uint8_t key[OFPSC_MAX_KEY_LEN];
 };
 
