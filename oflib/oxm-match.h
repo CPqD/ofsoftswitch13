@@ -331,7 +331,7 @@ bool
 oxm_prereqs_ok(const struct oxm_field *field, const struct ofl_match *rule);
 
 int
-oxm_pull_match(struct ofpbuf * buf, struct ofl_match *match_dst, int match_len, struct ofl_exp *exp);
+oxm_pull_match(struct ofpbuf * buf, struct ofl_match *match_dst, int match_len, bool flag, struct ofl_exp *exp);
 
 int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt, struct ofl_exp *exp);
 

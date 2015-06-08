@@ -639,6 +639,7 @@ ofl_exp_openstate_stats_req_unpack(struct ofp_multipart_request *os, uint8_t* bu
             struct ofl_exp_msg_multipart_request_state *dm;
             ofl_err error = 0;
             int match_pos;
+            bool flag = 0;
 
             // ofp_multipart_request length was checked at ofl_msg_unpack_multipart_request
 
@@ -659,9 +660,7 @@ ofl_exp_openstate_stats_req_unpack(struct ofp_multipart_request *os, uint8_t* bu
             dm->header.header.experimenter_id = ntohl(ext->experimenter);
             dm->table_id = sm->table_id;
             match_pos = sizeof(struct ofp_multipart_request) + sizeof(struct ofp_exp_state_stats_request) - 4;
-            /*TODO pollins: la funzione commentata è quella che non fa il check dei prerequisiti*/
-            //error = ofl_structs_match_unpack_no_prereqs(&(sm->match),buf + match_pos, len, &(dm->match), exp);
-            error = ofl_structs_match_unpack(&(sm->match),buf + match_pos, len, &(dm->match), exp);
+            error = ofl_structs_match_unpack(&(sm->match),buf + match_pos, len, &(dm->match), flag, exp);
             if (error) {
                 free(dm);
                 return error;
@@ -2146,127 +2145,6 @@ ofl_exp_stats_type_print(FILE *stream, uint32_t type) {
     }
 }
 
-/*
-ofl_err
-ofl_structs_match_unpack_no_prereqs(struct ofp_match *src,uint8_t * buf, size_t *len, struct ofl_match_header **dst, struct ofl_exp *exp) {
-
-    switch (ntohs(src->type)) {
-        case (OFPMT_OXM): {
-             return ofl_structs_oxm_match_unpack_no_prereqs(src, buf, len, (struct ofl_match**) dst );               
-        }
-        default: {
-            if (exp == NULL || exp->match == NULL || exp->match->unpack == NULL) {
-                OFL_LOG_WARN(LOG_MODULE, "Received match is experimental, but no callback was given.");
-                return ofl_error(OFPET_BAD_MATCH, OFPBMC_BAD_TYPE);
-            }
-            return exp->match->unpack(src, len, dst);
-        }
-    }
-}
-
-
-ofl_err
-ofl_structs_oxm_match_unpack_no_prereqs(struct ofp_match* src, uint8_t* buf, size_t *len, struct ofl_match **dst){
-
-     int error = 0;
-     struct ofpbuf *b = ofpbuf_new(0);
-     struct ofl_match *m = (struct ofl_match *) malloc(sizeof(struct ofl_match));
-    *len -= ROUND_UP(ntohs(src->length),8);
-     if(ntohs(src->length) > sizeof(struct ofp_match)){
-         ofpbuf_put(b, buf, ntohs(src->length) - (sizeof(struct ofp_match) -4)); 
-         error = oxm_pull_match_no_prereqs(b, m, ntohs(src->length) - (sizeof(struct ofp_match) -4));
-         m->header.length = ntohs(src->length) - 4;
-     }
-    else {
-         m->header.length = 0;
-         m->header.type = ntohs(src->type);
-         m->match_fields = (struct hmap) HMAP_INITIALIZER(&m->match_fields);    
-    }
-    ofpbuf_delete(b);    
-    *dst = m;
-    return error;
-}
-
-
-
-/* Puts the match in a hash_map structure */
-/*
-int
-oxm_pull_match_no_prereqs(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len)
-{
-
-    uint32_t header;
-    uint8_t *p;
-    p = ofpbuf_try_pull(buf, match_len);
-
-    if (!p) {
-         OFL_LOG_WARN(LOG_MODULE, "oxm_match length %u, rounded up to a "
-                    "multiple of 8, is longer than space in message (max "
-                    "length %zd)", match_len, buf->size);
-
-        return ofp_mkerr(OFPET_BAD_MATCH, OFPBRC_BAD_LEN);
-    }
-
-    /* Initialize the match hashmap */
- /*   ofl_structs_match_init(match_dst);
-
-    while ((header = oxm_entry_ok(p, match_len)) != 0) {
-
-        unsigned length = OXM_LENGTH(header);
-        const struct oxm_field *f;
-        int error;
-        f = oxm_field_lookup(header);
-
-        if (!f) {
-            error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_FIELD);
-        }
-        else if (OXM_HASMASK(header) && !f->maskable){
-            error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_MASK);
-        }
-        else if (check_oxm_dup(match_dst,f)){
-            error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_DUP_FIELD);
-        }
-        else {
-            switch (OXM_VENDOR(header))
-              {
-                    case(OFPXMC_OPENFLOW_BASIC):
-                        /* 'hasmask' and 'length' are known to be correct at this point
-                         * because they are included in 'header' and oxm_field_lookup()
-                         * checked them already. */
-                      /*  error = parse_oxm_entry(match_dst, f, p + 4, p + 4 + length / 2);
-                        break;
-                    case(OFPXMC_EXPERIMENTER):
-                        /* 'hasmask' and 'length' are known to be correct at this point
-                         * because they are included in 'header' and oxm_field_lookup()
-                         * checked them already. */
-                         //parse_exp_oxm_entry accepts match, oxm_fields, experimenter_id, value and mask
-                         //sizeof(header) is 4 byte
-                         //sizeof(experimenter_id) is 4 byte
-                         //experimenter_id is @ p + 4 (p + header)
-                         //value is @ p + 8 (p + header + experimenter_id)
-                         //mask depends on field's size
-                      /*  error = parse_exp_oxm_entry(match_dst, f, p + 4, p + 8, p + 8 + (length-4) / 2);
-                        break;
-                    default:
-                        error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_FIELD);
-              }
-        }
-        if (error) {
-             OFL_LOG_WARN(LOG_MODULE, "bad oxm_entry with vendor=%"PRIu32", "
-                        "field=%"PRIu32", hasmask=%"PRIu32", type=%"PRIu32" "
-                        "(error %x)",
-                        OXM_VENDOR(header), OXM_FIELD(header),
-                        OXM_HASMASK(header), OXM_TYPE(header),
-                        error);
-            return error;
-        }
-        p += 4 + length;
-        match_len -= 4 + length;
-    }
-    return match_len ? ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_LEN) : 0;
-}
-
-*/
 
 /*Functions used by experimenter match fields*/
 

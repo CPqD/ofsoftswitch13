@@ -335,17 +335,6 @@ ofl_structs_state_stats_unpack(struct ofp_exp_state_stats *src, uint8_t *buf, si
 ofl_err
 ofl_utils_count_ofp_state_stats(void *data, size_t data_len, size_t *count);
 
-/*
-ofl_err
-ofl_structs_oxm_match_unpack_no_prereqs(struct ofp_match* src, uint8_t* buf, size_t *len, struct ofl_match **dst);
-
-ofl_err
-ofl_structs_match_unpack_no_prereqs(struct ofp_match *src,uint8_t * buf, size_t *len, struct ofl_match_header **dst, struct ofl_exp *exp);
-
-int
-oxm_pull_match_no_prereqs(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len);
-*/
-
 void
 ofl_exp_stats_type_print(FILE *stream, uint32_t type);
 

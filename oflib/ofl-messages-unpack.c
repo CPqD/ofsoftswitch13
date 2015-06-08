@@ -252,7 +252,7 @@ ofl_msg_unpack_packet_in(struct ofp_header *src, uint8_t* buf, size_t *len, stru
     dp->cookie = ntoh64(sp->cookie);
     
     ptr = buf + (sizeof(struct ofp_packet_in)-4);
-    ofl_structs_match_unpack(&(sp->match),ptr, len ,&(dp->match),NULL);
+    ofl_structs_match_unpack(&(sp->match),ptr, len ,&(dp->match), 1, NULL);
     
     ptr = buf + ROUND_UP(sizeof(struct ofp_packet_in)-4 + dp->match->length,8) + 2;
     /* Minus padding bytes */
@@ -307,7 +307,7 @@ ofl_msg_unpack_flow_removed(struct ofp_header *src,uint8_t *buf, size_t *len, st
 
     match_pos = sizeof(struct ofp_flow_removed) - 4;
 
-    error = ofl_structs_match_unpack(&(sr->match),buf + match_pos, len, &(dr->stats->match), exp);
+    error = ofl_structs_match_unpack(&(sr->match),buf + match_pos, len, &(dr->stats->match), 1, exp);
     if (error) {
         free(dr->stats);
         free(dr);
@@ -460,7 +460,7 @@ ofl_msg_unpack_flow_mod(struct ofp_header *src,uint8_t* buf, size_t *len, struct
     dm->flags =        ntohs( sm->flags);
     
     match_pos = sizeof(struct ofp_flow_mod) - 4;
-    error = ofl_structs_match_unpack(&(sm->match), buf + match_pos, len, &(dm->match), exp);
+    error = ofl_structs_match_unpack(&(sm->match), buf + match_pos, len, &(dm->match), 1, exp);
     if (error) {
         free(dm);
         return error;
@@ -718,7 +718,7 @@ ofl_msg_unpack_multipart_request_flow(struct ofp_multipart_request *os, uint8_t*
     dm->cookie_mask = ntoh64(sm->cookie_mask);
 
     match_pos = sizeof(struct ofp_multipart_request) + sizeof(struct ofp_flow_stats_request) - 4;
-    error = ofl_structs_match_unpack(&(sm->match),buf + match_pos, len, &(dm->match), exp);
+    error = ofl_structs_match_unpack(&(sm->match),buf + match_pos, len, &(dm->match), 1, exp);
     if (error) {
         free(dm);
         return error;

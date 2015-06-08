@@ -551,7 +551,7 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
 
 /* Puts the match in a hash_map structure */
 int
-oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len, struct ofl_exp *exp)
+oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len, bool flag, struct ofl_exp *exp)
 {
 
     uint32_t header;
@@ -582,10 +582,10 @@ oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len, 
         else if (OXM_HASMASK(header) && !f->maskable){
             error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_MASK);
         }
-        //TODO pollitz: capire come rendere questo controllo sui prerequisiti selettivo (solo flow_mod, no dpctl)
-        /*else if (!oxm_prereqs_ok(f, match_dst)) {
-            error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_PREREQ);
-        }*/
+        else if (flag)
+            if (!oxm_prereqs_ok(f, match_dst)) {
+                error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_PREREQ);
+            }
         else if (check_oxm_dup(match_dst,f)){
             error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_DUP_FIELD);
         }
