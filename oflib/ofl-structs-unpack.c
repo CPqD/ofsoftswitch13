@@ -1139,7 +1139,7 @@ ofl_structs_meter_band_unpack(struct ofp_meter_band_header *src, size_t *len, st
 
 
 static ofl_err
-ofl_structs_oxm_match_unpack(struct ofp_match* src, uint8_t* buf, size_t *len, struct ofl_match **dst, bool flag, struct ofl_exp *exp){
+ofl_structs_oxm_match_unpack(struct ofp_match* src, uint8_t* buf, size_t *len, struct ofl_match **dst, bool check_prereq, struct ofl_exp *exp){
 
      int error = 0;
      struct ofpbuf *b = ofpbuf_new(0);
@@ -1147,7 +1147,7 @@ ofl_structs_oxm_match_unpack(struct ofp_match* src, uint8_t* buf, size_t *len, s
     *len -= ROUND_UP(ntohs(src->length),8);
      if(ntohs(src->length) > sizeof(struct ofp_match)){
          ofpbuf_put(b, buf, ntohs(src->length) - (sizeof(struct ofp_match) -4)); 
-         error = oxm_pull_match(b, m, ntohs(src->length) - (sizeof(struct ofp_match) -4), flag, exp);
+         error = oxm_pull_match(b, m, ntohs(src->length) - (sizeof(struct ofp_match) -4), check_prereq, exp);
          m->header.length = ntohs(src->length) - 4;
      }
     else {
@@ -1161,11 +1161,11 @@ ofl_structs_oxm_match_unpack(struct ofp_match* src, uint8_t* buf, size_t *len, s
 }
 
 ofl_err
-ofl_structs_match_unpack(struct ofp_match *src,uint8_t * buf, size_t *len, struct ofl_match_header **dst, bool flag, struct ofl_exp *exp) {
+ofl_structs_match_unpack(struct ofp_match *src,uint8_t * buf, size_t *len, struct ofl_match_header **dst, bool check_prereq, struct ofl_exp *exp) {
 
     switch (ntohs(src->type)) {
         case (OFPMT_OXM): {
-             return ofl_structs_oxm_match_unpack(src, buf, len, (struct ofl_match**) dst, flag, exp);               
+             return ofl_structs_oxm_match_unpack(src, buf, len, (struct ofl_match**) dst, check_prereq, exp);               
         }
         default: {
             if (exp == NULL || exp->match == NULL || exp->match->unpack == NULL) {

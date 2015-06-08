@@ -582,10 +582,11 @@ oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len, 
         else if (OXM_HASMASK(header) && !f->maskable){
             error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_MASK);
         }
-        else if (flag)
+        else if (flag) {
             if (!oxm_prereqs_ok(f, match_dst)) {
                 error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_PREREQ);
             }
+        }
         else if (check_oxm_dup(match_dst,f)){
             error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_DUP_FIELD);
         }

@@ -639,7 +639,7 @@ ofl_exp_openstate_stats_req_unpack(struct ofp_multipart_request *os, uint8_t* bu
             struct ofl_exp_msg_multipart_request_state *dm;
             ofl_err error = 0;
             int match_pos;
-            bool flag = 0;
+            bool check_prereq = 0;
 
             // ofp_multipart_request length was checked at ofl_msg_unpack_multipart_request
 
@@ -660,7 +660,7 @@ ofl_exp_openstate_stats_req_unpack(struct ofp_multipart_request *os, uint8_t* bu
             dm->header.header.experimenter_id = ntohl(ext->experimenter);
             dm->table_id = sm->table_id;
             match_pos = sizeof(struct ofp_multipart_request) + sizeof(struct ofp_exp_state_stats_request) - 4;
-            error = ofl_structs_match_unpack(&(sm->match),buf + match_pos, len, &(dm->match), flag, exp);
+            error = ofl_structs_match_unpack(&(sm->match),buf + match_pos, len, &(dm->match), check_prereq, exp);
             if (error) {
                 free(dm);
                 return error;
