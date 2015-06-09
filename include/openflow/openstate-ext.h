@@ -42,13 +42,14 @@ struct ofp_exp_action_set_state {
     uint32_t state; /* State instance. */
     uint32_t state_mask; /* State mask */
     uint8_t table_id; /*Stage destination*/
-    uint8_t pad[3];   /* Align to 64-bits. */
+    uint8_t pad[3];
     uint32_t hard_rollback;
     uint32_t idle_rollback;
-    uint16_t hard_timeout;
-    uint16_t idle_timeout;
+    uint32_t hard_timeout;
+    uint32_t idle_timeout;
+    uint8_t pad2[4];   /* Align to 64-bits. */
 };
-OFP_ASSERT(sizeof(struct ofp_exp_action_set_state) == 40);
+OFP_ASSERT(sizeof(struct ofp_exp_action_set_state) == 48);
 
 
 /* Action structure for OFPAT_EXP_SET_FLAG */
@@ -100,8 +101,8 @@ struct ofp_exp_set_flow_state {
     uint32_t state_mask;
     uint32_t hard_rollback;
     uint32_t idle_rollback;
-    uint16_t hard_timeout;
-    uint16_t idle_timeout;
+    uint32_t hard_timeout;
+    uint32_t idle_timeout;
     uint8_t key[OFPSC_MAX_KEY_LEN];
 };
 
@@ -172,9 +173,8 @@ struct ofp_exp_state_stats {
     struct ofp_exp_state_entry entry;
     uint32_t hard_rollback;
     uint32_t idle_rollback;
-    uint16_t hard_timeout;
-    uint16_t idle_timeout;
-    uint8_t pad2[4];
+    uint32_t hard_timeout; // [us]
+    uint32_t idle_timeout; // [us]
 };
 OFP_ASSERT(sizeof(struct ofp_exp_state_stats) == 112);
 

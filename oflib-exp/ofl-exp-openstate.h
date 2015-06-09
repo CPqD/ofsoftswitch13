@@ -61,8 +61,8 @@ struct ofl_exp_set_flow_state {
     uint32_t state_mask;
     uint32_t hard_rollback;
     uint32_t idle_rollback;
-    uint16_t hard_timeout;
-    uint16_t idle_timeout;
+    uint32_t hard_timeout;
+    uint32_t idle_timeout;
     uint8_t key[OFPSC_MAX_KEY_LEN];
 };
 
@@ -94,8 +94,8 @@ struct ofl_exp_state_stats {
     uint32_t                        fields[OFPSC_MAX_FIELD_COUNT]; /*extractor fields*/
     uint32_t                        hard_rollback;
     uint32_t                        idle_rollback;
-    uint16_t                        hard_timeout;  /* Number of seconds before expiration. */
-    uint16_t                        idle_timeout;  /* Number of seconds idle before expiration. */
+    uint32_t                        hard_timeout;  /* Number of seconds before expiration. */
+    uint32_t                        idle_timeout;  /* Number of seconds idle before expiration. */
     struct ofl_exp_state_entry      entry;         /* Description of the state entry. */
 };
 
@@ -142,8 +142,8 @@ struct ofl_exp_action_set_state {
     uint8_t table_id; /*we have 64 flow table in the pipeline*/
     uint32_t hard_rollback;
     uint32_t idle_rollback;
-    uint16_t hard_timeout;
-    uint16_t idle_timeout;
+    uint32_t hard_timeout;
+    uint32_t idle_timeout;
     
 };
 
@@ -173,10 +173,10 @@ struct state_entry {
     uint8_t             key[MAX_STATE_KEY_LEN];
     uint32_t                state;
     struct ofl_exp_state_stats   *stats;
-    uint64_t                created;  /* time the entry was created at. */
+    uint64_t                created;  /* time the entry was created at [us] */
     uint64_t                remove_at; /* time the entry should be removed at
-                                           due to its hard timeout. */
-    uint64_t                last_used; /* last time the flow entry matched a packet */
+                                           due to its hard timeout. [us] */
+    uint64_t                last_used; /* last time the flow entry matched a packet [us]*/
 };
 
 struct state_table {
