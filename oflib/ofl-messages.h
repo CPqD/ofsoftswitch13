@@ -292,19 +292,6 @@ struct ofl_msg_multipart_request_flow {
     struct ofl_match_header  *match;       /* Fields to match. */
 };
 
-struct ofl_msg_multipart_request_state {
-    struct ofl_msg_multipart_request_header   header; /* OFPMP_STATE */
-
-    uint8_t                  table_id; /* ID of table to read
-                                           (from ofp_table_multipart), 0xff for all
-                                           tables. */
-    struct ofl_match_header  *match;       /* Fields to match. */
-};
-
-struct ofl_msg_multipart_request_global_state {
-    struct ofl_msg_multipart_request_header   header; /* OFPMP_FLAGS */
-};
-
 struct ofl_msg_multipart_request_port {
     struct ofl_msg_multipart_request_header   header; /* OFPMP_PORT_STATS */
     uint32_t   port_no; /* OFPMP_PORT_STATS message must request statistics
@@ -365,19 +352,6 @@ struct ofl_msg_multipart_reply_flow {
 
     size_t                  stats_num;
     struct ofl_flow_stats **stats;
-};
-
-struct ofl_msg_multipart_reply_state {
-    struct ofl_msg_multipart_reply_header   header; /* OFPMP_STATE */
-
-    size_t                  stats_num;
-    struct ofl_state_stats **stats;
-};
-
-struct ofl_msg_multipart_reply_global_state {
-    struct ofl_msg_multipart_reply_header   header; /* OFPMP_STATE */
-    uint8_t enabled;
-    uint32_t global_states;
 };
 
 struct ofl_msg_multipart_reply_aggregate {
@@ -471,8 +445,8 @@ struct ofl_msg_multipart_reply_experimenter {
 
     uint32_t  experimenter_id;
 
-    size_t    data_length;
-    uint8_t  *data;
+    //size_t    data_length;
+    //uint8_t  *data;
 };
 
 /*******************
@@ -496,39 +470,6 @@ struct ofl_msg_queue_get_config_reply {
 
     size_t                    queues_num;
     struct ofl_packet_queue **queues; /* List of configured queues. */
-};
-
-/************************
- * flag mod messages
- ************************/
-struct ofl_msg_flag_mod {
-    struct ofl_msg_header header;   /* OFPT_STATE_MOD */
-    uint32_t flag;
-    uint32_t flag_mask;
-    enum ofp_flag_mod_command command;
-};
-
-
-/************************
- * state mod messages
- ************************/
-struct ofl_msg_state_mod {
-    struct ofl_msg_header header;   /* OFPT_STATE_MOD */
-    uint8_t table_id;
-    enum ofp_state_mod_command command;
-    uint8_t payload[12+OFPSC_MAX_KEY_LEN]; //ugly! for now it's ok XXX
-};
-
-struct ofl_msg_state_entry {
-    uint32_t key_len;
-    uint32_t state;
-    uint32_t state_mask;
-    uint8_t key[OFPSC_MAX_KEY_LEN];
-};
-
-struct ofl_msg_extraction {
-    uint32_t field_count;
-    uint32_t fields[OFPSC_MAX_FIELD_COUNT];
 };
 
 

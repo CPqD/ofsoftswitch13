@@ -224,13 +224,12 @@
 #define OXM_OF_IPV6_EXTHDR  OXM_HEADER      (0x8000, 39, 2)
 #define OXM_OF_IPV6_EXTHDR_W  OXM_HEADER_W  (0x8000, 39, 2)
 
-/* Global States */
-#define OXM_OF_FLAGS OXM_HEADER     (0x8000, 40, 4)
-#define OXM_OF_FLAGS_W OXM_HEADER_W (0x8000, 40, 4)
 
-/* Flow State */
-#define OXM_OF_STATE OXM_HEADER     (0x8000, 41, 4)
-#define OXM_OF_STATE_W OXM_HEADER_W (0x8000, 41, 4)
+#define EXP_ID_LEN 4
+#define OXM_EXP_FLAGS OXM_HEADER     (0xFFFF, 0, 8)
+#define OXM_EXP_FLAGS_W OXM_HEADER_W (0xFFFF, 0, 6)  /*(experimenter_id + flag + mask)/2*/
+#define OXM_EXP_STATE OXM_HEADER     (0xFFFF, 1, 8)
+#define OXM_EXP_STATE_W OXM_HEADER_W (0xFFFF, 1, 6)
 
 /* ## ------------------------------- ## */
 /* ## IPv6 compatible fields. ## */
@@ -332,12 +331,9 @@ bool
 oxm_prereqs_ok(const struct oxm_field *field, const struct ofl_match *rule);
 
 int
-oxm_pull_match(struct ofpbuf * buf, struct ofl_match *match_dst, int match_len);
+oxm_pull_match(struct ofpbuf * buf, struct ofl_match *match_dst, int match_len, bool check_prereq, struct ofl_exp *exp);
 
-int
-oxm_pull_match_no_prereqs(struct ofpbuf * buf, struct ofl_match *match_dst, int match_len);
-
-int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt);
+int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt, struct ofl_exp *exp);
 
 struct ofl_match_tlv *
 oxm_match_lookup(uint32_t header, const struct ofl_match *omt);

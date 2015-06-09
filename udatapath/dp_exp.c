@@ -40,18 +40,62 @@
 #include "oflib/ofl-messages.h"
 #include "oflib-exp/ofl-exp-openflow.h"
 #include "oflib-exp/ofl-exp-nicira.h"
+#include "oflib-exp/ofl-exp-openstate.h"
 #include "openflow/openflow.h"
 #include "openflow/openflow-ext.h"
 #include "openflow/nicira-ext.h"
+#include "openflow/openstate-ext.h"
 #include "vlog.h"
+#include "pipeline.h"
 
 #define LOG_MODULE VLM_dp_exp
 
 static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(60, 60);
 
 void
-dp_exp_action(struct packet * pkt UNUSED, struct ofl_action_experimenter *act) {
-	VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute unknown experimenter action (%u).", act->experimenter_id);
+dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
+    
+    if(act->experimenter_id == OPENSTATE_VENDOR_ID)
+    {
+        struct ofl_exp_openstate_act_header *action;
+        action = (struct ofl_exp_openstate_act_header *) act;
+        switch(action->act_type){
+
+            case(OFPAT_EXP_SET_STATE):
+            {
+                struct ofl_exp_action_set_state *wns = (struct ofl_exp_action_set_state *)action;
+                if (state_table_is_stateful(pkt->dp->pipeline->tables[wns->table_id]->state_table) && state_table_is_configured(pkt->dp->pipeline->tables[wns->table_id]->state_table))
+                {
+                    struct state_table *st = pkt->dp->pipeline->tables[wns->table_id]->state_table;
+                    VLOG_WARN_RL(LOG_MODULE, &rl, "executing action NEXT STATE at stage %u", wns->table_id);
+                    state_table_set_state(st, pkt, NULL, wns);
+                }
+                else
+                {
+                    //TODO sanvitz: return an experimenter error msg
+                    VLOG_WARN_RL(LOG_MODULE, &rl, "ERROR NEXT STATE at stage %u: stage not stateful", wns->table_id);
+                }
+                break;
+            }
+            case (OFPAT_EXP_SET_FLAG): 
+            {
+                struct ofl_exp_action_set_flag *wns = (struct ofl_exp_action_set_flag *)action;
+                uint32_t global_states = pkt->dp->global_states;
+                
+                global_states = (global_states & ~(wns->flag_mask)) | (wns->flag & wns->flag_mask);
+                pkt->dp->global_states = global_states;
+                 break;
+            }  
+            default:
+                VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute unknown experimenter action (%zu).", htonl(act->experimenter_id));
+                break;
+        }
+        if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
+            char *p = packet_to_string(pkt);
+            VLOG_DBG_RL(LOG_MODULE, &rl, "action result: %s", p);
+            free(p);
+        }
+    }
 }
 
 void
@@ -60,18 +104,44 @@ dp_exp_inst(struct packet *pkt UNUSED, struct ofl_instruction_experimenter *inst
 }
 
 ofl_err
-dp_exp_stats(struct datapath *dp UNUSED,
-                                  struct ofl_msg_multipart_request_experimenter *msg,
-                                  const struct sender *sender UNUSED) {
-	VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to handle unknown experimenter stats (%u).", msg->experimenter_id);
-    return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+dp_exp_stats(struct datapath *dp UNUSED, struct ofl_msg_multipart_request_experimenter *msg, const struct sender *sender UNUSED) {
+    ofl_err err;
+    switch (msg->experimenter_id) {
+        case (OPENSTATE_VENDOR_ID): {
+            struct ofl_exp_openstate_msg_multipart_request *exp = (struct ofl_exp_openstate_msg_multipart_request *)msg;
+
+            switch(exp->type) {
+                case (OFPMP_EXP_STATE_STATS): {
+                    struct ofl_exp_msg_multipart_reply_state reply;
+                    err = handle_stats_request_state(dp->pipeline, (struct ofl_exp_msg_multipart_request_state *)msg, sender, &reply);
+                    dp_send_message(dp, (struct ofl_msg_header *)&reply, sender);
+                    free(reply.stats);
+                    ofl_msg_free((struct ofl_msg_header *)msg, dp->exp);
+                    return err;
+                }
+                case (OFPMP_EXP_FLAGS_STATS): {
+                    struct ofl_exp_msg_multipart_reply_global_state reply;
+                    err = handle_stats_request_global_state(dp->pipeline, sender, &reply);
+                    dp_send_message(dp, (struct ofl_msg_header *)&reply, sender);
+                    ofl_msg_free((struct ofl_msg_header *)msg, dp->exp);
+                    return err;
+                }
+                default: {
+                    VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to handle unknown experimenter type (%u).", exp->type);
+                    return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+                }
+            }
+        }
+        default: {
+            VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to handle unknown experimenter stats (%u).", msg->experimenter_id);
+            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+        }
+    }
 }
 
 
 ofl_err
-dp_exp_message(struct datapath *dp,
-                                struct ofl_msg_experimenter *msg,
-                               const struct sender *sender) {
+dp_exp_message(struct datapath *dp, struct ofl_msg_experimenter *msg, const struct sender *sender) {
 
     switch (msg->experimenter_id) {
         case (OPENFLOW_VENDOR_ID): {
@@ -89,6 +159,19 @@ dp_exp_message(struct datapath *dp,
                 }
                 default: {
                 	VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to handle unknown experimenter type (%u).", exp->type);
+                    return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+                }
+            }
+        }
+        case (OPENSTATE_VENDOR_ID): {
+            struct ofl_exp_openstate_msg_header *exp = (struct ofl_exp_openstate_msg_header *)msg;
+
+            switch(exp->type) {
+                case (OFPT_EXP_STATE_MOD): {
+                    return handle_state_mod(dp->pipeline, (struct ofl_exp_msg_state_mod *)msg, sender);
+                }
+                default: {
+                    VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to handle unknown experimenter type (%u).", exp->type);
                     return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
                 }
             }

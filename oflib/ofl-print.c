@@ -41,7 +41,7 @@
 #include "openflow/openflow.h"
 
 
-char *decimal_to_binary(int n)
+char *decimal_to_binary(uint32_t n)
 {
    int c, d, count;
    char *pointer;
@@ -55,9 +55,9 @@ char *decimal_to_binary(int n)
    {
       d = n >> c;
       if ( d & 1 )
-         *(pointer+count) = 1 + '0';
+         *(pointer+count) = '1';
       else
-         *(pointer+count) = 0 + '0';
+         *(pointer+count) = '0';
       count++;
    }
    *(pointer+count) = '\0';
@@ -65,19 +65,20 @@ char *decimal_to_binary(int n)
    return  pointer;
 }
 
-void masked_value_print(FILE *stream,char *flag, char *flag_mask){
+void masked_value_print(char *string,char *flag, char *flag_mask){
     int i=0;
 
     for(i=0;i<32;i++){
-
         if (flag_mask[i]=='0'){
-            fprintf(stream,"*");
+            string[i]='*';
         }
         else {
-            fprintf(stream,"%c",*(flag+i));
+            string[i]=*(flag+i);
         }
+        string[32]='\0';
     }
 }
+
 
 char *
 ofl_port_to_string(uint32_t port) {
@@ -249,8 +250,6 @@ ofl_action_type_print(FILE *stream, uint16_t type) {
             case OFPAT_SET_NW_TTL: {     fprintf(stream, "\x1B[36mnw_ttl\x1B[0m"); return; }
             case OFPAT_DEC_NW_TTL: {     fprintf(stream, "\x1B[36mnw_dec\x1B[0m"); return; }
             case OFPAT_EXPERIMENTER: {   fprintf(stream, "\x1B[36mexp\x1B[0m"); return; }
-            case OFPAT_SET_STATE: {      fprintf(stream, "\x1B[36mset_state\x1B[0m"); return; }
-            case OFPAT_SET_FLAG: {       fprintf(stream, "\x1B[36mset_flag\x1B[0m"); return; }
             default: {                   fprintf(stream, "?(%u)", type); return; }
         }
     }
@@ -273,8 +272,6 @@ ofl_action_type_print(FILE *stream, uint16_t type) {
             case OFPAT_SET_NW_TTL: {     fprintf(stream, "nw_ttl"); return; }
             case OFPAT_DEC_NW_TTL: {     fprintf(stream, "nw_dec"); return; }
             case OFPAT_EXPERIMENTER: {   fprintf(stream, "exp"); return; }
-            case OFPAT_SET_STATE: {      fprintf(stream, "set_state"); return; }
-            case OFPAT_SET_FLAG: {       fprintf(stream, "set_flag"); return; }
             default: {                   fprintf(stream, "?(%u)", type); return; }
         }
     }
@@ -297,8 +294,6 @@ ofl_oxm_type_print(FILE *stream, uint32_t type){
     case OXM_OF_IN_PORT:            {fprintf(stream, "in_port"); return; }
     case OXM_OF_IN_PHY_PORT:        {fprintf(stream, "in_phy_port"); return; }
     case OXM_OF_METADATA:           {fprintf(stream, "metadata"); return; }
-    case OXM_OF_FLAGS:              {fprintf(stream, "flags"); return; }
-    case OXM_OF_STATE:              {fprintf(stream, "state"); return; }
     case OXM_OF_ETH_DST:            {fprintf(stream, "eth_dst"); return; }
     case OXM_OF_ETH_SRC:            {fprintf(stream, "eth_src"); return; }
     case OXM_OF_ETH_TYPE:           {fprintf(stream, "eth_type"); return; }
@@ -878,8 +873,6 @@ ofl_stats_type_print(FILE *stream, uint16_t type) {
     switch (type) {
         case (OFPMP_DESC):          { fprintf(stream, "desc"); return; }
         case (OFPMP_FLOW):          { fprintf(stream, "flow"); return; }
-        case (OFPMP_STATE):          { fprintf(stream, "state"); return; }
-        case (OFPMP_FLAGS):          { fprintf(stream, "global_state"); return; }
         case (OFPMP_AGGREGATE):     { fprintf(stream, "aggr"); return; }
         case (OFPMP_TABLE):         { fprintf(stream, "table"); return; }
         case (OFPMP_TABLE_FEATURES):{ fprintf(stream, "table-features"); return; }

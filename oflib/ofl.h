@@ -48,6 +48,12 @@ struct ofp_action_header;
 struct ofp_instruction;
 struct ofp_multipart_reply;
 struct ofp_match;
+struct ofl_exp;
+struct ofpbuf;
+struct ofl_match;
+struct oxm_field;
+struct ofl_match_tlv;
+struct ofl_msg_header;
 
 
 /* ofl_err is used to return OpenFlow error type/code's from functions.
@@ -111,14 +117,14 @@ struct ofl_exp_match {
 
 /* Callback functions for handling experimenter statistics. */
 struct ofl_exp_stats {
-    int     (*req_pack)        (struct ofl_msg_multipart_request_header *msg, uint8_t **buf, size_t *buf_len);
-    ofl_err (*req_unpack)      (struct ofp_multipart_request *os, size_t *len, struct ofl_msg_multipart_request_header **msg);
+    int     (*req_pack)        (struct ofl_msg_multipart_request_header *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp);
+    ofl_err (*req_unpack)      (struct ofp_multipart_request *os, uint8_t* buf, size_t *len, struct ofl_msg_multipart_request_header **msg, struct ofl_exp *exp);
     int     (*req_free)        (struct ofl_msg_multipart_request_header *msg);
-    char   *(*req_to_string)   (struct ofl_msg_multipart_request_header *msg);
-    int     (*reply_pack)      (struct ofl_msg_multipart_reply_header *msg, uint8_t **buf, size_t *buf_len);
-    ofl_err (*reply_unpack)    (struct ofp_multipart_reply *os, size_t *len, struct ofl_msg_multipart_reply_header **msg);
+    char   *(*req_to_string)   (struct ofl_msg_multipart_request_header *msg, struct ofl_exp *exp);
+    int     (*reply_pack)      (struct ofl_msg_multipart_reply_header *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp);
+    ofl_err (*reply_unpack)    (struct ofp_multipart_reply *os, uint8_t* buf, size_t *len, struct ofl_msg_multipart_reply_header **msg, struct ofl_exp *exp);
     int     (*reply_free)      (struct ofl_msg_multipart_reply_header *msg);
-    char   *(*reply_to_string) (struct ofl_msg_multipart_reply_header *msg);
+    char   *(*reply_to_string) (struct ofl_msg_multipart_reply_header *msg, struct ofl_exp *exp);
 };
 
 /* Callback functions for handling experimenter messages. */
@@ -129,13 +135,25 @@ struct ofl_exp_msg {
     char   *(*to_string)        (struct ofl_msg_experimenter *msg);
 };
 
+/* Callback functions for handling experimenter match fields. */
+struct ofl_exp_field {
+    void    (*pack)             (struct ofpbuf *buf, struct ofl_match_tlv *oft);
+    int     (*unpack)           (struct ofl_match *match, struct oxm_field *f, void *experimenter_id, void *value, void *mask);
+    void    (*match)            (struct ofl_match_tlv *f, int *packet_header, int  *field_len, uint8_t **flow_val, uint8_t **flow_mask);
+    void    (*compare)          (struct ofl_match_tlv *f, struct ofl_match_tlv *value, uint8_t **packet_val);
+    void    (*match_std)        (struct ofl_match_tlv *flow_mod_match, struct ofl_match_tlv *flow_entry_match, int *field_len, uint8_t **flow_mod_val, uint8_t **flow_entry_val, uint8_t **flow_mod_mask, uint8_t **flow_entry_mask);
+    void    (*overlap_a)        (struct ofl_match_tlv *f_a, int *field_len, uint8_t **val_a, uint8_t **mask_a, int *header, int *header_m, uint64_t *all_mask);
+    void    (*overlap_b)        (struct ofl_match_tlv *f_b, int *field_len, uint8_t **val_b, uint8_t **mask_b, uint64_t *all_mask);
+};
+
 /* Convenience structure for passing all callback groups at once. */
 struct ofl_exp {
-    struct ofl_exp_act    *act;
-    struct ofl_exp_inst   *inst;
-    struct ofl_exp_match  *match;
-    struct ofl_exp_stats  *stats;
-    struct ofl_exp_msg    *msg;
+    struct ofl_exp_act           *act;
+    struct ofl_exp_inst          *inst;
+    struct ofl_exp_match         *match;
+    struct ofl_exp_stats         *stats;
+    struct ofl_exp_msg           *msg;
+    struct ofl_exp_field         *field;
 };
 
 
@@ -164,7 +182,6 @@ static inline uint16_t
 ofl_error_code(ofl_err error) {
     return error & 0x0000ffff;
 }
-
 
 static inline void 
 ofl_enable_colors(){
