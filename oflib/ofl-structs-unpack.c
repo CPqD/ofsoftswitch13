@@ -527,8 +527,7 @@ ofl_structs_flow_stats_unpack(struct ofp_flow_stats *src, uint8_t *buf, size_t *
     s->byte_count =    ntoh64(src->byte_count);
 
     match_pos = sizeof(struct ofp_flow_stats) - 4;
-
-    error = ofl_structs_match_unpack(&(src->match),buf + match_pos , &slen, &(s->match), exp);
+    error = ofl_structs_match_unpack(&(src->match),buf + match_pos , &slen, &(s->match), 1, exp);
     if (error) {
         free(s);
         return error;
@@ -555,56 +554,6 @@ ofl_structs_flow_stats_unpack(struct ofp_flow_stats *src, uint8_t *buf, size_t *
         inst = (struct ofp_instruction *)((uint8_t *)inst + ntohs(inst->len));
     }
 
-    if (slen != 0) {
-        *len = *len - ntohs(src->length) + slen;
-        OFL_LOG_WARN(LOG_MODULE, "The received flow stats contained extra bytes (%zu).", slen);
-        ofl_structs_free_flow_stats(s, exp);
-        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
-    }
-    *len -= ntohs(src->length);
-    *dst = s;
-    return 0;
-}
-
-ofl_err
-ofl_structs_state_stats_unpack(struct ofp_state_stats *src, uint8_t *buf, size_t *len, struct ofl_state_stats **dst, struct ofl_exp *exp) {
-    struct ofl_state_stats *s;
-    ofl_err error;
-    size_t slen;
-    size_t i;
-    int match_pos;
-    if (*len < sizeof(struct ofp_state_stats) ) {
-        OFL_LOG_WARN(LOG_MODULE, "Received flow stats has invalid length (%zu).", *len);
-        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
-    }
-
-    if (*len < ntohs(src->length)) {
-        OFL_LOG_WARN(LOG_MODULE, "Received flow stats reply has invalid length (set to %u, but only %zu received).", ntohs(src->length), *len);
-        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
-    }
-
-    if (src->table_id >= PIPELINE_TABLES) {
-        if (OFL_LOG_IS_WARN_ENABLED(LOG_MODULE)) {
-            char *ts = ofl_table_to_string(src->table_id);
-            OFL_LOG_WARN(LOG_MODULE, "Received flow stats has invalid table_id (%s).", ts);
-            free(ts);
-        }
-        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
-    }
-
-    slen = ntohs(src->length) - sizeof(struct ofp_state_stats);
-
-    s = (struct ofl_state_stats *)malloc(sizeof(struct ofl_state_stats));
-    s->table_id =  src->table_id;
-    s->field_count = ntohl(src->field_count);
-    for (i=0;i<s->field_count;i++)
-               s->fields[i]=ntohl(src->fields[i]);
-
-    s->entry.key_len = ntohl(src->entry.key_len);
-    for (i=0;i<s->entry.key_len;i++)
-               s->entry.key[i]=src->entry.key[i];
-    s->entry.state = ntohl(src->entry.state);
-    
     if (slen != 0) {
         *len = *len - ntohs(src->length) + slen;
         OFL_LOG_WARN(LOG_MODULE, "The received flow stats contained extra bytes (%zu).", slen);
@@ -1190,7 +1139,7 @@ ofl_structs_meter_band_unpack(struct ofp_meter_band_header *src, size_t *len, st
 
 
 static ofl_err
-ofl_structs_oxm_match_unpack(struct ofp_match* src, uint8_t* buf, size_t *len, struct ofl_match **dst){
+ofl_structs_oxm_match_unpack(struct ofp_match* src, uint8_t* buf, size_t *len, struct ofl_match **dst, bool check_prereq, struct ofl_exp *exp){
 
      int error = 0;
      struct ofpbuf *b = ofpbuf_new(0);
@@ -1198,7 +1147,7 @@ ofl_structs_oxm_match_unpack(struct ofp_match* src, uint8_t* buf, size_t *len, s
     *len -= ROUND_UP(ntohs(src->length),8);
      if(ntohs(src->length) > sizeof(struct ofp_match)){
          ofpbuf_put(b, buf, ntohs(src->length) - (sizeof(struct ofp_match) -4)); 
-         error = oxm_pull_match(b, m, ntohs(src->length) - (sizeof(struct ofp_match) -4));
+         error = oxm_pull_match(b, m, ntohs(src->length) - (sizeof(struct ofp_match) -4), check_prereq, exp);
          m->header.length = ntohs(src->length) - 4;
      }
     else {
@@ -1211,51 +1160,12 @@ ofl_structs_oxm_match_unpack(struct ofp_match* src, uint8_t* buf, size_t *len, s
     return error;
 }
 
-static ofl_err
-ofl_structs_oxm_match_unpack_no_prereqs(struct ofp_match* src, uint8_t* buf, size_t *len, struct ofl_match **dst){
-
-     int error = 0;
-     struct ofpbuf *b = ofpbuf_new(0);
-     struct ofl_match *m = (struct ofl_match *) malloc(sizeof(struct ofl_match));
-    *len -= ROUND_UP(ntohs(src->length),8);
-     if(ntohs(src->length) > sizeof(struct ofp_match)){
-         ofpbuf_put(b, buf, ntohs(src->length) - (sizeof(struct ofp_match) -4)); 
-         error = oxm_pull_match_no_prereqs(b, m, ntohs(src->length) - (sizeof(struct ofp_match) -4));
-         m->header.length = ntohs(src->length) - 4;
-     }
-    else {
-         m->header.length = 0;
-         m->header.type = ntohs(src->type);
-         m->match_fields = (struct hmap) HMAP_INITIALIZER(&m->match_fields);    
-    }
-    ofpbuf_delete(b);    
-    *dst = m;
-    return error;
-}
-
 ofl_err
-ofl_structs_match_unpack(struct ofp_match *src,uint8_t * buf, size_t *len, struct ofl_match_header **dst, struct ofl_exp *exp) {
+ofl_structs_match_unpack(struct ofp_match *src,uint8_t * buf, size_t *len, struct ofl_match_header **dst, bool check_prereq, struct ofl_exp *exp) {
 
     switch (ntohs(src->type)) {
         case (OFPMT_OXM): {
-             return ofl_structs_oxm_match_unpack(src, buf, len, (struct ofl_match**) dst );               
-        }
-        default: {
-            if (exp == NULL || exp->match == NULL || exp->match->unpack == NULL) {
-                OFL_LOG_WARN(LOG_MODULE, "Received match is experimental, but no callback was given.");
-                return ofl_error(OFPET_BAD_MATCH, OFPBMC_BAD_TYPE);
-            }
-            return exp->match->unpack(src, len, dst);
-        }
-    }
-}
-
-ofl_err
-ofl_structs_match_unpack_no_prereqs(struct ofp_match *src,uint8_t * buf, size_t *len, struct ofl_match_header **dst, struct ofl_exp *exp) {
-
-    switch (ntohs(src->type)) {
-        case (OFPMT_OXM): {
-             return ofl_structs_oxm_match_unpack_no_prereqs(src, buf, len, (struct ofl_match**) dst );               
+             return ofl_structs_oxm_match_unpack(src, buf, len, (struct ofl_match**) dst, check_prereq, exp);               
         }
         default: {
             if (exp == NULL || exp->match == NULL || exp->match->unpack == NULL) {

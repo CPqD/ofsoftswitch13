@@ -75,7 +75,7 @@ packet_handle_std_is_fragment(struct packet_handle_std *handle);
 
 /* Returns true if the packet matches the given standard match structure. */
 bool
-packet_handle_std_match(struct packet_handle_std *handle,  struct ofl_match *match);
+packet_handle_std_match(struct packet_handle_std *handle,  struct ofl_match *match, struct ofl_exp *exp);
 
 /* Converts the packet to a string representation */
 char *

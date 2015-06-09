@@ -99,7 +99,7 @@ ofl_exp_openflow_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_e
     }
 
     exp = (struct ofp_extension_header *)oh;
-
+    
     if (ntohl(exp->vendor) == OPENFLOW_VENDOR_ID) {
 
         switch (ntohl(exp->subtype)) {

@@ -71,5 +71,21 @@ ofl_exp_openflow_msg_free(struct ofl_msg_experimenter *msg);
 char *
 ofl_exp_openflow_msg_to_string(struct ofl_msg_experimenter *msg);
 
+/*experimenter action functions*/
+
+int 
+ofl_exp_openflow_act_pack(struct ofl_action_header *src, struct ofp_action_header *dst);
+
+ofl_err
+ofl_exp_openflow_act_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action_header **dst);
+
+size_t
+ofl_exp_openflow_act_ofp_len(struct ofl_action_header *act);
+
+int     
+ofl_exp_openflow_act_free(struct ofl_action_header *act);
+
+char *
+ofl_exp_openflow_act_to_string(struct ofl_action_header *act);
 
 #endif /* OFL_EXP_OPENFLOW_H */

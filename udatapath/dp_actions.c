@@ -875,17 +875,6 @@ dec_nw_ttl(struct packet *pkt, struct ofl_action_header *act UNUSED) {
     }
 }
 
-/* Executes set flag. */
-static void
-set_flag(struct packet *pkt, struct ofl_action_set_flag *action) {
-
-    struct ofl_action_set_flag *wns = (struct ofl_action_set_flag *)action;
-    uint32_t global_states = pkt->dp->global_states;
-    
-    global_states = (global_states & ~(wns->flag_mask)) | (wns->flag & wns->flag_mask);
-    pkt->dp->global_states = global_states;
-}
-
 
 void
 dp_execute_action(struct packet *pkt,
@@ -946,24 +935,6 @@ dp_execute_action(struct packet *pkt,
             group(pkt, (struct ofl_action_group *)action);
             break;
         }
-        case (OFPAT_SET_STATE): {
-            struct ofl_action_set_state *wns = (struct ofl_action_set_state *)action;
-            if(pkt->dp->pipeline->tables[wns->table_id]->features->config &OFPTC_TABLE_STATEFUL)
-            {
-                struct state_table *st = pkt->dp->pipeline->tables[wns->table_id]->state_table;
-                VLOG_WARN_RL(LOG_MODULE, &rl, "executing action NEXT STATE at stage %u", wns->table_id);
-                state_table_set_state(st, pkt, wns->state, wns->state_mask, NULL, 0);
-            }
-            else
-            {
-                VLOG_WARN_RL(LOG_MODULE, &rl, "ERROR NEXT STATE at stage %u\n: stage not stateful", wns->table_id);
-            }
-            break;
-        }
-        case (OFPAT_SET_FLAG): {
-            set_flag(pkt, (struct ofl_action_set_flag *)action);
-            break;
-        }
         case (OFPAT_SET_NW_TTL): {
             set_nw_ttl(pkt, (struct ofl_action_set_nw_ttl *)action);
             break;
@@ -981,7 +952,7 @@ dp_execute_action(struct packet *pkt,
             break;
         }
         case (OFPAT_EXPERIMENTER): {
-        	dp_exp_action(pkt, (struct ofl_action_experimenter *)action);
+            dp_exp_action(pkt, (struct ofl_action_experimenter *)action);
             break;
         }
 
@@ -1037,7 +1008,6 @@ dp_actions_output_port(struct packet *pkt, uint32_t out_port, uint32_t out_queue
         case (OFPP_TABLE): {
             if (pkt->packet_out) {
                 // NOTE: hackish; makes sure packet cannot be resubmit to pipeline again.
-                printf("submit pkt to first flow table\n");
 		pkt->packet_out = false;
                 pipeline_process_packet(pkt->dp->pipeline, pkt);
             } else {
