@@ -45,7 +45,7 @@
 
 static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(60, 60);
 
-uint32_t  oxm_ids[]={OXM_OF_IN_PORT,OXM_OF_IN_PHY_PORT,OXM_OF_METADATA, OXM_OF_ETH_DST,
+uint32_t  oxm_ids[]={OXM_OF_IN_PORT,OXM_OF_IN_PHY_PORT,OXM_OF_METADATA,OXM_OF_ETH_DST,
                         OXM_OF_ETH_SRC,OXM_OF_ETH_TYPE, OXM_OF_VLAN_VID, OXM_OF_VLAN_PCP, OXM_OF_IP_DSCP,
                         OXM_OF_IP_ECN, OXM_OF_IP_PROTO, OXM_OF_IPV4_SRC, OXM_OF_IPV4_DST, OXM_OF_TCP_SRC,
                         OXM_OF_TCP_DST, OXM_OF_UDP_SRC, OXM_OF_UDP_DST, OXM_OF_SCTP_SRC, OXM_OF_SCTP_DST,
@@ -53,7 +53,7 @@ uint32_t  oxm_ids[]={OXM_OF_IN_PORT,OXM_OF_IN_PHY_PORT,OXM_OF_METADATA, OXM_OF_E
                         OXM_OF_ARP_SHA, OXM_OF_ARP_THA, OXM_OF_IPV6_SRC, OXM_OF_IPV6_DST, OXM_OF_IPV6_FLABEL,
                         OXM_OF_ICMPV6_TYPE, OXM_OF_ICMPV6_CODE, OXM_OF_IPV6_ND_TARGET, OXM_OF_IPV6_ND_SLL,
                         OXM_OF_IPV6_ND_TLL, OXM_OF_MPLS_LABEL, OXM_OF_MPLS_TC, OXM_OF_MPLS_BOS, OXM_OF_PBB_ISID,
-                        OXM_OF_TUNNEL_ID, OXM_OF_IPV6_EXTHDR, OXM_OF_FLAGS, OXM_OF_STATE};
+                        OXM_OF_TUNNEL_ID, OXM_OF_IPV6_EXTHDR};
 
 #define NUM_OXM_IDS     (sizeof(oxm_ids) / sizeof(uint32_t))
 /* Do *NOT* use N_OXM_FIELDS, it's ligically wrong and can run over
@@ -61,8 +61,7 @@ uint32_t  oxm_ids[]={OXM_OF_IN_PORT,OXM_OF_IN_PHY_PORT,OXM_OF_METADATA, OXM_OF_E
 
 uint32_t wildcarded[] = {OXM_OF_METADATA, OXM_OF_ETH_DST, OXM_OF_ETH_SRC, OXM_OF_VLAN_VID, OXM_OF_IPV4_SRC,
                                OXM_OF_IPV4_DST, OXM_OF_ARP_SPA, OXM_OF_ARP_TPA, OXM_OF_ARP_SHA, OXM_OF_ARP_THA, OXM_OF_IPV6_SRC,
-                               OXM_OF_IPV6_DST , OXM_OF_IPV6_FLABEL, OXM_OF_PBB_ISID, OXM_OF_TUNNEL_ID, OXM_OF_IPV6_EXTHDR, 
-                               OXM_OF_FLAGS, OXM_OF_STATE};                        
+                               OXM_OF_IPV6_DST , OXM_OF_IPV6_FLABEL, OXM_OF_PBB_ISID, OXM_OF_TUNNEL_ID, OXM_OF_IPV6_EXTHDR};                        
 
 #define NUM_WILD_IDS    (sizeof(wildcarded) / sizeof(uint32_t))
 
@@ -79,7 +78,7 @@ struct ofl_action_header actions[] = { {OFPAT_OUTPUT, 4},
                   {OFPAT_COPY_TTL_OUT, 4},{OFPAT_COPY_TTL_IN, 4},{OFPAT_SET_MPLS_TTL, 4},
                   {OFPAT_DEC_MPLS_TTL, 4},{OFPAT_PUSH_VLAN, 4},{OFPAT_POP_VLAN, 4}, {OFPAT_PUSH_MPLS, 4},
                   {OFPAT_POP_MPLS, 4},{OFPAT_SET_QUEUE, 4}, {OFPAT_GROUP, 4}, {OFPAT_SET_NW_TTL, 4}, {OFPAT_DEC_NW_TTL, 4}, 
-                  {OFPAT_SET_FIELD, 4}, {OFPAT_PUSH_PBB, 4}, {OFPAT_POP_PBB, 4}, {OFPAT_SET_STATE, 4}, {OFPAT_SET_FLAG, 4} } ;
+                  {OFPAT_SET_FIELD, 4}, {OFPAT_PUSH_PBB, 4}, {OFPAT_POP_PBB, 4} } ;
 
 #define N_ACTIONS       (sizeof(actions) / sizeof(struct ofl_action_header))
 
@@ -107,15 +106,15 @@ add_to_timeout_lists(struct flow_table *table, struct flow_entry *entry) {
 
 /* Handles flow mod messages with ADD command. */
 static ofl_err
-flow_table_add(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool check_overlap, bool *match_kept, bool *insts_kept) {
+flow_table_add(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool check_overlap, bool *match_kept, bool *insts_kept, struct ofl_exp *exp) {
     // Note: new entries will be placed behind those with equal priority
     struct flow_entry *entry, *new_entry;
     LIST_FOR_EACH (entry, struct flow_entry, match_node, &table->match_entries) {
-        if (check_overlap && flow_entry_overlaps(entry, mod)) {
+        if (check_overlap && flow_entry_overlaps(entry, mod, exp)) {
             return ofl_error(OFPET_FLOW_MOD_FAILED, OFPFMFC_OVERLAP);
         }
         /* if the entry equals, replace the old one */
-        if (flow_entry_matches(entry, mod, true/*strict*/, false/*check_cookie*/)) {
+        if (flow_entry_matches(entry, mod, true/*strict*/, false/*check_cookie*/, exp)) {
             new_entry = flow_entry_create(table->dp, table, mod);
             *match_kept = true;
             *insts_kept = true;
@@ -152,11 +151,11 @@ flow_table_add(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool chec
 /* Handles flow mod messages with MODIFY command. 
     If the flow doesn't exists don't do nothing*/
 static ofl_err
-flow_table_modify(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool strict, bool *insts_kept) {
+flow_table_modify(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool strict, bool *insts_kept, struct ofl_exp *exp) {
     struct flow_entry *entry;
 
     LIST_FOR_EACH (entry, struct flow_entry, match_node, &table->match_entries) {
-        if (flow_entry_matches(entry, mod, strict, true/*check_cookie*/)) {
+        if (flow_entry_matches(entry, mod, strict, true/*check_cookie*/, exp)) {
             flow_entry_replace_instructions(entry, mod->instructions_num, mod->instructions);
 	    flow_entry_modify_stats(entry, mod);
             *insts_kept = true;
@@ -168,13 +167,13 @@ flow_table_modify(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool s
 
 /* Handles flow mod messages with DELETE command. */
 static ofl_err
-flow_table_delete(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool strict) {
+flow_table_delete(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool strict, struct ofl_exp *exp) {
     struct flow_entry *entry, *next;
 
     LIST_FOR_EACH_SAFE (entry, next, struct flow_entry, match_node, &table->match_entries) {
         if ((mod->out_port == OFPP_ANY || flow_entry_has_out_port(entry, mod->out_port)) &&
             (mod->out_group == OFPG_ANY || flow_entry_has_out_group(entry, mod->out_group)) &&
-            flow_entry_matches(entry, mod, strict, true/*check_cookie*/)) {
+            flow_entry_matches(entry, mod, strict, true/*check_cookie*/, exp)) {
              flow_entry_remove(entry, OFPRR_DELETE);
         }
     }
@@ -184,23 +183,23 @@ flow_table_delete(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool s
 
 
 ofl_err
-flow_table_flow_mod(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool *match_kept, bool *insts_kept) {
+flow_table_flow_mod(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool *match_kept, bool *insts_kept, struct ofl_exp *exp) {
     switch (mod->command) {
         case (OFPFC_ADD): {
             bool overlap = ((mod->flags & OFPFF_CHECK_OVERLAP) != 0);
-            return flow_table_add(table, mod, overlap, match_kept, insts_kept);
+            return flow_table_add(table, mod, overlap, match_kept, insts_kept, exp);
         }
         case (OFPFC_MODIFY): {
-            return flow_table_modify(table, mod, false, insts_kept);
+            return flow_table_modify(table, mod, false, insts_kept, exp);
         }
         case (OFPFC_MODIFY_STRICT): {
-            return flow_table_modify(table, mod, true, insts_kept);
+            return flow_table_modify(table, mod, true, insts_kept, exp);
         }
         case (OFPFC_DELETE): {
-            return flow_table_delete(table, mod, false);
+            return flow_table_delete(table, mod, false, exp);
         }
         case (OFPFC_DELETE_STRICT): {
-            return flow_table_delete(table, mod, true);
+            return flow_table_delete(table, mod, true, exp);
         }
         default: {
             return ofl_error(OFPET_FLOW_MOD_FAILED, OFPFMFC_BAD_COMMAND);
@@ -210,11 +209,10 @@ flow_table_flow_mod(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool
 
 
 struct flow_entry *
-flow_table_lookup(struct flow_table *table, struct packet *pkt) {
+flow_table_lookup(struct flow_table *table, struct packet *pkt, struct ofl_exp *exp) {
     struct flow_entry *entry;
 
     table->stats->lookup_count++;
-
     LIST_FOR_EACH(entry, struct flow_entry, match_node, &table->match_entries) {
         struct ofl_match_header *m;
 
@@ -223,8 +221,7 @@ flow_table_lookup(struct flow_table *table, struct packet *pkt) {
         /* select appropriate handler, based on match type of flow entry. */
         switch (m->type) {
             case (OFPMT_OXM): {
-               if (packet_handle_std_match(pkt->handle_std,
-                                            (struct ofl_match *)m)) {
+               if (packet_handle_std_match(pkt->handle_std, (struct ofl_match *)m, exp)) {
                     if (!entry->no_byt_count)                                            
                         entry->stats->byte_count += pkt->buffer->size;
                     if (!entry->no_pkt_count)
@@ -232,9 +229,8 @@ flow_table_lookup(struct flow_table *table, struct packet *pkt) {
                     entry->last_used = time_msec();
 
                     table->stats->matched_count++;
-
                     return entry;
-                }
+                } 
                 break;
 
                 break;
@@ -421,14 +417,14 @@ flow_table_destroy(struct flow_table *table) {
 
 void
 flow_table_stats(struct flow_table *table, struct ofl_msg_multipart_request_flow *msg,
-                 struct ofl_flow_stats ***stats, size_t *stats_size, size_t *stats_num) {
+                 struct ofl_flow_stats ***stats, size_t *stats_size, size_t *stats_num, struct ofl_exp *exp) {
     struct flow_entry *entry;
 
     LIST_FOR_EACH(entry, struct flow_entry, match_node, &table->match_entries) {
         if ((msg->out_port == OFPP_ANY || flow_entry_has_out_port(entry, msg->out_port)) &&
             (msg->out_group == OFPG_ANY || flow_entry_has_out_group(entry, msg->out_group)) &&
             match_std_nonstrict((struct ofl_match *)msg->match,
-                                (struct ofl_match *)entry->stats->match)) {
+                                (struct ofl_match *)entry->stats->match, exp)) {
 
             flow_entry_update(entry);
             if ((*stats_size) == (*stats_num)) {

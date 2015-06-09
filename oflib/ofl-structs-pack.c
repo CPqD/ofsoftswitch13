@@ -520,19 +520,7 @@ ofl_structs_flow_stats_ofp_total_len(struct ofl_flow_stats ** stats, size_t stat
     return sum;
 }
 
-size_t
-ofl_structs_state_stats_ofp_len(struct ofl_state_stats *stats, struct ofl_exp *exp) {
 
-    return ROUND_UP((sizeof(struct ofp_state_stats)),8);
-}
-
-size_t
-ofl_structs_state_stats_ofp_total_len(struct ofl_state_stats ** stats, size_t stats_num, struct ofl_exp *exp) {
-    size_t sum;
-    OFL_UTILS_SUM_ARR_FUN2(sum, stats, stats_num,
-            ofl_structs_state_stats_ofp_len, exp);
-    return sum;
-}
 
 size_t
 ofl_structs_flow_stats_pack(struct ofl_flow_stats *src, uint8_t *dst, struct ofl_exp *exp) {
@@ -567,33 +555,6 @@ ofl_structs_flow_stats_pack(struct ofl_flow_stats *src, uint8_t *dst, struct ofl
     for (i=0; i < src->instructions_num; i++) {
         data += ofl_structs_instructions_pack(src->instructions[i], (struct ofp_instruction *) data, exp);
     }
-    return total_len;
-}
-
-size_t
-ofl_structs_state_stats_pack(struct ofl_state_stats *src, uint8_t *dst, struct ofl_exp *exp) {
-
-    struct ofp_state_stats *state_stats;
-    size_t total_len;
-    uint8_t *data;
-    size_t  i;
-
-    total_len = ROUND_UP(sizeof(struct ofp_state_stats),8);
-    state_stats = (struct ofp_state_stats*) dst;
-    
-    state_stats->length = htons(total_len);
-    state_stats->table_id = src->table_id;
-    state_stats->pad = 0;
-
-    state_stats->field_count = htonl(src->field_count);
-    
-    for (i=0;i<src->field_count;i++)
-           state_stats->fields[i]=htonl(src->fields[i]);
-           
-    state_stats->entry.key_len = htonl(src->entry.key_len);   
-    for (i=0;i<src->entry.key_len;i++)
-           state_stats->entry.key[i]=src->entry.key[i];
-    state_stats->entry.state = htonl(src->entry.state);
     return total_len;
 }
 
@@ -974,7 +935,7 @@ ofl_structs_match_pack(struct ofl_match_header *src, struct ofp_match *dst, uint
             oxm_fields = (uint8_t*) &dst->oxm_fields;
             dst->length = htons(sizeof(struct ofp_match) - 4);
             if (src->length){
-                oxm_len = oxm_put_match(b, m);
+                oxm_len = oxm_put_match(b, m, exp);
                 memcpy(oxm_fields, (uint8_t*) ofpbuf_pull(b,oxm_len), oxm_len);
                 dst->length = htons(oxm_len + ((sizeof(struct ofp_match )-4)));
                 ofpbuf_delete(b);

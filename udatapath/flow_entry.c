@@ -108,7 +108,7 @@ flow_entry_has_out_group(struct flow_entry *entry, uint32_t group) {
 
 
 bool
-flow_entry_matches(struct flow_entry *entry, struct ofl_msg_flow_mod *mod, bool strict, bool check_cookie) {
+flow_entry_matches(struct flow_entry *entry, struct ofl_msg_flow_mod *mod, bool strict, bool check_cookie, struct ofl_exp *exp) {
 	if (check_cookie && ((entry->stats->cookie & mod->cookie_mask) != (mod->cookie & mod->cookie_mask))) {
 		return false;
 	}
@@ -116,20 +116,20 @@ flow_entry_matches(struct flow_entry *entry, struct ofl_msg_flow_mod *mod, bool 
     if (strict) {
         return ( (entry->stats->priority == mod->priority) &&
                  match_std_strict((struct ofl_match *)mod->match,
-                                (struct ofl_match *)entry->stats->match));
+                                (struct ofl_match *)entry->stats->match, exp));
     } else {
         return match_std_nonstrict((struct ofl_match *)mod->match,
-                                   (struct ofl_match *)entry->stats->match);
+                                   (struct ofl_match *)entry->stats->match, exp);
     }
 }
 
 bool
-flow_entry_overlaps(struct flow_entry *entry, struct ofl_msg_flow_mod *mod) {
+flow_entry_overlaps(struct flow_entry *entry, struct ofl_msg_flow_mod *mod, struct ofl_exp *exp) {
         return (entry->stats->priority == mod->priority &&
             (mod->out_port == OFPP_ANY || flow_entry_has_out_port(entry, mod->out_port)) &&
             (mod->out_group == OFPG_ANY || flow_entry_has_out_group(entry, mod->out_group)) &&
             match_std_overlap((struct ofl_match *)entry->stats->match,
-                                            (struct ofl_match *)mod->match));
+                                            (struct ofl_match *)mod->match, exp));
 }
 
 

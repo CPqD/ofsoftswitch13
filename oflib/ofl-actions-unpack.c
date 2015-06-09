@@ -50,7 +50,7 @@ OFL_LOG_INIT(LOG_MODULE)
 
 ofl_err
 ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action_header **dst, struct ofl_exp *exp) {
-    
+
     if (*len < sizeof(struct ofp_action_header)) {
         OFL_LOG_WARN(LOG_MODULE, "Received action is too short (%zu).", *len);
         return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
@@ -66,7 +66,6 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
         return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
     }
 
-    
     switch (ntohs(src->type)) {
         case OFPAT_OUTPUT: {
             struct ofp_action_output *sa;
@@ -245,53 +244,6 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             break;
         }
 
-        case OFPAT_SET_STATE: {
-            struct ofp_action_set_state *sa;
-            struct ofl_action_set_state *da;
-            if (*len < sizeof(struct ofp_action_set_state)) {
-                OFL_LOG_WARN(LOG_MODULE, "Received SET STATE action has invalid length (%zu).", *len);
-                return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
-            }
-
-            sa = (struct ofp_action_set_state*)src;
-            da = (struct ofl_action_set_state *)malloc(sizeof(struct ofl_action_set_state));
-
-            da->state = ntohl(sa->state);
-            da->state_mask = ntohl(sa->state_mask);
-            da->table_id = sa->table_id;
-
-            if (da->table_id >= PIPELINE_TABLES) {
-                if (OFL_LOG_IS_WARN_ENABLED(LOG_MODULE)) {
-                    char *ts = ofl_table_to_string(da->table_id);
-                    OFL_LOG_WARN(LOG_MODULE, "Received SET STATE action has invalid table_id (%s).", ts);
-                    free(ts);
-                }
-                free(da);
-                return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
-            }
-
-            *dst = (struct ofl_action_header *)da;
-            *len -= sizeof(struct ofp_action_set_state);
-            break; 
-        }
-
-        case OFPAT_SET_FLAG: {
-            struct ofp_action_set_flag *sa;
-            struct ofl_action_set_flag *da;
-            if (*len < sizeof(struct ofp_action_set_flag)) {
-                OFL_LOG_WARN(LOG_MODULE, "Received SET flag action has invalid length (%zu).", *len);
-                return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
-            }
-            sa = (struct ofp_action_set_flag*)src;
-            da = (struct ofl_action_set_flag *)malloc(sizeof(struct ofl_action_set_flag));
-
-            da->flag = ntohl(sa->flag);
-            da->flag_mask = ntohl(sa->flag_mask);
-
-            *dst = (struct ofl_action_header *)da;
-            *len -= sizeof(struct ofp_action_set_flag);
-            break; 
-        }
         case OFPAT_SET_NW_TTL: {
             struct ofp_action_nw_ttl *sa;
             struct ofl_action_set_nw_ttl *da;
@@ -335,8 +287,8 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             if(da->field->header == OXM_OF_IN_PORT || da->field->header == OXM_OF_IN_PHY_PORT
                                     || da->field->header == OXM_OF_METADATA
                                     || da->field->header == OXM_OF_IPV6_EXTHDR
-									|| da->field->header == OXM_OF_FLAGS
-                                    || da->field->header == OXM_OF_STATE){
+									|| da->field->header == OXM_EXP_FLAGS
+                                    || da->field->header == OXM_EXP_STATE){
 				
                 return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_SET_TYPE);
             }

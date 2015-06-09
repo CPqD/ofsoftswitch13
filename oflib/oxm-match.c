@@ -306,6 +306,7 @@ static uint8_t* get_oxm_value(struct ofl_match *m, uint32_t header){
 static int
 parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
                 const void *value, const void *mask){
+
     switch (f->index) {
         case OFI_OXM_OF_IN_PORT: {
             uint32_t* in_port = (uint32_t*) value;
@@ -328,28 +329,6 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
                 return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
             }
             ofl_structs_match_put64m(match, f->header, ntoh64(*((uint64_t*) value)), ntoh64(*((uint64_t*) mask)));
-            return 0;
-        }
-        case OFI_OXM_OF_STATE:{
-            ofl_structs_match_put32(match, f->header, ntohl(*((uint32_t*) value)));
-            return 0;
-        }
-        case OFI_OXM_OF_STATE_W:{
-            if (check_bad_wildcard32(ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)))){
-                return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
-            }
-            ofl_structs_match_put32m(match, f->header, ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)));
-            return 0;
-        }
-        case OFI_OXM_OF_FLAGS:{
-            ofl_structs_match_put32(match, f->header, ntohl(*((uint32_t*) value)));
-            return 0;
-        }
-        case OFI_OXM_OF_FLAGS_W:{
-            if (check_bad_wildcard32(ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)))){
-                return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
-            }
-            ofl_structs_match_put32m(match, f->header, ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)));
             return 0;
         }
         /* Ethernet header. */
@@ -572,7 +551,7 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
 
 /* Puts the match in a hash_map structure */
 int
-oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len)
+oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len, bool check_prereq, struct ofl_exp *exp)
 {
 
     uint32_t header;
@@ -603,17 +582,42 @@ oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len)
         else if (OXM_HASMASK(header) && !f->maskable){
             error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_MASK);
         }
-        else if (!oxm_prereqs_ok(f, match_dst)) {
+        else if (check_prereq && !oxm_prereqs_ok(f, match_dst)) {
             error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_PREREQ);
         }
         else if (check_oxm_dup(match_dst,f)){
             error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_DUP_FIELD);
         }
         else {
-            /* 'hasmask' and 'length' are known to be correct at this point
-             * because they are included in 'header' and oxm_field_lookup()
-             * checked them already. */
-            error = parse_oxm_entry(match_dst, f, p + 4, p + 4 + length / 2);
+              switch (OXM_VENDOR(header))
+              {
+                    case(OFPXMC_OPENFLOW_BASIC):
+                        /* 'hasmask' and 'length' are known to be correct at this point
+                         * because they are included in 'header' and oxm_field_lookup()
+                         * checked them already. */
+                        error = parse_oxm_entry(match_dst, f, p + 4, p + 4 + length / 2);
+                        break;
+
+                    case(OFPXMC_EXPERIMENTER):
+                        /* 'hasmask' and 'length' are known to be correct at this point
+                         * because they are included in 'header' and oxm_field_lookup()
+                         * checked them already.
+                         * exp->field->unpack() args are match, oxm_fields, experimenter_id, value and mask
+                         * sizeof(header) is 4 byte
+                         * sizeof(experimenter_id) is 4 byte
+                         * experimenter_id is @ p + 4 (p + header)
+                         * value is @ p + 8 (p + header + experimenter_id)
+                         * mask depends on field's size*/
+                        if (exp == NULL || exp->field == NULL || exp->field->unpack == NULL) {
+                            VLOG_DBG_RL(LOG_MODULE, &rl,"Received match is experimental, but no callback was given.");
+                            error = ofl_error(OFPET_BAD_MATCH, OFPBMC_BAD_TYPE);
+                        }
+                        error = exp->field->unpack(match_dst, f, p + 4, p + 4 + EXP_ID_LEN, p + 4 + EXP_ID_LEN + (length-EXP_ID_LEN) / 2);
+                        break;
+                        
+                    default:
+                        error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_FIELD);
+              }
         }
         if (error) {
             VLOG_DBG_RL(LOG_MODULE,&rl, "bad oxm_entry with vendor=%"PRIu32", "
@@ -630,62 +634,6 @@ oxm_pull_match(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len)
     return match_len ? ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_LEN) : 0;
 }
 
-/* Puts the match in a hash_map structure */
-int
-oxm_pull_match_no_prereqs(struct ofpbuf *buf, struct ofl_match * match_dst, int match_len)
-{
-
-    uint32_t header;
-    uint8_t *p;
-    p = ofpbuf_try_pull(buf, match_len);
-
-    if (!p) {
-        VLOG_DBG_RL(LOG_MODULE,&rl, "oxm_match length %u, rounded up to a "
-                    "multiple of 8, is longer than space in message (max "
-                    "length %zd)", match_len, buf->size);
-
-        return ofp_mkerr(OFPET_BAD_MATCH, OFPBRC_BAD_LEN);
-    }
-
-    /* Initialize the match hashmap */
-    ofl_structs_match_init(match_dst);
-
-    while ((header = oxm_entry_ok(p, match_len)) != 0) {
-
-        unsigned length = OXM_LENGTH(header);
-        const struct oxm_field *f;
-        int error;
-        f = oxm_field_lookup(header);
-
-        if (!f) {
-            error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_FIELD);
-        }
-        else if (OXM_HASMASK(header) && !f->maskable){
-            error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_MASK);
-        }
-        else if (check_oxm_dup(match_dst,f)){
-            error = ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_DUP_FIELD);
-        }
-        else {
-            /* 'hasmask' and 'length' are known to be correct at this point
-             * because they are included in 'header' and oxm_field_lookup()
-             * checked them already. */
-            error = parse_oxm_entry(match_dst, f, p + 4, p + 4 + length / 2);
-        }
-        if (error) {
-            VLOG_DBG_RL(LOG_MODULE,&rl, "bad oxm_entry with vendor=%"PRIu32", "
-                        "field=%"PRIu32", hasmask=%"PRIu32", type=%"PRIu32" "
-                        "(error %x)",
-                        OXM_VENDOR(header), OXM_FIELD(header),
-                        OXM_HASMASK(header), OXM_TYPE(header),
-                        error);
-            return error;
-        }
-        p += 4 + length;
-        match_len -= 4 + length;
-    }
-    return match_len ? ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_LEN) : 0;
-}
 
 uint32_t
 oxm_entry_ok(const void *p, unsigned int match_len)
@@ -741,12 +689,11 @@ oxm_put_8(struct ofpbuf *buf, uint32_t header, uint8_t value)
 }
 
 static void
-oxm_put_8w(struct ofpbuf *buf, uint32_t header, uint8_t value, uint16_t mask){
-
+oxm_put_8w(struct ofpbuf *buf, uint32_t header, uint8_t value, uint8_t mask){
+    
     oxm_put_header(buf, header);
     ofpbuf_put(buf, &value, sizeof value);
     ofpbuf_put(buf, &mask, sizeof mask);
-
 }
 
 static void
@@ -859,7 +806,7 @@ is_requisite(uint32_t header){
 }
 
 /* Puts the match in the buffer */
-int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt){
+int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt, struct ofl_exp *exp){
 
     struct ofl_match_tlv *oft;
     int start_len = buf->size;
@@ -900,108 +847,120 @@ int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt){
          memcpy(&value, oft->value,sizeof(uint8_t));
          oxm_put_8(buf,oft->header, value);
     }
-
+    
     /* Loop through the remaining fields */
     HMAP_FOR_EACH(oft, struct ofl_match_tlv, hmap_node, &omt->match_fields){
-
+        
+        uint8_t length = OXM_LENGTH(oft->header);          
+        bool has_mask =false;
+        
         if (is_requisite(oft->header))
             /*We already inserted  fields that are pre requisites to others */
              continue;
         else {
-            uint8_t length = OXM_LENGTH(oft->header) ;
-            bool has_mask =false;
-            if (OXM_HASMASK(oft->header)){
-               length = length / 2;
-               has_mask = true;
-            }
-            switch (length){
-                case (sizeof(uint8_t)):{
-                    uint8_t value;
-                    memcpy(&value, oft->value,sizeof(uint8_t));
-                    if(!has_mask)
-                        oxm_put_8(buf,oft->header, value);
-                    else {
-                        uint8_t mask;
-                        memcpy(&mask,oft->value + length ,sizeof(uint8_t));
-                        oxm_put_8w(buf, oft->header,value,mask);
-                    }
-                    break;
-                  }
-                case (sizeof(uint16_t)):{
-                    uint16_t value;
-                    memcpy(&value, oft->value,sizeof(uint16_t));
-                    if(!has_mask)
-                        oxm_put_16(buf,oft->header, htons(value));
-                    else {
-                        uint16_t mask;
-                        memcpy(&mask,oft->value + length ,sizeof(uint16_t));
-                        oxm_put_16w(buf, oft->header,htons(value),htons(mask));
-                    }
-                    break;
-                }
-                case (sizeof(uint32_t)):{
-                    uint32_t value;
-                    memcpy(&value, oft->value,sizeof(uint32_t));
-					if(!has_mask)
-						if (oft->header == OXM_OF_IPV4_DST || oft->header == OXM_OF_IPV4_SRC
-							||oft->header == OXM_OF_ARP_SPA || oft->header == OXM_OF_ARP_TPA)
-							oxm_put_32(buf,oft->header, value);
-						else
-							oxm_put_32(buf,oft->header, htonl(value));
-                    else {
-                         uint32_t mask;
-                         memcpy(&mask,oft->value + length ,sizeof(uint32_t));
-						 if (oft->header == OXM_OF_IPV4_DST_W|| oft->header == OXM_OF_IPV4_SRC_W
-							||oft->header == OXM_OF_ARP_SPA_W || oft->header == OXM_OF_ARP_TPA_W){
-                            oxm_put_32w(buf, oft->header, value, mask);
-                            }
-						 else {
-							oxm_put_32w(buf, oft->header, htonl(value),htonl(mask));
-                         }
-                    }
-                      break;
+            switch (OXM_VENDOR(oft->header))
+                {
+                    case (OFPXMC_OPENFLOW_BASIC):
 
+                        if (OXM_HASMASK(oft->header)){
+                            length = length / 2;
+                            has_mask = true;
+                        }
+                        switch (length){
+                            case (sizeof(uint8_t)):{
+                                uint8_t value;
+                                memcpy(&value, oft->value,sizeof(uint8_t));
+                                if(!has_mask)
+                                    oxm_put_8(buf,oft->header, value);
+                                else {
+                                    uint8_t mask;
+                                    memcpy(&mask,oft->value + length ,sizeof(uint8_t));
+                                    oxm_put_8w(buf, oft->header,value,mask);
+                                }
+                                break;
+                              }
+                            case (sizeof(uint16_t)):{
+                                uint16_t value;
+                                memcpy(&value, oft->value,sizeof(uint16_t));
+                                if(!has_mask)
+                                    oxm_put_16(buf,oft->header, htons(value));
+                                else {
+                                    uint16_t mask;
+                                    memcpy(&mask,oft->value + length ,sizeof(uint16_t));
+                                    oxm_put_16w(buf, oft->header,htons(value),htons(mask));
+                                }
+                                break;
+                            }
+                            case (sizeof(uint32_t)):{
+                                uint32_t value;
+                                memcpy(&value, oft->value,sizeof(uint32_t));
+                                if(!has_mask)
+                                    if (oft->header == OXM_OF_IPV4_DST || oft->header == OXM_OF_IPV4_SRC
+                                        ||oft->header == OXM_OF_ARP_SPA || oft->header == OXM_OF_ARP_TPA)
+                                        oxm_put_32(buf,oft->header, value);
+                                    else
+                                        oxm_put_32(buf,oft->header, htonl(value));
+                                else {
+                                     uint32_t mask;
+                                     memcpy(&mask,oft->value + length ,sizeof(uint32_t));
+                                     if (oft->header == OXM_OF_IPV4_DST_W|| oft->header == OXM_OF_IPV4_SRC_W
+                                        ||oft->header == OXM_OF_ARP_SPA_W || oft->header == OXM_OF_ARP_TPA_W)
+                                        oxm_put_32w(buf, oft->header, value, mask);
+                                     else
+                                        oxm_put_32w(buf, oft->header, htonl(value),htonl(mask));
+                                }
+                                  break;
+
+                            }
+                            case (sizeof(uint64_t)):{
+                                 uint64_t value;
+                                 memcpy(&value, oft->value,sizeof(uint64_t));
+                                 if(!has_mask)
+                                     oxm_put_64(buf,oft->header, hton64(value));
+                                 else {
+                                     uint64_t mask;
+                                     memcpy(&mask,oft->value + length ,sizeof(uint64_t));
+                                     oxm_put_64w(buf, oft->header,hton64(value),hton64(mask));
+                                 }
+                                 break;
+                            }
+                            case (ETH_ADDR_LEN):{
+                                 uint8_t value[ETH_ADDR_LEN];
+                                 memcpy(&value, oft->value,ETH_ADDR_LEN);
+                                 if(!has_mask)
+                                     oxm_put_eth(buf,oft->header, value);
+                                 else {
+                                     uint8_t mask[ETH_ADDR_LEN];
+                                     memcpy(&mask,oft->value + length ,ETH_ADDR_LEN);
+                                     oxm_put_ethm(buf, oft->header,value,mask);
+                                  }
+                                  break;
+                               }
+                           case (IPv6_ADDR_LEN):{
+                                 uint8_t value[IPv6_ADDR_LEN];
+                                 memcpy(value, oft->value,IPv6_ADDR_LEN);
+                                 if(!has_mask)
+                                     oxm_put_ipv6(buf,oft->header, value);
+                                 else {
+                                     uint8_t mask[IPv6_ADDR_LEN];
+                                     memcpy(&mask,oft->value + length ,IPv6_ADDR_LEN);
+                                     oxm_put_ipv6m(buf, oft->header,value,mask);
+                                  }
+                                  break;
+                               }
+                        }
+                        break;
+                    case (OFPXMC_EXPERIMENTER):
+                        if (exp == NULL || exp->field == NULL || exp->field->pack == NULL) {
+                            VLOG_DBG_RL(LOG_MODULE, &rl, "Received match is experimental, but no callback was given.");
+                            break;
+                        }
+                        exp->field->pack(buf, oft);
+                        break;
                 }
-                case (sizeof(uint64_t)):{
-                     uint64_t value;
-                     memcpy(&value, oft->value,sizeof(uint64_t));
-                     if(!has_mask)
-                         oxm_put_64(buf,oft->header, hton64(value));
-                     else {
-                         uint64_t mask;
-                         memcpy(&mask,oft->value + length ,sizeof(uint64_t));
-                         oxm_put_64w(buf, oft->header,hton64(value),hton64(mask));
-                     }
-                     break;
-                }
-                case (ETH_ADDR_LEN):{
-                     uint8_t value[ETH_ADDR_LEN];
-                     memcpy(&value, oft->value,ETH_ADDR_LEN);
-                     if(!has_mask)
-                         oxm_put_eth(buf,oft->header, value);
-                     else {
-                         uint8_t mask[ETH_ADDR_LEN];
-                         memcpy(&mask,oft->value + length ,ETH_ADDR_LEN);
-                         oxm_put_ethm(buf, oft->header,value,mask);
-                      }
-                      break;
-                   }
-               case (IPv6_ADDR_LEN):{
-                     uint8_t value[IPv6_ADDR_LEN];
-                     memcpy(value, oft->value,IPv6_ADDR_LEN);
-                     if(!has_mask)
-                         oxm_put_ipv6(buf,oft->header, value);
-                     else {
-                         uint8_t mask[IPv6_ADDR_LEN];
-                         memcpy(&mask,oft->value + length ,IPv6_ADDR_LEN);
-                         oxm_put_ipv6m(buf, oft->header,value,mask);
-                      }
-                      break;
-                   }
-            }
+            
         }
     }
-
     match_len = buf->size - start_len;
     ofpbuf_put_zeros(buf, ROUND_UP(match_len - 4, 8) - (match_len -4));
     return match_len;
