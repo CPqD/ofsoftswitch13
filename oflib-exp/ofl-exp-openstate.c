@@ -2107,7 +2107,7 @@ ofl_structs_state_stats_unpack(struct ofp_exp_state_stats *src, uint8_t *buf, si
     if (slen != 0) {
         *len = *len - ntohs(src->length) + slen;
         OFL_LOG_WARN(LOG_MODULE, "The received state stats contained extra bytes (%zu).", slen);
-        ofl_structs_free_flow_stats(s, exp); //TODO sanvitz: implement ofl_structs_free_state_stats
+        free(s);
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
     *len -= ntohs(src->length);
