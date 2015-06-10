@@ -77,7 +77,7 @@ static ofl_err
 ofl_structs_set_flow_state_unpack(struct ofp_exp_set_flow_state *src, size_t *len, struct ofl_exp_set_flow_state *dst) {
     int i;
     uint8_t key[OFPSC_MAX_KEY_LEN] = {0};
-
+    
     if((*len == ((7*sizeof(uint32_t) + ntohl(src->key_len)*sizeof(uint8_t))) + 4*sizeof(uint8_t)) && (ntohl(src->key_len)>0))
     {
         if (src->table_id >= PIPELINE_TABLES) {
@@ -94,11 +94,7 @@ ofl_structs_set_flow_state_unpack(struct ofp_exp_set_flow_state *src, size_t *le
         dst->hard_rollback = ntohl(src->hard_rollback);
         for (i=0;i<dst->key_len;i++)
             key[i]=src->key[i];
-        memcpy(dst->key, key, OFPSC_MAX_KEY_LEN);
-
-        OFL_LOG_WARN(LOG_MODULE, "key count is %d\n",dst->key_len);
-        OFL_LOG_WARN(LOG_MODULE, "state is %d\n",dst->state);
-        OFL_LOG_WARN(LOG_MODULE, "state_mask is %d\n",dst->state_mask);  
+        memcpy(dst->key, key, dst->key_len);
     }
     else
     { //control of struct ofp_extraction length.
@@ -107,7 +103,7 @@ ofl_structs_set_flow_state_unpack(struct ofp_exp_set_flow_state *src, size_t *le
     }
 
     *len -= ((7*sizeof(uint32_t) + ntohl(src->key_len)*sizeof(uint8_t)) + 4*sizeof(uint8_t));
- 
+    
     return 0;
 }
 
@@ -126,7 +122,7 @@ ofl_structs_del_flow_state_unpack(struct ofp_exp_del_flow_state *src, size_t *le
         dst->key_len=ntohl(src->key_len);
         for (i=0;i<dst->key_len;i++)
             key[i]=src->key[i];
-        memcpy(dst->key, key, OFPSC_MAX_KEY_LEN);
+        memcpy(dst->key, key, dst->key_len);
         OFL_LOG_WARN(LOG_MODULE, "key count is %d\n",dst->key_len);
     }
     else
@@ -1353,7 +1349,6 @@ void state_table_del_state(struct state_table *table, uint8_t *key, uint32_t len
                 break;
             }
     }
-    free(e);
 }
 
 
@@ -1392,7 +1387,7 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, struct
     uint32_t idle_timeout,hard_timeout;
     uint64_t now;
     struct timeval tv;
-
+    
     int i;
     uint32_t key_len=0; //update-scope key extractor length
     struct key_extractor *extractor=&table->write_key;
@@ -1428,7 +1423,7 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, struct
         hard_timeout = msg->hard_timeout;
         if(key_len == msg->key_len)
         {
-            memcpy(key, msg->key, MAX_STATE_KEY_LEN);
+            memcpy(key, msg->key, msg->key_len);
         }
         else
         {
@@ -1442,10 +1437,7 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, struct
             if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
                 OFL_LOG_WARN(LOG_MODULE, "state value is %u updated to hash map", state);
                 if ((((e->state & ~(state_mask)) | (state & state_mask)) == STATE_DEFAULT) && hard_timeout==0 && idle_timeout==0){
-                    if (pkt)
-                        state_table_del_state(table, key, key_len);
-                    else
-                        state_table_del_state(table, msg->key, msg->key_len);
+                    state_table_del_state(table, key, key_len);
                 }
                 else {
                     e->state = (e->state & ~(state_mask)) | (state & state_mask);
