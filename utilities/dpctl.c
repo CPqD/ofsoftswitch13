@@ -51,6 +51,7 @@
 #include "oflib/ofl.h"
 #include "oflib-exp/ofl-exp.h"
 #include "oflib-exp/ofl-exp-openflow.h"
+#include "oflib-exp/ofl-exp-openstate.h"
 #include "oflib/oxm-match.h"
 
 #include "command-line.h"
@@ -58,6 +59,7 @@
 #include "dpif.h"
 #include "openflow/nicira-ext.h"
 #include "openflow/openflow-ext.h"
+#include "openflow/openstate-ext.h"
 #include "ofpbuf.h"
 #include "openflow/openflow.h"
 #include "packets.h"
@@ -101,6 +103,8 @@ parse_options(int argc, char *argv[]);
 
 static uint8_t mask_all[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
+
+
 static void
 parse_flow_mod_args(char *str, struct ofl_msg_flow_mod *req);
 
@@ -114,10 +118,10 @@ static void
 parse_bucket(char *str, struct ofl_bucket *b);
 
 static void
-parse_flow_stat_args(char *str, struct ofl_msg_multipart_request_flow *req);
+parse_state_stat_args(char *str, struct ofl_exp_msg_multipart_request_state *req);
 
 static void
-parse_state_stat_args(char *str, struct ofl_msg_multipart_request_state *req);
+parse_flow_stat_args(char *str, struct ofl_msg_multipart_request_flow *req);
 
 static void
 parse_match(char *str, struct ofl_match_header **match);
@@ -197,12 +201,39 @@ static struct ofl_exp_msg dpctl_exp_msg =
          .free      = ofl_exp_msg_free,
          .to_string = ofl_exp_msg_to_string};
 
+static struct ofl_exp_act dpctl_exp_act =
+        {.pack      = ofl_exp_act_pack,
+         .unpack    = ofl_exp_act_unpack,
+         .free      = ofl_exp_act_free,
+         .ofp_len   = ofl_exp_act_ofp_len,
+         .to_string = ofl_exp_act_to_string};
+
+static struct ofl_exp_stats dpctl_exp_stats =
+        {.req_pack      = ofl_exp_stats_req_pack,
+         .req_unpack    = ofl_exp_stats_req_unpack,
+         .req_free      = ofl_exp_stats_req_free,
+         .req_to_string = ofl_exp_stats_req_to_string,
+         .reply_pack    = ofl_exp_stats_reply_pack,
+         .reply_unpack  = ofl_exp_stats_reply_unpack,
+         .reply_free    = ofl_exp_stats_reply_free,
+         .reply_to_string = ofl_exp_stats_reply_to_string};
+
+static struct ofl_exp_field dpctl_exp_field =
+        {.unpack     = ofl_exp_field_unpack,
+         .pack       = ofl_exp_field_pack, 
+         .match      = ofl_exp_field_match,
+         .compare    = ofl_exp_field_compare,
+         .match_std  = ofl_exp_field_match_std,
+         .overlap_a  = ofl_exp_field_overlap_a,
+         .overlap_b  = ofl_exp_field_overlap_b};
+
 static struct ofl_exp dpctl_exp =
-        {.act   = NULL,
+        {.act   = &dpctl_exp_act,
          .inst  = NULL,
          .match = NULL,
-         .stats = NULL,
-         .msg   = &dpctl_exp_msg};
+         .stats = &dpctl_exp_stats,
+         .msg   = &dpctl_exp_msg,
+         .field = &dpctl_exp_field};
 
 
 static void
@@ -212,11 +243,11 @@ dpctl_transact(struct vconn *vconn, struct ofl_msg_header *req,
     uint8_t *bufreq;
     size_t bufreq_size;
     int error;
-
     error = ofl_msg_pack(req, global_xid, &bufreq, &bufreq_size, &dpctl_exp);
     if (error) {
         ofp_fatal(0, "Error packing request.");
     }
+
     ofpbufreq = ofpbuf_new(0);
     ofpbuf_use(ofpbufreq, bufreq, bufreq_size);
     ofpbuf_put_uninit(ofpbufreq, bufreq_size);
@@ -225,9 +256,11 @@ dpctl_transact(struct vconn *vconn, struct ofl_msg_header *req,
         ofp_fatal(0, "Error during transaction.");
     }
     error = ofl_msg_unpack(ofpbufrepl->data, ofpbufrepl->size, repl, repl_xid_p, &dpctl_exp);
+    //ofp_fatal(0, "error = %d", error);
     if (error) {
         ofp_fatal(0, "Error unpacking reply.");
     }
+
     /* NOTE: if unpack was successful, message takes over ownership of buffer's
      *       data. Rconn and vconn does not allocate headroom, so the ofpbuf
      *       wrapper can simply be deleted, keeping the data for the message. */
@@ -242,7 +275,6 @@ dpctl_transact_and_print(struct vconn *vconn, struct ofl_msg_header *req,
     struct ofl_msg_header *reply;
     uint32_t repl_xid;
     char *str;
-
     str = ofl_msg_to_string(req, &dpctl_exp);
     printf("\nSENDING (xid=0x%X):\n%s\n\n", global_xid, str);
     free(str);
@@ -477,11 +509,13 @@ stats_flow(struct vconn *vconn, int argc, char *argv[]) {
 
 static void
 stats_state(struct vconn *vconn, int argc, char *argv[]) {
-    struct ofl_msg_multipart_request_state req =
-            {{{.type = OFPT_MULTIPART_REQUEST},
-              .type = OFPMP_STATE, .flags = 0x0000},
-             .table_id = 0xff,
-             .match = NULL};         
+    struct ofl_exp_msg_multipart_request_state req =   
+             {{{{{.type = OFPT_MULTIPART_REQUEST},
+                  .type = OFPMP_EXPERIMENTER, .flags = 0x0000},
+                 .experimenter_id = OPENSTATE_VENDOR_ID},
+                 .type = OFPMP_EXP_STATE_STATS},
+                 .table_id = 0xff,
+                 .match = NULL};
     if (argc > 0) {
         parse_state_stat_args(argv[0], &req);
     }
@@ -496,9 +530,11 @@ stats_state(struct vconn *vconn, int argc, char *argv[]) {
 
 static void
 stats_global_state(struct vconn *vconn, int argc, char *argv[]) {
-    struct ofl_msg_multipart_request_global_state req =
-            {{{.type = OFPT_MULTIPART_REQUEST},
-              .type = OFPMP_FLAGS, .flags = 0x0000}};
+    struct ofl_exp_msg_multipart_request_global_state req =
+            {{{{{.type = OFPT_MULTIPART_REQUEST},
+                .type = OFPMP_EXPERIMENTER, .flags = 0x0000},
+                 .experimenter_id = OPENSTATE_VENDOR_ID},
+                 .type = OFPMP_EXP_FLAGS_STATS}}; 
     dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&req, NULL);
 }
 
@@ -937,9 +973,9 @@ static struct command all_commands[] = {
     {"group-features", 0, 0, group_features},
     {"meter-features", 0, 0, meter_features},
     {"stats-desc", 0, 0, stats_desc },
+    {"stats-flow", 0, 2, stats_flow},
     {"stats-state", 0, 2, stats_state},
     {"stats-global-state", 0, 0, stats_global_state},
-    {"stats-flow", 0, 2, stats_flow},
     {"stats-aggr", 0, 2, stats_aggr},
     {"stats-table", 0, 0, stats_table },
     {"stats-port", 0, 1, stats_port },
@@ -1560,26 +1596,6 @@ parse_match(char *str, struct ofl_match_header **match) {
             else ofl_structs_match_put64(m, OXM_OF_METADATA, metadata);
             continue;
         }
-
-        /* State */
-         if (strncmp(token, MATCH_STATE KEY_VAL, strlen(MATCH_STATE KEY_VAL)) == 0) {
-            uint32_t state;
-            if (parse_port(token + strlen(MATCH_STATE KEY_VAL), &state)) {
-                ofp_fatal(0, "Error parsing state: %s.", token);
-            }
-            else ofl_structs_match_put32(m,OXM_OF_STATE,state);
-            continue;
-        }
-
-        /* Flags */
-         if (strncmp(token, MATCH_FLAGS KEY_VAL, strlen(MATCH_FLAGS KEY_VAL)) == 0) {
-            uint32_t flags;
-            if (parse_port(token + strlen(MATCH_FLAGS KEY_VAL), &flags)) {
-                ofp_fatal(0, "Error parsing flags: %s.", token);
-            }
-            else ofl_structs_match_put32(m,OXM_OF_FLAGS,flags);
-            continue;
-        }
         /*PBB ISID*/
         if (strncmp(token, MATCH_PBB_ISID KEY_VAL, strlen(MATCH_PBB_ISID KEY_VAL)) == 0) {
             uint32_t pbb_isid;
@@ -2165,6 +2181,19 @@ parse_inst(char *str, struct ofl_instruction_header **inst) {
     ofp_fatal(0, "Error parsing instruction: %s.", str);
 }
 
+static void
+parse_state_stat_args(char *str, struct ofl_exp_msg_multipart_request_state *req) {
+    char *token, *saveptr = NULL;
+    for (token = strtok_r(str, KEY_SEP, &saveptr); token != NULL; token = strtok_r(NULL, KEY_SEP, &saveptr)) {
+        if (strncmp(token, FLOW_MOD_TABLE_ID KEY_VAL, strlen(FLOW_MOD_TABLE_ID KEY_VAL)) == 0) {
+            if (parse8(token + strlen(FLOW_MOD_TABLE_ID KEY_VAL), table_names, NUM_ELEMS(table_names), 254,  &req->table_id)) {
+                ofp_fatal(0, "Error parsing state_stat table: %s.", token);
+            }
+            continue;
+        }
+        ofp_fatal(0, "Error parsing state_stat arg: %s.", token);
+    }
+}
 
 static void
 parse_flow_stat_args(char *str, struct ofl_msg_multipart_request_flow *req) {
@@ -2205,20 +2234,7 @@ parse_flow_stat_args(char *str, struct ofl_msg_multipart_request_flow *req) {
     }
 }
 
-static void
-parse_state_stat_args(char *str, struct ofl_msg_multipart_request_state *req) {
-    char *token, *saveptr = NULL;
 
-    for (token = strtok_r(str, KEY_SEP, &saveptr); token != NULL; token = strtok_r(NULL, KEY_SEP, &saveptr)) {
-        if (strncmp(token, FLOW_MOD_TABLE_ID KEY_VAL, strlen(FLOW_MOD_TABLE_ID KEY_VAL)) == 0) {
-            if (parse8(token + strlen(FLOW_MOD_TABLE_ID KEY_VAL), table_names, NUM_ELEMS(table_names), 254,  &req->table_id)) {
-                ofp_fatal(0, "Error parsing state_stat table: %s.", token);
-            }
-            continue;
-        }
-        ofp_fatal(0, "Error parsing state_stat arg: %s.", token);
-    }
-}
 
 static void
 parse_flow_mod_args(char *str, struct ofl_msg_flow_mod *req) {

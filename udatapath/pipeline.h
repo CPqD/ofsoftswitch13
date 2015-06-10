@@ -79,18 +79,6 @@ pipeline_handle_stats_request_flow(struct pipeline *pl,
                                    struct ofl_msg_multipart_request_flow *msg,
                                    const struct sender *sender);
 
-/* Handles a state stats request. */
-ofl_err
-pipeline_handle_stats_request_state(struct pipeline *pl,
-                                   struct ofl_msg_multipart_request_state *msg,
-                                   const struct sender *sender);
-
-/* Handles a global state stats request. */
-ofl_err
-pipeline_handle_stats_request_global_state(struct pipeline *pl,
-                                   struct ofl_msg_multipart_request_global_state *msg,
-                                   const struct sender *sender);
-
 /* Handles a table stats request. */
 ofl_err
 pipeline_handle_stats_request_table(struct pipeline *pl,
@@ -109,15 +97,6 @@ pipeline_handle_stats_request_aggregate(struct pipeline *pl,
                                   struct ofl_msg_multipart_request_flow *msg,
                                   const struct sender *sender);
 
-/* Handles a flag_mod message */
-ofl_err
-pipeline_handle_flag_mod(struct pipeline *pl, struct ofl_msg_flag_mod *msg,
-                                                const struct sender *sender);
-
-/* Handles a state_mod message */
-ofl_err
-pipeline_handle_state_mod(struct pipeline *pl, struct ofl_msg_state_mod *msg,
-                         const struct sender *sender);
 
 /* Commands pipeline to check if any flow in any table is timed out. */
 void
@@ -127,7 +106,5 @@ pipeline_timeout(struct pipeline *pl);
 void
 pipeline_destroy(struct pipeline *pl);
 
-void
-pipeline_global_states_write_flags(struct packet *pkt);
 
 #endif /* PIPELINE_H */

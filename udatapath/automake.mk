@@ -42,8 +42,6 @@ udatapath_ofdatapath_SOURCES = \
     udatapath/packet_handle_std.h \
 	udatapath/pipeline.c \
 	udatapath/pipeline.h \
-	udatapath/state_table.c \
-	udatapath/state_table.h \
 	udatapath/udatapath.c
 
 udatapath_ofdatapath_LDADD = lib/libopenflow.a oflib/liboflib.a oflib-exp/liboflib_exp.a nbee_link/libnbee_link.a $(SSL_LIBS) $(FAULT_LIBS)
@@ -100,8 +98,6 @@ udatapath_libudatapath_a_SOURCES = \
 	udatapath/packet_handle_std.h \
 	udatapath/pipeline.c \
 	udatapath/pipeline.h \
-	udatapath/state_table.c \
-	udatapath/state_table.h \
 	udatapath/udatapath.c
 
 udatapath_libudatapath_a_CPPFLAGS = $(AM_CPPFLAGS)

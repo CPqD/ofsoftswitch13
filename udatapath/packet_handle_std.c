@@ -45,6 +45,7 @@
 
 #include "nbee_link/nbee_link.h"
 #include "dp_capabilities.h"
+#include "oflib-exp/ofl-exp-openstate.h"
 
 /* Resets all protocol fields to NULL */
 
@@ -70,12 +71,9 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
     ofl_structs_match_put32(&handle->match, OXM_OF_IN_PORT, handle->pkt->in_port);
     /*Add metadata value to the hash_map */
     ofl_structs_match_put64(&handle->match, OXM_OF_METADATA, 0x0000000000000000);
-    /* Add global register value to the hash_map */
 
-    if (DP_SUPPORTED_CAPABILITIES & OFPC_OPENSTATE){
-            ofl_structs_match_put32(&handle->match, OXM_OF_STATE, 0x00000000);
-            ofl_structs_match_put32(&handle->match, OXM_OF_FLAGS, OFP_GLOBAL_STATES_DEFAULT);
-    }
+    /* Add global register value to the hash_map */
+    ofl_structs_match_exp_put32(&handle->match, OXM_EXP_FLAGS, 0xBEBABEBA, OFP_GLOBAL_STATES_DEFAULT);
     
     return;
 }
@@ -152,16 +150,14 @@ packet_handle_std_is_fragment(struct packet_handle_std *handle) {
 
 
 bool
-packet_handle_std_match(struct packet_handle_std *handle, struct ofl_match *match){
-
+packet_handle_std_match(struct packet_handle_std *handle, struct ofl_match *match, struct ofl_exp *exp){
     if (!handle->valid){
         packet_handle_std_validate(handle);
         if (!handle->valid){
             return false;
         }
     }
-
-    return packet_match(match ,&handle->match );
+    return packet_match(match ,&handle->match, exp);
 }
 
 

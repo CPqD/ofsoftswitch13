@@ -99,6 +99,7 @@ ofl_msg_pack_features_reply(struct ofl_msg_features_reply *msg, uint8_t **buf, s
 
     *buf_len = sizeof(struct ofp_switch_features);
     *buf     = (uint8_t *)malloc(*buf_len);
+
     features = (struct ofp_switch_features *)(*buf);
     features->datapath_id  = hton64(msg->datapath_id);
     features->n_buffers    = htonl( msg->n_buffers);
@@ -140,7 +141,7 @@ ofl_msg_pack_set_config(struct ofl_msg_set_config *msg, uint8_t **buf, size_t *b
 }
 
 static int
-ofl_msg_pack_packet_in(struct ofl_msg_packet_in *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_packet_in(struct ofl_msg_packet_in *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
     struct ofp_packet_in *packet_in;
     uint8_t *ptr;
 
@@ -154,7 +155,7 @@ ofl_msg_pack_packet_in(struct ofl_msg_packet_in *msg, uint8_t **buf, size_t *buf
     packet_in->cookie      = hton64(msg->cookie);
 
     ptr = (*buf) + (sizeof(struct ofp_packet_in) - 4);
-    ofl_structs_match_pack(msg->match,&(packet_in->match),ptr, NULL);
+    ofl_structs_match_pack(msg->match,&(packet_in->match),ptr, exp);
     ptr = (*buf) + ROUND_UP((sizeof(struct ofp_packet_in)-4) + msg->match->length,8);
     /*padding bytes*/
 
@@ -205,21 +206,6 @@ ofl_msg_pack_port_status(struct ofl_msg_port_status *msg, uint8_t **buf, size_t 
     memset(status->pad, 0x00, 7);
 
     ofl_structs_port_pack(msg->desc, &(status->desc));
-
-    return 0;
-}
-
-static int
-ofl_msg_pack_state_notification(struct ofl_msg_state_notification *msg, uint8_t **buf, size_t *buf_len) {
-    struct ofp_state_notification *notification;
-    *buf_len = sizeof(struct ofp_state_notification) + msg->key_length;
-    *buf     = (uint8_t *)malloc(*buf_len);
-
-    notification = (struct ofp_state_notification *)(*buf);
-    notification->table_id = msg->table_id;
-    memset(notification->pad, 0x00, 3);
-    notification->state = htonl(msg->state);
-    memcpy(notification->key, msg->key, msg->key_length);
 
     return 0;
 }
@@ -413,26 +399,6 @@ ofl_msg_pack_multipart_request_flow(struct ofl_msg_multipart_request_flow *msg, 
 }
 
 static int
-ofl_msg_pack_multipart_request_state(struct ofl_msg_multipart_request_state *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
-
-    struct ofp_multipart_request *req;
-    struct ofp_state_stats_request *stats;
-    uint8_t *ptr;
-    *buf_len = sizeof(struct ofp_multipart_request) + sizeof(struct ofp_state_stats_request) + msg->match->length;
-    *buf     = (uint8_t *)malloc(*buf_len);
-
-    req = (struct ofp_multipart_request *)(*buf);
-    stats = (struct ofp_state_stats_request *)req->body;
-    stats->table_id = msg->table_id;
-    memset(stats->pad, 0x00, 7);
-
-    ptr = (*buf) + sizeof(struct ofp_multipart_request) + sizeof(struct ofp_state_stats_request);
-    ofl_structs_match_pack(msg->match, &(stats->match),ptr, exp);
-
-    return 0;
-}
-
-static int
 ofl_msg_pack_multipart_request_port(struct ofl_msg_multipart_request_port *msg, uint8_t **buf, size_t *buf_len) {
     struct ofp_multipart_request *req;
     struct ofp_port_stats_request *stats;
@@ -532,7 +498,6 @@ static int
 ofl_msg_pack_multipart_request(struct ofl_msg_multipart_request_header *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
     struct ofp_multipart_request *req;
     int error = 0;
-
     switch (msg->type) {
     case OFPMP_DESC: {
         error = ofl_msg_pack_multipart_request_empty(msg, buf, buf_len);
@@ -541,14 +506,6 @@ ofl_msg_pack_multipart_request(struct ofl_msg_multipart_request_header *msg, uin
     case OFPMP_FLOW:
     case OFPMP_AGGREGATE: {
         error = ofl_msg_pack_multipart_request_flow((struct ofl_msg_multipart_request_flow *)msg, buf, buf_len, exp);
-        break;
-    }
-    case OFPMP_STATE: {
-        error = ofl_msg_pack_multipart_request_state((struct ofl_msg_multipart_request_state *)msg, buf, buf_len, exp);
-        break;
-    }
-    case OFPMP_FLAGS: {
-        error = ofl_msg_pack_multipart_request_empty(msg, buf, buf_len);
         break;
     }
     case OFPMP_TABLE: {
@@ -597,7 +554,7 @@ ofl_msg_pack_multipart_request(struct ofl_msg_multipart_request_header *msg, uin
             OFL_LOG_WARN(LOG_MODULE, "Trying to pack experimenter stat req, but no callback was given.");
             error = -1;
         } else {
-            error = exp->stats->req_pack(msg, buf, buf_len);
+            error = exp->stats->req_pack(msg, buf, buf_len, exp);
         }
         break;
     }
@@ -658,40 +615,6 @@ ofl_msg_pack_multipart_reply_flow(struct ofl_msg_multipart_reply_flow *msg, uint
     for (i=0; i<msg->stats_num; i++) {
         data += ofl_structs_flow_stats_pack(msg->stats[i], data, exp);
     }
-    return 0;
-}
-
-static int
-ofl_msg_pack_multipart_reply_state(struct ofl_msg_multipart_reply_state *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
-    struct ofp_multipart_reply *resp;
-    size_t i;
-    uint8_t * data;
-
-    *buf_len = sizeof(struct ofp_multipart_reply) + ofl_structs_state_stats_ofp_total_len(msg->stats, msg->stats_num, exp);
-    *buf     = (uint8_t *)malloc(*buf_len);
-    
-    resp = (struct ofp_multipart_reply *)(*buf);
-    data = (uint8_t*) resp->body;
-    for (i=0; i<msg->stats_num; i++) {
-        data += ofl_structs_state_stats_pack(msg->stats[i], data, exp);
-    }
-    return 0;
-}
-
-static int
-ofl_msg_pack_multipart_reply_global_state(struct ofl_msg_multipart_reply_global_state *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
-    struct ofp_multipart_reply *resp;
-    struct ofp_global_state_stats *stats;
-
-    *buf_len = sizeof(struct ofp_multipart_reply) + sizeof(struct ofp_global_state_stats);
-    *buf     = (uint8_t *)malloc(*buf_len);
-    
-    resp = (struct ofp_multipart_reply *)(*buf);
-    stats = (struct ofp_global_state_stats *)resp->body;
-    stats->enabled=msg->enabled;
-    memset(stats->pad, 0x00, 3);
-    stats->global_states=htonl(msg->global_states);
-    
     return 0;
 }
 
@@ -924,7 +847,6 @@ static int
 ofl_msg_pack_multipart_reply(struct ofl_msg_multipart_reply_header *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
     struct ofp_multipart_reply *resp;
     int error;
-
     switch (msg->type) {
         case OFPMP_DESC: {
             error = ofl_msg_pack_multipart_reply_desc((struct ofl_msg_reply_desc *)msg, buf, buf_len);
@@ -932,14 +854,6 @@ ofl_msg_pack_multipart_reply(struct ofl_msg_multipart_reply_header *msg, uint8_t
         }
         case OFPMP_FLOW: {
             error = ofl_msg_pack_multipart_reply_flow((struct ofl_msg_multipart_reply_flow *)msg, buf, buf_len, exp);
-            break;
-        }
-        case OFPMP_STATE: {
-            error = ofl_msg_pack_multipart_reply_state((struct ofl_msg_multipart_reply_state *)msg, buf, buf_len, exp);
-            break;
-        }
-        case OFPMP_FLAGS: {
-            error = ofl_msg_pack_multipart_reply_global_state((struct ofl_msg_multipart_reply_global_state *)msg, buf, buf_len, exp);
             break;
         }
         case OFPMP_AGGREGATE: {
@@ -995,7 +909,7 @@ ofl_msg_pack_multipart_reply(struct ofl_msg_multipart_reply_header *msg, uint8_t
                 OFL_LOG_WARN(LOG_MODULE, "Trying to pack experimenter stat resp, but no callback was given.");
                 error = -1;
             } else {
-                error = exp->stats->reply_pack(msg, buf, buf_len);
+                error = exp->stats->reply_pack(msg, buf, buf_len, exp);
             }
             break;
         }
@@ -1012,6 +926,7 @@ ofl_msg_pack_multipart_reply(struct ofl_msg_multipart_reply_header *msg, uint8_t
     resp->type  = htons(msg->type);
     resp->flags = htons(msg->flags);
     memset(resp->pad, 0x00, 4);
+
     return 0;
 }
 
@@ -1112,7 +1027,7 @@ ofl_msg_pack(struct ofl_msg_header *msg, uint32_t xid, uint8_t **buf, size_t *bu
 
         /* Asynchronous messages. */
         case OFPT_PACKET_IN: {
-            error = ofl_msg_pack_packet_in((struct ofl_msg_packet_in *)msg, buf, buf_len);
+            error = ofl_msg_pack_packet_in((struct ofl_msg_packet_in *)msg, buf, buf_len, exp);
             break;
         }
         case OFPT_FLOW_REMOVED: {
@@ -1121,10 +1036,6 @@ ofl_msg_pack(struct ofl_msg_header *msg, uint32_t xid, uint8_t **buf, size_t *bu
         }
         case OFPT_PORT_STATUS: {
             error = ofl_msg_pack_port_status((struct ofl_msg_port_status *)msg, buf, buf_len);
-            break;
-        }
-        case OFPT_STATE_NOTIFICATION: {
-            error = ofl_msg_pack_state_notification((struct ofl_msg_state_notification *)msg, buf, buf_len);
             break;
         }
         /* Controller command messages. */

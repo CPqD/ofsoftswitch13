@@ -87,11 +87,6 @@ ofl_actions_ofp_len(struct ofl_action_header *action, struct ofl_exp *exp) {
             }
             return exp->act->ofp_len(action);
         }
-        case OFPAT_SET_STATE:
-            return sizeof(struct ofp_action_set_state);
-        case OFPAT_SET_FLAG:
-            return sizeof(struct ofp_action_set_flag);
-    
         default:
             return 0;
     }
@@ -248,28 +243,7 @@ ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, u
                 OFL_LOG_WARN(LOG_MODULE, "Trying to pack experimenter, but no callback was given.");
                 return 0;
             }
-            return exp->act->pack(src, dst);
-        }
-        case OFPAT_SET_STATE: {
-            struct ofl_action_set_state *sa = (struct ofl_action_set_state *) src;
-            struct ofp_action_set_state *da = (struct ofp_action_set_state *) dst;
-
-            da->len = htons(sizeof(struct ofp_action_set_state));
-            da->state = htonl(sa->state);
-            da->state_mask = htonl(sa->state_mask);
-            da->table_id = sa->table_id;
-
-            return sizeof(struct ofp_action_set_state);
-        }
-        case OFPAT_SET_FLAG: {
-            struct ofl_action_set_flag *sa = (struct ofl_action_set_flag *) src;
-            struct ofp_action_set_flag *da = (struct ofp_action_set_flag *) dst;
-
-            da->len = htons(sizeof(struct ofp_action_set_flag));
-            da->flag = htonl(sa->flag);
-            da->flag_mask = htonl(sa->flag_mask);
-
-            return sizeof(struct ofp_action_set_flag);
+            return exp->act->pack(src, dst);           
         }
         default:
             return 0;

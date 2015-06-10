@@ -51,8 +51,8 @@
 #include "hash.h"
 #include "oflib/oxm-match.h"
 #include "vlog.h"
-#include "state_table.h"
 #include "dp_capabilities.h"
+#include "oflib-exp/ofl-exp-openstate.h"
 
 #define LOG_MODULE VLM_pipeline
 
@@ -61,100 +61,6 @@ static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(60, 60);
 static void
 execute_entry(struct pipeline *pl, struct flow_entry *entry,
               struct flow_table **table, struct packet **pkt);
-/****
-struct pipeline *pipeline_create(struct datapath *dp) {
-    struct pipeline *pl;
-    int i;
-    printf("here is the create pipeline\n");
-    printf("capabilities %2x\n",DP_SUPPORTED_CAPABILITIES);
-
-    // hardcoded statefull table init 
-    // in table 0 set OFPCT_TABLE_STATEFULL 
-    pl = xmalloc(sizeof(struct pipeline));
-
-    for (i=0; i<PIPELINE_TABLES; i++)
-    {
-        pl->tables[i] = flow_table_create(dp, i);
-
-    }
-    pl->dp = dp;
-
-    nblink_initialize();
-
-    //Haniehs' added lines
-    if (pl->tables[0])
-    {
-        
-        pl->tables[0]->features->config=OFPTC_TABLE_STATEFUL;
-	
-	struct state_table *stable = pl->tables[0]->state_table;
-        struct key_extractor *kext;
-        kext= xmalloc(sizeof(struct key_extractor));
-	kext->field_count=1;
-	
-	kext->fields[0]=OXM_OF_ETH_SRC;		//update
-	state_table_set_extractor(stable,kext,0);
-	kext->fields[0]=OXM_OF_ETH_SRC;		//lookup	
-	state_table_set_extractor(stable,kext,1);
-
-//	printf("key field extractor is %d \n",kext->fields[0]);	
-	
-      
-	////// int update;
-	///// for (update=0;update<2;++update)
-	////{
-	////    state_table_set_extractor(stable,kext,update);
-	//////}
-	
-
-
-	int number_flow_entry=0;
-	for(number_flow_entry;number_flow_entry<2;number_flow_entry++)
-	{
-		ofl_err error=0;
-		bool match_kept = false;
-		bool insts_kept = false;
-		struct ofl_msg_flow_mod *msg=xmalloc(sizeof(struct ofl_msg_flow_mod));
-		struct ofl_match *m = xmalloc(sizeof(struct ofl_match));
-		ofl_structs_match_init(m);	
-
-		msg->table_id=0;
-		msg->command=OFPFC_ADD;
-		
-		uint64_t metadata=number_flow_entry;
-		ofl_structs_match_put64(m, OXM_OF_METADATA, metadata);
-		msg-> match = (struct ofl_match_header *)m;
-	//	printf("match header is %d \n", msg->match->type);
-		
-		msg->instructions_num=1;
-		msg->instructions=xmalloc(sizeof(struct ofl_instruction_header *) * msg->instructions_num);	
-		struct ofl_instruction_set_state  *i = xmalloc(sizeof(struct ofl_instruction_set_state ));
-		i->header.type = OFPIT_SET_STATE;
-		i->state=number_flow_entry+1;
-		msg->instructions[0]= (struct ofl_instruction_header *)i;
-	//	printf("msg instruction type should be the following %d \n",msg->instructions[0]->type);	
-		
-		msg->hard_timeout=OFP_FLOW_PERMANENT;
-		msg->idle_timeout=OFP_FLOW_PERMANENT;
-		msg->priority = OFP_DEFAULT_PRIORITY;
-
-		
-		error=flow_table_flow_mod(pl->tables[0],msg,&match_kept,&insts_kept);     
-		if (error){
-			printf("error for flow mod\n");
-		}
-		else{
-			ofl_msg_free_flow_mod(msg, !match_kept, !insts_kept, pl->dp->exp);
-			printf("free flow mod msg\n");
-		}
-	}	
-}
-
-   
-    return pl;
-} 
-****/
-/* replaced with upper func. instructions*/
 
 struct pipeline *
 pipeline_create(struct datapath *dp) {
@@ -184,7 +90,6 @@ is_table_miss(struct flow_entry *entry){
 static void
 send_packet_to_controller(struct pipeline *pl, struct packet *pkt, uint8_t table_id, uint8_t reason) {
 
-    printf("here is send packet to controller\n");
     struct ofl_msg_packet_in msg;
     struct ofl_match *m;
     msg.header.type = OFPT_PACKET_IN;
@@ -218,7 +123,7 @@ send_packet_to_controller(struct pipeline *pl, struct packet *pkt, uint8_t table
 void
 pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
     struct flow_table *table, *next_table;
-
+    struct ofl_match_tlv *f;
 
     //printf("here is pipeline processing packet\n");
     if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
@@ -250,27 +155,36 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
         table         = next_table;
         next_table    = NULL;
 		
-    		//printf("before controlling the table feature config\n");
-		if (table->features->config &OFPTC_TABLE_STATEFUL) {
-			
-			state_entry = state_table_lookup(table->state_table, pkt);
-            if(state_entry!=NULL)
-			     state_table_write_state(state_entry, pkt);
+		if (state_table_is_stateful(table->state_table) && state_table_is_configured(table->state_table)) {
+            state_entry = state_table_lookup(table->state_table, pkt);
+            if(state_entry!=NULL){
+			     ofl_structs_match_exp_put32(&pkt->handle_std->match, OXM_EXP_STATE, 0xBEBABEBA, 0x00000000);
+                 state_table_write_state(state_entry, pkt);
+            }
 		}
         
-        if (DP_SUPPORTED_CAPABILITIES & OFPC_OPENSTATE){
-            pipeline_global_states_write_flags(pkt);
-        }
 
-    		//printf("after statetable entry\n");
-		// EEDBEH: additional printout to debug table lookup
+        //add 'flags' virtual header field
+        HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv, 
+            hmap_node, hash_int(OXM_EXP_FLAGS,0), &pkt->handle_std->match.match_fields){
+                    uint32_t *flags = (uint32_t*) (f->value + EXP_ID_LEN);
+                    *flags = (*flags & 0x00000000 ) | (pkt->dp->global_states);
+        }
+        
 		if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
 			char *m = ofl_structs_match_to_string((struct ofl_match_header*)&(pkt->handle_std->match), pkt->dp->exp);
 			VLOG_DBG_RL(LOG_MODULE, &rl, "searching table entry in table %d for packet match: %s.", table->stats->table_id,m);
 			free(m);
 		}
 
-		entry = flow_table_lookup(table, pkt);
+		entry = flow_table_lookup(table, pkt, pkt->dp->exp);
+
+        //removes 'state' virtual header field
+        
+        HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
+                    hmap_node, hash_int(OXM_EXP_STATE,0), &pkt->handle_std->match.match_fields){
+                        hmap_remove_and_shrink(&pkt->handle_std->match.match_fields,&f->hmap_node);
+        }
 
         if (entry != NULL) {
 	        if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
@@ -313,48 +227,6 @@ int inst_compare(const void *inst1, const void *inst2){
         return i1->type > i2->type;
 
     return i1->type < i2->type;
-}
-
-ofl_err
-pipeline_handle_flag_mod(struct pipeline *pl, struct ofl_msg_flag_mod *msg,
-                                                const struct sender *sender) {
-    uint32_t global_states = pl->dp->global_states;
-    if (msg->command == OFPSC_MODIFY_FLAGS) {
-        global_states = (global_states & ~(msg->flag_mask)) | (msg->flag & msg->flag_mask);
-        pl->dp->global_states = global_states;       
-    }
-    else if (msg->command == OFPSC_RESET_FLAGS) {
-        pl->dp->global_states = OFP_GLOBAL_STATES_DEFAULT;
-    }
-    else
-        return 1;
-    return 0;
-}
-
-ofl_err
-pipeline_handle_state_mod(struct pipeline *pl, struct ofl_msg_state_mod *msg,
-                                                const struct sender *sender) {
-	struct state_table *st = pl->tables[msg->table_id]->state_table;
-
-	if (msg->command == OFPSC_SET_L_EXTRACTOR || msg->command == OFPSC_SET_U_EXTRACTOR) {
-		struct ofl_msg_state_mod_extractor *p = (struct ofl_msg_state_mod_extractor *) msg->payload;	
-		int update=0;
-		if (msg->command == OFPSC_SET_U_EXTRACTOR) 
-			update = 1;
-		state_table_set_extractor(st, (struct key_extractor *)p, update);
-	}
-	else if (msg->command == OFPSC_SET_FLOW_STATE) {
-		struct ofl_msg_state_mod_entry *p = (struct ofl_msg_state_mod_entry *) msg->payload;
-		state_table_set_state(st, NULL, p->state, p->state_mask, p->key, p->key_len, msg->table_id, pl->dp);
-	}
-	else if (msg->command == OFPSC_DEL_FLOW_STATE) {
-		struct ofl_msg_state_mod_entry *p = (struct ofl_msg_state_mod_entry *) msg->payload;
-		state_table_del_state(st, p->key, p->key_len, msg->table_id, pl->dp);
-	}
-	else
-		return 1;
-
-	return 0;
 }
 
 ofl_err
@@ -404,7 +276,7 @@ pipeline_handle_flow_mod(struct pipeline *pl, struct ofl_msg_flow_mod *msg,
 
             error = 0;
             for (i=0; i < PIPELINE_TABLES; i++) {
-                error = flow_table_flow_mod(pl->tables[i], msg, &match_kept, &insts_kept);
+                error = flow_table_flow_mod(pl->tables[i], msg, &match_kept, &insts_kept, pl->dp->exp);
                 if (error) {
                     break;
                 }
@@ -419,7 +291,7 @@ pipeline_handle_flow_mod(struct pipeline *pl, struct ofl_msg_flow_mod *msg,
             return ofl_error(OFPET_FLOW_MOD_FAILED, OFPFMFC_BAD_TABLE_ID);
         }
     } else {
-        error = flow_table_flow_mod(pl->tables[msg->table_id], msg, &match_kept, &insts_kept);
+        error = flow_table_flow_mod(pl->tables[msg->table_id], msg, &match_kept, &insts_kept, pl->dp->exp);
         if (error) {
             return error;
         }
@@ -439,7 +311,6 @@ pipeline_handle_flow_mod(struct pipeline *pl, struct ofl_msg_flow_mod *msg,
         ofl_msg_free_flow_mod(msg, !match_kept, !insts_kept, pl->dp->exp);
         return 0;
     }
-
 }
 
 ofl_err
@@ -476,10 +347,10 @@ pipeline_handle_stats_request_flow(struct pipeline *pl,
     if (msg->table_id == 0xff) {
         size_t i;
         for (i=0; i<PIPELINE_TABLES; i++) {
-                flow_table_stats(pl->tables[i], msg, &stats, &stats_size, &stats_num);
+            flow_table_stats(pl->tables[i], msg, &stats, &stats_size, &stats_num, pl->dp->exp);
         }
     } else {
-            flow_table_stats(pl->tables[msg->table_id], msg, &stats, &stats_size, &stats_num);
+        flow_table_stats(pl->tables[msg->table_id], msg, &stats, &stats_size, &stats_num, pl->dp->exp);
     }
 
     {
@@ -494,67 +365,6 @@ pipeline_handle_stats_request_flow(struct pipeline *pl,
     }
 
     free(stats);
-    ofl_msg_free((struct ofl_msg_header *)msg, pl->dp->exp);
-    return 0;
-}
-
-ofl_err
-pipeline_handle_stats_request_state(struct pipeline *pl,
-                                   struct ofl_msg_multipart_request_state *msg,
-                                   const struct sender *sender) {
-    
-    struct ofl_state_stats **stats = xmalloc(sizeof(struct ofl_state_stats *));
-    size_t stats_size = 1;
-    size_t stats_num = 0;
-    if (msg->table_id == 0xff) {
-        size_t i;
-        for (i=0; i<PIPELINE_TABLES; i++) {
-            if(pl->tables[i]->features->config & OFPTC_TABLE_STATEFUL)
-                state_table_stats(pl->tables[i]->state_table, msg, &stats, &stats_size, &stats_num, i);
-        }
-    } else {
-        if(pl->tables[msg->table_id]->features->config & OFPTC_TABLE_STATEFUL)
-            state_table_stats(pl->tables[msg->table_id]->state_table, msg, &stats, &stats_size, &stats_num, msg->table_id);
-    }
-    {
-        struct ofl_msg_multipart_reply_state reply =
-                {{{.type = OFPT_MULTIPART_REPLY},
-                  .type = OFPMP_STATE, .flags = 0x0000},
-                 .stats     = stats,
-                 .stats_num = stats_num
-                };
-
-        dp_send_message(pl->dp, (struct ofl_msg_header *)&reply, sender);
-    }
-
-    free(stats);
-    ofl_msg_free((struct ofl_msg_header *)msg, pl->dp->exp);
-    return 0;
-}
-
-ofl_err
-pipeline_handle_stats_request_global_state(struct pipeline *pl,
-                                   struct ofl_msg_multipart_request_global_state *msg,
-                                   const struct sender *sender) {
-    uint32_t global_states = 0;
-    uint8_t enabled = 0;
-
-    if (DP_SUPPORTED_CAPABILITIES & OFPC_OPENSTATE){
-        global_states = pl->dp->global_states;
-        enabled = 1;
-    }
-
-    {
-        struct ofl_msg_multipart_reply_global_state reply =
-                {{{.type = OFPT_MULTIPART_REPLY},
-                  .type = OFPMP_FLAGS, .flags = 0x0000},
-                 .enabled       = enabled,
-                 .global_states = global_states
-                };
-
-        dp_send_message(pl->dp, (struct ofl_msg_header *)&reply, sender);
-    }
-
     ofl_msg_free((struct ofl_msg_header *)msg, pl->dp->exp);
     return 0;
 }
@@ -788,6 +598,8 @@ pipeline_timeout(struct pipeline *pl) {
 
     for (i = 0; i < PIPELINE_TABLES; i++) {
         flow_table_timeout(pl->tables[i]);
+        if (state_table_is_stateful(pl->tables[i]->state_table) && state_table_is_configured(pl->tables[i]->state_table))
+            state_table_timeout(pl->tables[i]->state_table);
     }
 }
 
@@ -863,16 +675,5 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
                 break;
             }
         }
-    }
-}
-
-
-void pipeline_global_states_write_flags(struct packet *pkt){
-    struct  ofl_match_tlv *f;
-
-    HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv, 
-        hmap_node, hash_int(OXM_OF_FLAGS,0), &pkt->handle_std->match.match_fields){
-                uint32_t *flags = (uint32_t*) f->value;
-                *flags = (*flags & 0x0) | (pkt->dp->global_states);
     }
 }

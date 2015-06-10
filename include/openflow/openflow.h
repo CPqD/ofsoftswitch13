@@ -40,7 +40,6 @@
 #define OFP_ETH_ALEN 6          /* Bytes in an Ethernet address. */
 /* Number of tables in the pipeline */
 #define PIPELINE_TABLES 64
-#define OFP_GLOBAL_STATES_DEFAULT 0
 
 /* Header on all OpenFlow packets. */
 struct ofp_header {
@@ -70,15 +69,12 @@ enum ofp_type {
     OFPT_PACKET_IN = 10,    /* Async message */
     OFPT_FLOW_REMOVED = 11, /* Async message */
     OFPT_PORT_STATUS = 12,  /* Async message */
-    OFPT_STATE_NOTIFICATION = 32,  /* Async message */
     /* Controller command messages. */
     OFPT_PACKET_OUT = 13,  /* Controller/switch message */
     OFPT_FLOW_MOD = 14,    /* Controller/switch message */
     OFPT_GROUP_MOD = 15,   /* Controller/switch message */
     OFPT_PORT_MOD = 16,    /* Controller/switch message */
     OFPT_TABLE_MOD = 17,   /* Controller/switch message */
-    OFPT_STATE_MOD = 30, /* Controller/switch message */
-    OFPT_FLAG_MOD = 31,  /* Controller/switch message */
     /* Statistics messages. */
     OFPT_MULTIPART_REQUEST = 18, /* Controller/switch message */
     OFPT_MULTIPART_REPLY = 19,   /* Controller/switch message */
@@ -97,64 +93,7 @@ enum ofp_type {
     OFPT_SET_ASYNC = 28, /* Controller/switch message */
     /* Meters and rate limiters configuration messages. */
     OFPT_METER_MOD = 29, /* Controller/switch message */
-
 };
-
-/*
-    OFPT_FLAG_MOD
-*/
-
-struct ofp_flag_mod {
-    struct ofp_header header;
-    uint32_t flag;
-    uint32_t flag_mask;
-    uint8_t command;
-    uint8_t pad[7];                  /* Pad to 64 bits. */
-};
-
-enum ofp_flag_mod_command { 
-    OFPSC_MODIFY_FLAGS = 0,
-    OFPSC_RESET_FLAGS
-};
-/*
-	OFPT_STATE_MOD
-*/
-#define OFPSC_MAX_FIELD_COUNT 6
-#define OFPSC_MAX_KEY_LEN 48
-
-struct ofp_state_mod {
-    struct ofp_header header;
-    uint8_t table_id;
-    uint8_t command;
-    uint8_t payload[];
-};
-
-struct ofp_state_mod_entry {
-    uint32_t key_len;
-    uint32_t state;
-    uint32_t state_mask;
-    uint8_t key[OFPSC_MAX_KEY_LEN];
-};
-
-struct ofp_state_mod_extractor {
-    uint32_t field_count;
-    uint32_t fields[OFPSC_MAX_FIELD_COUNT];
-};
-
-enum ofp_state_mod_command {
-	OFPSC_SET_L_EXTRACTOR = 0,
-	OFPSC_SET_U_EXTRACTOR,
-	OFPSC_SET_FLOW_STATE,	
-	OFPSC_DEL_FLOW_STATE
-};
-
-struct ofp_state_entry{
-    uint32_t            key_len;
-    uint8_t             key[OFPSC_MAX_KEY_LEN];
-    uint32_t            state;
-};
-OFP_ASSERT(sizeof(struct ofp_state_entry) == 56);
-
 
 /* OFPT_HELLO.  This message has an empty body, but implementations must
  * ignore any data included in the body, to allow for future extensions. */
@@ -388,9 +327,7 @@ enum oxm_ofb_match_fields {
     OFPXMT_OFB_MPLS_BOS = 36,       /* MPLS BoS bit. */
     OFPXMT_OFB_PBB_ISID = 37,       /* PBB I-SID. */
     OFPXMT_OFB_TUNNEL_ID = 38,      /* Logical Port Metadata. */
-    OFPXMT_OFB_IPV6_EXTHDR = 39,     /* IPv6 Extension Header pseudo-field */
-    OFPXMT_OFB_FLAGS = 40,        /* Global States */
-    OFPXMT_OFB_STATE = 41,        /* Flow State */
+    OFPXMT_OFB_IPV6_EXTHDR = 39     /* IPv6 Extension Header pseudo-field */
 };
 
 /* The VLAN id is 12-bits, so we can use the entire 16 bits to indicate
@@ -495,6 +432,7 @@ struct ofp_instruction_meter {
 };
 OFP_ASSERT(sizeof(struct ofp_instruction_meter) == 8);
 
+
 enum ofp_action_type {
     OFPAT_OUTPUT = 0,        /* Output to switch port. */
     OFPAT_COPY_TTL_OUT = 11, /* Copy TTL "outwards" -- from next-to-outermost
@@ -514,9 +452,6 @@ enum ofp_action_type {
     OFPAT_SET_FIELD = 25,    /* Set a header field using OXM TLV format. */
     OFPAT_PUSH_PBB = 26,     /*Push a new PBB service tag (I-TAG) */
     OFPAT_POP_PBB = 27,      /* Pop the outer PBB service tag (I-TAG) */
-    OFPAT_SET_STATE = 28,   /* Write the next state field for use later in
-                                pipeline */
-    OFPAT_SET_FLAG = 29,   /* Set a single flag value of the global state */
     OFPAT_EXPERIMENTER = 0xffff
 };
 
@@ -621,26 +556,7 @@ struct ofp_action_experimenter_header {
 };
 OFP_ASSERT(sizeof(struct ofp_action_experimenter_header) == 8);
 
-/* Action structure for OFPAT_SET_STATE */
-struct ofp_action_set_state {
-    uint16_t type; /* OFPAT_SET_STATE */
-    uint16_t len;           /* Length is 16. */
-    uint32_t state;         /* State instance. */
-    uint32_t state_mask;     /*State mask*/
-    uint8_t table_id;      /*Stage destination*/
-    uint8_t pad[3];        /* Align to 64-bits. */
-};
-OFP_ASSERT(sizeof(struct ofp_action_set_state) == 16);
 
-/* Action structure for OFPAT_SET_FLAG */
-struct ofp_action_set_flag {
-    uint16_t type; /* OFPAT_SET_FLAG */
-    uint16_t len;  /* Length is 16. */
-    uint32_t flag; /* flag value */
-    uint32_t flag_mask; /*flag mask*/
-    uint8_t pad[4];   /* Align to 64-bits. */
-};
-OFP_ASSERT(sizeof(struct ofp_action_set_flag) == 16);
 /*************Controller-to-Switch Messages******************/
 
 /* Switch features. */
@@ -667,8 +583,7 @@ enum ofp_capabilities {
     OFPC_GROUP_STATS = 1 << 3, /* Group statistics. */
     OFPC_IP_REASM = 1 << 5,    /* Can reassemble IP fragments. */
     OFPC_QUEUE_STATS = 1 << 6, /* Queue statistics. */
-    OFPC_PORT_BLOCKED = 1 << 8, /* Switch will block looping ports. */
-    OFPC_OPENSTATE = 1 << 9,  /* support OpenState feature */
+    OFPC_PORT_BLOCKED = 1 << 8 /* Switch will block looping ports. */
 };
 
 /* Switch configuration. */
@@ -715,8 +630,7 @@ enum ofp_table_config {
     OFPTC_TABLE_MISS_CONTINUE = 1 << 0, /* Continue to the next table in the
                                            pipeline (OpenFlow 1.0 behavior). */
     OFPTC_TABLE_MISS_DROP = 1 << 1,     /* Drop the packet. */
-    OFPTC_TABLE_MISS_MASK = 3,
-    OFPTC_TABLE_STATEFUL = 1 << 4
+    OFPTC_TABLE_MISS_MASK = 3
 };
 
 #define OFP_DEFAULT_PRIORITY 0x8000
@@ -1035,14 +949,6 @@ enum ofp_multipart_types {
     * The request body is empty.
     * The reply body is an array of struct ofp_port. */
     OFPMP_PORT_DESC = 13,
-   /* Individual state table statistics.
-    * The request body is struct ofp_state_multipart_request.
-    * The reply body is an array of struct ofp_state_stats. */
-    OFPMP_STATE = 20,
-   /* Global stats.
-    * The request body is empty.
-    * The reply body is a struct ofp_global_state_stats. */
-    OFPMP_FLAGS = 21,
     /* Experimenter extension.
     * The request and reply bodies begin with
     * struct ofp_experimenter_stats_header.
@@ -1103,37 +1009,6 @@ struct ofp_flow_stats {
     //struct ofp_instruction instructions[0]; /* Instruction set. */
 };
 OFP_ASSERT(sizeof(struct ofp_flow_stats) == 56);
-
-/* Body for ofp_multipart_request of type OFPMP_STATE. */
-struct ofp_state_stats_request {
-    uint8_t table_id;       /* ID of table to read (from ofp_table_stats),
-                               OFPTT_ALL for all tables. */
-    uint8_t pad[7];         /* Align to 64 bits. */
-    
-    struct ofp_match match; /* Fields to match. Variable size. */
-};
-OFP_ASSERT(sizeof(struct ofp_state_stats_request) == 16);
-
-/* Body of reply to OFPMP_STATE request. */
-struct ofp_state_stats {
-    uint16_t length;        /* Length of this entry. */
-    uint8_t table_id;       /* ID of table flow came from. */
-    uint8_t pad;
-    uint32_t field_count;    /*number of extractor fields*/
-    uint32_t fields[OFPSC_MAX_FIELD_COUNT]; /*extractor fields*/    
-    struct ofp_state_entry entry;
-    
-    //struct ofp_match match; /* Description of fields. Variable size. */
-};
-OFP_ASSERT(sizeof(struct ofp_state_stats) == 88);
-
-/* Body of reply to OFPMP_FLAGS request. */
-struct ofp_global_state_stats {
-    uint8_t enabled;
-    uint8_t pad[3];
-    uint32_t global_states;
-};
-OFP_ASSERT(sizeof(struct ofp_global_state_stats) == 8);
 
 /* Body for ofp_multipart_request of type OFPMP_AGGREGATE. */
 struct ofp_aggregate_stats_request {
@@ -1607,16 +1482,6 @@ enum ofp_port_reason {
     OFPPR_DELETE = 1, /* The port was removed. */
     OFPPR_MODIFY = 2, /* Some attribute of the port has changed. */
 };
-
-/* When a state transition occurs a state notification message is sent */
-struct ofp_state_notification {
-    struct ofp_header header;
-    uint8_t pad[3]; /* Align to 64-bits. */
-    uint8_t table_id;
-    uint32_t state;
-    uint8_t key[0];
-};
-OFP_ASSERT(sizeof(struct ofp_state_notification) == 16);
 
 /* OFPT_ERROR: Error message (datapath -> controller). */
 struct ofp_error_msg {

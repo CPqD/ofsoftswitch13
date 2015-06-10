@@ -48,5 +48,64 @@ ofl_exp_msg_free(struct ofl_msg_experimenter *msg);
 char *
 ofl_exp_msg_to_string(struct ofl_msg_experimenter *msg);
 
+int 
+ofl_exp_act_pack(struct ofl_action_header *src, struct ofp_action_header *dst);
+
+ofl_err 
+ofl_exp_act_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action_header **dst);
+
+int     
+ofl_exp_act_free(struct ofl_action_header *act);
+
+size_t
+ofl_exp_act_ofp_len(struct ofl_action_header *act);
+
+char *
+ofl_exp_act_to_string(struct ofl_action_header *act);
+
+int 
+ofl_exp_stats_req_pack (struct ofl_msg_multipart_request_header *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp);
+
+int 
+ofl_exp_stats_reply_pack (struct ofl_msg_multipart_reply_header *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp);
+
+ofl_err
+ofl_exp_stats_req_unpack (struct ofp_multipart_request *os, uint8_t *buf, size_t *len, struct ofl_msg_multipart_request_header **msg, struct ofl_exp *exp);
+
+ofl_err
+ofl_exp_stats_reply_unpack (struct ofp_multipart_reply *os, uint8_t *buf, size_t *len, struct ofl_msg_multipart_reply_header **msg, struct ofl_exp *exp);
+
+char *
+ofl_exp_stats_req_to_string (struct ofl_msg_multipart_request_header *msg, struct ofl_exp *exp);
+
+char *
+ofl_exp_stats_reply_to_string (struct ofl_msg_multipart_reply_header *msg, struct ofl_exp *exp);
+
+int
+ofl_exp_stats_req_free (struct ofl_msg_multipart_request_header *msg);
+
+int
+ofl_exp_stats_reply_free (struct ofl_msg_multipart_reply_header *msg);
+
+void
+ofl_exp_field_pack(struct ofpbuf *buf, struct ofl_match_tlv *oft);
+
+int
+ofl_exp_field_unpack(struct ofl_match *match, struct oxm_field *f, void *experimenter_id, void *value, void *mask);
+
+void
+ofl_exp_field_match(struct ofl_match_tlv *f, int *packet_header, int *field_len, uint8_t **flow_val, uint8_t **flow_mask);
+
+void
+ofl_exp_field_compare (struct ofl_match_tlv *f, struct ofl_match_tlv *value, uint8_t **packet_val);
+
+void
+ofl_exp_field_match_std (struct ofl_match_tlv *flow_mod_match, struct ofl_match_tlv *flow_entry_match, int *field_len, uint8_t **flow_mod_val, uint8_t **flow_entry_val, uint8_t **flow_mod_mask, uint8_t **flow_entry_mask);
+
+void
+ofl_exp_field_overlap_a (struct ofl_match_tlv *f_a, int *field_len, uint8_t **val_a, uint8_t **mask_a, int *header, int *header_m, uint64_t *all_mask);
+
+void
+ofl_exp_field_overlap_b (struct ofl_match_tlv *f_b, int *field_len, uint8_t **val_b, uint8_t **mask_b, uint64_t *all_mask);
 
 #endif /* OFL_EXP_H */

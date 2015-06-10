@@ -140,8 +140,6 @@ void vlog_rate_limit(enum vlog_module, enum vlog_level,
                      struct vlog_rate_limit *, const char *, ...)
     __attribute__((format(printf, 4, 5)));
 
-void pfile(const char* format, ...);
-
 /* Convenience macros.
  * Guaranteed to preserve errno.
  */
@@ -181,6 +179,7 @@ void pfile(const char* format, ...);
             vlog_set_log_file(optarg);          \
             break;
 void vlog_usage(void);
+void print_file(const char* format, ...);
 
 /* Implementation details. */
 #define VLOG(MODULE, LEVEL, ...)                        \
@@ -197,5 +196,7 @@ void vlog_usage(void);
     } while (0)
 extern enum vlog_level min_vlog_levels[VLM_N_MODULES];
 
+void
+pfile(const char* format, ...);
 
 #endif /* vlog.h */

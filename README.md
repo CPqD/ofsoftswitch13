@@ -1,3 +1,8 @@
+# OpenState
+
+This is an implementation of the OpenState switch based on the OpenFlow 1.3 softswitch developed by CPdQ and available at https://github.com/CPqD/ofsoftswitch13. For any information about OpenState please check the home page of the project at http://openstate-sdn.github.io/.
+
+
 # OpenFlow 1.3 Software Switch
 
 This is an [OpenFlow 1.3][ofp13] compatible user-space software switch implementation. The code is based on the [Ericsson TrafficLab 1.1 softswitch

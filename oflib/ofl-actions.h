@@ -107,19 +107,7 @@ struct ofl_action_experimenter {
     uint32_t  experimenter_id; /* Experimenter ID */
 };
 
-/* XFSM: for supporting set state that should write the new state in the statetable of stage table_id*/
-struct ofl_action_set_state {
-    struct ofl_action_header   header; /* OFPAT_SET_STATE */
-    uint32_t state;
-    uint32_t state_mask;
-    uint8_t table_id; /*we have 64 flow table in the pipeline*/
-};
 
-struct ofl_action_set_flag {
-    struct ofl_action_header   header; /* OFPAT_SET_FLAG */
-    uint32_t flag;
-    uint32_t flag_mask;
-};
 /****************************************************************************
  * Functions for (un)packing action structures
  ****************************************************************************/

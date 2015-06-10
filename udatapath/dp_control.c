@@ -1,4 +1,4 @@
-/*
+/* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary
  * Copyright (c) 2012, CPqD, Brazil 
  * All rights reserved.
  *
@@ -69,6 +69,7 @@ handle_control_barrier_request(struct datapath *dp,
 static ofl_err
 handle_control_features_request(struct datapath *dp,
           struct ofl_msg_header *msg, const struct sender *sender) {
+
     struct ofl_msg_features_reply reply =
             {{.type = OFPT_FEATURES_REPLY},
              .datapath_id  = dp->id,
@@ -190,12 +191,6 @@ handle_control_stats_request(struct datapath *dp,
         case (OFPMP_FLOW): {
             return pipeline_handle_stats_request_flow(dp->pipeline, (struct ofl_msg_multipart_request_flow *)msg, sender);
         }
-        case (OFPMP_STATE): {
-            return pipeline_handle_stats_request_state(dp->pipeline, (struct ofl_msg_multipart_request_state *)msg, sender);
-        }
-        case (OFPMP_FLAGS): {
-            return pipeline_handle_stats_request_global_state(dp->pipeline, (struct ofl_msg_multipart_request_global_state *)msg, sender);
-        }
         case (OFPMP_AGGREGATE): {
             return pipeline_handle_stats_request_aggregate(dp->pipeline, (struct ofl_msg_multipart_request_flow *)msg, sender);
         }
@@ -277,6 +272,7 @@ handle_control_msg(struct datapath *dp, struct ofl_msg_header *msg,
         VLOG_DBG_RL(LOG_MODULE, &rl, "received control msg: %.400s", msg_str);
         free(msg_str);
     }
+
     /* NOTE: It is assumed that if a handler returns with error, it did not use
              any part of the control message, thus it can be freed up.
              If no error is returned however, the message must be freed inside
@@ -326,12 +322,6 @@ handle_control_msg(struct datapath *dp, struct ofl_msg_header *msg,
         }
         case OFPT_FLOW_MOD: {
             return pipeline_handle_flow_mod(dp->pipeline, (struct ofl_msg_flow_mod *)msg, sender);
-        }
-	    case OFPT_STATE_MOD: {
-            return pipeline_handle_state_mod(dp->pipeline, (struct ofl_msg_state_mod *)msg, sender);
-	    }
-        case OFPT_FLAG_MOD: {
-            return pipeline_handle_flag_mod(dp->pipeline, (struct ofl_msg_flag_mod *)msg, sender);
         }
         case OFPT_GROUP_MOD: {
             return group_table_handle_group_mod(dp->groups, (struct ofl_msg_group_mod *)msg, sender);

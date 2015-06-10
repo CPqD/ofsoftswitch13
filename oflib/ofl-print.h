@@ -201,9 +201,9 @@ void
 ofl_hex_print(FILE *stream, uint8_t *buf, size_t buf_size);
 
 char
-*decimal_to_binary(int);
+*decimal_to_binary(uint32_t);
 
 void
-masked_value_print(FILE *stream, char *flag, char *flag_mask);
+masked_value_print(char *string, char *flag, char *flag_mask);
 
 #endif /* OFL_PRINT_H */
