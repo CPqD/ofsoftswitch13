@@ -127,6 +127,9 @@ static void
 parse_match(char *str, struct ofl_match_header **match);
 
 static void
+parse_state(char *str, uint8_t *get_from_state, uint32_t *state);
+
+static void
 parse_inst(char *str, struct ofl_instruction_header **inst);
 
 static void
@@ -515,13 +518,22 @@ stats_state(struct vconn *vconn, int argc, char *argv[]) {
                  .experimenter_id = OPENSTATE_VENDOR_ID},
                  .type = OFPMP_EXP_STATE_STATS},
                  .table_id = 0xff,
+                 .get_from_state = 0,
+                 .state = 0,
                  .match = NULL};
     if (argc > 0) {
         parse_state_stat_args(argv[0], &req);
     }
     if (argc > 1) {
-        parse_match(argv[1], &(req.match));
-    } else {
+        parse_state(argv[1], &(req.get_from_state), &(req.state));
+        if(req.get_from_state && argc > 2)
+            parse_match(argv[2], &(req.match));
+        if(req.get_from_state && argc < 3)
+            make_all_match(&(req.match));
+        if(!req.get_from_state)
+            parse_match(argv[1], &(req.match));
+    }
+    else {
         make_all_match(&(req.match));
     }
 
@@ -974,7 +986,7 @@ static struct command all_commands[] = {
     {"meter-features", 0, 0, meter_features},
     {"stats-desc", 0, 0, stats_desc },
     {"stats-flow", 0, 2, stats_flow},
-    {"stats-state", 0, 2, stats_state},
+    {"stats-state", 0, 3, stats_state},
     {"stats-global-state", 0, 0, stats_global_state},
     {"stats-aggr", 0, 2, stats_aggr},
     {"stats-table", 0, 0, stats_table },
@@ -2179,6 +2191,21 @@ parse_inst(char *str, struct ofl_instruction_header **inst) {
         }
     }
     ofp_fatal(0, "Error parsing instruction: %s.", str);
+}
+
+static void
+parse_state(char *str, uint8_t *get_from_state, uint32_t *state) {
+    char *token, *saveptr = NULL;
+    for (token = strtok_r(str, KEY_SEP, &saveptr); token != NULL; token = strtok_r(NULL, KEY_SEP, &saveptr)) {
+        if (strncmp(token, "state" KEY_VAL, strlen("state" KEY_VAL)) == 0) {
+            if (parse32(token + strlen("state" KEY_VAL), NULL, 0, 0xffffffff, state)) {
+                ofp_fatal(0, "Error parsing state_stat state: %s.", token);
+            }
+            else
+                *get_from_state = 1;
+            continue;
+        }
+    }
 }
 
 static void

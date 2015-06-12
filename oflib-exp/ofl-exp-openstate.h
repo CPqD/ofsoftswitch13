@@ -105,6 +105,8 @@ struct ofl_exp_msg_multipart_request_state {
     uint8_t                  table_id; /* ID of table to read
                                            (from ofp_table_multipart), 0xff for all
                                            tables. */
+    uint8_t                  get_from_state;
+    uint32_t                 state;                    
     struct ofl_match_header  *match;       /* Fields to match. */
 };
 
