@@ -87,8 +87,7 @@ static struct names8 group_type_names[] = {
         {OFPGT_ALL,      "all"},
         {OFPGT_SELECT,   "sel"},
         {OFPGT_INDIRECT, "ind"},
-        {OFPGT_FF,       "ff"},
-        {OFPGT_RANDOM,   "rand"},
+        {OFPGT_FF,       "ff"}
 };
 
 static struct names16 group_mod_cmd_names[] = {

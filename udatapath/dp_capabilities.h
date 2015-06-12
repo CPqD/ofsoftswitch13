@@ -104,8 +104,7 @@
 #define DP_SUPPORTED_GROUPS ( OFPGT_ALL      \
 							| OFPGT_SELECT   \
 							| OFPGT_INDIRECT \
-							| OFPGT_FF       \
-              | OFPGT_RANDOM)
+							| OFPGT_FF       )
 
 #define DP_SUPPORTED_GROUP_CAPABILITIES ( OFPGFC_SELECT_WEIGHT      \
 							            /*| OFPGFC_SELECT_LIVENESS    \

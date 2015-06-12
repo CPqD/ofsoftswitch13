@@ -853,7 +853,6 @@ ofl_group_type_print(FILE *stream, uint8_t type) {
         case (OFPGT_SELECT):   { fprintf(stream, "sel"); return; }
         case (OFPGT_INDIRECT): { fprintf(stream, "ind"); return; }
         case (OFPGT_FF):       { fprintf(stream, "ff"); return; }
-        case (OFPGT_RANDOM):   { fprintf(stream, "rand"); return; }
         default: {               fprintf(stream, "?(%u)", type); return; }
     }
 }

@@ -749,7 +749,6 @@ enum ofp_group_type {
     OFPGT_SELECT = 1,   /* Select group. */
     OFPGT_INDIRECT = 2, /* Indirect group. */
     OFPGT_FF = 3,       /* Fast failover group. */
-    OFPGT_RANDOM = 4,   /* Random group. */
 };
 
 
