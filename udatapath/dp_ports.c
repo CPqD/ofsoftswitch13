@@ -260,6 +260,16 @@ dp_ports_run(struct datapath *dp) {
 
     LIST_FOR_EACH_SAFE (p, pn, struct sw_port, node, &dp->port_list) {
         int error;
+        /* Check for interface state change */
+        enum netdev_link_state link_state = netdev_link_state(p->netdev);
+        if (link_state == NETDEV_LINK_UP){
+            p->conf->state &= ~OFPPS_LINK_DOWN;
+            dp_port_live_update(p);
+        }
+        else if (link_state == NETDEV_LINK_DOWN){
+            p->conf->state |= OFPPS_LINK_DOWN;
+            dp_port_live_update(p);
+        }
 
         if (IS_HW_PORT(p)) {
             continue;
@@ -287,9 +297,6 @@ dp_ports_run(struct datapath *dp) {
             process_buffer(dp, p, buffer);
             buffer = NULL;
         } else if (error != EAGAIN) {
-            if(error == ENETDOWN){
-                p->conf->state = OFPPS_LINK_DOWN;
-            }
             VLOG_ERR_RL(LOG_MODULE, &rl, "error receiving data from %s: %s",
                         netdev_get_name(p->netdev), strerror(error));
         }
@@ -691,7 +698,7 @@ dp_ports_handle_port_mod(struct datapath *dp, struct ofl_msg_port_mod *msg,
     if (msg->mask) {
         p->conf->config &= ~msg->mask;
         p->conf->config |= msg->config & msg->mask;
-	dp_port_live_update(p);
+        dp_port_live_update(p);
     }
 
     /*Notify all controllers that the port status has changed*/
