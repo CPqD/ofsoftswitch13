@@ -68,7 +68,15 @@ enum netdev_pseudo_ethertype {
     NETDEV_ETH_TYPE_802_2        /* Receive all IEEE 802.2 frames. */
 };
 
+enum netdev_link_state {
+    NETDEV_LINK_UP = 1,
+    NETDEV_LINK_DOWN = 2,
+    NETDEV_LINK_NO_CHANGE = 3
+};
+
 #define NETDEV_MAX_QUEUES 8
+
+
 
 struct netdev;
 
@@ -78,6 +86,7 @@ void netdev_close(struct netdev *);
 
 int netdev_recv(struct netdev *, struct ofpbuf *, size_t);
 void netdev_recv_wait(struct netdev *);
+int netdev_link_state(struct netdev *netdev);
 int netdev_drain(struct netdev *);
 int netdev_send(struct netdev *, const struct ofpbuf *, uint16_t class_id);
 void netdev_send_wait(struct netdev *);
