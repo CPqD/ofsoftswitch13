@@ -148,11 +148,12 @@ OFP_ASSERT(sizeof(struct ofp_exp_state_entry) == 56);
 /* Body for ofp_multipart_request of type OFPMP_EXP_STATE_STATS. */
 struct ofp_exp_state_stats_request {
     struct ofp_experimenter_stats_header header;
-    uint8_t table_id;       /* ID of table to read (from ofp_table_stats),
+    uint8_t                 table_id;       /* ID of table to read (from ofp_table_stats),
                                OFPTT_ALL for all tables. */
-    uint8_t pad[7];         /* Align to 64 bits. */
-    
-    struct ofp_match match; /* Fields to match. Variable size. */
+    uint8_t                 get_from_state;
+    uint8_t                 pad[2];         /* Align to 64 bits. */
+    uint32_t                state;   
+    struct ofp_match        match; /* Fields to match. Variable size. */
 };
 OFP_ASSERT(sizeof(struct ofp_exp_state_stats_request) == 24);
 

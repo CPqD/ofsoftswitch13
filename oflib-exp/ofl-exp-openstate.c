@@ -544,7 +544,9 @@ ofl_exp_openstate_stats_req_pack(struct ofl_msg_multipart_request_experimenter *
             exp_header -> experimenter = htonl(OPENSTATE_VENDOR_ID);
             exp_header -> exp_type = htonl(OFPMP_EXP_STATE_STATS);
             stats->table_id = msg->table_id;
-            memset(stats->pad, 0x00, 7);
+            stats->get_from_state = msg->get_from_state;
+            stats->state = htonl(msg->state);
+            memset(stats->pad, 0x00, 2);
             ptr = (*buf) + sizeof(struct ofp_multipart_request) + sizeof(struct ofp_exp_state_stats_request);
             ofl_structs_match_pack(msg->match, &(stats->match),ptr, exp);
 
@@ -656,6 +658,8 @@ ofl_exp_openstate_stats_req_unpack(struct ofp_multipart_request *os, uint8_t* bu
             dm->header.type = ntohl(ext->exp_type);
             dm->header.header.experimenter_id = ntohl(ext->experimenter);
             dm->table_id = sm->table_id;
+            dm->get_from_state = sm->get_from_state;
+            dm->state = ntohl(sm->state);
             match_pos = sizeof(struct ofp_multipart_request) + sizeof(struct ofp_exp_state_stats_request) - 4;
             error = ofl_structs_match_unpack(&(sm->match),buf + match_pos, len, &(dm->match), check_prereq, exp);
             if (error) {
@@ -763,6 +767,8 @@ ofl_exp_openstate_stats_request_to_string(struct ofl_msg_multipart_request_exper
             ofl_exp_stats_type_print(stream, e->type);
             fprintf(stream, "\", table=\"");
             ofl_table_print(stream, msg->table_id);
+            if(msg->get_from_state)
+                fprintf(stream, "\", state=\"%lu\"", msg->state);
             fprintf(stream, "\", match=");
             ofl_structs_match_print(stream, msg->match, exp);
             break;
@@ -1676,7 +1682,7 @@ state_table_stats(struct state_table *table, struct ofl_exp_msg_multipart_reques
             }
 
         
-            if(found)
+            if(found && ((msg->get_from_state && msg->state == entry->state) || (!msg->get_from_state)))
             {
                 gettimeofday(&tv,NULL);
                 (*stats)[(*stats_num)] = malloc(sizeof(struct ofl_exp_state_stats));
@@ -1698,22 +1704,25 @@ state_table_stats(struct state_table *table, struct ofl_exp_msg_multipart_reques
              }
         }
      /*DEFAULT ENTRY*/
-    if ((*stats_size) == (*stats_num)) {
-                (*stats) = xrealloc(*stats, (sizeof(struct ofl_exp_state_stats *)) * (*stats_size) * 2);
-                *stats_size *= 2;
+    if(!msg->get_from_state || (msg->get_from_state && msg->state == STATE_DEFAULT))
+    {
+        if ((*stats_size) == (*stats_num)) {
+                    (*stats) = xrealloc(*stats, (sizeof(struct ofl_exp_state_stats *)) * (*stats_size) * 2);
+                    *stats_size *= 2;
+        }
+        (*stats)[(*stats_num)] = malloc(sizeof(struct ofl_exp_state_stats));
+        for (i=0;i<extractor->field_count;i++)
+            (*stats)[(*stats_num)]->fields[i]=fields[i];
+        (*stats)[(*stats_num)]->table_id = table_id;
+        (*stats)[(*stats_num)]->field_count = extractor->field_count;                   
+        (*stats)[(*stats_num)]->entry.key_len = 0;
+        (*stats)[(*stats_num)]->entry.state = STATE_DEFAULT;
+        (*stats)[(*stats_num)]->idle_timeout = 0;
+        (*stats)[(*stats_num)]->hard_timeout = 0;
+        (*stats)[(*stats_num)]->idle_rollback = 0;
+        (*stats)[(*stats_num)]->hard_rollback = 0;
+        (*stats_num)++;
     }
-    (*stats)[(*stats_num)] = malloc(sizeof(struct ofl_exp_state_stats));
-    for (i=0;i<extractor->field_count;i++)
-        (*stats)[(*stats_num)]->fields[i]=fields[i];
-    (*stats)[(*stats_num)]->table_id = table_id;
-    (*stats)[(*stats_num)]->field_count = extractor->field_count;                   
-    (*stats)[(*stats_num)]->entry.key_len = 0;
-    (*stats)[(*stats_num)]->entry.state = STATE_DEFAULT;
-    (*stats)[(*stats_num)]->idle_timeout = 0;
-    (*stats)[(*stats_num)]->hard_timeout = 0;
-    (*stats)[(*stats_num)]->idle_rollback = 0;
-    (*stats)[(*stats_num)]->hard_rollback = 0;
-    (*stats_num)++;
 }
 
 size_t
