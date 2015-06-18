@@ -565,7 +565,7 @@ dp_ports_lookup_queue(struct sw_port *p, uint32_t queue_id)
 {
     struct sw_queue *q;
 
-    if (queue_id <= p->max_queues) {
+    if (queue_id < p->max_queues) {
         q = &(p->queues[queue_id]);
 
         if (q->port != NULL) {
@@ -998,7 +998,7 @@ static int
 port_add_queue(struct sw_port *p, uint32_t queue_id,
                struct ofl_queue_prop_min_rate * mr)
 {
-    if (queue_id > p->max_queues) {
+    if (queue_id >= p->max_queues) {
         return EXFULL;
     }
 
