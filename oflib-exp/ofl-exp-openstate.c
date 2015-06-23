@@ -1788,6 +1788,10 @@ ofl_structs_state_entry_print(FILE *stream, uint32_t field, uint8_t *key, uint8_
         case OFPXMT_OFB_VLAN_PCP:
             fprintf(stream, "vlan_pcp=\"%d\"", *key & 0x7);
             break;
+        case OFPXMT_OFB_METADATA: {
+            fprintf(stream, "metadata=\"0x%"PRIx64"\"", *((uint64_t*) key));
+            break;
+        }
         case OFPXMT_OFB_ETH_TYPE:
             fprintf(stream, "eth_type=\"0x%x\"",  *((uint16_t *) key));
             break;
@@ -1927,6 +1931,9 @@ ofl_structs_state_entry_print_default(FILE *stream, uint32_t field)
             break;
         case OFPXMT_OFB_VLAN_PCP:
             fprintf(stream, "vlan_pcp=\"*\"");
+            break;
+        case OFPXMT_OFB_METADATA:
+            fprintf(stream, "metadata=\"*\"");
             break;
         case OFPXMT_OFB_ETH_TYPE:
             fprintf(stream, "eth_type=\"*\"");
