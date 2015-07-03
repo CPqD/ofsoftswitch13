@@ -945,16 +945,18 @@ netdev_link_state(struct netdev *netdev)
              if (nlm->nlmsg_type != RTM_NEWLINK)
                 continue;
              ifa = (struct ifinfomsg *) NLMSG_DATA (nlm);
-             if (ifa->ifi_flags & IFF_UP){
-                netdev_nodev_get_flags(netdev->name, &flags);
-                netdev_set_flags(netdev, flags, false);
-                return NETDEV_LINK_UP;
-             }
-             else {
-                netdev_nodev_get_flags(netdev->name, &flags);
-                netdev_set_flags(netdev, flags, false);
-                return NETDEV_LINK_DOWN;
-             }
+             if (ifa->ifi_index == netdev->ifindex){
+                 if (ifa->ifi_flags & IFF_UP){
+                     netdev_nodev_get_flags(netdev->name, &flags);
+                     netdev_set_flags(netdev, flags, false);
+                     return NETDEV_LINK_UP;
+                 }
+                 else {
+                     netdev_nodev_get_flags(netdev->name, &flags);
+                     netdev_set_flags(netdev, flags, false);
+                     return NETDEV_LINK_DOWN;
+                 }
+	     }
          }
      } while (len < 0 && errno == EINTR);
      return NETDEV_LINK_NO_CHANGE;
