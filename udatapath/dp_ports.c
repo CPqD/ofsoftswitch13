@@ -281,9 +281,6 @@ dp_ports_run(struct datapath *dp) {
             const int headroom = 128 + 2;
             buffer = ofpbuf_new_with_headroom(VLAN_ETH_HEADER_LEN + max_mtu, headroom);
         }
-        else{
-            p->conf->state &= ~OFPPS_LINK_DOWN;
-        }       
         error = netdev_recv(p->netdev, buffer, VLAN_ETH_HEADER_LEN + max_mtu);
         if (!error) {
             p->stats->rx_packets++;
