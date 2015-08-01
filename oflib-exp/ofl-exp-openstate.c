@@ -1233,7 +1233,7 @@ state_entry_hard_timeout(struct state_table *table, struct state_entry *entry) {
         
         if(entry->stats->hard_rollback == STATE_DEFAULT){
             hmap_remove_and_shrink(&table->state_entries, &entry->hmap_node);
-            entry->state = entry->stats->idle_rollback;
+            entry->state = entry->stats->hard_rollback;
         }
         else{
             entry->state = entry->stats->hard_rollback;
