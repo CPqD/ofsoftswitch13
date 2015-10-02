@@ -45,7 +45,7 @@
 
 #include "nbee_link/nbee_link.h"
 #include "dp_capabilities.h"
-#include "oflib-exp/ofl-exp-openstate.h"
+#include "oflib-exp/ofl-exp-beba.h"
 
 /* Resets all protocol fields to NULL */
 

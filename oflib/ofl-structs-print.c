@@ -40,7 +40,7 @@
 #include <math.h>
 #include "oxm-match.h"
 #include "openflow/openflow.h"
-#include "openflow/openstate-ext.h"
+#include "openflow/beba-ext.h"
 
 #include "ofl.h"
 #include "ofl-actions.h"

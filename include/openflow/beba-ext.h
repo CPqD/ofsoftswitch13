@@ -1,5 +1,5 @@
-#ifndef OPENSTATE_EXT_H
-#define OPENSTATE_EXT_H 1
+#ifndef BEBA_EXT_H
+#define BEBA_EXT_H 1
 
 #include "openflow/openflow.h"
 
@@ -11,7 +11,7 @@
  * Structures in this file are 64-bit aligned in size.
  */
 
-#define OPENSTATE_VENDOR_ID 0xBEBABEBA
+#define BEBA_VENDOR_ID 0xBEBABEBA
 #define OFP_GLOBAL_STATES_DEFAULT 0
 
 enum oxm_exp_match_fields {
@@ -29,16 +29,16 @@ enum ofp_exp_actions {
     OFPAT_EXP_SET_FLAG
 };
 
-struct ofp_openstate_action_experimenter_header {
+struct ofp_beba_action_experimenter_header {
     struct ofp_action_experimenter_header header;   /*  OpenFlow's standard experimenter action header*/
     uint32_t act_type;   /* type in header is OFPAT_EXPERIMENTER, act_type is one of ofp_exp_actions */
     uint8_t pad[4];
 };
-OFP_ASSERT(sizeof(struct ofp_openstate_action_experimenter_header) == 16);
+OFP_ASSERT(sizeof(struct ofp_beba_action_experimenter_header) == 16);
 
 /* Action structure for OFPAT_EXP_SET_STATE */
 struct ofp_exp_action_set_state {
-    struct ofp_openstate_action_experimenter_header header;
+    struct ofp_beba_action_experimenter_header header;
     uint32_t state; /* State instance. */
     uint32_t state_mask; /* State mask */
     uint8_t table_id; /*Stage destination*/
@@ -54,7 +54,7 @@ OFP_ASSERT(sizeof(struct ofp_exp_action_set_state) == 48);
 
 /* Action structure for OFPAT_EXP_SET_FLAG */
 struct ofp_exp_action_set_flag {
-    struct ofp_openstate_action_experimenter_header header;
+    struct ofp_beba_action_experimenter_header header;
     uint32_t flag; /* flag value */
     uint32_t flag_mask;    /*flag mask*/
 };
@@ -199,4 +199,4 @@ struct ofp_exp_global_state_stats {
 };
 OFP_ASSERT(sizeof(struct ofp_exp_global_state_stats) == 16);
 
-#endif /* OPENSTATE_EXT_H */
+#endif /* BEBA_EXT_H */

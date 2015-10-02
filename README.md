@@ -1,7 +1,7 @@
-# OpenState
+# Beba
 
 
-This is an implementation of the OpenState switch based on the OpenFlow 1.3 softswitch developed by CPdQ and available at https://github.com/CPqD/ofsoftswitch13. For any information about OpenState please check the home page of the project at http://www.openstate-sdn.org/.
+This is an implementation of the Beba switch based on the OpenFlow 1.3 softswitch developed by CPdQ and available at https://github.com/CPqD/ofsoftswitch13. For any information about Beba please check the home page of the project at http://www.beba-project.eu/.
 
 
 # OpenFlow 1.3 Software Switch
