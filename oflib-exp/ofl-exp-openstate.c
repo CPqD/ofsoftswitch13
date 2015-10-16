@@ -1312,7 +1312,7 @@ void state_table_write_state(struct state_entry *entry, struct packet *pkt) {
     
     HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv, 
         hmap_node, hash_int(OXM_EXP_STATE,0), &pkt->handle_std->match.match_fields){
-                int32_t *state = (uint32_t*) (f->value + EXP_ID_LEN);
+                uint32_t *state = (uint32_t*) (f->value + EXP_ID_LEN);
                 *state = (*state & 0x00000000) | (entry->state);
     }
 }

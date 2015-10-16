@@ -54,6 +54,9 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
     struct ofl_match_tlv * iter, *next, *f;
     uint64_t metadata = 0;
     uint64_t tunnel_id = 0;
+    uint32_t state = 0;
+    bool has_state = false;
+
     if(handle->valid)
         return;
     
@@ -64,7 +67,13 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
 
     HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
                     hmap_node, hash_int(OXM_OF_TUNNEL_ID,0), &handle->match.match_fields){
-            tunnel_id = *((uint64_t*) f->value);
+                    tunnel_id = *((uint64_t*) f->value);
+    }
+
+    HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
+                    hmap_node, hash_int(OXM_EXP_STATE,0), &handle->match.match_fields){
+                    state = *((uint32_t*) (f->value + 4));
+                    has_state = true;
     }
 
     HMAP_FOR_EACH_SAFE(iter, next, struct ofl_match_tlv, hmap_node, &handle->match.match_fields){
@@ -84,6 +93,11 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
 
     /* Add global register value to the hash_map */
     ofl_structs_match_exp_put32(&handle->match, OXM_EXP_FLAGS, 0xBEBABEBA, OFP_GLOBAL_STATES_DEFAULT);
+
+    if(has_state)
+    {
+        ofl_structs_match_exp_put32(&handle->match, OXM_EXP_STATE, 0xBEBABEBA, state);
+    }
 
     /*Add metadata  and tunnel_id value to the hash_map */
     ofl_structs_match_put64(&handle->match,  OXM_OF_METADATA, metadata);
