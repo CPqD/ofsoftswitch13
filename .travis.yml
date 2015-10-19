@@ -19,7 +19,3 @@ script:
   - "./configure"
   - "make"
   - "sudo make install"
-
-notifications:
-  slack: bebaproj:QOVWgAeMr7r6YebwBWwApXea
-  email: false

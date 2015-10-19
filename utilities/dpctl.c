@@ -51,7 +51,7 @@
 #include "oflib/ofl.h"
 #include "oflib-exp/ofl-exp.h"
 #include "oflib-exp/ofl-exp-openflow.h"
-#include "oflib-exp/ofl-exp-openstate.h"
+#include "oflib-exp/ofl-exp-beba.h"
 #include "oflib/oxm-match.h"
 
 #include "command-line.h"
@@ -59,7 +59,7 @@
 #include "dpif.h"
 #include "openflow/nicira-ext.h"
 #include "openflow/openflow-ext.h"
-#include "openflow/openstate-ext.h"
+#include "openflow/beba-ext.h"
 #include "ofpbuf.h"
 #include "openflow/openflow.h"
 #include "packets.h"
@@ -515,7 +515,7 @@ stats_state(struct vconn *vconn, int argc, char *argv[]) {
     struct ofl_exp_msg_multipart_request_state req =   
              {{{{{.type = OFPT_MULTIPART_REQUEST},
                   .type = OFPMP_EXPERIMENTER, .flags = 0x0000},
-                 .experimenter_id = OPENSTATE_VENDOR_ID},
+                 .experimenter_id = BEBA_VENDOR_ID},
                  .type = OFPMP_EXP_STATE_STATS},
                  .table_id = 0xff,
                  .get_from_state = 0,
@@ -545,7 +545,7 @@ stats_global_state(struct vconn *vconn, int argc, char *argv[]) {
     struct ofl_exp_msg_multipart_request_global_state req =
             {{{{{.type = OFPT_MULTIPART_REQUEST},
                 .type = OFPMP_EXPERIMENTER, .flags = 0x0000},
-                 .experimenter_id = OPENSTATE_VENDOR_ID},
+                 .experimenter_id = BEBA_VENDOR_ID},
                  .type = OFPMP_EXP_FLAGS_STATS}}; 
     dpctl_transact_and_print(vconn, (struct ofl_msg_header *)&req, NULL);
 }

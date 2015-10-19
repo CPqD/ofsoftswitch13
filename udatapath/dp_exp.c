@@ -40,11 +40,11 @@
 #include "oflib/ofl-messages.h"
 #include "oflib-exp/ofl-exp-openflow.h"
 #include "oflib-exp/ofl-exp-nicira.h"
-#include "oflib-exp/ofl-exp-openstate.h"
+#include "oflib-exp/ofl-exp-beba.h"
 #include "openflow/openflow.h"
 #include "openflow/openflow-ext.h"
 #include "openflow/nicira-ext.h"
-#include "openflow/openstate-ext.h"
+#include "openflow/beba-ext.h"
 #include "vlog.h"
 #include "pipeline.h"
 
@@ -55,10 +55,10 @@ static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(60, 60);
 void
 dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
     
-    if(act->experimenter_id == OPENSTATE_VENDOR_ID)
+    if(act->experimenter_id == BEBA_VENDOR_ID)
     {
-        struct ofl_exp_openstate_act_header *action;
-        action = (struct ofl_exp_openstate_act_header *) act;
+        struct ofl_exp_beba_act_header *action;
+        action = (struct ofl_exp_beba_act_header *) act;
         switch(action->act_type){
 
             case(OFPAT_EXP_SET_STATE):
@@ -107,8 +107,8 @@ ofl_err
 dp_exp_stats(struct datapath *dp UNUSED, struct ofl_msg_multipart_request_experimenter *msg, const struct sender *sender UNUSED) {
     ofl_err err;
     switch (msg->experimenter_id) {
-        case (OPENSTATE_VENDOR_ID): {
-            struct ofl_exp_openstate_msg_multipart_request *exp = (struct ofl_exp_openstate_msg_multipart_request *)msg;
+        case (BEBA_VENDOR_ID): {
+            struct ofl_exp_beba_msg_multipart_request *exp = (struct ofl_exp_beba_msg_multipart_request *)msg;
 
             switch(exp->type) {
                 case (OFPMP_EXP_STATE_STATS): {
@@ -163,8 +163,8 @@ dp_exp_message(struct datapath *dp, struct ofl_msg_experimenter *msg, const stru
                 }
             }
         }
-        case (OPENSTATE_VENDOR_ID): {
-            struct ofl_exp_openstate_msg_header *exp = (struct ofl_exp_openstate_msg_header *)msg;
+        case (BEBA_VENDOR_ID): {
+            struct ofl_exp_beba_msg_header *exp = (struct ofl_exp_beba_msg_header *)msg;
 
             switch(exp->type) {
                 case (OFPT_EXP_STATE_MOD): {

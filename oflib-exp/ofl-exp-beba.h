@@ -1,12 +1,12 @@
-#ifndef OFL_EXP_OPENSTATE_H
-#define OFL_EXP_OPENSTATE_H 1
+#ifndef OFL_EXP_BEBA_H
+#define OFL_EXP_BEBA_H 1
 
 #include "../lib/hmap.h"
 #include "../udatapath/packet.h"
 #include "../udatapath/pipeline.h"
 #include "../oflib/ofl-structs.h"
 #include "../oflib/ofl-messages.h"
-#include "../include/openflow/openstate-ext.h"
+#include "../include/openflow/beba-ext.h"
 
 
 #define MAX_EXTRACTION_FIELD_COUNT 6
@@ -16,20 +16,20 @@
 /**************************************************************************/
 /*                        experimenter messages ofl_exp                   */
 /**************************************************************************/
-struct ofl_exp_openstate_msg_header {
-    struct ofl_msg_experimenter   header; /* OPENSTATE_VENDOR_ID */
+struct ofl_exp_beba_msg_header {
+    struct ofl_msg_experimenter   header; /* BEBA_VENDOR_ID */
 
     uint32_t   type;
 };
 
-struct ofl_exp_openstate_msg_multipart_request {
-    struct ofl_msg_multipart_request_experimenter header; /* OPENSTATE_VENDOR_ID */
+struct ofl_exp_beba_msg_multipart_request {
+    struct ofl_msg_multipart_request_experimenter header; /* BEBA_VENDOR_ID */
 
     uint32_t type;
 };
 
-struct ofl_exp_openstate_msg_multipart_reply {
-    struct ofl_msg_multipart_reply_experimenter header; /* OPENSTATE_VENDOR_ID */
+struct ofl_exp_beba_msg_multipart_reply {
+    struct ofl_msg_multipart_reply_experimenter header; /* BEBA_VENDOR_ID */
 
     uint32_t type;
 };
@@ -38,7 +38,7 @@ struct ofl_exp_openstate_msg_multipart_reply {
  ************************/
 
 struct ofl_exp_msg_state_mod {
-    struct ofl_exp_openstate_msg_header header;   /* OFP_EXP_STATE_MOD */
+    struct ofl_exp_beba_msg_header header;   /* OFP_EXP_STATE_MOD */
     enum ofp_exp_msg_state_mod_commands command;
     uint8_t payload[13+OFPSC_MAX_KEY_LEN]; //ugly! for now it's ok XXX
 };
@@ -100,7 +100,7 @@ struct ofl_exp_state_stats {
 };
 
 struct ofl_exp_msg_multipart_request_state {
-    struct ofl_exp_openstate_msg_multipart_request   header; /* OFPMP_STATE */
+    struct ofl_exp_beba_msg_multipart_request   header; /* OFPMP_STATE */
 
     uint8_t                  table_id; /* ID of table to read
                                            (from ofp_table_multipart), 0xff for all
@@ -112,32 +112,32 @@ struct ofl_exp_msg_multipart_request_state {
 
 struct ofl_exp_msg_multipart_reply_state {
     
-    struct ofl_exp_openstate_msg_multipart_reply   header; /* OFPMP_STATE */
+    struct ofl_exp_beba_msg_multipart_reply   header; /* OFPMP_STATE */
 
     size_t                  stats_num;
     struct ofl_exp_state_stats **stats;
 };
 
 struct ofl_exp_msg_multipart_request_global_state {
-    struct ofl_exp_openstate_msg_multipart_request   header; /* OFPMP_FLAGS */
+    struct ofl_exp_beba_msg_multipart_request   header; /* OFPMP_FLAGS */
 };
 
 struct ofl_exp_msg_multipart_reply_global_state {
-    struct ofl_exp_openstate_msg_multipart_reply   header; /* OFPMP_FLAGS */
+    struct ofl_exp_beba_msg_multipart_reply   header; /* OFPMP_FLAGS */
     uint32_t global_states;
 };
 
 /*************************************************************************/
 /*                        experimenter actions ofl_exp                   */
 /*************************************************************************/
-struct ofl_exp_openstate_act_header {
-    struct ofl_action_experimenter   header; /* OPENSTATE_VENDOR_ID */
+struct ofl_exp_beba_act_header {
+    struct ofl_action_experimenter   header; /* BEBA_VENDOR_ID */
 
     uint32_t   act_type;
 };
 
 struct ofl_exp_action_set_state {
-    struct ofl_exp_openstate_act_header  header; /* OFPAT_EXP_SET_STATE */
+    struct ofl_exp_beba_act_header  header; /* OFPAT_EXP_SET_STATE */
 
     uint32_t state;
     uint32_t state_mask;
@@ -150,7 +150,7 @@ struct ofl_exp_action_set_state {
 };
 
 struct ofl_exp_action_set_flag {
-    struct ofl_exp_openstate_act_header   header; /* OFPAT_EXP_SET_FLAG */
+    struct ofl_exp_beba_act_header   header; /* OFPAT_EXP_SET_FLAG */
 
     uint32_t flag;
     uint32_t flag_mask;
@@ -222,80 +222,80 @@ state_table_timeout(struct state_table *table);
 /*experimenter message functions*/
 
 int
-ofl_exp_openstate_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf, size_t *buf_len);
+ofl_exp_beba_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf, size_t *buf_len);
 
 ofl_err
-ofl_exp_openstate_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_experimenter **msg);
+ofl_exp_beba_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_experimenter **msg);
 
 int
-ofl_exp_openstate_msg_free(struct ofl_msg_experimenter *msg);
+ofl_exp_beba_msg_free(struct ofl_msg_experimenter *msg);
 
 char *
-ofl_exp_openstate_msg_to_string(struct ofl_msg_experimenter *msg);
+ofl_exp_beba_msg_to_string(struct ofl_msg_experimenter *msg);
 
 /*experimenter action functions*/
 
 int 
-ofl_exp_openstate_act_pack(struct ofl_action_header *src, struct ofp_action_header *dst);
+ofl_exp_beba_act_pack(struct ofl_action_header *src, struct ofp_action_header *dst);
 
 ofl_err
-ofl_exp_openstate_act_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action_header **dst);
+ofl_exp_beba_act_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action_header **dst);
 
 size_t
-ofl_exp_openstate_act_ofp_len(struct ofl_action_header *act);
+ofl_exp_beba_act_ofp_len(struct ofl_action_header *act);
 
 int     
-ofl_exp_openstate_act_free(struct ofl_action_header *act);
+ofl_exp_beba_act_free(struct ofl_action_header *act);
 
 char *
-ofl_exp_openstate_act_to_string(struct ofl_action_header *act);
+ofl_exp_beba_act_to_string(struct ofl_action_header *act);
 
 /*experimenter stats functions*/
 int
-ofl_exp_openstate_stats_req_pack(struct ofl_msg_multipart_request_experimenter *ext, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp);
+ofl_exp_beba_stats_req_pack(struct ofl_msg_multipart_request_experimenter *ext, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp);
 
 int
-ofl_exp_openstate_stats_reply_pack(struct ofl_msg_multipart_reply_experimenter *ext, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp);
+ofl_exp_beba_stats_reply_pack(struct ofl_msg_multipart_reply_experimenter *ext, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp);
 
 char *
-ofl_exp_openstate_stats_request_to_string(struct ofl_msg_multipart_request_experimenter *ext, struct ofl_exp *exp);
+ofl_exp_beba_stats_request_to_string(struct ofl_msg_multipart_request_experimenter *ext, struct ofl_exp *exp);
 
 char *
-ofl_exp_openstate_stats_reply_to_string(struct ofl_msg_multipart_reply_experimenter *ext, struct ofl_exp *exp);
+ofl_exp_beba_stats_reply_to_string(struct ofl_msg_multipart_reply_experimenter *ext, struct ofl_exp *exp);
 
 ofl_err
-ofl_exp_openstate_stats_req_unpack(struct ofp_multipart_request *os, uint8_t *buf, size_t *len, struct ofl_msg_multipart_request_header **msg, struct ofl_exp *exp);
+ofl_exp_beba_stats_req_unpack(struct ofp_multipart_request *os, uint8_t *buf, size_t *len, struct ofl_msg_multipart_request_header **msg, struct ofl_exp *exp);
 
 ofl_err
-ofl_exp_openstate_stats_reply_unpack(struct ofp_multipart_reply *os, uint8_t *buf, size_t *len, struct ofl_msg_multipart_reply_header **msg, struct ofl_exp *exp);
+ofl_exp_beba_stats_reply_unpack(struct ofp_multipart_reply *os, uint8_t *buf, size_t *len, struct ofl_msg_multipart_reply_header **msg, struct ofl_exp *exp);
 
 int
-ofl_exp_openstate_stats_req_free(struct ofl_msg_multipart_request_header *msg);
+ofl_exp_beba_stats_req_free(struct ofl_msg_multipart_request_header *msg);
 
 int
-ofl_exp_openstate_stats_reply_free(struct ofl_msg_multipart_reply_header *msg);
+ofl_exp_beba_stats_reply_free(struct ofl_msg_multipart_reply_header *msg);
 
 /*experimenter match fields functions*/
 int
-ofl_exp_openstate_field_unpack(struct ofl_match *match, struct oxm_field *f, void *experimenter_id, void *value, void *mask);
+ofl_exp_beba_field_unpack(struct ofl_match *match, struct oxm_field *f, void *experimenter_id, void *value, void *mask);
 
 void  
-ofl_exp_openstate_field_pack(struct ofpbuf *buf, struct ofl_match_tlv *oft);
+ofl_exp_beba_field_pack(struct ofpbuf *buf, struct ofl_match_tlv *oft);
 
 void
-ofl_exp_openstate_field_match(struct ofl_match_tlv *f, int *packet_header, int *field_len, uint8_t **flow_val, uint8_t **flow_mask);
+ofl_exp_beba_field_match(struct ofl_match_tlv *f, int *packet_header, int *field_len, uint8_t **flow_val, uint8_t **flow_mask);
 
 void
-ofl_exp_openstate_field_compare (struct ofl_match_tlv *value, uint8_t **packet_val);
+ofl_exp_beba_field_compare (struct ofl_match_tlv *value, uint8_t **packet_val);
 
 void
-ofl_exp_openstate_field_match_std (struct ofl_match_tlv *flow_mod_match, struct ofl_match_tlv *flow_entry_match, int *field_len, uint8_t **flow_mod_val, uint8_t **flow_entry_val, uint8_t **flow_mod_mask, uint8_t **flow_entry_mask);
+ofl_exp_beba_field_match_std (struct ofl_match_tlv *flow_mod_match, struct ofl_match_tlv *flow_entry_match, int *field_len, uint8_t **flow_mod_val, uint8_t **flow_entry_val, uint8_t **flow_mod_mask, uint8_t **flow_entry_mask);
 
 void
-ofl_exp_openstate_field_overlap_a (struct ofl_match_tlv *f_a, int *field_len, uint8_t **val_a, uint8_t **mask_a, int *header, int *header_m, uint64_t *all_mask);
+ofl_exp_beba_field_overlap_a (struct ofl_match_tlv *f_a, int *field_len, uint8_t **val_a, uint8_t **mask_a, int *header, int *header_m, uint64_t *all_mask);
 
 void
-ofl_exp_openstate_field_overlap_b (struct ofl_match_tlv *f_b, int *field_len, uint8_t **val_b, uint8_t **mask_b, uint64_t *all_mask);
+ofl_exp_beba_field_overlap_b (struct ofl_match_tlv *f_b, int *field_len, uint8_t **val_b, uint8_t **mask_b, uint64_t *all_mask);
 
 /* Handles a state_mod message */
 ofl_err
@@ -364,4 +364,4 @@ ofl_structs_match_exp_put64(struct ofl_match *match, uint32_t header, uint32_t e
 void
 ofl_structs_match_exp_put64m(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint64_t value, uint64_t mask);
 
-#endif /* OFL_EXP_OPENSTATE_H */
+#endif /* OFL_EXP_BEBA_H */

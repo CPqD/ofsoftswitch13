@@ -110,7 +110,7 @@ lib_libopenflow_a_LIBADD = oflib/ofl-actions.o \
                            oflib-exp/ofl-exp.o \
                            oflib-exp/ofl-exp-nicira.o \
                            oflib-exp/ofl-exp-openflow.o \
-                           oflib-exp/ofl-exp-openstate.o
+                           oflib-exp/ofl-exp-beba.o
 
 
 if HAVE_NETLINK
