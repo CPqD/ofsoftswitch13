@@ -62,8 +62,11 @@ OFP_ASSERT(sizeof(struct ofp_exp_action_set_flag) == 24);
 
 
 /*EXPERIMENTER MESSAGES*/
+/* KTH Note State Sync */
 enum ofp_exp_messages {
-    OFPT_EXP_STATE_MOD
+    OFPT_EXP_STATE_MOD,
+    OFPT_EXPT_STATE_CHANGED,
+    OFPT_EXPT_NOTIFICATION
 };
 
 /****************************************************************
@@ -80,6 +83,25 @@ struct ofp_exp_msg_state_mod {
     uint8_t pad;
     uint8_t payload[];
 };
+
+/* KTH Note State Sync */
+struct ofp_exp_msg_state_ntf {
+    struct ofp_experimenter_header header; // OpenFlow's standard experimenter
+    uint32_t table_id;
+    uint32_t old_state;
+    uint32_t new_state;
+    uint32_t state_mask;
+    uint32_t key_len;
+    uint8_t key[OFPSC_MAX_KEY_LEN];
+};
+
+struct ofp_exp_msg_flow_ntf {
+    struct ofp_experimenter_stats_header header;
+    uint32_t table_id;
+    uint32_t ntf_type;
+    struct ofp_match match;
+};
+/* KTH Note end */
 
 struct ofp_exp_stateful_table_config { 
     uint8_t table_id;

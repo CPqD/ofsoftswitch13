@@ -191,6 +191,34 @@ struct state_table {
     uint8_t stateful;
 };
 
+/*************************************************************************/
+/*                        experimenter notifications                     */
+/*************************************************************************/
+/* KTH Note, State Sync : Notify controller about state change*/
+struct ofl_exp_msg_notify_state_change {
+    struct ofl_exp_beba_msg_header header;
+    uint8_t table_id;
+    uint32_t old_state;
+    uint32_t new_state;
+    uint32_t state_mask;
+    uint32_t key_len;
+    uint8_t key[OFPSC_MAX_KEY_LEN];
+};
+/* KTH Note end */
+
+/* KTH Note, State Sync : Notify controller about flow change*/
+struct ofl_exp_msg_notify_flow_change {
+    struct ofl_exp_beba_msg_multipart_reply    header;
+
+    uint32_t ntf_type;
+    uint32_t table_id;
+    struct ofl_match_header  *match;
+    uint32_t instruction_num;
+    struct ofl_instruction_header **instructions;
+
+};
+/* KTH Note end */
+
 /*experimenter table functions*/
 struct state_table * 
 state_table_create(void);
@@ -207,8 +235,8 @@ state_table_lookup(struct state_table*, struct packet *);
 void 
 state_table_write_state(struct state_entry *, struct packet *);
 
-void 
-state_table_set_state(struct state_table *, struct packet *, struct ofl_exp_set_flow_state *msg, struct ofl_exp_action_set_state *act);
+ofl_err
+state_table_set_state(struct state_table *, struct packet *, struct ofl_exp_set_flow_state *msg, struct ofl_exp_action_set_state *act, struct ofl_exp_msg_notify_state_change * ntf_message);
 
 void 
 state_table_set_extractor(struct state_table *, struct key_extractor *, int);
@@ -299,7 +327,7 @@ ofl_exp_beba_field_overlap_b (struct ofl_match_tlv *f_b, int *field_len, uint8_t
 
 /* Handles a state_mod message */
 ofl_err
-handle_state_mod(struct pipeline *pl, struct ofl_exp_msg_state_mod *msg, const struct sender *sender);
+handle_state_mod(struct pipeline *pl, struct ofl_exp_msg_state_mod *msg, const struct sender *sender, struct ofl_exp_msg_notify_state_change * ntf_message);
 
 /* Handles a state stats request. */
 ofl_err

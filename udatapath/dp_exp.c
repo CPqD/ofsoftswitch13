@@ -58,6 +58,7 @@ dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
     if(act->experimenter_id == BEBA_VENDOR_ID)
     {
         struct ofl_exp_beba_act_header *action;
+        struct ofl_exp_msg_notify_state_change ntf_message;
         action = (struct ofl_exp_beba_act_header *) act;
         switch(action->act_type){
 
@@ -68,7 +69,11 @@ dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
                 {
                     struct state_table *st = pkt->dp->pipeline->tables[wns->table_id]->state_table;
                     VLOG_WARN_RL(LOG_MODULE, &rl, "executing action NEXT STATE at stage %u", wns->table_id);
-                    state_table_set_state(st, pkt, NULL, wns);
+                    state_table_set_state(st, pkt, NULL, wns, &ntf_message);
+                    int err = dp_send_message(pkt->dp, (struct ofl_msg_header *)&ntf_message, NULL);
+                    if (err) {
+                        VLOG_WARN_RL(LOG_MODULE, &rl, "ERROR sending state change notification %s:%i", __FILE__, __LINE__);
+                    }
                 }
                 else
                 {
@@ -165,10 +170,17 @@ dp_exp_message(struct datapath *dp, struct ofl_msg_experimenter *msg, const stru
         }
         case (BEBA_VENDOR_ID): {
             struct ofl_exp_beba_msg_header *exp = (struct ofl_exp_beba_msg_header *)msg;
+            struct ofl_exp_msg_notify_state_change ntf_message;
+            int res;
 
             switch(exp->type) {
                 case (OFPT_EXP_STATE_MOD): {
-                    return handle_state_mod(dp->pipeline, (struct ofl_exp_msg_state_mod *)msg, sender);
+                    res = handle_state_mod(dp->pipeline, (struct ofl_exp_msg_state_mod *)msg, sender, &ntf_message);
+                    int err = 0;//dp_send_message(dp, (struct ofl_msg_header *)&ntf_message, NULL);
+                    if (err) {
+                        VLOG_WARN_RL(LOG_MODULE, &rl, "ERROR sending state change notification %s:%i", __FILE__, __LINE__);
+                    }
+                    return res;
                 }
                 default: {
                     VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to handle unknown experimenter type (%u).", exp->type);

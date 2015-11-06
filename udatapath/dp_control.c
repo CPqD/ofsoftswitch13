@@ -324,7 +324,23 @@ handle_control_msg(struct datapath *dp, struct ofl_msg_header *msg,
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
         }
         case OFPT_FLOW_MOD: {
-            return pipeline_handle_flow_mod(dp->pipeline, (struct ofl_msg_flow_mod *)msg, sender);
+            ofl_err res;
+            /* KTH Note State Sync */
+            res = pipeline_handle_flow_mod(dp->pipeline, (struct ofl_msg_flow_mod *)msg, sender);
+            if(!res) {
+                struct ofl_msg_flow_mod *m = (struct ofl_msg_flow_mod *)msg;
+                struct ofl_exp_msg_notify_flow_change ntf= {{{{{.type = OFPT_MULTIPART_REPLY},
+                                                           .type = OFPMP_EXPERIMENTER, .flags = 0x0000},
+                                                           .experimenter_id = BEBA_VENDOR_ID},
+                                                           .type = OFPT_EXPT_NOTIFICATION },
+                                                           .ntf_type = OFPT_FLOW_MOD,
+                                                           .table_id = m->table_id,
+                                                           .match = m->match,
+                                                           .instruction_num = m->instructions_num,
+                                                           .instructions = m->instructions};
+                dp_send_message(dp,(struct ofl_msg_header*)&ntf, sender);
+            }
+            return res;
         }
         case OFPT_GROUP_MOD: {
             return group_table_handle_group_mod(dp->groups, (struct ofl_msg_group_mod *)msg, sender);
