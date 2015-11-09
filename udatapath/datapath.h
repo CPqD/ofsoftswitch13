@@ -50,6 +50,7 @@
 #include "oflib/ofl-messages.h"
 #include "oflib/ofl-structs.h"
 #include "oflib-exp/ofl-exp-nicira.h"
+#include "oflib-exp/ofl-exp-beba.h"
 #include "group_table.h"
 #include "timeval.h"
 #include "list.h"
@@ -96,6 +97,8 @@ struct datapath {
     struct group_table *groups; /* Group tables */
 
     struct meter_table *meters; /* Meter tables */
+
+    struct pkttmp_table *pkttmps; /* Packet template table */
 
     struct ofl_config config; /* Configuration, set from controller. */
 

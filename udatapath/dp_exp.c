@@ -99,8 +99,83 @@ dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
 }
 
 void
-dp_exp_inst(struct packet *pkt UNUSED, struct ofl_instruction_experimenter *inst) {
-	VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute unknown experimenter instruction (%u).", inst->experimenter_id);
+dp_exp_inst(struct packet *pkt, struct ofl_instruction_experimenter *inst) {
+	switch (inst->experimenter_id) {
+		case (BEBA_VENDOR_ID): {
+			struct ofl_exp_beba_instr_header *beba_inst = (struct ofl_exp_beba_instr_header*) inst;
+			switch (beba_inst->instr_type) {
+				case (OFPIT_IN_SWITCH_PKT_GEN): {
+					struct ofl_exp_instruction_in_switch_pkt_gen *beba_insw_i =
+							(struct ofl_exp_instruction_in_switch_pkt_gen *) beba_inst;
+					struct pkttmp_table *t = pkt->dp->pkttmps;
+					struct pkttmp_entry *pkttmp;
+					uint8_t found = 0;
+					struct ofpbuf *buf;
+					struct packet *gen_pkt;
+
+					HMAP_FOR_EACH_WITH_HASH(pkttmp, struct pkttmp_entry, node,
+							hash_bytes(&beba_insw_i->pkttmp_id, 4, 0), &t->entries) {
+						//VLOG_WARN_RL(LOG_MODULE, &rl, "Retrieving: pkttmp id %u!", pkttmp->pkttmp_id);
+						found = 1;
+
+						// ** Packet generation **
+
+						/* If there is no packet in the message, send error message */
+						if (!pkttmp->data_length){
+							VLOG_WARN_RL(LOG_MODULE, &rl,
+									"No packet data associated with pkttmp_id %u!",
+									beba_insw_i->pkttmp_id);
+							return;
+						}
+
+						/* NOTE: the created packet will take the ownership of data. */
+						buf = ofpbuf_new(0);
+						uint8_t *data = (uint8_t *)memcpy(malloc(pkttmp->data_length), pkttmp->data, pkttmp->data_length);
+						// TODO apply copy_instrs
+						ofpbuf_use(buf, data, pkttmp->data_length);
+						ofpbuf_put_uninit(buf, pkttmp->data_length);
+
+						// TODO check specification of in_port value, currently set to 0
+						gen_pkt = packet_create(pkttmp->dp, 0, buf, true);
+						//Required to enable submission to the pipeline when
+						//there is an action output with port number TABLE
+						gen_pkt->packet_out = true;
+
+						if (gen_pkt == NULL) {
+							VLOG_WARN_RL(LOG_MODULE, &rl,
+									"No packet data associated with pkttmp_id %u!",
+									beba_insw_i->pkttmp_id);
+							return;
+						}
+						// ---
+
+						// The pkt generation never leads to a PACKET_IN message,
+						// thus, the cookie value is not required and set to 0
+						dp_execute_action_list(gen_pkt, beba_insw_i->actions_num,
+								beba_insw_i->actions, 0);
+						if(gen_pkt) {
+							packet_destroy(gen_pkt);
+						}
+					}
+
+					if (!found) {
+						VLOG_WARN_RL(LOG_MODULE, &rl, "No PKTTMP for pkttmp_id %u!", beba_insw_i->pkttmp_id);
+					}
+					return;
+
+				}
+			}
+
+
+			// TODO Perform packet generation instruction
+			VLOG_WARN_RL(LOG_MODULE, &rl, "Unknown BEBA instruction type!");
+			return;
+		}
+		default: {
+			VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute unknown experimenter instruction (%u).", inst->experimenter_id);
+		}
+	}
+
 }
 
 ofl_err
@@ -163,6 +238,7 @@ dp_exp_message(struct datapath *dp, struct ofl_msg_experimenter *msg, const stru
                 }
             }
         }
+        break;
         case (BEBA_VENDOR_ID): {
             struct ofl_exp_beba_msg_header *exp = (struct ofl_exp_beba_msg_header *)msg;
 
@@ -170,12 +246,16 @@ dp_exp_message(struct datapath *dp, struct ofl_msg_experimenter *msg, const stru
                 case (OFPT_EXP_STATE_MOD): {
                     return handle_state_mod(dp->pipeline, (struct ofl_exp_msg_state_mod *)msg, sender);
                 }
+                case (OFPT_EXP_PKTTMP_MOD): {
+                    return handle_pkttmp_mod(dp->pipeline, (struct ofl_exp_msg_pkttmp_mod *)msg, sender);
+                }
                 default: {
                     VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to handle unknown experimenter type (%u).", exp->type);
                     return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
                 }
             }
         }
+        break;
         default: {
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
         }

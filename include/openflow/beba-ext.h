@@ -21,6 +21,30 @@ enum oxm_exp_match_fields {
 
 /****************************************************************
  *
+ * OpenFlow experimenter Instructions
+ *
+ ****************************************************************/
+enum ofp_exp_instructions {
+    OFPIT_IN_SWITCH_PKT_GEN
+};
+
+struct ofp_beba_instruction_experimenter_header {
+    struct ofp_instruction_experimenter_header header;   /*  OpenFlow's standard experimenter action header*/
+    uint32_t instr_type;   /* type in header is OFPIT_EXPERIMENTER, instr_type is one of ofp_exp_instructions */
+    uint8_t pad[4];
+};
+OFP_ASSERT(sizeof(struct ofp_beba_instruction_experimenter_header) == 16);
+
+struct ofp_exp_instruction_in_switch_pkt_gen {
+	struct ofp_beba_instruction_experimenter_header header; /* OpenFlow standard experimenter instruction header */
+	uint32_t pkttmp_id;
+	uint8_t pad[4];
+	struct ofp_action_header actions[0]; /* Same actions that can be associated with OFPIT_APPLY_ACTIONS */
+};
+OFP_ASSERT(sizeof(struct ofp_exp_instruction_in_switch_pkt_gen) == 24);
+
+/****************************************************************
+ *
  * OpenFlow experimenter Actions
  *
  ****************************************************************/
@@ -63,7 +87,8 @@ OFP_ASSERT(sizeof(struct ofp_exp_action_set_flag) == 24);
 
 /*EXPERIMENTER MESSAGES*/
 enum ofp_exp_messages {
-    OFPT_EXP_STATE_MOD
+    OFPT_EXP_STATE_MOD,
+	OFPT_EXP_PKTTMP_MOD
 };
 
 /****************************************************************
@@ -126,6 +151,36 @@ enum ofp_exp_msg_state_mod_commands {
     OFPSC_DEL_FLOW_STATE,
     OFPSC_SET_GLOBAL_STATE,
     OFPSC_RESET_GLOBAL_STATE   
+};
+
+/****************************************************************
+ *
+ *   OFPT_EXP_PKTTMP_MOD
+ *
+****************************************************************/
+
+struct ofp_exp_msg_pkttmp_mod {
+    struct ofp_experimenter_header header; /* OpenFlow's standard experimenter message header */
+    uint8_t command;
+    uint8_t pad;
+    uint8_t payload[];
+};
+
+struct ofp_exp_add_pkttmp {
+	uint32_t pkttmp_id;
+	uint8_t pad[4];
+	/* uint8_t data[0]; */ /* Packet data. The length is inferred
+			from the length field in the header. */
+};
+
+struct ofp_exp_del_pkttmp {
+	uint32_t pkttmp_id;
+	uint8_t pad[4];
+};
+
+enum ofp_exp_msg_pkttmp_mod_commands {
+    OFPSC_ADD_PKTTMP = 0,
+    OFPSC_DEL_PKTTMP
 };
 
 /****************************************************************

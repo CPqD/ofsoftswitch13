@@ -77,6 +77,27 @@ struct ofl_exp_set_global_state {
     uint32_t flag_mask;
 };
 
+/************************
+ * pkttmp mod messages
+ ************************/
+
+struct ofl_exp_msg_pkttmp_mod {
+    struct ofl_exp_beba_msg_header header;   /* OFP_EXP_PKTTMP_MOD */
+    enum ofp_exp_msg_pkttmp_mod_commands command;
+    uint8_t payload[12]; //(sizeof(ofl_exp_add_pkttmp)) ugly! for now it's ok XXX
+};
+
+struct ofl_exp_add_pkttmp {
+	uint32_t pkttmp_id;
+	size_t data_length;
+	uint8_t *data;
+};
+
+struct ofl_exp_del_pkttmp {
+	uint32_t pkttmp_id;
+};
+
+
 /*************************
 * Multipart reply message: State entry statistics
 *************************/
@@ -158,7 +179,7 @@ struct ofl_exp_action_set_flag {
 
 
 /*************************************************************************/
-/*                        experimenter state table
+/*                        experimenter state table						 */
 /*************************************************************************/
 
 
@@ -363,5 +384,77 @@ ofl_structs_match_exp_put64(struct ofl_match *match, uint32_t header, uint32_t e
 
 void
 ofl_structs_match_exp_put64m(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint64_t value, uint64_t mask);
+
+/*************************************************************************/
+/*                        experimenter instructions ofl_exp                   */
+/*************************************************************************/
+struct ofl_exp_beba_instr_header {
+    struct ofl_instruction_experimenter   header; /* BEBA_VENDOR_ID */
+    uint32_t   instr_type;
+};
+
+struct ofl_exp_instruction_in_switch_pkt_gen {
+	struct ofl_exp_beba_instr_header  header; /* OFPIT_EXP_IN_SWITCH_PKT_GEN*/
+	uint32_t				          pkttmp_id;
+	size_t                     	      actions_num;
+	struct ofl_action_header        **actions;
+};
+
+/*************************************************************************/
+/*                        experimenter pkttmp table						 */
+/*************************************************************************/
+
+struct pkttmp_table {
+    struct datapath  *dp;
+	//struct ofl_msg_multipart_reply_group_features *features;
+	size_t            entries_num;
+    struct hmap       entries;
+};
+
+struct pkttmp_entry {
+    struct hmap_node            node;
+
+    uint32_t                    pkttmp_id;
+    struct datapath             *dp;
+    struct pkttmp_table         *table;
+    uint64_t                    created;
+    uint8_t                     *data;     /* to check if it is good for tmp implementation */
+    size_t                      data_length;
+};
+
+/* experimenter pkttmp table functions*/
+
+struct pkttmp_table *
+pkttmp_table_create(struct datapath *dp);
+
+void
+pkttmp_table_destroy(struct pkttmp_table *table);
+
+/* experimenter pkttmp entry functions */
+struct pkttmp_entry *
+pkttmp_entry_create(struct datapath *dp, struct pkttmp_table *table, struct ofl_exp_add_pkttmp *mod);
+
+void
+pkttmp_entry_destroy(struct pkttmp_entry *entry);
+
+ofl_err
+handle_pkttmp_mod(struct pipeline *pl, struct ofl_exp_msg_pkttmp_mod *msg,
+                                                const struct sender *sender);
+
+/* instruction experimenter callback functions */
+int
+ofl_exp_beba_inst_pack (struct ofl_instruction_header *src, struct ofp_instruction *dst);
+
+ofl_err
+ofl_exp_beba_inst_unpack (struct ofp_instruction *src, size_t *len, struct ofl_instruction_header **dst);
+
+int
+ofl_exp_beba_inst_free (struct ofl_instruction_header *i);
+
+size_t
+ofl_exp_beba_inst_ofp_len (struct ofl_instruction_header *i);
+
+char *
+ofl_exp_beba_inst_to_string (struct ofl_instruction_header *i);
 
 #endif /* OFL_EXP_BEBA_H */

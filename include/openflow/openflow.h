@@ -381,6 +381,14 @@ struct ofp_instruction {
 };
 OFP_ASSERT(sizeof(struct ofp_instruction) == 8);
 
+/* Instruction structure for experimental instructions */
+struct ofp_instruction_experimenter_header {
+    uint16_t type;                /* OFPIT_EXPERIMENTER */
+    uint16_t len;                 /* Length of this struct in bytes. */
+    uint32_t experimenter;               /* Eperimenter ID */
+};
+OFP_ASSERT(sizeof(struct ofp_instruction_experimenter_header) == 8);
+
 /* Instruction structure for OFPIT_GOTO_TABLE */
 struct ofp_instruction_goto_table {
 	uint16_t type;    /* OFPIT_GOTO_TABLE */

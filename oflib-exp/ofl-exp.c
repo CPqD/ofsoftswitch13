@@ -454,3 +454,82 @@ ofl_exp_field_overlap_b (struct ofl_match_tlv *f_b, int *field_len, uint8_t **va
             break;
     }
 }
+
+int
+ofl_exp_inst_pack (struct ofl_instruction_header *src, struct ofp_instruction *dst) {
+	struct ofl_instruction_experimenter *exp = (struct ofl_instruction_experimenter *) src;
+	switch (exp->experimenter_id) {
+		case (BEBA_VENDOR_ID): {
+			return ofl_exp_beba_inst_pack(src,dst);
+		}
+		default: {
+			return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+		}
+
+	}
+}
+
+ofl_err
+ofl_exp_inst_unpack (struct ofp_instruction *src, size_t *len, struct ofl_instruction_header **dst) {
+    struct ofp_instruction_experimenter_header *exp;
+
+    if (*len < sizeof(struct ofp_instruction_experimenter_header)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER instruction is shorter than ofp_experimenter_header.");
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+
+
+    exp = (struct ofp_instruction_experimenter_header *)src;
+
+    switch(ntohl(exp->experimenter)){
+        case (BEBA_VENDOR_ID): {
+            return ofl_exp_beba_inst_unpack(src,len,dst);
+        }
+        default: {
+            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+        }
+
+    }
+}
+
+int
+ofl_exp_inst_free (struct ofl_instruction_header *i) {
+	struct ofl_instruction_experimenter *exp = (struct ofl_instruction_experimenter *) i;
+	switch (exp->experimenter_id) {
+		case (BEBA_VENDOR_ID): {
+			return ofl_exp_beba_inst_free(i);
+		}
+		default: {
+			return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+		}
+
+	}
+}
+
+size_t
+ofl_exp_inst_ofp_len (struct ofl_instruction_header *i) {
+	struct ofl_instruction_experimenter *exp = (struct ofl_instruction_experimenter *) i;
+	switch (exp->experimenter_id) {
+		case (BEBA_VENDOR_ID): {
+			return ofl_exp_beba_inst_ofp_len(i);
+		}
+		default: {
+			return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+		}
+
+	}
+}
+
+char *
+ofl_exp_inst_to_string (struct ofl_instruction_header *i) {
+	struct ofl_instruction_experimenter *exp = (struct ofl_instruction_experimenter *) i;
+    switch (exp->experimenter_id) {
+        case (BEBA_VENDOR_ID): {
+            return ofl_exp_beba_inst_to_string(i);
+        }
+        default: {
+            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+        }
+
+    }
+}
