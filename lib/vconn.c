@@ -99,9 +99,16 @@ static struct ofl_exp_field ofl_exp_field =
          .overlap_a  = ofl_exp_field_overlap_a,
          .overlap_b  = ofl_exp_field_overlap_b};
 
+static struct ofl_exp_inst ofl_exp_instruction =
+        {.pack      = ofl_exp_inst_pack,
+         .unpack    = ofl_exp_inst_unpack,
+         .free      = ofl_exp_inst_free,
+         .ofp_len   = ofl_exp_inst_ofp_len,
+         .to_string = ofl_exp_inst_to_string};
+
 static struct ofl_exp ofl_exp =
         {.act   = &ofl_exp_act,
-         .inst  = NULL,
+         .inst  = &ofl_exp_instruction,
          .match = NULL,
          .stats = &ofl_exp_stats,
          .msg   = &ofl_exp_msg,
