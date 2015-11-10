@@ -211,7 +211,7 @@ ofl_msg_unpack_async_config(struct ofp_header *src, size_t *len, struct ofl_msg_
 }
 
 static ofl_err
-ofl_msg_unpack_packet_in(struct ofp_header *src, uint8_t* buf, size_t *len, struct ofl_msg_header **msg) {
+ofl_msg_unpack_packet_in(struct ofp_header *src, uint8_t* buf, size_t *len, struct ofl_msg_header **msg, struct ofl_exp *exp) {
     struct ofp_packet_in *sp;
     struct ofl_msg_packet_in *dp;
     uint8_t *ptr;
@@ -252,7 +252,7 @@ ofl_msg_unpack_packet_in(struct ofp_header *src, uint8_t* buf, size_t *len, stru
     dp->cookie = ntoh64(sp->cookie);
     
     ptr = buf + (sizeof(struct ofp_packet_in)-4);
-    ofl_structs_match_unpack(&(sp->match),ptr, len ,&(dp->match), 1, NULL);
+    ofl_structs_match_unpack(&(sp->match),ptr, len ,&(dp->match), 1, exp);
     
     ptr = buf + ROUND_UP(sizeof(struct ofp_packet_in)-4 + dp->match->length,8) + 2;
     /* Minus padding bytes */
@@ -1640,7 +1640,7 @@ ofl_msg_unpack(uint8_t *buf, size_t buf_len, struct ofl_msg_header **msg, uint32
 
         /* Asynchronous messages. */
         case OFPT_PACKET_IN:
-            error = ofl_msg_unpack_packet_in(oh,buf, &len, msg);
+            error = ofl_msg_unpack_packet_in(oh,buf, &len, msg, exp);
             break;
         case OFPT_FLOW_REMOVED:
             error = ofl_msg_unpack_flow_removed(oh,buf, &len, msg, exp);

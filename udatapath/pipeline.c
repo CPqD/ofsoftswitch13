@@ -157,6 +157,13 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
         table         = next_table;
         next_table    = NULL;
 		
+        //removes eventual old 'state' virtual header field
+        
+        HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
+                    hmap_node, hash_int(OXM_EXP_STATE,0), &pkt->handle_std->match.match_fields){
+                        hmap_remove_and_shrink(&pkt->handle_std->match.match_fields,&f->hmap_node);
+        }
+
 		if (state_table_is_stateful(table->state_table) && state_table_is_configured(table->state_table)) {
             state_entry = state_table_lookup(table->state_table, pkt);
             if(state_entry!=NULL){
@@ -180,13 +187,6 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
 		}
 
 		entry = flow_table_lookup(table, pkt, pkt->dp->exp);
-
-        //removes 'state' virtual header field
-        
-        HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
-                    hmap_node, hash_int(OXM_EXP_STATE,0), &pkt->handle_std->match.match_fields){
-                        hmap_remove_and_shrink(&pkt->handle_std->match.match_fields,&f->hmap_node);
-        }
 
         if (entry != NULL) {
 	        if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
