@@ -325,14 +325,16 @@ handle_control_msg(struct datapath *dp, struct ofl_msg_header *msg,
         }
         case OFPT_FLOW_MOD: {
             ofl_err res;
-            /* KTH Note State Sync */
+
+            /* State Sync: Notification is sent to acknowledge a flow modification */
             res = pipeline_handle_flow_mod(dp->pipeline, (struct ofl_msg_flow_mod *)msg, sender);
+
             if(!res) {
                 struct ofl_msg_flow_mod *m = (struct ofl_msg_flow_mod *)msg;
                 struct ofl_exp_msg_notify_flow_change ntf= {{{{{.type = OFPT_MULTIPART_REPLY},
                                                            .type = OFPMP_EXPERIMENTER, .flags = 0x0000},
                                                            .experimenter_id = BEBA_VENDOR_ID},
-                                                           .type = OFPT_EXPT_NOTIFICATION },
+                                                           .type = OFPT_EXP_FLOW_NOTIFICATION },
                                                            .ntf_type = OFPT_FLOW_MOD,
                                                            .table_id = m->table_id,
                                                            .match = m->match,
@@ -340,6 +342,7 @@ handle_control_msg(struct datapath *dp, struct ofl_msg_header *msg,
                                                            .instructions = m->instructions};
                 dp_send_message(dp,(struct ofl_msg_header*)&ntf, sender);
             }
+
             return res;
         }
         case OFPT_GROUP_MOD: {

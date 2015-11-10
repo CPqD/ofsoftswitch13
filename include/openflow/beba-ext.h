@@ -62,11 +62,16 @@ OFP_ASSERT(sizeof(struct ofp_exp_action_set_flag) == 24);
 
 
 /*EXPERIMENTER MESSAGES*/
-/* KTH Note State Sync */
+/*
+ * State Sync:
+ * |--> OFPT_EXP_STATE_CHANGED notifies the controller about a state transition;
+ * |--> OFPT_EXP_FLOW_NOTIFICATION notifies the controller about an (actually) installed flow modification in the flow table.
+ */
 enum ofp_exp_messages {
     OFPT_EXP_STATE_MOD,
-    OFPT_EXPT_STATE_CHANGED,
-    OFPT_EXPT_NOTIFICATION
+    OFPT_EXP_STATE_CHANGED,
+    OFPT_EXP_FLOW_NOTIFICATION
+    // Missing type: Notification for missing packet template (after NEC people provide their code)
 };
 
 /****************************************************************
@@ -84,26 +89,33 @@ struct ofp_exp_msg_state_mod {
     uint8_t payload[];
 };
 
-/* KTH Note State Sync */
+/*
+ * State Sync: Message format of a state notification
+ * When a state transition occurs in the state table, controller gets notified.
+ */
 struct ofp_exp_msg_state_ntf {
-    struct ofp_experimenter_header header; // OpenFlow's standard experimenter
+    struct   ofp_experimenter_header header; // OpenFlow's standard experimenter
     uint32_t table_id;
     uint32_t old_state;
     uint32_t new_state;
     uint32_t state_mask;
     uint32_t key_len;
-    uint8_t key[OFPSC_MAX_KEY_LEN];
+    uint8_t  key[OFPSC_MAX_KEY_LEN];
 };
 
+/*
+ * State Sync: Message format of a positive flow modification acknowledgment
+ * (i.e., when a flow is really installed in the flow table, switch notifies the controller)
+ * Useful for bulk updates
+ */
 struct ofp_exp_msg_flow_ntf {
-    struct ofp_experimenter_stats_header header;
+    struct   ofp_experimenter_stats_header header;
     uint32_t table_id;
     uint32_t ntf_type;
-    struct ofp_match match;
+    struct   ofp_match match;
 };
-/* KTH Note end */
 
-struct ofp_exp_stateful_table_config { 
+struct ofp_exp_stateful_table_config {
     uint8_t table_id;
     uint8_t stateful;
 };

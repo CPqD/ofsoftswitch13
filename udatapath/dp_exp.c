@@ -54,7 +54,7 @@ static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(60, 60);
 
 void
 dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
-    
+
     if(act->experimenter_id == BEBA_VENDOR_ID)
     {
         struct ofl_exp_beba_act_header *action;
@@ -69,6 +69,9 @@ dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
                 {
                     struct state_table *st = pkt->dp->pipeline->tables[wns->table_id]->state_table;
                     VLOG_WARN_RL(LOG_MODULE, &rl, "executing action NEXT STATE at stage %u", wns->table_id);
+
+                    // State Sync: Get the new state, encoded in ntf_message, and pack a message to be sent via dp_send_message.
+                    // This invocation occurs when a state transition happens due to a dynamic event (e.g., a newly received packet).
                     state_table_set_state(st, pkt, NULL, wns, &ntf_message);
                     int err = dp_send_message(pkt->dp, (struct ofl_msg_header *)&ntf_message, NULL);
                     if (err) {
@@ -82,15 +85,15 @@ dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
                 }
                 break;
             }
-            case (OFPAT_EXP_SET_FLAG): 
+            case (OFPAT_EXP_SET_FLAG):
             {
                 struct ofl_exp_action_set_flag *wns = (struct ofl_exp_action_set_flag *)action;
                 uint32_t global_states = pkt->dp->global_states;
-                
+
                 global_states = (global_states & ~(wns->flag_mask)) | (wns->flag & wns->flag_mask);
                 pkt->dp->global_states = global_states;
                  break;
-            }  
+            }
             default:
                 VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute unknown experimenter action (%zu).", htonl(act->experimenter_id));
                 break;
@@ -175,11 +178,12 @@ dp_exp_message(struct datapath *dp, struct ofl_msg_experimenter *msg, const stru
 
             switch(exp->type) {
                 case (OFPT_EXP_STATE_MOD): {
+                    // State Sync: This invocation occurs when a state transition happens due to a request from the controller.
+                    // Since the controller already knows the new state to be set, there is no point to generate a notification.
+                    // If you want to notify the controller for this case, use `dp_send_message(dp, (struct ofl_msg_header *)&ntf_message, NULL);`
+                    // after the handle_state_mod call.
                     res = handle_state_mod(dp->pipeline, (struct ofl_exp_msg_state_mod *)msg, sender, &ntf_message);
-                    int err = 0;//dp_send_message(dp, (struct ofl_msg_header *)&ntf_message, NULL);
-                    if (err) {
-                        VLOG_WARN_RL(LOG_MODULE, &rl, "ERROR sending state change notification %s:%i", __FILE__, __LINE__);
-                    }
+
                     return res;
                 }
                 default: {

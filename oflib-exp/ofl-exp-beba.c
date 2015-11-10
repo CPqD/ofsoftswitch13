@@ -159,8 +159,8 @@ ofl_exp_beba_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf, size_t *b
     if (msg->experimenter_id == BEBA_VENDOR_ID) {
         struct ofl_exp_beba_msg_header *exp = (struct ofl_exp_beba_msg_header *)msg;
         switch (exp->type) {
-        /* KTH Note State Sync */
-           case(OFPT_EXPT_STATE_CHANGED): {
+           /* State Sync: Pack the state change message */
+           case(OFPT_EXP_STATE_CHANGED): {
                struct ofl_exp_msg_notify_state_change *ntf = (struct ofl_exp_msg_notify_state_change *) exp;
                struct ofp_exp_msg_state_ntf *ntf_msg;
 
@@ -169,7 +169,7 @@ ofl_exp_beba_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf, size_t *b
 
                ntf_msg = (struct ofp_exp_msg_state_notification *)(*buf);
                ntf_msg->header.experimenter = htonl(BEBA_VENDOR_ID);
-               ntf_msg->header.exp_type = htonl(OFPT_EXPT_STATE_CHANGED);
+               ntf_msg->header.exp_type = htonl(OFPT_EXP_STATE_CHANGED);
                ntf_msg->table_id = htonl(ntf->table_id);
                ntf_msg->old_state = htonl(ntf->old_state);
                ntf_msg->new_state = htonl(ntf->new_state);
@@ -591,44 +591,6 @@ ofl_exp_beba_stats_req_pack(struct ofl_msg_multipart_request_experimenter *ext, 
             return 0;
 
         }
-        /* KTH Note State Sync */
-        case (OFPT_EXPT_NOTIFICATION) :
-        {
-            struct ofl_exp_msg_notify_flow_change *msg = (struct ofl_exp_msg_notify_flow_change *)e;
-            struct ofp_multipart_reply *resp;
-            struct ofp_exp_msg_flow_ntf * fields;
-            struct ofp_experimenter_stats_header *exp_header;
-            struct ofl_instruction_header * instruction;
-            uint8_t * ptr;
-            uint32_t * data;
-            int i;
-
-            *buf_len = sizeof(struct ofp_multipart_reply)+ ROUND_UP(sizeof(struct ofp_exp_msg_flow_ntf)-4 + msg->match->length,8) +
-                       (msg->instruction_num+1)*sizeof(uint32_t);
-            *buf     = (uint8_t *)malloc(*buf_len);
-
-            resp = (struct ofp_multipart_reply *)(*buf);
-            fields = (struct ofp_exp_flow_ntf_msg *)resp->body;
-            exp_header = (struct ofp_experimenter_stats_header *)fields;
-
-            exp_header -> experimenter = htonl(BEBA_VENDOR_ID);
-            exp_header -> exp_type = htonl(OFPT_EXPT_NOTIFICATION);
-            fields->table_id = htonl(msg->table_id);
-            fields->ntf_type = htonl(msg->ntf_type);
-
-            ptr = *buf + sizeof(struct ofp_multipart_reply) + sizeof(struct ofp_exp_msg_flow_ntf)-4;
-            data = *buf + sizeof(struct ofp_multipart_reply) + ROUND_UP(sizeof(struct ofp_exp_msg_flow_ntf)-4+msg->match->length,8);
-            ofl_structs_match_pack(msg->match, &(fields->match),ptr, exp);
-            *data = htonl(msg->instruction_num);
-            instruction = *(msg->instructions);
-            ++data;
-            for (i=0;i<msg->instruction_num;++i){
-                *data = htonl(instruction[i].type);
-                ++data;
-            }
-            return 0;
-        }
-
         default:
             return -1;
     }
@@ -678,6 +640,43 @@ ofl_exp_beba_stats_reply_pack(struct ofl_msg_multipart_reply_experimenter *ext, 
             exp_header -> exp_type = htonl(OFPMP_EXP_FLAGS_STATS);
             memset(stats->pad, 0x00, 4);
             stats->global_states=htonl(msg->global_states);
+            return 0;
+        }
+        /* State Sync: Pack positive flow modification acknowledgment. */
+        case (OFPT_EXP_FLOW_NOTIFICATION) :
+        {
+            struct ofl_exp_msg_notify_flow_change *msg = (struct ofl_exp_msg_notify_flow_change *)e;
+            struct ofp_multipart_reply *resp;
+            struct ofp_exp_msg_flow_ntf * fields;
+            struct ofp_experimenter_stats_header *exp_header;
+            struct ofl_instruction_header * instruction;
+            uint8_t * ptr;
+            uint32_t * data;
+            int i;
+
+            *buf_len = sizeof(struct ofp_multipart_reply)+ ROUND_UP(sizeof(struct ofp_exp_msg_flow_ntf)-4 + msg->match->length,8) +
+                       ROUND_UP((msg->instruction_num+1)*sizeof(uint32_t),8);
+            *buf     = (uint8_t *)malloc(*buf_len);
+
+            resp = (struct ofp_multipart_reply *)(*buf);
+            fields = (struct ofp_exp_flow_ntf_msg *)resp->body;
+            exp_header = (struct ofp_experimenter_stats_header *)fields;
+
+            exp_header -> experimenter = htonl(BEBA_VENDOR_ID);
+            exp_header -> exp_type = htonl(OFPT_EXP_FLOW_NOTIFICATION);
+            fields->table_id = htonl(msg->table_id);
+            fields->ntf_type = htonl(msg->ntf_type);
+
+            ptr = *buf + sizeof(struct ofp_multipart_reply) + sizeof(struct ofp_exp_msg_flow_ntf)-4;
+            data = *buf + sizeof(struct ofp_multipart_reply) + ROUND_UP(sizeof(struct ofp_exp_msg_flow_ntf)-4+msg->match->length,8);
+            ofl_structs_match_pack(msg->match, &(fields->match),ptr, exp);
+            *data = htonl(msg->instruction_num);
+            instruction = *(msg->instructions);
+            ++data;
+            for (i=0;i<msg->instruction_num;++i){
+                *data = htonl(instruction[i].type);
+                ++data;
+            }
             return 0;
         }
         default:
@@ -1443,12 +1442,12 @@ void state_table_set_extractor(struct state_table *table, struct key_extractor *
     return;
 }
 
-/* KTH Note State Sunc */
+/* State Sync:  */
 ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
                            struct ofl_exp_set_flow_state *msg, struct ofl_exp_action_set_state *act,
                            struct ofl_exp_msg_notify_state_change *ntf_message)
 {
-    uint8_t key[MAX_STATE_KEY_LEN] = {0};   
+    uint8_t key[MAX_STATE_KEY_LEN] = {0};
     struct state_entry *e;
     uint32_t state,state_mask;
     uint32_t idle_rollback,hard_rollback;
@@ -1458,26 +1457,26 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
     struct timeval tv;
     ofl_err res;
     res = 0;
-    
+
     int i;
     uint32_t key_len=0; //update-scope key extractor length
     struct key_extractor *extractor=&table->write_key;
-    for (i=0; i<extractor->field_count; i++) 
+    for (i=0; i<extractor->field_count; i++)
     {
         uint32_t type = (int)extractor->fields[i];
         key_len = key_len + OXM_LENGTH(type);
     }
 
     if (pkt)
-    {   
-        //SET_STATE action
+    {
+        // SET_STATE action
         state = act->state;
         state_mask = act->state_mask;
         idle_rollback = act->idle_rollback;
         hard_rollback = act->hard_rollback;
         idle_timeout = act->idle_timeout;
         hard_timeout = act->hard_timeout;
-        
+
         if(!__extract_key(key, &table->write_key, pkt)){
             OFL_LOG_WARN(LOG_MODULE, "lookup key fields not found in the packet's header");
             return res;
@@ -1485,7 +1484,7 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
     }
 
     else if (msg){
-        //SET_STATE message
+        // SET_STATE message
         state = msg->state;
         state_mask = msg->state_mask;
         idle_rollback = msg->idle_rollback;
@@ -1502,20 +1501,31 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
             return 1;
         }
     }
-    
-    HMAP_FOR_EACH_WITH_HASH(e, struct state_entry, 
+
+    HMAP_FOR_EACH_WITH_HASH(e, struct state_entry,
         hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries){
             if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
                 OFL_LOG_WARN(LOG_MODULE, "state value is %u updated to hash map", state);
                 if ((((e->state & ~(state_mask)) | (state & state_mask)) == STATE_DEFAULT) && hard_timeout==0 && idle_timeout==0){
+                    // Keep the old state before moving to the next state.
                     old_state = e->state;
+
+                    // Keep the new state, which is the default in the case of state deletion.
                     new_state = STATE_DEFAULT;
+
+                    // Enforce the new, default state
                     state_table_del_state(table, key, key_len);
                 }
                 else {
+                    // Keep the old state before moving to the next state.
                     old_state = e->state;
+
+                    // Actual state transition.
                     e->state = (e->state & ~(state_mask)) | (state & state_mask);
+
+                    // Keep the new state
                     new_state = e->state;
+
                     gettimeofday(&tv,NULL);
                     now = 1000000 * tv.tv_sec + tv.tv_usec;
 
@@ -1530,32 +1540,35 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
                     e->stats->hard_timeout = 0;
                     e->stats->idle_rollback = 0;
                     e->stats->hard_rollback = 0;
-                    
+
                     if (hard_timeout>0 && hard_rollback!=((e->state & ~(state_mask)) | (state & state_mask))) {
                         e->stats->hard_timeout = hard_timeout;
                         e->stats->hard_rollback = hard_rollback;
-                        e->remove_at = now + hard_timeout;                       
+                        e->remove_at = now + hard_timeout;
                         hmap_insert(&table->hard_entries, &e->hard_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
                     }
                     if (idle_timeout>0 && idle_rollback!=((e->state & ~(state_mask)) | (state & state_mask))) {
                         e->stats->idle_timeout = idle_timeout;
                         e->stats->idle_rollback = idle_rollback;
-                        e->last_used = now;                        
+                        e->last_used = now;
                         hmap_insert(&table->idle_entries, &e->idle_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
                     }
                 }
-                /*KTH Note, State Sync : Notify controller about state change */
+
+                /* State Sync: Notify the controller about state transition by sending the old and new state of the particular update key. */
                 *ntf_message = (struct ofl_exp_msg_notify_state_change)
                                {{{.header = OFPT_EXPERIMENTER,
                                   .experimenter_id = BEBA_VENDOR_ID},
-                                  .type = OFPT_EXPT_STATE_CHANGED},
+                                  .type = OFPT_EXP_STATE_CHANGED},
                                   .table_id = extractor->table_id,
                                   .old_state = old_state,
                                   .new_state = new_state,
                                   .state_mask = state_mask,
                                   .key_len = key_len,
                                   .key = {}};
+
                 memcpy(ntf_message->key, key, key_len);
+
                 return res;
             }
     }
@@ -1575,7 +1588,7 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
 
     // A new state entry with state!=DEF is always installed.
     if ((state & state_mask) != STATE_DEFAULT)
-    {       
+    {
         OFL_LOG_WARN(LOG_MODULE, "state value is %u inserted to hash map", e->state);
         hmap_insert(&table->state_entries, &e->hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
     }
@@ -1586,11 +1599,13 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
             hmap_insert(&table->state_entries, &e->hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
     }
 
+    // This is the case, when a fresh state is created in the state table.
+    // Old state was the default state, new state is just set and the controller needs to know it as well.
     new_state = e->state;
     *ntf_message = (struct ofl_exp_msg_notify_state_change)
                    {{{.header = OFPT_EXPERIMENTER,
                       .experimenter_id = BEBA_VENDOR_ID},
-                      .type = OFPT_EXPT_STATE_CHANGED},
+                      .type = OFPT_EXP_STATE_CHANGED},
                       .table_id = extractor->table_id,
                       .old_state = old_state,
                       .new_state = new_state,
@@ -1615,10 +1630,14 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
     return res;
 }
 
+/*
+ * State Sync: One extra argument (i.e., ntf_message) is passed to this function to notify about
+ * a state change in the state table.
+ */
 ofl_err
 handle_state_mod(struct pipeline *pl, struct ofl_exp_msg_state_mod *msg,
                  const struct sender *sender, struct ofl_exp_msg_notify_state_change * ntf_message) {
-    
+
     if (msg->command == OFPSC_STATEFUL_TABLE_CONFIG) {
         struct ofl_exp_stateful_table_config *p = (struct ofl_exp_stateful_table_config *) msg->payload;
         struct state_table *st = pl->tables[p->table_id]->state_table;
@@ -1629,7 +1648,7 @@ handle_state_mod(struct pipeline *pl, struct ofl_exp_msg_state_mod *msg,
         struct state_table *st = pl->tables[p->table_id]->state_table;
         if (state_table_is_stateful(st)){
             int update = 0;
-            if (msg->command == OFPSC_SET_U_EXTRACTOR) 
+            if (msg->command == OFPSC_SET_U_EXTRACTOR)
                 update = 1;
             state_table_set_extractor(st, (struct key_extractor *)p, update);
         }
@@ -1641,6 +1660,9 @@ handle_state_mod(struct pipeline *pl, struct ofl_exp_msg_state_mod *msg,
     else if (msg->command == OFPSC_SET_FLOW_STATE) {
         struct ofl_exp_set_flow_state *p = (struct ofl_exp_set_flow_state *) msg->payload;
         struct state_table *st = pl->tables[p->table_id]->state_table;
+
+        // State Sync: Now state_table_set_state function contains this extra parameter related to the
+        // state notification.
         if (state_table_is_stateful(st) && state_table_is_configured(st)){
             state_table_set_state(st, NULL, p, NULL, ntf_message);
         }
