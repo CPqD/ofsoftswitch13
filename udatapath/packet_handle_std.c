@@ -56,6 +56,7 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
     uint64_t tunnel_id = 0;
     uint32_t state = 0;
     bool has_state = false;
+    uint32_t current_global_state = OFP_GLOBAL_STATE_DEFAULT;
 
     if(handle->valid)
         return;
@@ -72,8 +73,13 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
 
     HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
                     hmap_node, hash_int(OXM_EXP_STATE,0), &handle->match.match_fields){
-                    state = *((uint32_t*) (f->value + 4));
+                    state = *((uint32_t*) (f->value + EXP_ID_LEN));
                     has_state = true;
+    }
+
+    HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv, hmap_node, 
+            hash_int(OXM_EXP_GLOBAL_STATE,0), &handle->match.match_fields){
+            current_global_state = (uint32_t) *(f->value + EXP_ID_LEN);
     }
 
     HMAP_FOR_EACH_SAFE(iter, next, struct ofl_match_tlv, hmap_node, &handle->match.match_fields){
@@ -92,7 +98,7 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
     ofl_structs_match_put32(&handle->match, OXM_OF_IN_PORT, handle->pkt->in_port);
 
     /* Add global register value to the hash_map */
-    ofl_structs_match_exp_put32(&handle->match, OXM_EXP_GLOBAL_STATE, 0xBEBABEBA, OFP_GLOBAL_STATE_DEFAULT);
+    ofl_structs_match_exp_put32(&handle->match, OXM_EXP_GLOBAL_STATE, 0xBEBABEBA, current_global_state);
 
     if(has_state)
     {
