@@ -29,7 +29,7 @@ ofl_structs_add_pkttmp_unpack(struct ofp_exp_add_pkttmp *src, size_t *len, struc
 
     if( *len >= sizeof(struct ofp_exp_add_pkttmp) )
     {
-        OFL_LOG_WARN(LOG_MODULE, "Received PKTTMP_MOD message to set pkttmp_id (%zu) [Msg_len: %zu].", src->pkttmp_id, *len);
+        OFL_LOG_DBG(LOG_MODULE, "Received PKTTMP_MOD message to set pkttmp_id (%zu) [Msg_len: %zu].", src->pkttmp_id, *len);
         dst->pkttmp_id = src->pkttmp_id;
 
         *len -= sizeof(struct ofp_exp_add_pkttmp);
@@ -55,7 +55,7 @@ ofl_structs_del_pkttmp_unpack(struct ofp_exp_del_pkttmp *src, size_t *len, struc
 
     if( *len == sizeof(struct ofp_exp_del_pkttmp) )
     {
-        OFL_LOG_WARN(LOG_MODULE, "NOT IMPLEMENTED! Received PKTTMP_MOD message to delete pkttmp_id (%zu).", src->pkttmp_id );
+        OFL_LOG_DBG(LOG_MODULE, "NOT IMPLEMENTED! Received PKTTMP_MOD message to delete pkttmp_id (%zu).", src->pkttmp_id );
         dst->pkttmp_id = src->pkttmp_id;
     }
     else
@@ -170,7 +170,7 @@ ofl_structs_del_flow_state_unpack(struct ofp_exp_del_flow_state *src, size_t *le
         for (i=0;i<dst->key_len;i++)
             key[i]=src->key[i];
         memcpy(dst->key, key, dst->key_len);
-        OFL_LOG_WARN(LOG_MODULE, "key count is %d\n",dst->key_len);
+        OFL_LOG_DBG(LOG_MODULE, "key count is %d\n",dst->key_len);
     }
     else
     { //control of struct ofp_extraction length.
@@ -366,7 +366,7 @@ ofl_exp_beba_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_exper
 
 int
 ofl_exp_beba_msg_free(struct ofl_msg_experimenter *msg) {
-	OFL_LOG_WARN(LOG_MODULE, "ofl_exp_beba_msg_free");
+	OFL_LOG_DBG(LOG_MODULE, "ofl_exp_beba_msg_free");
     if (msg->experimenter_id == BEBA_VENDOR_ID) {
         struct ofl_exp_beba_msg_header *exp = (struct ofl_exp_beba_msg_header *)msg;
         switch (exp->type) {
@@ -1362,14 +1362,14 @@ struct state_entry * state_table_lookup(struct state_table* table, struct packet
 
     if(!__extract_key(key, &table->read_key, pkt))
     {
-        OFL_LOG_WARN(LOG_MODULE, "lookup key fields not found in the packet's header -> NULL");
+        OFL_LOG_DBG(LOG_MODULE, "lookup key fields not found in the packet's header -> NULL");
         return NULL;
     }
     
     HMAP_FOR_EACH_WITH_HASH(e, struct state_entry, 
         hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries){
             if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
-                OFL_LOG_WARN(LOG_MODULE, "found corresponding state %u",e->state);
+                OFL_LOG_DBG(LOG_MODULE, "found corresponding state %u",e->state);
 
                 //check if the hard_timeout of matched state entry has expired
                 if ((e->stats->hard_timeout>0) && state_entry_hard_timeout(table,e)) {
@@ -1391,7 +1391,7 @@ struct state_entry * state_table_lookup(struct state_table* table, struct packet
 
     if (e == NULL)
     {    
-        OFL_LOG_WARN(LOG_MODULE, "not found the corresponding state value\n");
+        OFL_LOG_DBG(LOG_MODULE, "not found the corresponding state value\n");
         return &table->default_state_entry;
     }
     else 
@@ -1459,7 +1459,7 @@ void state_table_set_extractor(struct state_table *table, struct key_extractor *
             }
         }
         dest = &table->write_key;
-        OFL_LOG_WARN(LOG_MODULE, "Update-scope set");
+        OFL_LOG_DBG(LOG_MODULE, "Update-scope set");
         }
     else{
         if (table->write_key.field_count!=0){
@@ -1469,7 +1469,7 @@ void state_table_set_extractor(struct state_table *table, struct key_extractor *
             }
         }
         dest = &table->read_key;
-        OFL_LOG_WARN(LOG_MODULE, "Lookup-scope set");
+        OFL_LOG_DBG(LOG_MODULE, "Lookup-scope set");
         }
     dest->field_count = ke->field_count;
     memcpy(dest->fields, ke->fields, sizeof(uint32_t)*ke->field_count);
@@ -1505,7 +1505,7 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, struct
         hard_timeout = act->hard_timeout;
         
         if(!__extract_key(key, &table->write_key, pkt)){
-            OFL_LOG_WARN(LOG_MODULE, "lookup key fields not found in the packet's header");
+            OFL_LOG_DBG(LOG_MODULE, "lookup key fields not found in the packet's header");
             return;
         }
     }
@@ -1532,7 +1532,7 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, struct
     HMAP_FOR_EACH_WITH_HASH(e, struct state_entry, 
         hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries){
             if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
-                OFL_LOG_WARN(LOG_MODULE, "state value is %u updated to hash map", state);
+                OFL_LOG_DBG(LOG_MODULE, "state value is %u updated to hash map", state);
                 if ((((e->state & ~(state_mask)) | (state & state_mask)) == STATE_DEFAULT) && hard_timeout==0 && idle_timeout==0){
                     state_table_del_state(table, key, key_len);
                 }
@@ -1585,7 +1585,7 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, struct
     // A new state entry with state!=DEF is always installed.
     if ((state & state_mask) != STATE_DEFAULT)
     {       
-        OFL_LOG_WARN(LOG_MODULE, "state value is %u inserted to hash map", e->state);
+        OFL_LOG_DBG(LOG_MODULE, "state value is %u inserted to hash map", e->state);
         hmap_insert(&table->state_entries, &e->hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
     }
     else
@@ -2395,7 +2395,7 @@ ofl_exp_beba_inst_pack (struct ofl_instruction_header *src, struct ofp_instructi
 		struct ofl_exp_beba_instr_header *ext = (struct ofl_exp_beba_instr_header *)exp;
 		switch (ext->instr_type) {
 			case OFPIT_IN_SWITCH_PKT_GEN: {
-				OFL_LOG_WARN(LOG_MODULE, "ofl_exp_beba_inst_pack OFPIT_IN_SWITCH_PKT_GEN");
+				OFL_LOG_DBG(LOG_MODULE, "ofl_exp_beba_inst_pack OFPIT_IN_SWITCH_PKT_GEN");
 				size_t total_len, len;
 				uint8_t *data;
 				size_t i;
@@ -2441,7 +2441,7 @@ ofl_exp_beba_inst_unpack (struct ofp_instruction *src, size_t *len, struct ofl_i
 	size_t ilen;
     struct ofp_instruction_experimenter_header *exp;
 
-    OFL_LOG_WARN(LOG_MODULE, "ofl_exp_beba_inst_unpack");
+    OFL_LOG_DBG(LOG_MODULE, "ofl_exp_beba_inst_unpack");
 
     if (*len < sizeof(struct ofp_instruction_experimenter_header)) {
     	OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER instruction has invalid length (%zu).", *len);
@@ -2539,13 +2539,13 @@ ofl_exp_beba_inst_free (struct ofl_instruction_header *i) {
 	        switch (ext->instr_type) {
 	            case (OFPIT_IN_SWITCH_PKT_GEN):
 	            {
-	            	OFL_LOG_WARN(LOG_MODULE, "Freeing BEBA instruction IN_SWITCH_PKT_GEN.");
+	            	OFL_LOG_DBG(LOG_MODULE, "Freeing BEBA instruction IN_SWITCH_PKT_GEN.");
 	                struct ofl_exp_instruction_in_switch_pkt_gen *instr = (struct ofl_exp_instruction_in_switch_pkt_gen *)ext;
 					// TODO We may need to use OFL_UTILS_FREE_ARR_FUN2 and pass the ofl_exp callbacks instead of NULL
 	                OFL_UTILS_FREE_ARR_FUN2(instr->actions, instr->actions_num,
 										ofl_actions_free, NULL);
 	                free(instr);
-	                OFL_LOG_WARN(LOG_MODULE, "Done.");
+	                OFL_LOG_DBG(LOG_MODULE, "Done.");
 	                return 0;
 	                break;
 	            }
@@ -2568,7 +2568,7 @@ ofl_exp_beba_inst_ofp_len (struct ofl_instruction_header *i) {
 		switch (ext->instr_type) {
 			case OFPIT_IN_SWITCH_PKT_GEN: {
 				struct ofl_exp_instruction_in_switch_pkt_gen *i = (struct ofl_exp_instruction_in_switch_pkt_gen *)ext;
-				OFL_LOG_WARN(LOG_MODULE, "ofl_exp_beba_inst_ofp_len");
+				OFL_LOG_DBG(LOG_MODULE, "ofl_exp_beba_inst_ofp_len");
 				// TODO We may need to pass the ofl_exp callbacks instead of NULL
 //				return sizeof(struct ofl_exp_beba_instr_header)
 //						+ ofl_actions_ofp_total_len(i->actions, i->actions_num, exp);
@@ -2595,7 +2595,7 @@ ofl_exp_beba_inst_to_string (struct ofl_instruction_header *i) {
 		struct ofl_exp_beba_instr_header *ext = (struct ofl_exp_beba_instr_header *)exp;
 		switch (ext->instr_type) {
 			case (OFPIT_IN_SWITCH_PKT_GEN): {
-				OFL_LOG_WARN(LOG_MODULE, "Trying to print BEBA Experimenter instruction. Not implemented yet!");
+				OFL_LOG_DBG(LOG_MODULE, "Trying to print BEBA Experimenter instruction. Not implemented yet!");
 				fprintf(stream, "OFPIT{type=\"%u\"}", ext->instr_type);
 				break;
 			}
@@ -2615,7 +2615,7 @@ ofl_err
 handle_pkttmp_mod(struct pipeline *pl, struct ofl_exp_msg_pkttmp_mod *msg,
                                                 const struct sender *sender) {
 
-	OFL_LOG_WARN(LOG_MODULE, "Handling PKTTMP_MOD");
+	OFL_LOG_DBG(LOG_MODULE, "Handling PKTTMP_MOD");
 	/* TODO: complete handling of creating and deleting pkttmp entry */
     if (msg->command == OFPSC_ADD_PKTTMP) {
         struct ofl_exp_add_pkttmp *p = (struct ofl_exp_add_pkttmp *) msg->payload;
@@ -2623,7 +2623,7 @@ handle_pkttmp_mod(struct pipeline *pl, struct ofl_exp_msg_pkttmp_mod *msg,
         e = pkttmp_entry_create(pl->dp, pl->dp->pkttmps, p);
 
 		hmap_insert(&pl->dp->pkttmps->entries, &e->node, hash_bytes(&e->pkttmp_id, 4, 0));
-		OFL_LOG_WARN(LOG_MODULE, "PKTTMP id is %d, inserted to hash map", e->pkttmp_id);
+		OFL_LOG_DBG(LOG_MODULE, "PKTTMP id is %d, inserted to hash map", e->pkttmp_id);
     } /*
     else if (msg->command == OFPSC_DEL_FLOW_STATE) {
         struct ofl_exp_del_flow_state *p = (struct ofl_exp_del_flow_state *) msg->payload;
@@ -2648,7 +2648,7 @@ pkttmp_table_create(struct datapath *dp) {
 	struct pkttmp_table *table;
 	//size_t i;
 
-	OFL_LOG_WARN(LOG_MODULE, "Creating PKTTMP TABLE.");
+	OFL_LOG_DBG(LOG_MODULE, "Creating PKTTMP TABLE.");
 
     table = xmalloc(sizeof(struct pkttmp_table));
     table->dp = dp;
@@ -2691,7 +2691,7 @@ pkttmp_entry_create(struct datapath *dp, struct pkttmp_table *table, struct ofl_
     //e->data = mod->data_length > 0 ? (uint8_t *)memcpy(malloc(mod->data_length), mod->data, mod->data_length) : NULL;
 
 
-    OFL_LOG_WARN(LOG_MODULE, "Creating PKTTMP entry with following values id %u, data_len %u.",e->pkttmp_id, e->data_length);
+    OFL_LOG_DBG(LOG_MODULE, "Creating PKTTMP entry with following values id %u, data_len %u.",e->pkttmp_id, e->data_length);
 
     return e;
 }
