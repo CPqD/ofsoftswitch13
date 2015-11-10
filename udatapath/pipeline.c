@@ -168,9 +168,9 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
 
         //set 'flags' virtual header field value
         HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv, 
-            hmap_node, hash_int(OXM_EXP_FLAGS,0), &pkt->handle_std->match.match_fields){
+            hmap_node, hash_int(OXM_EXP_GLOBAL_STATE,0), &pkt->handle_std->match.match_fields){
                     uint32_t *flags = (uint32_t*) (f->value + EXP_ID_LEN);
-                    *flags = (*flags & 0x00000000 ) | (pkt->dp->global_states);
+                    *flags = (*flags & 0x00000000 ) | (pkt->dp->global_state);
         }
 
 		if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {

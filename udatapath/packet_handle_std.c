@@ -92,7 +92,7 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
     ofl_structs_match_put32(&handle->match, OXM_OF_IN_PORT, handle->pkt->in_port);
 
     /* Add global register value to the hash_map */
-    ofl_structs_match_exp_put32(&handle->match, OXM_EXP_FLAGS, 0xBEBABEBA, OFP_GLOBAL_STATES_DEFAULT);
+    ofl_structs_match_exp_put32(&handle->match, OXM_EXP_GLOBAL_STATE, 0xBEBABEBA, OFP_GLOBAL_STATE_DEFAULT);
 
     if(has_state)
     {

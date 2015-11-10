@@ -445,7 +445,7 @@ ofl_structs_oxm_tlv_print(FILE *stream, struct ofl_match_tlv *f)
 					}
 		 			break;
 
-				case OFPXMT_EXP_FLAGS:
+				case OFPXMT_EXP_GLOBAL_STATE:
 					fprintf(stream, "flags=");
 					if (!OXM_HASMASK(f->header)) {
 						char string_value[33];

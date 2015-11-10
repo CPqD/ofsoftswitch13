@@ -76,7 +76,7 @@ struct datapath {
 
     uint64_t  id;               /* Unique identifier for this datapath. */
 
-    uint32_t  global_states;    /* Global States for this datapath. */
+    uint32_t  global_state;    /* Global State for this datapath. */
 
     struct list remotes;        /* Remote connections. */
 

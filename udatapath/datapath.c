@@ -169,7 +169,7 @@ dp_new(void) {
 
     dp->id = gen_datapath_id();
 
-    dp->global_states = NULL;
+    dp->global_state = NULL;
 
     dp->generation_id = -1;
 

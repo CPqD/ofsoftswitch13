@@ -77,13 +77,13 @@ dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
                 }
                 break;
             }
-            case (OFPAT_EXP_SET_FLAG): 
+            case (OFPAT_EXP_SET_GLOBAL_STATE): 
             {
-                struct ofl_exp_action_set_flag *wns = (struct ofl_exp_action_set_flag *)action;
-                uint32_t global_states = pkt->dp->global_states;
+                struct ofl_exp_action_set_global_state *wns = (struct ofl_exp_action_set_global_state *)action;
+                uint32_t global_state = pkt->dp->global_state;
                 
-                global_states = (global_states & ~(wns->flag_mask)) | (wns->flag & wns->flag_mask);
-                pkt->dp->global_states = global_states;
+                global_state = (global_state & ~(wns->global_state_mask)) | (wns->global_state & wns->global_state_mask);
+                pkt->dp->global_state = global_state;
                  break;
             }  
             default:
@@ -194,7 +194,7 @@ dp_exp_stats(struct datapath *dp UNUSED, struct ofl_msg_multipart_request_experi
                     ofl_msg_free((struct ofl_msg_header *)msg, dp->exp);
                     return err;
                 }
-                case (OFPMP_EXP_FLAGS_STATS): {
+                case (OFPMP_EXP_GLOBAL_STATE_STATS): {
                     struct ofl_exp_msg_multipart_reply_global_state reply;
                     err = handle_stats_request_global_state(dp->pipeline, sender, &reply);
                     dp_send_message(dp, (struct ofl_msg_header *)&reply, sender);

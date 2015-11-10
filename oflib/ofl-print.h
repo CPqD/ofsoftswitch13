@@ -204,6 +204,6 @@ char
 *decimal_to_binary(uint32_t);
 
 void
-masked_value_print(char *string, char *flag, char *flag_mask);
+masked_value_print(char *string, char *global_state, char *global_state_mask);
 
 #endif /* OFL_PRINT_H */

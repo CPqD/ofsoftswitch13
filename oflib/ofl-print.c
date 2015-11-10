@@ -65,15 +65,15 @@ char *decimal_to_binary(uint32_t n)
    return  pointer;
 }
 
-void masked_value_print(char *string,char *flag, char *flag_mask){
+void masked_value_print(char *string,char *global_state, char *global_state_mask){
     int i=0;
 
     for(i=0;i<32;i++){
-        if (flag_mask[i]=='0'){
+        if (global_state_mask[i]=='0'){
             string[i]='*';
         }
         else {
-            string[i]=*(flag+i);
+            string[i]=*(global_state+i);
         }
         string[32]='\0';
     }

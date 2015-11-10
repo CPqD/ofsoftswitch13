@@ -73,8 +73,8 @@ struct ofl_exp_del_flow_state {
 };
 
 struct ofl_exp_set_global_state {
-    uint32_t flag;
-    uint32_t flag_mask;
+    uint32_t global_state;
+    uint32_t global_state_mask;
 };
 
 /************************
@@ -140,12 +140,12 @@ struct ofl_exp_msg_multipart_reply_state {
 };
 
 struct ofl_exp_msg_multipart_request_global_state {
-    struct ofl_exp_beba_msg_multipart_request   header; /* OFPMP_FLAGS */
+    struct ofl_exp_beba_msg_multipart_request   header; /* OFPMP_GLOBAL_STATE */
 };
 
 struct ofl_exp_msg_multipart_reply_global_state {
-    struct ofl_exp_beba_msg_multipart_reply   header; /* OFPMP_FLAGS */
-    uint32_t global_states;
+    struct ofl_exp_beba_msg_multipart_reply   header; /* OFPMP_GLOBAL_STATE */
+    uint32_t global_state;
 };
 
 /*************************************************************************/
@@ -170,11 +170,11 @@ struct ofl_exp_action_set_state {
     
 };
 
-struct ofl_exp_action_set_flag {
-    struct ofl_exp_beba_act_header   header; /* OFPAT_EXP_SET_FLAG */
+struct ofl_exp_action_set_global_state {
+    struct ofl_exp_beba_act_header   header; /* OFPAT_EXP_SET_GLOBAL_STATE */
 
-    uint32_t flag;
-    uint32_t flag_mask;
+    uint32_t global_state;
+    uint32_t global_state_mask;
 };
 
 

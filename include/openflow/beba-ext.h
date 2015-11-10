@@ -12,10 +12,10 @@
  */
 
 #define BEBA_VENDOR_ID 0xBEBABEBA
-#define OFP_GLOBAL_STATES_DEFAULT 0
+#define OFP_GLOBAL_STATE_DEFAULT 0
 
 enum oxm_exp_match_fields {
-    OFPXMT_EXP_FLAGS,      /* Global States */
+    OFPXMT_EXP_GLOBAL_STATE,      /* Global State */
     OFPXMT_EXP_STATE       /* Flow State */
 };
 
@@ -50,7 +50,7 @@ OFP_ASSERT(sizeof(struct ofp_exp_instruction_in_switch_pkt_gen) == 24);
  ****************************************************************/
 enum ofp_exp_actions {
     OFPAT_EXP_SET_STATE,
-    OFPAT_EXP_SET_FLAG
+    OFPAT_EXP_SET_GLOBAL_STATE
 };
 
 struct ofp_beba_action_experimenter_header {
@@ -76,13 +76,13 @@ struct ofp_exp_action_set_state {
 OFP_ASSERT(sizeof(struct ofp_exp_action_set_state) == 48);
 
 
-/* Action structure for OFPAT_EXP_SET_FLAG */
-struct ofp_exp_action_set_flag {
+/* Action structure for OFPAT_EXP_SET_GLOBAL_STATE */
+struct ofp_exp_action_set_global_state {
     struct ofp_beba_action_experimenter_header header;
-    uint32_t flag; /* flag value */
-    uint32_t flag_mask;    /*flag mask*/
+    uint32_t global_state; /* global state value */
+    uint32_t global_state_mask;    /*global state mask*/
 };
-OFP_ASSERT(sizeof(struct ofp_exp_action_set_flag) == 24);
+OFP_ASSERT(sizeof(struct ofp_exp_action_set_global_state) == 24);
 
 
 /*EXPERIMENTER MESSAGES*/
@@ -139,18 +139,18 @@ struct ofp_exp_del_flow_state {
 };
 
 struct ofp_exp_set_global_state {
-    uint32_t flag;
-    uint32_t flag_mask;
+    uint32_t global_state;
+    uint32_t global_state_mask;
 };
 
 enum ofp_exp_msg_state_mod_commands {
     OFPSC_STATEFUL_TABLE_CONFIG = 0,
-    OFPSC_SET_L_EXTRACTOR,
-    OFPSC_SET_U_EXTRACTOR,
-    OFPSC_SET_FLOW_STATE,   
-    OFPSC_DEL_FLOW_STATE,
-    OFPSC_SET_GLOBAL_STATE,
-    OFPSC_RESET_GLOBAL_STATE   
+    OFPSC_EXP_SET_L_EXTRACTOR,
+    OFPSC_EXP_SET_U_EXTRACTOR,
+    OFPSC_EXP_SET_FLOW_STATE,   
+    OFPSC_EXP_DEL_FLOW_STATE,
+    OFPSC_EXP_SET_GLOBAL_STATE,
+    OFPSC_EXP_RESET_GLOBAL_STATE   
 };
 
 /****************************************************************
@@ -190,7 +190,7 @@ enum ofp_exp_msg_pkttmp_mod_commands {
 ****************************************************************/
 enum ofp_stats_extension_commands {
     OFPMP_EXP_STATE_STATS,      
-    OFPMP_EXP_FLAGS_STATS
+    OFPMP_EXP_GLOBAL_STATE_STATS
 };
 
 struct ofp_exp_state_entry{
@@ -236,21 +236,21 @@ OFP_ASSERT(sizeof(struct ofp_exp_state_stats) == 112);
 
 /****************************************************************
  *
- *   MULTIPART MESSAGE: OFPMP_EXP_FLAGS_STATS
+ *   MULTIPART MESSAGE: OFPMP_EXP_GLOBAL_STATE_STATS
  *
 ****************************************************************/
 
-/* Body for ofp_multipart_request of type OFPMP_EXP_FLAGS_STATS. */
+/* Body for ofp_multipart_request of type OFPMP_EXP_GLOBAL_STATE_STATS. */
 struct ofp_exp_global_state_stats_request {
     struct ofp_experimenter_stats_header header;
 };
 OFP_ASSERT(sizeof(struct ofp_exp_global_state_stats_request) == 8);
 
-/* Body of reply to OFPMP_EXP_FLAGS_STATS request. */
+/* Body of reply to OFPMP_EXP_GLOBAL_STATE_STATS request. */
 struct ofp_exp_global_state_stats {
     struct ofp_experimenter_stats_header header;
     uint8_t pad[4];
-    uint32_t global_states;
+    uint32_t global_state;
 };
 OFP_ASSERT(sizeof(struct ofp_exp_global_state_stats) == 16);
 
