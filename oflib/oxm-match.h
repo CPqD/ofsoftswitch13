@@ -227,7 +227,7 @@
 
 #define EXP_ID_LEN 4
 #define OXM_EXP_GLOBAL_STATE OXM_HEADER     (0xFFFF, 0, 8)
-#define OXM_EXP_GLOBAL_STATE_W OXM_HEADER_W (0xFFFF, 0, 6)  /*(experimenter_id + flag + mask)/2*/
+#define OXM_EXP_GLOBAL_STATE_W OXM_HEADER_W (0xFFFF, 0, 6)  /*(experimenter_id + global_state + mask)/2*/
 #define OXM_EXP_STATE OXM_HEADER     (0xFFFF, 1, 8)
 #define OXM_EXP_STATE_W OXM_HEADER_W (0xFFFF, 1, 6)
 
