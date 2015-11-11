@@ -51,17 +51,33 @@ OFL_LOG_INIT(LOG_MODULE)
  ****************************************************************************/
 
 static int
-ofl_msg_pack_error(struct ofl_msg_error *msg, uint8_t **buf, size_t *buf_len) {
-    struct ofp_error_msg *err;
+ofl_msg_pack_error(struct ofl_msg_error *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
+    
+    int error = 0;
+    switch (msg->type) {
+        case (OFPET_EXPERIMENTER): {
+            struct ofl_msg_exp_error *exp_err = (struct ofl_msg_exp_error *) msg;
+            if (exp == NULL || exp->err == NULL || exp->err->pack == NULL) {
+                OFL_LOG_WARN(LOG_MODULE, "Trying to pack experimenter err message, but no callback was given.");
+                error = -1;
+            } else {
+                error = exp->err->pack(exp_err, buf, buf_len);
+            }
+            break;
+        }
+        default: {
+            struct ofp_error_msg *err;
+            *buf_len = sizeof(struct ofp_error_msg) + msg->data_length;
+            *buf     = (uint8_t *)malloc(*buf_len);
 
-    *buf_len = sizeof(struct ofp_error_msg) + msg->data_length;
-    *buf     = (uint8_t *)malloc(*buf_len);
-
-    err = (struct ofp_error_msg *)(*buf);
-    err->type = htons(msg->type);
-    err->code = htons(msg->code);
-    memcpy(err->data, msg->data, msg->data_length);
-    return 0;
+            err = (struct ofp_error_msg *)(*buf);
+            err->type = htons(msg->type);
+            err->code = htons(msg->code);
+            memcpy(err->data, msg->data, msg->data_length);
+            break;
+        }
+    }
+    return error;
 }
 
 static int
@@ -986,7 +1002,7 @@ ofl_msg_pack(struct ofl_msg_header *msg, uint32_t xid, uint8_t **buf, size_t *bu
             break;
         }
         case OFPT_ERROR: {
-            error = ofl_msg_pack_error((struct ofl_msg_error *)msg, buf, buf_len);
+            error = ofl_msg_pack_error((struct ofl_msg_error *)msg, buf, buf_len, exp);
             break;
         }
         case OFPT_ECHO_REQUEST:

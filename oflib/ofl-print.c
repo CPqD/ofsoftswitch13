@@ -429,7 +429,8 @@ ofl_error_type_print(FILE *stream, uint16_t type) {
         case (OFPET_METER_MOD_FAILED): {     fprintf(stream, "METER_MOD_FAILED"); return; }
         case (OFPET_QUEUE_OP_FAILED): {      fprintf(stream, "QUEUE_OP_FAILED"); return; }
         case (OFPET_SWITCH_CONFIG_FAILED): { fprintf(stream, "SWITCH_CONFIG_FAILED"); return; }
-        case (OFPET_TABLE_FEATURES_FAILED): { fprintf(stream, "TABLE_FEATURES_FAILED"); return; }
+        case (OFPET_TABLE_FEATURES_FAILED): {fprintf(stream, "TABLE_FEATURES_FAILED"); return; }
+        case (OFPET_EXPERIMENTER): {         fprintf(stream, "OFPET_EXPERIMENTER"); return; }
         default: {                           fprintf(stream, "?(%u)", type); return; }
     }
 }

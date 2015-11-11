@@ -127,7 +127,7 @@ bool action_outputs_to_port(const union ofp_action *, uint32_t port);
 static inline int
 ofp_mkerr(uint16_t type, uint16_t code)
 {
-    assert(type > 0 && type <= 0x7fff);
+    assert(type > 0 && type <= 0xffff);
     return (type << 16) | code;
 }
 

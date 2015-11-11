@@ -106,13 +106,19 @@ static struct ofl_exp_inst ofl_exp_instruction =
          .ofp_len   = ofl_exp_inst_ofp_len,
          .to_string = ofl_exp_inst_to_string};
 
+static struct ofl_exp_err ofl_exp_err =
+        {.pack       = ofl_exp_err_pack,
+         .free       = ofl_exp_err_free,
+         .to_string  = ofl_exp_err_to_string};
+
 static struct ofl_exp ofl_exp =
         {.act   = &ofl_exp_act,
          .inst  = &ofl_exp_instruction,
          .match = NULL,
          .stats = &ofl_exp_stats,
          .msg   = &ofl_exp_msg,
-         .field = &ofl_exp_field};
+         .field = &ofl_exp_field,
+         .err   = &ofl_exp_err };
 
 static struct vconn_class *vconn_classes[] = {
     &tcp_vconn_class,

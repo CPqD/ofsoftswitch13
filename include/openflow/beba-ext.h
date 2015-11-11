@@ -79,8 +79,8 @@ OFP_ASSERT(sizeof(struct ofp_exp_action_set_state) == 48);
 /* Action structure for OFPAT_EXP_SET_GLOBAL_STATE */
 struct ofp_exp_action_set_global_state {
     struct ofp_beba_action_experimenter_header header;
-    uint32_t global_state; /* global state value */
-    uint32_t global_state_mask;    /*global state mask*/
+    uint32_t global_state;
+    uint32_t global_state_mask;
 };
 OFP_ASSERT(sizeof(struct ofp_exp_action_set_global_state) == 24);
 
@@ -89,6 +89,20 @@ OFP_ASSERT(sizeof(struct ofp_exp_action_set_global_state) == 24);
 enum ofp_exp_messages {
     OFPT_EXP_STATE_MOD,
 	OFPT_EXP_PKTTMP_MOD
+};
+
+/*EXPERIMENTER ERROR MESSAGES*/
+enum ofp_exp_beba_errors{
+    OFPEC_EXP_STATE_MOD_FAILED,
+    OFPEC_EXP_STATE_MOD_BAD_COMMAND,
+    OFPEC_EXP_SET_EXTRACTOR,
+    OFPEC_EXP_SET_FLOW_STATE,
+    OFPEC_EXP_DEL_FLOW_STATE,
+    OFPEC_BAD_EXP_MESSAGE,
+    OFPEC_BAD_EXP_ACTION,
+    OFPEC_BAD_EXP_LEN,
+    OFPEC_BAD_TABLE_ID,
+    OFPEC_BAD_MATCH_WILDCARD
 };
 
 /****************************************************************

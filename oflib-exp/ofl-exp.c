@@ -372,7 +372,7 @@ ofl_exp_stats_reply_free (struct ofl_msg_multipart_reply_header *msg){
 
 void
 ofl_exp_field_pack (struct ofpbuf *buf, struct ofl_match_tlv *oft){
-    /*pollins: probabilmente ci sarà da definire una struttura che determina la posizione dell'experimenter ID (come è fatto adesso presuppone che sia il primo valore in value)*/
+    /*TODO: probably we have to define a structure that points to the experimenter_ID position (Now the experimenter ID is the first value in "value")*/
     switch(*((uint32_t*) (oft->value)))
     {
         case BEBA_VENDOR_ID:{
@@ -531,5 +531,49 @@ ofl_exp_inst_to_string (struct ofl_instruction_header *i) {
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
         }
 
+    }
+}
+
+int
+ofl_exp_err_pack(struct ofl_msg_exp_error *msg, uint8_t **buf, size_t *buf_len){
+    switch (msg->experimenter){
+        case BEBA_VENDOR_ID:{
+            ofl_exp_beba_error_pack(msg,buf,buf_len);
+            break;}
+        default:{
+            OFL_LOG_WARN(LOG_MODULE, "Trying to pack unknown ERROR EXPERIMENTER message (%u).", msg->experimenter);
+            return -1;}
+    }
+    return 0;
+}
+
+int
+ofl_exp_err_free(struct ofl_msg_exp_error *msg){
+    switch (msg->experimenter){
+        case BEBA_VENDOR_ID:{
+            ofl_exp_beba_error_free(msg);
+            break;}
+        default:{
+            OFL_LOG_WARN(LOG_MODULE, "Trying to free unknown ERROR EXPERIMENTER message (%u).", msg->experimenter);
+            return -1;}
+    }
+    return 0;
+}
+
+char *
+ofl_exp_err_to_string(struct ofl_msg_exp_error *msg){
+    switch (msg->experimenter){
+        case BEBA_VENDOR_ID:{
+            return ofl_exp_beba_error_to_string(msg);
+        }
+        default:{
+            char *str;
+            size_t str_size;
+            FILE *stream = open_memstream(&str, &str_size);
+            OFL_LOG_WARN(LOG_MODULE, "Trying to convert to string unknown ERROR EXPERIMENTER message (%u).", msg->experimenter);
+            fprintf(stream, " exp{id=\"0x%"PRIx32"\"}", msg->experimenter);
+            fclose(stream);
+            return str;
+        }
     }
 }

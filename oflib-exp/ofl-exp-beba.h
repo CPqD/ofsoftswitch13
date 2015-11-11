@@ -228,13 +228,13 @@ state_table_lookup(struct state_table*, struct packet *);
 void 
 state_table_write_state(struct state_entry *, struct packet *);
 
-void 
+ofl_err 
 state_table_set_state(struct state_table *, struct packet *, struct ofl_exp_set_flow_state *msg, struct ofl_exp_action_set_state *act);
 
-void 
+ofl_err 
 state_table_set_extractor(struct state_table *, struct key_extractor *, int);
 
-void 
+ofl_err 
 state_table_del_state(struct state_table *, uint8_t *, uint32_t);
 
 void
@@ -358,6 +358,34 @@ ofl_structs_state_stats_unpack(struct ofp_exp_state_stats *src, uint8_t *buf, si
 ofl_err
 ofl_utils_count_ofp_state_stats(void *data, size_t data_len, size_t *count);
 
+/* instruction experimenter callback functions */
+int
+ofl_exp_beba_inst_pack (struct ofl_instruction_header *src, struct ofp_instruction *dst);
+
+ofl_err
+ofl_exp_beba_inst_unpack (struct ofp_instruction *src, size_t *len, struct ofl_instruction_header **dst);
+
+int
+ofl_exp_beba_inst_free (struct ofl_instruction_header *i);
+
+size_t
+ofl_exp_beba_inst_ofp_len (struct ofl_instruction_header *i);
+
+char *
+ofl_exp_beba_inst_to_string (struct ofl_instruction_header *i);
+
+/* Experimenter erorrs callback functions */
+
+void
+ofl_exp_beba_error_pack (struct ofl_msg_exp_error *msg, uint8_t **buf, size_t *buf_len);
+
+void 
+ofl_exp_beba_error_free (struct ofl_msg_exp_error *msg);
+
+char *
+ofl_exp_beba_error_to_string(struct ofl_msg_exp_error *msg);
+
+
 void
 ofl_exp_stats_type_print(FILE *stream, uint32_t type);
 
@@ -441,20 +469,13 @@ ofl_err
 handle_pkttmp_mod(struct pipeline *pl, struct ofl_exp_msg_pkttmp_mod *msg,
                                                 const struct sender *sender);
 
-/* instruction experimenter callback functions */
-int
-ofl_exp_beba_inst_pack (struct ofl_instruction_header *src, struct ofp_instruction *dst);
+uint32_t
+get_experimenter_id(struct ofl_msg_header *msg);
 
-ofl_err
-ofl_exp_beba_inst_unpack (struct ofp_instruction *src, size_t *len, struct ofl_instruction_header **dst);
+uint32_t 
+get_experimenter_id_from_match(struct ofl_match *flow_mod_match);
 
-int
-ofl_exp_beba_inst_free (struct ofl_instruction_header *i);
-
-size_t
-ofl_exp_beba_inst_ofp_len (struct ofl_instruction_header *i);
-
-char *
-ofl_exp_beba_inst_to_string (struct ofl_instruction_header *i);
+uint32_t 
+get_experimenter_id_from_action(struct ofl_instruction_actions *act);
 
 #endif /* OFL_EXP_BEBA_H */

@@ -146,6 +146,13 @@ struct ofl_exp_field {
     void    (*overlap_b)        (struct ofl_match_tlv *f_b, int *field_len, uint8_t **val_b, uint8_t **mask_b, uint64_t *all_mask);
 };
 
+/* Callback functions for handling experimenter errors. */
+struct ofl_exp_err {
+    int     (*pack)             (struct ofl_msg_exp_error *msg, uint8_t **buf, size_t *buf_len);
+    int     (*free)             (struct ofl_msg_exp_error *msg);
+    char   *(*to_string)        (struct ofl_msg_exp_error *msg);
+};
+
 /* Convenience structure for passing all callback groups at once. */
 struct ofl_exp {
     struct ofl_exp_act           *act;
@@ -154,6 +161,7 @@ struct ofl_exp {
     struct ofl_exp_stats         *stats;
     struct ofl_exp_msg           *msg;
     struct ofl_exp_field         *field;
+    struct ofl_exp_err           *err;
 };
 
 
@@ -166,7 +174,9 @@ struct ofl_exp {
 /* Creates an ofl_err from an OpenFlow error type and code */
 static inline ofl_err
 ofl_error(uint16_t type, uint16_t code) {
-    /* NOTE: highest bit is always set to one, so no error value is zero */
+    /* NOTE: highest bit is always set to one, so no error value is zero.
+     Otherwise ofl_error(OFPET_HELLO_FAILED,OFPHFC_INCOMPATIBLE) would be
+     confused with a return code 0! */
     uint32_t ret = type;
     return 0x80000000 | ret << 16 | code;
 }

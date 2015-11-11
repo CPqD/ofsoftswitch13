@@ -69,6 +69,17 @@ struct ofl_msg_error {
 +                                  request. */
 };
 
+/* Experimenter error */
+struct ofl_msg_exp_error {
+    struct ofl_msg_header   header; /* OFPT_ERROR */
+
+    enum ofp_error_type   type;
+    uint16_t              exp_type;
+    uint32_t              experimenter;
+    size_t                data_length;
+    uint8_t               *data;          /* textual errors (OFPET_HELLO_FAILED) or original request. */   
+};
+
 
 /* Echo messages */
 struct ofl_msg_echo {

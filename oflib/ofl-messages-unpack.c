@@ -53,25 +53,51 @@ OFL_LOG_INIT(LOG_MODULE)
 static ofl_err
 ofl_msg_unpack_error(struct ofp_header *src, size_t *len, struct ofl_msg_header **msg) {
     struct ofp_error_msg *se;
+    struct ofp_error_experimenter_msg *sexpe;
     struct ofl_msg_error *de;
+    struct ofl_msg_exp_error *dexpe;
 
+    /*sizeof(struct ofp_error_msg) < sizeof(struct ofp_error_experimenter_msg)*/
     if (*len < sizeof(struct ofp_error_msg)) {
         OFL_LOG_WARN(LOG_MODULE, "Received ERROR message invalid length (%zu).", *len);
         return OFL_ERROR;
     }
-    *len -= sizeof(struct ofp_error_msg);
-
+    
     se = (struct ofp_error_msg *)src;
 
-    de = (struct ofl_msg_error *)malloc(sizeof(struct ofl_msg_error));
+    switch(se->type){
+        case (OFPET_EXPERIMENTER):{
+            sexpe = (struct ofp_error_experimenter_msg *)src;
+            dexpe = (struct ofl_msg_exp_error *)malloc(sizeof(struct ofl_msg_exp_error));
+            *len -= sizeof(struct ofp_error_experimenter_msg);
 
-    de->type = (enum ofp_error_type)ntohs(se->type);
-    de->code = ntohs(se->code);
-    de->data_length = *len;
-    de->data = *len > 0 ? (uint8_t *)memcpy(malloc(*len), se->data, *len) : NULL;
-    *len = 0;
+            dexpe->type = (enum ofp_error_type)ntohs(sexpe->type);
+            dexpe->exp_type = ntohs(sexpe->exp_type);
+            dexpe->experimenter = ntohl(sexpe->experimenter);
+            dexpe->data_length = *len;
+            dexpe->data = *len > 0 ? (uint8_t *)memcpy(malloc(*len), sexpe->data, *len) : NULL;
+            *len = 0;
 
-    (*msg) = (struct ofl_msg_header *)de;
+            (*msg) = (struct ofl_msg_header *)dexpe;
+
+            break;
+            }
+
+        default: {
+            de = (struct ofl_msg_error *)malloc(sizeof(struct ofl_msg_error));
+
+            *len -= sizeof(struct ofp_error_msg);
+
+            de->type = (enum ofp_error_type)ntohs(se->type);
+            de->code = ntohs(se->code);
+            de->data_length = *len;
+            de->data = *len > 0 ? (uint8_t *)memcpy(malloc(*len), se->data, *len) : NULL;
+            *len = 0;
+
+            (*msg) = (struct ofl_msg_header *)de;
+            break;
+        }
+    }
     return 0;
 }
 
@@ -461,15 +487,13 @@ ofl_msg_unpack_flow_mod(struct ofp_header *src,uint8_t* buf, size_t *len, struct
     
     match_pos = sizeof(struct ofp_flow_mod) - 4;
     error = ofl_structs_match_unpack(&(sm->match), buf + match_pos, len, &(dm->match), 1, exp);
+    *msg = (struct ofl_msg_header *)dm;
     if (error) {
-        free(dm);
         return error;
     }
     
     error = ofl_utils_count_ofp_instructions((struct ofp_instruction *)(buf + ROUND_UP(match_pos + dm->match->length,8)), *len, &dm->instructions_num);
     if (error) {
-        ofl_structs_free_match(dm->match, exp);
-        free(dm);
         return error;
     }
         
@@ -478,15 +502,10 @@ ofl_msg_unpack_flow_mod(struct ofp_header *src,uint8_t* buf, size_t *len, struct
     for (i = 0; i < dm->instructions_num; i++) {
         error = ofl_structs_instructions_unpack(inst, len, &(dm->instructions[i]), exp);
         if (error) {
-            OFL_UTILS_FREE_ARR_FUN2(dm->instructions, i,
-                    ofl_structs_free_instruction, exp);
-            ofl_structs_free_match(dm->match, exp);
-            free(dm);
             return error;
         }
         inst = (struct ofp_instruction *)((uint8_t *)inst + ntohs(inst->len));
     }
-    *msg = (struct ofl_msg_header *)dm;
     return 0;
 }
 
@@ -1709,6 +1728,8 @@ ofl_msg_unpack(uint8_t *buf, size_t buf_len, struct ofl_msg_header **msg, uint32
         }
     }
 
+    (*msg)->type = (enum ofp_type)oh->type;
+
     if (error) {
         if (OFL_LOG_IS_DBG_ENABLED(LOG_MODULE)) {
             char *str = ofl_hex_to_string(buf, buf_len < 1024 ? buf_len : 1024);
@@ -1733,8 +1754,6 @@ ofl_msg_unpack(uint8_t *buf, size_t buf_len, struct ofl_msg_header **msg, uint32
             free(str);
         }
     }
-
-    (*msg)->type = (enum ofp_type)oh->type;
 
     return 0;
 }

@@ -47,10 +47,21 @@ OFL_LOG_INIT(LOG_MODULE)
 /* Frees the OFlib stats request message along with any dynamically allocated
  * structures. */
 static int
-ofl_msg_free_error(struct ofl_msg_error *msg) {
-    free(msg->data);
-    free(msg);
-
+ofl_msg_free_error(struct ofl_msg_error *msg, struct ofl_exp *exp) {
+    switch (msg->type) {
+        case OFPET_EXPERIMENTER:{
+            struct ofl_msg_exp_error *exp_err = (struct ofl_msg_exp_error *) msg;
+            if (exp == NULL || exp->err == NULL || exp->err->free == NULL) {
+                OFL_LOG_WARN(LOG_MODULE, "Trying to free experimenter err message, but no callback was given.");
+                return -1;
+            } else {
+                return exp->err->free(exp_err);
+            }
+            break;}
+        default: 
+            free(msg->data);
+            free(msg);
+    }
     return 0;
 }
 
@@ -207,7 +218,7 @@ ofl_msg_free(struct ofl_msg_header *msg, struct ofl_exp *exp) {
             break;
         }
         case OFPT_ERROR: {
-            return ofl_msg_free_error((struct ofl_msg_error *)msg);
+            return ofl_msg_free_error((struct ofl_msg_error *)msg, exp);
         }
         case OFPT_ECHO_REQUEST:
         case OFPT_ECHO_REPLY: {

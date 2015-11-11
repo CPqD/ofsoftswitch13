@@ -123,4 +123,13 @@ ofl_exp_inst_ofp_len (struct ofl_instruction_header *i);
 char *
 ofl_exp_inst_to_string (struct ofl_instruction_header *i);
 
+int
+ofl_exp_err_pack(struct ofl_msg_exp_error *msg, uint8_t **buf, size_t *buf_len);
+
+int
+ofl_exp_err_free(struct ofl_msg_exp_error *msg);
+
+char *
+ofl_exp_err_to_string(struct ofl_msg_exp_error *msg);
+
 #endif /* OFL_EXP_H */

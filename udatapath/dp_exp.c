@@ -72,7 +72,6 @@ dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
                 }
                 else
                 {
-                    //TODO sanvitz: return an experimenter error msg
                     VLOG_WARN_RL(LOG_MODULE, &rl, "ERROR NEXT STATE at stage %u: stage not stateful", wns->table_id);
                 }
                 break;
@@ -251,7 +250,7 @@ dp_exp_message(struct datapath *dp, struct ofl_msg_experimenter *msg, const stru
                 }
                 default: {
                     VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to handle unknown experimenter type (%u).", exp->type);
-                    return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+                    return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_MESSAGE);
                 }
             }
         }

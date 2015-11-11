@@ -77,15 +77,15 @@ ofl_structs_stateful_table_config_unpack(struct ofp_exp_stateful_table_config *s
     {
         if (src->table_id >= PIPELINE_TABLES) {
             OFL_LOG_WARN(LOG_MODULE, "Received STATE_MOD message has invalid table id (%zu).", src->table_id );
-            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
+            return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_TABLE_ID);
         } 
         dst->table_id = src->table_id;
         dst->stateful = src->stateful;
     }
     else
     { 
-       OFL_LOG_WARN(LOG_MODULE, "Received state mod stateful_table is too short (%zu).", *len);
-       return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+       OFL_LOG_WARN(LOG_MODULE, "Received state mod stateful_table_config is too short (%zu).", *len);
+       return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
     }
 
     *len -= sizeof(struct ofp_exp_stateful_table_config);
@@ -100,7 +100,7 @@ ofl_structs_extraction_unpack(struct ofp_exp_set_extractor *src, size_t *len, st
     {
         if (src->table_id >= PIPELINE_TABLES) {
             OFL_LOG_WARN(LOG_MODULE, "Received STATE_MOD message has invalid table id (%zu).", src->table_id );
-            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
+            return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_TABLE_ID);
         } 
         dst->table_id = src->table_id;
         dst->field_count=ntohl(src->field_count);
@@ -110,9 +110,9 @@ ofl_structs_extraction_unpack(struct ofp_exp_set_extractor *src, size_t *len, st
         }
     }
     else
-    { //control of struct ofp_extraction length.
+    { //check of struct ofp_exp_set_extractor length.
        OFL_LOG_WARN(LOG_MODULE, "Received state mod extraction is too short (%zu).", *len);       
-       return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+       return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
     }
 
     *len -= (((1+ntohl(src->field_count))*sizeof(uint32_t)) + 4*sizeof(uint8_t));
@@ -129,7 +129,7 @@ ofl_structs_set_flow_state_unpack(struct ofp_exp_set_flow_state *src, size_t *le
     {
         if (src->table_id >= PIPELINE_TABLES) {
             OFL_LOG_WARN(LOG_MODULE, "Received STATE_MOD message has invalid table id (%zu).", src->table_id );
-            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
+            return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_TABLE_ID);
         } 
         dst->table_id = src->table_id;
         dst->key_len=ntohl(src->key_len);
@@ -144,9 +144,9 @@ ofl_structs_set_flow_state_unpack(struct ofp_exp_set_flow_state *src, size_t *le
         memcpy(dst->key, key, dst->key_len);
     }
     else
-    { //control of struct ofp_extraction length.
+    { //check of struct ofp_exp_set_flow_state length.
        OFL_LOG_WARN(LOG_MODULE, "Received state mod set_flow is too short (%zu).", *len);
-       return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+       return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
     }
 
     *len -= ((7*sizeof(uint32_t) + ntohl(src->key_len)*sizeof(uint8_t)) + 4*sizeof(uint8_t));
@@ -163,7 +163,7 @@ ofl_structs_del_flow_state_unpack(struct ofp_exp_del_flow_state *src, size_t *le
     {
         if (src->table_id >= PIPELINE_TABLES) {
             OFL_LOG_WARN(LOG_MODULE, "Received STATE_MOD message has invalid table id (%zu).", src->table_id );
-            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
+            return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_TABLE_ID);
         } 
         dst->table_id = src->table_id;
         dst->key_len=ntohl(src->key_len);
@@ -173,9 +173,9 @@ ofl_structs_del_flow_state_unpack(struct ofp_exp_del_flow_state *src, size_t *le
         OFL_LOG_DBG(LOG_MODULE, "key count is %d\n",dst->key_len);
     }
     else
-    { //control of struct ofp_extraction length.
+    { //check of struct ofp_exp_del_flow_state length.
        OFL_LOG_WARN(LOG_MODULE, "Received state mod del_flow is too short (%zu).", *len);
-       return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+       return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
     }
  
     *len -= ((sizeof(uint32_t) + ntohl(src->key_len)*sizeof(uint8_t)) + 4*sizeof(uint8_t));
@@ -191,8 +191,9 @@ ofl_structs_set_global_state_unpack(struct ofp_exp_set_global_state *src, size_t
         dst->global_state_mask = ntohl(src->global_state_mask);
     }
     else {
+        //check of struct ofp_exp_set_global_state length.
         OFL_LOG_WARN(LOG_MODULE, "Received STATE_MOD set global state has invalid length (%zu).", *len);
-        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+        return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
     }
     
     *len -= sizeof(struct ofp_exp_set_global_state);
@@ -206,12 +207,12 @@ ofl_exp_beba_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf, size_t *b
         struct ofl_exp_beba_msg_header *exp = (struct ofl_exp_beba_msg_header *)msg;
         switch (exp->type) {
             default: {
-                OFL_LOG_WARN(LOG_MODULE, "Trying to print unknown Beba Experimenter message.");
+                OFL_LOG_WARN(LOG_MODULE, "Trying to pack unknown Beba Experimenter message.");
                 return -1;
             }
         }
     } else {
-        OFL_LOG_WARN(LOG_MODULE, "Trying to print non-Beba Experimenter message.");
+        OFL_LOG_WARN(LOG_MODULE, "Trying to pack non-Beba Experimenter message.");
         return -1;
     }
 }
@@ -219,157 +220,126 @@ ofl_exp_beba_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf, size_t *b
 ofl_err
 ofl_exp_beba_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_experimenter **msg) {
     
-    ofl_err error;
+    ofl_err error = 0;
     struct ofp_experimenter_header *exp_header;
 
     if (*len < sizeof(struct ofp_experimenter_header)) {
         OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER message has invalid length (%zu).", *len);
-        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+        return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
     }
 
     exp_header = (struct ofp_experimenter_header *)oh;
 
+    switch (ntohl(exp_header->exp_type)) {
+        case (OFPT_EXP_STATE_MOD): 
+        {
+            struct ofp_exp_msg_state_mod *sm;
+            struct ofl_exp_msg_state_mod *dm;
 
-    if (ntohl(exp_header->experimenter) == BEBA_VENDOR_ID) {
+            *len -= sizeof(struct ofp_experimenter_header);
 
-        switch (ntohl(exp_header->exp_type)) {
-            case (OFPT_EXP_STATE_MOD): 
-            {
-                struct ofp_exp_msg_state_mod *sm;
-                struct ofl_exp_msg_state_mod *dm;
-                
-                if (*len < sizeof(struct ofp_experimenter_header) + 2*sizeof(uint8_t)) {
-                    OFL_LOG_WARN(LOG_MODULE, "Received STATE_MOD message has invalid length (%zu).", *len);
-                    return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
-                }
+            sm = (struct ofp_exp_msg_state_mod *)exp_header;
+            dm = (struct ofl_exp_msg_state_mod *)malloc(sizeof(struct ofl_exp_msg_state_mod));
 
-                *len -= sizeof(struct ofp_experimenter_header);
+            dm->header.header.experimenter_id = ntohl(exp_header->experimenter);
+            dm->header.type                   = ntohl(exp_header->exp_type);
+            
+            (*msg) = (struct ofl_msg_experimenter *)dm;
 
-                sm = (struct ofp_exp_msg_state_mod *)exp_header;
-                dm = (struct ofl_exp_msg_state_mod *)malloc(sizeof(struct ofl_exp_msg_state_mod));
-
-                dm->header.header.experimenter_id = ntohl(exp_header->experimenter);
-                dm->header.type                   = ntohl(exp_header->exp_type);
-                dm->command = (enum ofp_exp_msg_state_mod_commands)sm->command;
-                
-                *len -= 2*sizeof(uint8_t);
-
-                if (dm->command == OFPSC_STATEFUL_TABLE_CONFIG){
-                error = ofl_structs_stateful_table_config_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
-                    if (error) {
-                        free(dm);
-                        return error;
-                    }
-
-                }
-
-                else if (dm->command == OFPSC_EXP_SET_L_EXTRACTOR || dm->command == OFPSC_EXP_SET_U_EXTRACTOR){
-                error = ofl_structs_extraction_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
-                    if (error) {
-                        free(dm);
-                        return error;
-                    }
-
-                }
-
-                else if (dm->command == OFPSC_EXP_SET_FLOW_STATE){
-                error = ofl_structs_set_flow_state_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
-                    if (error) {
-                        free(dm);
-                        return error;
-                    }
-
-                } 
-
-                else if (dm->command == OFPSC_EXP_DEL_FLOW_STATE){
-                error = ofl_structs_del_flow_state_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
-                    if (error) {
-                        free(dm);
-                        return error;
-                    }
-
-                }                 
-
-                else if (dm->command == OFPSC_EXP_SET_GLOBAL_STATE){
-                error = ofl_structs_set_global_state_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
-                    if (error) {
-                        free(dm);
-                        return error;
-                    }
-
-                }
-
-                else if (dm->command == OFPSC_EXP_RESET_GLOBAL_STATE){
-                // payload is empty
-                }
-
-
-                (*msg) = (struct ofl_msg_experimenter *)dm;
-                return 0;
+            /*2*sizeof(uint8_t) = enum ofp_exp_msg_state_mod_commands + 1 byte of padding*/
+            if (*len < 2*sizeof(uint8_t)) {
+                OFL_LOG_WARN(LOG_MODULE, "Received STATE_MOD message has invalid length (%zu).", *len);
+                return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
             }
+          
+            dm->command = (enum ofp_exp_msg_state_mod_commands)sm->command;
+            
+            *len -= 2*sizeof(uint8_t);
 
-            case (OFPT_EXP_PKTTMP_MOD):
-            {
-            	struct ofp_exp_msg_pkttmp_mod *sm;
-            	struct ofl_exp_msg_pkttmp_mod *dm;
-
-            	if (*len < sizeof(struct ofp_experimenter_header) + 2*sizeof(uint8_t)) {
-            		OFL_LOG_WARN(LOG_MODULE, "Received PKTTMP_MOD message has invalid length (%zu).", *len);
-            		return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
-            	}
-
-            	*len -= sizeof(struct ofp_experimenter_header);
-
-            	sm = (struct ofp_exp_msg_pkttmp_mod *)exp_header;
-            	dm = (struct ofl_exp_msg_pkttmp_mod *)malloc(sizeof(struct ofl_exp_msg_pkttmp_mod));
-
-            	dm->header.header.experimenter_id = ntohl(exp_header->experimenter);
-            	dm->header.type                   = ntohl(exp_header->exp_type);
-            	dm->command = (enum ofp_exp_msg_pkttmp_mod_commands)sm->command;
-
-            	*len -= 2*sizeof(uint8_t);
-
-            	if (dm->command == OFPSC_ADD_PKTTMP){
-            		error = ofl_structs_add_pkttmp_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
-            		if (error) {
-            			free(dm);
-            			return error;
-            		}
-
-            	}
-
-            	else if (dm->command == OFPSC_DEL_PKTTMP){
-            		error = ofl_structs_del_pkttmp_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
-            		if (error) {
-            			free(dm);
-            			return error;
-            		}
-
-            	}
-
-            	(*msg) = (struct ofl_msg_experimenter *)dm;
-            	return 0;
-            }
-
-            default: {
-                OFL_LOG_WARN(LOG_MODULE, "Trying to unpack unknown Beba Experimenter message.");
-                return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
-            }
+            switch(dm->command){
+                case OFPSC_STATEFUL_TABLE_CONFIG:
+                    return ofl_structs_stateful_table_config_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
+                case OFPSC_EXP_SET_L_EXTRACTOR:
+                case OFPSC_EXP_SET_U_EXTRACTOR:
+                    return ofl_structs_extraction_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
+                case OFPSC_EXP_SET_FLOW_STATE:
+                    return ofl_structs_set_flow_state_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
+                case OFPSC_EXP_DEL_FLOW_STATE:
+                    return ofl_structs_del_flow_state_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
+                case OFPSC_EXP_SET_GLOBAL_STATE:
+                    return ofl_structs_set_global_state_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
+                default:
+                    return ofl_error(OFPET_EXPERIMENTER, OFPEC_EXP_STATE_MOD_BAD_COMMAND);
+            }          
         }
-    } else {
-        OFL_LOG_WARN(LOG_MODULE, "Trying to unpack non-Beba Experimenter message.");
-        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+
+        case (OFPT_EXP_PKTTMP_MOD):
+        {
+            /*TODO: experimenter errors*/
+        	struct ofp_exp_msg_pkttmp_mod *sm;
+        	struct ofl_exp_msg_pkttmp_mod *dm;
+
+        	if (*len < sizeof(struct ofp_experimenter_header) + 2*sizeof(uint8_t)) {
+        		OFL_LOG_WARN(LOG_MODULE, "Received PKTTMP_MOD message has invalid length (%zu).", *len);
+        		return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+        	}
+
+        	*len -= sizeof(struct ofp_experimenter_header);
+
+        	sm = (struct ofp_exp_msg_pkttmp_mod *)exp_header;
+        	dm = (struct ofl_exp_msg_pkttmp_mod *)malloc(sizeof(struct ofl_exp_msg_pkttmp_mod));
+
+        	dm->header.header.experimenter_id = ntohl(exp_header->experimenter);
+        	dm->header.type                   = ntohl(exp_header->exp_type);
+        	dm->command = (enum ofp_exp_msg_pkttmp_mod_commands)sm->command;
+
+        	*len -= 2*sizeof(uint8_t);
+
+        	if (dm->command == OFPSC_ADD_PKTTMP){
+        		error = ofl_structs_add_pkttmp_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
+        		if (error) {
+        			free(dm);
+        			return error;
+        		}
+
+        	}
+
+        	else if (dm->command == OFPSC_DEL_PKTTMP){
+        		error = ofl_structs_del_pkttmp_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
+        		if (error) {
+        			free(dm);
+        			return error;
+        		}
+
+        	}
+
+        	(*msg) = (struct ofl_msg_experimenter *)dm;
+        	return 0;
+        }
+
+        default: {
+            struct ofl_msg_experimenter *dm;
+            dm = (struct ofl_msg_experimenter *)malloc(sizeof(struct ofl_msg_experimenter));
+            dm->experimenter_id = ntohl(exp_header->experimenter);
+            (*msg) = dm;
+            OFL_LOG_WARN(LOG_MODULE, "Trying to unpack unknown Beba Experimenter message.");
+            return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_MESSAGE);
+        }
     }
-    free(msg);
-    return 0;
 }
 
 int
 ofl_exp_beba_msg_free(struct ofl_msg_experimenter *msg) {
-	OFL_LOG_DBG(LOG_MODULE, "ofl_exp_beba_msg_free");
     if (msg->experimenter_id == BEBA_VENDOR_ID) {
         struct ofl_exp_beba_msg_header *exp = (struct ofl_exp_beba_msg_header *)msg;
         switch (exp->type) {
+            case (OFPT_EXP_STATE_MOD): 
+            {
+                struct ofl_exp_msg_state_mod *state_mod = (struct ofl_exp_msg_state_mod *)exp;
+                OFL_LOG_DBG(LOG_MODULE, "Free Beba STATE_MOD Experimenter message. osexp{type=\"%u\", command=\"%u\"}", exp->type, state_mod->command);
+                break;
+            }
+            /*TODO: implement OFPT_EXP_PKTTMP_MOD*/
             default: {
                 OFL_LOG_WARN(LOG_MODULE, "Trying to free unknown Beba Experimenter message.");
             }
@@ -390,14 +360,19 @@ ofl_exp_beba_msg_to_string(struct ofl_msg_experimenter *msg) {
     if (msg->experimenter_id == BEBA_VENDOR_ID) {
         struct ofl_exp_beba_msg_header *exp = (struct ofl_exp_beba_msg_header *)msg;
         switch (exp->type) {
+            case (OFPT_EXP_STATE_MOD): 
+            {
+                struct ofl_exp_msg_state_mod *state_mod = (struct ofl_exp_msg_state_mod *)exp;
+                OFL_LOG_DBG(LOG_MODULE, "Print Beba STATE_MOD Experimenter message. osexp{type=\"%u\", command=\"%u\"}", exp->type, state_mod->command);
+                break;
+            }
+            /*TODO: implement OFPT_EXP_PKTTMP_MOD*/
             default: {
-                OFL_LOG_WARN(LOG_MODULE, "Trying to print unknown Beba Experimenter message.");
-                fprintf(stream, "ofexp{type=\"%u\"}", exp->type);
+                OFL_LOG_WARN(LOG_MODULE, "Trying to print unknown Beba Experimenter message. osexp{type=\"%u\"}", exp->type);
             }
         }
     } else {
-        OFL_LOG_WARN(LOG_MODULE, "Trying to print non-Beba Experimenter message.");
-        fprintf(stream, "exp{exp_id=\"%u\"}", msg->experimenter_id);
+        OFL_LOG_WARN(LOG_MODULE, "Trying to print non-Beba Experimenter message. exp{exp_id=\"%u\"}", msg->experimenter_id);
     }
 
     fclose(stream);
@@ -426,13 +401,17 @@ ofl_exp_beba_act_unpack(struct ofp_action_header *src, size_t *len, struct ofl_a
             {
                 struct ofp_exp_action_set_state *sa;
                 struct ofl_exp_action_set_state *da;
-                if (*len < sizeof(struct ofp_exp_action_set_state)) {
-                    OFL_LOG_WARN(LOG_MODULE, "Received SET STATE action has invalid length (%zu).", *len);
-                    return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
-                }
+
                 sa = (struct ofp_exp_action_set_state *)ext;
                 da = (struct ofl_exp_action_set_state *)malloc(sizeof(struct ofl_exp_action_set_state));
+                da->header.header.experimenter_id = ntohl(exp->experimenter);
+                da->header.act_type = ntohl(ext->act_type);
+                *dst = (struct ofl_action_header *)da;
 
+                if (*len < sizeof(struct ofp_exp_action_set_state)) {
+                    OFL_LOG_WARN(LOG_MODULE, "Received SET STATE action has invalid length (%zu).", *len);
+                    return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
+                }
 
                 if (sa->table_id >= PIPELINE_TABLES) {
                     if (OFL_LOG_IS_WARN_ENABLED(LOG_MODULE)) {
@@ -440,12 +419,9 @@ ofl_exp_beba_act_unpack(struct ofp_action_header *src, size_t *len, struct ofl_a
                         OFL_LOG_WARN(LOG_MODULE, "Received SET STATE action has invalid table_id (%s).", ts);
                         free(ts);
                     }
-                    free(da);
-                    return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
+                    return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_TABLE_ID);
                 }
 
-                da->header.header.experimenter_id = ntohl(exp->experimenter);
-                da->header.act_type = ntohl(ext->act_type);
                 da->state = ntohl(sa->state);
                 da->state_mask = ntohl(sa->state_mask);
                 da->table_id = sa->table_id;
@@ -454,7 +430,6 @@ ofl_exp_beba_act_unpack(struct ofp_action_header *src, size_t *len, struct ofl_a
                 da->hard_timeout = ntohl(sa->hard_timeout);
                 da->idle_timeout = ntohl(sa->idle_timeout);
 
-                *dst = (struct ofl_action_header *)da;
                 *len -= sizeof(struct ofp_exp_action_set_state);
                 break; 
             }
@@ -462,28 +437,34 @@ ofl_exp_beba_act_unpack(struct ofp_action_header *src, size_t *len, struct ofl_a
             case (OFPAT_EXP_SET_GLOBAL_STATE): 
             {
                 struct ofp_exp_action_set_global_state *sa;
-                struct ofl_exp_action_set_global_state *da;
-                if (*len < sizeof(struct ofp_exp_action_set_global_state)) {
-                    OFL_LOG_WARN(LOG_MODULE, "Received SET GLOBAL STATE action has invalid length (%zu).", *len);
-                    return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
-                }
+                struct ofl_exp_action_set_global_state *da;              
                 sa = (struct ofp_exp_action_set_global_state*)ext;
                 da = (struct ofl_exp_action_set_global_state *)malloc(sizeof(struct ofl_exp_action_set_global_state));
 
                 da->header.header.experimenter_id = ntohl(exp->experimenter);
                 da->header.act_type = ntohl(ext->act_type);
+
+                *dst = (struct ofl_action_header *)da;
+                if (*len < sizeof(struct ofp_exp_action_set_global_state)) {
+                    OFL_LOG_WARN(LOG_MODULE, "Received SET GLOBAL STATE action has invalid length (%zu).", *len);
+                    return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
+                }
+
                 da->global_state = ntohl(sa->global_state);
                 da->global_state_mask = ntohl(sa->global_state_mask);
 
-                *dst = (struct ofl_action_header *)da;
                 *len -= sizeof(struct ofp_exp_action_set_global_state);
                 break; 
             }
 
             default: 
             {
+                struct ofl_action_experimenter *da;
+                da = (struct ofl_action_experimenter *)malloc(sizeof(struct ofl_action_experimenter));
+                da->experimenter_id = ntohl(exp->experimenter);
+                (*dst) = (struct ofl_action_header *)da;
                 OFL_LOG_WARN(LOG_MODULE, "Trying to unpack unknown Beba Experimenter action.");
-                return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+                return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_ACTION);
             }
         }
     }
@@ -1054,10 +1035,10 @@ ofl_exp_beba_field_unpack(struct ofl_match *match, struct oxm_field *f, void *ex
             return 0;
         }
         case OFI_OXM_EXP_STATE_W:{
-            if (check_bad_wildcard32(ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)))){
-                return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
-            }
             ofl_structs_match_exp_put32m(match, f->header, ntohl(*((uint32_t*) experimenter_id)), ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)));
+            if (check_bad_wildcard32(ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)))){
+                return ofp_mkerr(OFPET_EXPERIMENTER, OFPEC_BAD_MATCH_WILDCARD);
+            }
             return 0;
         }
         case OFI_OXM_EXP_GLOBAL_STATE:{
@@ -1065,10 +1046,10 @@ ofl_exp_beba_field_unpack(struct ofl_match *match, struct oxm_field *f, void *ex
             return 0;
         }
         case OFI_OXM_EXP_GLOBAL_STATE_W:{
-            if (check_bad_wildcard32(ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)))){
-                return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
-            }
             ofl_structs_match_exp_put32m(match, f->header, ntohl(*((uint32_t*) experimenter_id)), ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)));
+            if (check_bad_wildcard32(ntohl(*((uint32_t*) value)), ntohl(*((uint32_t*) mask)))){
+                return ofp_mkerr(OFPET_EXPERIMENTER, OFPEC_BAD_MATCH_WILDCARD);
+            }
             return 0;
         }
         default:
@@ -1204,6 +1185,284 @@ ofl_exp_beba_field_overlap_b (struct ofl_match_tlv *f_b, int *field_len, uint8_t
         /* Set a dummy mask with all bits set to 0 (valid) */
         *mask_b = (uint8_t *) all_mask;
     }
+}
+
+/*Experimenter error functions*/
+void 
+ofl_exp_beba_error_pack (struct ofl_msg_exp_error *msg, uint8_t **buf, size_t *buf_len){
+    struct ofp_error_experimenter_msg *exp_err;
+    *buf_len = sizeof(struct ofp_error_experimenter_msg) + msg->data_length;
+    *buf     = (uint8_t *)malloc(*buf_len);
+
+    exp_err = (struct ofp_error_experimenter_msg *)(*buf);
+    exp_err->type = htons(msg->type);
+    exp_err->exp_type = htons(msg->exp_type);
+    exp_err->experimenter = htonl(msg->experimenter);
+    memcpy(exp_err->data, msg->data, msg->data_length);
+}
+
+void 
+ofl_exp_beba_error_free (struct ofl_msg_exp_error *msg){
+    free(msg->data);
+    free(msg);
+}
+
+char *
+ofl_exp_beba_error_to_string(struct ofl_msg_exp_error *msg){
+    char *str;
+    size_t str_size;
+    FILE *stream = open_memstream(&str, &str_size);
+    fprintf(stream, "{type=\"");
+    ofl_error_type_print(stream, msg->type);
+    fprintf(stream, "\", exp_type=\"");
+    ofl_error_beba_exp_type_print(stream,  msg->exp_type);
+    fprintf(stream, "\", dlen=\"%zu\"}", msg->data_length);
+    fprintf(stream, "{id=\"0x%"PRIx32"\"}", msg->experimenter);
+    fclose(stream);
+    return str;
+}
+
+void
+ofl_error_beba_exp_type_print(FILE *stream, uint16_t exp_type) {
+    switch (exp_type) {
+        case (OFPEC_EXP_STATE_MOD_FAILED): {     fprintf(stream, "OFPEC_EXP_STATE_MOD_FAILED"); return; }
+        case (OFPEC_EXP_STATE_MOD_BAD_COMMAND): {     fprintf(stream, "OFPEC_EXP_STATE_MOD_BAD_COMMAND"); return; }
+        case (OFPEC_EXP_SET_EXTRACTOR): {        fprintf(stream, "OFPEC_EXP_SET_EXTRACTOR"); return; }
+        case (OFPEC_EXP_SET_FLOW_STATE): {       fprintf(stream, "OFPEC_EXP_SET_FLOW_STATE"); return; }
+        case (OFPEC_EXP_DEL_FLOW_STATE): {       fprintf(stream, "OFPEC_EXP_DEL_FLOW_STATE"); return; }
+        case (OFPEC_BAD_EXP_MESSAGE): {          fprintf(stream, "OFPEC_BAD_EXP_MESSAGE"); return; }
+        case (OFPEC_BAD_EXP_ACTION): {           fprintf(stream, "OFPEC_BAD_EXP_ACTION"); return; }
+        case (OFPEC_BAD_EXP_LEN): {              fprintf(stream, "OFPEC_BAD_EXP_LEN"); return; }
+        case (OFPEC_BAD_TABLE_ID): {             fprintf(stream, "OFPEC_BAD_TABLE_ID"); return; }
+        case (OFPEC_BAD_MATCH_WILDCARD): {       fprintf(stream, "OFPEC_BAD_MATCH_WILDCARD"); return; }
+        default: {                               fprintf(stream, "?(%u)", exp_type); return; }
+    }
+}
+
+/* Instruction expertimenter callback implementation */
+//TODO implement callbacks
+int
+ofl_exp_beba_inst_pack (struct ofl_instruction_header *src, struct ofp_instruction *dst) {
+    struct ofl_instruction_experimenter* exp = (struct ofl_instruction_experimenter *) src;
+
+    if (exp->experimenter_id == BEBA_VENDOR_ID) {
+        struct ofl_exp_beba_instr_header *ext = (struct ofl_exp_beba_instr_header *)exp;
+        switch (ext->instr_type) {
+            case OFPIT_IN_SWITCH_PKT_GEN: {
+                OFL_LOG_DBG(LOG_MODULE, "ofl_exp_beba_inst_pack OFPIT_IN_SWITCH_PKT_GEN");
+                size_t total_len, len;
+                uint8_t *data;
+                size_t i;
+
+                struct ofl_exp_instruction_in_switch_pkt_gen *si = (struct ofl_exp_instruction_in_switch_pkt_gen *)src;
+                struct ofp_exp_instruction_in_switch_pkt_gen *di = (struct ofp_exp_instruction_in_switch_pkt_gen *)dst;
+
+                //TODO may need to pass callbacks instead of NULL
+                total_len = sizeof(struct ofp_exp_instruction_in_switch_pkt_gen) + ofl_actions_ofp_total_len(si->actions, si->actions_num, NULL);
+
+                di->header.header.type = htons(src->type); //OFPIT_EXPERIMENTER
+                di->header.header.experimenter  = htonl(exp->experimenter_id); //BEBA_VENDOR_ID
+                di->header.instr_type = htonl(ext->instr_type); //OFPIT_IN_SWITCH_PKT_GEN
+
+                di->header.header.len = htons(total_len);
+                memset(di->header.pad, 0x00, 4);
+
+                di->pkttmp_id = htons(si->pkttmp_id);
+                memset(di->header.pad, 0x00, 4);
+                data = (uint8_t *)dst + sizeof(struct ofp_exp_instruction_in_switch_pkt_gen);
+
+                for (i=0; i<si->actions_num; i++) {
+                    //TODO may need to pass callbacks instead of NULL
+                    len = ofl_actions_pack(si->actions[i], (struct ofp_action_header *)data, data, NULL);
+                    data += len;
+                }
+                return total_len;
+            }
+            default:
+                OFL_LOG_WARN(LOG_MODULE, "Trying to pack unknown instruction type.");
+                return 0;
+        }
+    } else {
+        OFL_LOG_WARN(LOG_MODULE, "Trying to pack unknown experimenter instruction.");
+        return 0;
+    }
+}
+
+ofl_err
+ofl_exp_beba_inst_unpack (struct ofp_instruction *src, size_t *len, struct ofl_instruction_header **dst) {
+
+    struct ofl_instruction_header *inst = NULL;
+    size_t ilen;
+    struct ofp_instruction_experimenter_header *exp;
+
+    OFL_LOG_DBG(LOG_MODULE, "ofl_exp_beba_inst_unpack");
+
+    if (*len < sizeof(struct ofp_instruction_experimenter_header)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER instruction has invalid length (%zu).", *len);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+
+    exp = (struct ofp_instruction_experimenter_header *) src;
+
+    if (*len < ntohs(exp->len)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received instruction has invalid length (set to %u, but only %zu received).", ntohs(exp->len), *len);
+        return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+    }
+    ilen = ntohs(exp->len);
+
+    if (ntohl(exp->experimenter) == BEBA_VENDOR_ID) {
+        struct ofp_beba_instruction_experimenter_header *beba_exp = (struct ofp_beba_instruction_experimenter_header *) exp;
+        switch (ntohs(beba_exp->instr_type)) {
+            case OFPIT_IN_SWITCH_PKT_GEN: {
+                struct ofp_exp_instruction_in_switch_pkt_gen *si;
+                struct ofl_exp_instruction_in_switch_pkt_gen *di;
+                struct ofp_action_header *act;
+                ofl_err error;
+                size_t i;
+
+                if (ilen < sizeof(struct ofp_exp_instruction_in_switch_pkt_gen)) {
+                    OFL_LOG_WARN(LOG_MODULE, "Received IN_SWITCH_PKT_GEN instruction has invalid length (%zu).", *len);
+                    return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+                }
+                ilen -= sizeof(struct ofp_exp_instruction_in_switch_pkt_gen);
+
+                si = (struct ofp_exp_instruction_in_switch_pkt_gen *)src;
+                di = (struct ofl_exp_instruction_in_switch_pkt_gen *)malloc(sizeof(struct ofl_exp_instruction_in_switch_pkt_gen));
+
+                di->header.header.header.type = ntohs(src->type); //OFPIT_EXPERIMENTER
+                di->header.header.experimenter_id  = ntohl(exp->experimenter); //BEBA_VENDOR_ID
+                di->header.instr_type = ntohl(beba_exp->instr_type); //OFPIT_IN_SWITCH_PKT_GEN
+                di->pkttmp_id = ntohl(si->pkttmp_id);
+
+                error = ofl_utils_count_ofp_actions((uint8_t *)si->actions, ilen, &di->actions_num);
+                if (error) {
+                    free(di);
+                    return error;
+                }
+                di->actions = (struct ofl_action_header **)malloc(di->actions_num * sizeof(struct ofl_action_header *));
+
+                act = si->actions;
+                for (i = 0; i < di->actions_num; i++) {
+                    // TODO We may need to pass the ofl_exp callbacks instead of NULL
+                    //error = ofl_actions_unpack(act, &ilen, &(di->actions[i]), exp);
+                    error = ofl_actions_unpack(act, &ilen, &(di->actions[i]), NULL);
+                    if (error) {
+                        *len = *len - ntohs(src->len) + ilen;
+                        // TODO We may need to pass the ofl_exp callbacks instead of NULL
+                        //OFL_UTILS_FREE_ARR_FUN2(di->actions, i,
+                        //      ofl_actions_free, exp);
+                        OFL_UTILS_FREE_ARR_FUN2(di->actions, i,
+                                                ofl_actions_free, NULL);
+                        free(di);
+                        return error;
+                    }
+                    act = (struct ofp_action_header *)((uint8_t *)act + ntohs(act->len));
+                }
+
+                inst = (struct ofl_instruction_header *)di;
+                break;
+            }
+            default: {
+                OFL_LOG_WARN(LOG_MODULE, "The received BEBA instruction type (%u) is invalid.", ntohs(beba_exp->instr_type));
+                return ofl_error(OFPET_BAD_INSTRUCTION, OFPBIC_UNKNOWN_INST);
+            }
+        }
+    }
+
+    // must set type before check, so free works correctly
+    inst->type = (enum ofp_instruction_type)ntohs(src->type);
+
+    if (ilen != 0) {
+        *len = *len - ntohs(src->len) + ilen;
+        OFL_LOG_WARN(LOG_MODULE, "The received instruction contained extra bytes (%zu).", ilen);
+        ofl_exp_beba_inst_free(inst);
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+
+    *len -= ntohs(src->len);
+    (*dst) = inst;
+
+    return 0;
+}
+
+int
+ofl_exp_beba_inst_free (struct ofl_instruction_header *i) {
+    struct ofl_instruction_experimenter* exp = (struct ofl_instruction_experimenter *) i;
+        if (exp->experimenter_id == BEBA_VENDOR_ID) {
+            struct ofl_exp_beba_instr_header *ext = (struct ofl_exp_beba_instr_header *)exp;
+            switch (ext->instr_type) {
+                case (OFPIT_IN_SWITCH_PKT_GEN):
+                {
+                    OFL_LOG_DBG(LOG_MODULE, "Freeing BEBA instruction IN_SWITCH_PKT_GEN.");
+                    struct ofl_exp_instruction_in_switch_pkt_gen *instr = (struct ofl_exp_instruction_in_switch_pkt_gen *)ext;
+                    // TODO We may need to use OFL_UTILS_FREE_ARR_FUN2 and pass the ofl_exp callbacks instead of NULL
+                    OFL_UTILS_FREE_ARR_FUN2(instr->actions, instr->actions_num,
+                                        ofl_actions_free, NULL);
+                    free(instr);
+                    OFL_LOG_DBG(LOG_MODULE, "Done.");
+                    return 0;
+                    break;
+                }
+                default:
+                {
+                    OFL_LOG_WARN(LOG_MODULE, "Unknown BEBA instruction type. Perhaps not freed correctly");
+                }
+            }
+        }
+        free(i);
+        return 1;
+}
+
+size_t
+ofl_exp_beba_inst_ofp_len (struct ofl_instruction_header *i) {
+    struct ofl_instruction_experimenter *exp = (struct ofl_instruction_experimenter *) i;
+
+    if (exp->experimenter_id == BEBA_VENDOR_ID) {
+        struct ofl_exp_beba_instr_header *ext = (struct ofl_exp_beba_instr_header *)exp;
+        switch (ext->instr_type) {
+            case OFPIT_IN_SWITCH_PKT_GEN: {
+                struct ofl_exp_instruction_in_switch_pkt_gen *i = (struct ofl_exp_instruction_in_switch_pkt_gen *)ext;
+                OFL_LOG_DBG(LOG_MODULE, "ofl_exp_beba_inst_ofp_len");
+                // TODO We may need to pass the ofl_exp callbacks instead of NULL
+//              return sizeof(struct ofl_exp_beba_instr_header)
+//                      + ofl_actions_ofp_total_len(i->actions, i->actions_num, exp);
+                return sizeof(struct ofp_exp_instruction_in_switch_pkt_gen)
+                        + ofl_actions_ofp_total_len(i->actions, i->actions_num, NULL);
+            }
+            default:
+                OFL_LOG_WARN(LOG_MODULE, "Trying to len unknown BEBA instruction type.");
+                return 0;
+        }
+    }
+
+}
+
+char *
+ofl_exp_beba_inst_to_string (struct ofl_instruction_header *i) {
+    struct ofl_instruction_experimenter *exp = (struct ofl_instruction_experimenter *) i;
+
+    char *str;
+    size_t str_size;
+    FILE *stream = open_memstream(&str, &str_size);
+
+    if (exp->experimenter_id == BEBA_VENDOR_ID) {
+        struct ofl_exp_beba_instr_header *ext = (struct ofl_exp_beba_instr_header *)exp;
+        switch (ext->instr_type) {
+            case (OFPIT_IN_SWITCH_PKT_GEN): {
+                OFL_LOG_DBG(LOG_MODULE, "Trying to print BEBA Experimenter instruction. Not implemented yet!");
+                fprintf(stream, "OFPIT{type=\"%u\"}", ext->instr_type);
+                break;
+            }
+            default: {
+                OFL_LOG_WARN(LOG_MODULE, "Trying to print unknown BEBA Experimenter instruction.");
+                fprintf(stream, "OFPIT{type=\"%u\"}", ext->instr_type);
+            }
+        }
+    }
+
+    fclose(stream);
+    return str;
+
 }
 
 /*experimenter table functions*/
@@ -1407,10 +1666,10 @@ void state_table_write_state(struct state_entry *entry, struct packet *pkt) {
                 *state = (*state & 0x00000000) | (entry->state);
     }
 }
-void state_table_del_state(struct state_table *table, uint8_t *key, uint32_t len) {
+ofl_err state_table_del_state(struct state_table *table, uint8_t *key, uint32_t len) {
     struct state_entry *e;
-
     int i;
+    uint8_t found = 0;
     uint32_t key_len=0; //update-scope key extractor length
     struct key_extractor *extractor=&table->write_key;
     for (i=0; i<extractor->field_count; i++) {
@@ -1420,15 +1679,20 @@ void state_table_del_state(struct state_table *table, uint8_t *key, uint32_t len
     if(key_len != len)
     {
         OFL_LOG_WARN(LOG_MODULE, "key extractor length != received key length");
-        return;
+        return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
     }
     
     HMAP_FOR_EACH_WITH_HASH(e, struct state_entry, 
         hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries){
             if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
                 hmap_remove_and_shrink(&table->state_entries, &e->hmap_node);
+                found = 1;
                 break;
             }
+    }
+
+    if (!found){
+        return ofl_error(OFPET_EXPERIMENTER, OFPEC_EXP_DEL_FLOW_STATE);
     }
 
     HMAP_FOR_EACH_WITH_HASH(e, struct state_entry, 
@@ -1446,16 +1710,17 @@ void state_table_del_state(struct state_table *table, uint8_t *key, uint32_t len
                 break;
             }
     }
+    return 0;
 }
 
 
-void state_table_set_extractor(struct state_table *table, struct key_extractor *ke, int update) {
+ofl_err state_table_set_extractor(struct state_table *table, struct key_extractor *ke, int update) {
     struct key_extractor *dest;
     if (update){
         if (table->read_key.field_count!=0){
             if (table->read_key.field_count != ke->field_count){
                 OFL_LOG_WARN(LOG_MODULE, "Update-scope should provide same length keys of lookup-scope: %d vs %d\n",ke->field_count,table->read_key.field_count);
-                return;
+                return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
             }
         }
         dest = &table->write_key;
@@ -1465,7 +1730,7 @@ void state_table_set_extractor(struct state_table *table, struct key_extractor *
         if (table->write_key.field_count!=0){
             if (table->write_key.field_count != ke->field_count){
                 OFL_LOG_WARN(LOG_MODULE, "Lookup-scope should provide same length keys of update-scope: %d vs %d\n",ke->field_count,table->write_key.field_count);
-                return;
+                return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
             }
         }
         dest = &table->read_key;
@@ -1473,10 +1738,10 @@ void state_table_set_extractor(struct state_table *table, struct key_extractor *
         }
     dest->field_count = ke->field_count;
     memcpy(dest->fields, ke->fields, sizeof(uint32_t)*ke->field_count);
-    return;
+    return 0;
 }
 
-void state_table_set_state(struct state_table *table, struct packet *pkt, struct ofl_exp_set_flow_state *msg, struct ofl_exp_action_set_state *act) {
+ofl_err state_table_set_state(struct state_table *table, struct packet *pkt, struct ofl_exp_set_flow_state *msg, struct ofl_exp_action_set_state *act) {
     uint8_t key[MAX_STATE_KEY_LEN] = {0};   
     struct state_entry *e;
     uint32_t state,state_mask;
@@ -1506,7 +1771,7 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, struct
         
         if(!__extract_key(key, &table->write_key, pkt)){
             OFL_LOG_DBG(LOG_MODULE, "lookup key fields not found in the packet's header");
-            return;
+            return 0;
         }
     }
 
@@ -1525,7 +1790,7 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, struct
         else
         {
             OFL_LOG_WARN(LOG_MODULE, "key extractor length != received key length");
-            return;
+            return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
         }
     }
     
@@ -1534,7 +1799,7 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, struct
             if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
                 OFL_LOG_DBG(LOG_MODULE, "state value is %u updated to hash map", state);
                 if ((((e->state & ~(state_mask)) | (state & state_mask)) == STATE_DEFAULT) && hard_timeout==0 && idle_timeout==0){
-                    state_table_del_state(table, key, key_len);
+                    return state_table_del_state(table, key, key_len);
                 }
                 else {
                     e->state = (e->state & ~(state_mask)) | (state & state_mask);
@@ -1566,8 +1831,9 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, struct
                         hmap_insert(&table->idle_entries, &e->idle_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
                     }
                 }
-                return;
+                return 0;
             }
+        return 0;
     }
 
     gettimeofday(&tv,NULL);
@@ -1613,60 +1879,68 @@ void state_table_set_state(struct state_table *table, struct packet *pkt, struct
 ofl_err
 handle_state_mod(struct pipeline *pl, struct ofl_exp_msg_state_mod *msg,
                                                 const struct sender *sender) {
-    
-    if (msg->command == OFPSC_STATEFUL_TABLE_CONFIG) {
-        struct ofl_exp_stateful_table_config *p = (struct ofl_exp_stateful_table_config *) msg->payload;
-        struct state_table *st = pl->tables[p->table_id]->state_table;
-        state_table_configure_stateful(st, p->stateful);
-    }
-    else if (msg->command == OFPSC_EXP_SET_L_EXTRACTOR || msg->command == OFPSC_EXP_SET_U_EXTRACTOR) {
-        struct ofl_exp_set_extractor *p = (struct ofl_exp_set_extractor *) msg->payload;
-        struct state_table *st = pl->tables[p->table_id]->state_table;
-        if (state_table_is_stateful(st)){
-            int update = 0;
-            if (msg->command == OFPSC_EXP_SET_U_EXTRACTOR) 
-                update = 1;
-            state_table_set_extractor(st, (struct key_extractor *)p, update);
-        }
-        else{
-            //TODO sanvitz: return an experimenter error msg
-            OFL_LOG_WARN(LOG_MODULE, "ERROR STATE MOD: cannot configure extractor (stage %u is not stateful)", p->table_id);
-        }
-    }
-    else if (msg->command == OFPSC_EXP_SET_FLOW_STATE) {
-        struct ofl_exp_set_flow_state *p = (struct ofl_exp_set_flow_state *) msg->payload;
-        struct state_table *st = pl->tables[p->table_id]->state_table;
-        if (state_table_is_stateful(st) && state_table_is_configured(st)){
-            state_table_set_state(st, NULL, p, NULL);
-        }
-        else{
-            //TODO sanvitz: return an experimenter error msg
-            OFL_LOG_WARN(LOG_MODULE, "ERROR STATE MOD at stage %u: stage not stateful or not configured", p->table_id);
-        }
-    }
-    else if (msg->command == OFPSC_EXP_DEL_FLOW_STATE) {
-        struct ofl_exp_del_flow_state *p = (struct ofl_exp_del_flow_state *) msg->payload;
-        struct state_table *st = pl->tables[p->table_id]->state_table;
-        if (state_table_is_stateful(st) && state_table_is_configured(st)){
-            state_table_del_state(st, p->key, p->key_len);
-        }
-        else{
-            //TODO sanvitz: return an experimenter error msg
-             OFL_LOG_WARN(LOG_MODULE, "ERROR STATE MOD at stage %u: stage not stateful or not configured", p->table_id);
-        }
-    }
-    else if (msg->command == OFPSC_EXP_SET_GLOBAL_STATE) {
-        uint32_t global_state = pl->dp->global_state;
-        struct ofl_exp_set_global_state *p = (struct ofl_exp_set_global_state *) msg->payload;
-        global_state = (global_state & ~(p->global_state_mask)) | (p->global_state & p->global_state_mask);
-        pl->dp->global_state = global_state;
-    }
-    else if (msg->command == OFPSC_EXP_RESET_GLOBAL_STATE) {
-        pl->dp->global_state = OFP_GLOBAL_STATE_DEFAULT;
-    }
-    else
-        return 1;
+    switch (msg->command){
+        case OFPSC_STATEFUL_TABLE_CONFIG:{
+            struct ofl_exp_stateful_table_config *p = (struct ofl_exp_stateful_table_config *) msg->payload;
+            struct state_table *st = pl->tables[p->table_id]->state_table;
+            state_table_configure_stateful(st, p->stateful);    
+            break;}
+        
+        case OFPSC_EXP_SET_L_EXTRACTOR:
+        case OFPSC_EXP_SET_U_EXTRACTOR:{
+            struct ofl_exp_set_extractor *p = (struct ofl_exp_set_extractor *) msg->payload;
+            struct state_table *st = pl->tables[p->table_id]->state_table;
+            if (state_table_is_stateful(st)){
+                int update = 0;
+                if (msg->command == OFPSC_EXP_SET_U_EXTRACTOR) 
+                    update = 1;
+                return state_table_set_extractor(st, (struct key_extractor *)p, update);
+            }
+            else{      
+                OFL_LOG_WARN(LOG_MODULE, "ERROR STATE MOD: cannot configure extractor (stage %u is not stateful)", p->table_id);
+                return ofl_error(OFPET_EXPERIMENTER, OFPEC_EXP_SET_EXTRACTOR);
+            }
+            break;}
 
+        case OFPSC_EXP_SET_FLOW_STATE:{
+            struct ofl_exp_set_flow_state *p = (struct ofl_exp_set_flow_state *) msg->payload;
+            struct state_table *st = pl->tables[p->table_id]->state_table;
+            if (state_table_is_stateful(st) && state_table_is_configured(st)){
+                return state_table_set_state(st, NULL, p, NULL);
+            }
+            else{
+                OFL_LOG_WARN(LOG_MODULE, "ERROR STATE MOD at stage %u: stage not stateful or not configured", p->table_id);
+                return ofl_error(OFPET_EXPERIMENTER, OFPEC_EXP_SET_FLOW_STATE);
+            }
+            break;}
+
+        case OFPSC_EXP_DEL_FLOW_STATE:{
+            struct ofl_exp_del_flow_state *p = (struct ofl_exp_del_flow_state *) msg->payload;
+            struct state_table *st = pl->tables[p->table_id]->state_table;
+            if (state_table_is_stateful(st) && state_table_is_configured(st)){
+                return state_table_del_state(st, p->key, p->key_len);
+            }
+            else{
+                OFL_LOG_WARN(LOG_MODULE, "ERROR STATE MOD at stage %u: stage not stateful or not configured", p->table_id);
+                return ofl_error(OFPET_EXPERIMENTER, OFPEC_EXP_DEL_FLOW_STATE);
+            }
+            break;}
+
+        case OFPSC_EXP_SET_GLOBAL_STATE:{
+            uint32_t global_state = pl->dp->global_state;
+            struct ofl_exp_set_global_state *p = (struct ofl_exp_set_global_state *) msg->payload;
+            global_state = (global_state & ~(p->global_state_mask)) | (p->global_state & p->global_state_mask);
+            pl->dp->global_state = global_state;
+            break;}
+
+        case OFPSC_EXP_RESET_GLOBAL_STATE:{
+            pl->dp->global_state = OFP_GLOBAL_STATE_DEFAULT;
+            break;}
+
+        default:
+            return ofl_error(OFPET_EXPERIMENTER, OFPEC_EXP_STATE_MOD_FAILED);
+    }
+    ofl_msg_free((struct ofl_msg_header *)msg, pl->dp->exp);
     return 0;
 }
 
@@ -1705,6 +1979,38 @@ handle_stats_request_global_state(struct pipeline *pl, const struct sender *send
              .experimenter_id = BEBA_VENDOR_ID},
              .type = OFPMP_EXP_GLOBAL_STATE_STATS},
              .global_state = global_state};
+    return 0;
+}
+
+ofl_err
+handle_pkttmp_mod(struct pipeline *pl, struct ofl_exp_msg_pkttmp_mod *msg,
+                                                const struct sender *sender) {
+
+    OFL_LOG_DBG(LOG_MODULE, "Handling PKTTMP_MOD");
+    /* TODO: complete handling of creating and deleting pkttmp entry */
+    if (msg->command == OFPSC_ADD_PKTTMP) {
+        struct ofl_exp_add_pkttmp *p = (struct ofl_exp_add_pkttmp *) msg->payload;
+        struct pkttmp_entry *e;
+        e = pkttmp_entry_create(pl->dp, pl->dp->pkttmps, p);
+
+        hmap_insert(&pl->dp->pkttmps->entries, &e->node, hash_bytes(&e->pkttmp_id, 4, 0));
+        OFL_LOG_DBG(LOG_MODULE, "PKTTMP id is %d, inserted to hash map", e->pkttmp_id);
+    } /*
+    else if (msg->command == OFPSC_EXP_DEL_FLOW_STATE) {
+        struct ofl_exp_del_flow_state *p = (struct ofl_exp_del_flow_state *) msg->payload;
+        struct state_table *st = pl->tables[p->table_id]->state_table;
+        if (state_table_is_stateful(st) && state_table_is_configured(st)){
+            state_table_del_state(st, p->key, p->key_len);
+        }
+        else{
+            //TODO sanvitz: return an experimenter error msg
+             OFL_LOG_WARN(LOG_MODULE, "ERROR STATE MOD at stage %u: stage not stateful or not configured", p->table_id);
+        }
+    } */
+    else {
+        return 1;
+    }
+
     return 0;
 }
 
@@ -2385,270 +2691,69 @@ ofl_structs_match_exp_put64m(struct ofl_match *match, uint32_t header, uint32_t 
     match->header.length += EXP_ID_LEN + len*2 + 4;
 }
 
-/* Instruction expertimenter callback implementation */
-//TODO implement callbacks
-int
-ofl_exp_beba_inst_pack (struct ofl_instruction_header *src, struct ofp_instruction *dst) {
-	struct ofl_instruction_experimenter* exp = (struct ofl_instruction_experimenter *) src;
+/*Functions used by experimenter errors*/
 
-	if (exp->experimenter_id == BEBA_VENDOR_ID) {
-		struct ofl_exp_beba_instr_header *ext = (struct ofl_exp_beba_instr_header *)exp;
-		switch (ext->instr_type) {
-			case OFPIT_IN_SWITCH_PKT_GEN: {
-				OFL_LOG_DBG(LOG_MODULE, "ofl_exp_beba_inst_pack OFPIT_IN_SWITCH_PKT_GEN");
-				size_t total_len, len;
-				uint8_t *data;
-				size_t i;
-
-				struct ofl_exp_instruction_in_switch_pkt_gen *si = (struct ofl_exp_instruction_in_switch_pkt_gen *)src;
-				struct ofp_exp_instruction_in_switch_pkt_gen *di = (struct ofp_exp_instruction_in_switch_pkt_gen *)dst;
-
-				//TODO may need to pass callbacks instead of NULL
-				total_len = sizeof(struct ofp_exp_instruction_in_switch_pkt_gen) + ofl_actions_ofp_total_len(si->actions, si->actions_num, NULL);
-
-				di->header.header.type = htons(src->type); //OFPIT_EXPERIMENTER
-				di->header.header.experimenter  = htonl(exp->experimenter_id); //BEBA_VENDOR_ID
-				di->header.instr_type = htonl(ext->instr_type); //OFPIT_IN_SWITCH_PKT_GEN
-
-				di->header.header.len = htons(total_len);
-				memset(di->header.pad, 0x00, 4);
-
-				di->pkttmp_id = htons(si->pkttmp_id);
-				memset(di->header.pad, 0x00, 4);
-				data = (uint8_t *)dst + sizeof(struct ofp_exp_instruction_in_switch_pkt_gen);
-
-				for (i=0; i<si->actions_num; i++) {
-					//TODO may need to pass callbacks instead of NULL
-					len = ofl_actions_pack(si->actions[i], (struct ofp_action_header *)data, data, NULL);
-					data += len;
-				}
-				return total_len;
-			}
-			default:
-	            OFL_LOG_WARN(LOG_MODULE, "Trying to pack unknown instruction type.");
-	            return 0;
-		}
-	} else {
-		OFL_LOG_WARN(LOG_MODULE, "Trying to pack unknown experimenter instruction.");
-		return 0;
-	}
+uint32_t
+get_experimenter_id(struct ofl_msg_header *msg){
+    uint32_t exp_id;
+    /*check if the msg that triggers the err is experimenter*/
+    if (msg->type == OFPT_EXPERIMENTER){
+        exp_id = ((struct ofl_msg_experimenter *) msg)->experimenter_id;
+    }
+    /*if not, the error is triggered by an experimenter match/action*/
+    else if(msg->type == OFPT_FLOW_MOD) {
+        struct ofl_msg_flow_mod *flow_mod = (struct ofl_msg_flow_mod *)msg;
+        struct ofl_match_header *flow_mod_match = flow_mod->match;
+        exp_id = get_experimenter_id_from_match((struct ofl_match*)flow_mod_match);
+        if(!exp_id){
+            int i;
+            for(i=0; i<flow_mod->instructions_num; i++){
+                struct ofl_instruction_header *inst = flow_mod->instructions[i];
+                switch(inst->type) {
+                    case (OFPIT_WRITE_ACTIONS):
+                    case (OFPIT_APPLY_ACTIONS): {
+                        struct ofl_instruction_actions *act = (struct ofl_instruction_actions *)inst;
+                        exp_id = get_experimenter_id_from_action(act);
+                    }
+                }
+            }
+        }
+    }
+    return exp_id;
 }
 
-ofl_err
-ofl_exp_beba_inst_unpack (struct ofp_instruction *src, size_t *len, struct ofl_instruction_header **dst) {
+uint32_t 
+get_experimenter_id_from_match(struct ofl_match *flow_mod_match){
+    struct ofl_match_tlv *f;
+    HMAP_FOR_EACH(f, struct ofl_match_tlv, hmap_node, &flow_mod_match->match_fields){
+        switch (OXM_VENDOR(f->header))
+        {
+            case(OFPXMC_EXPERIMENTER):
+                return *((uint32_t*) (f->value));   
+        }
 
-	struct ofl_instruction_header *inst = NULL;
-	size_t ilen;
-    struct ofp_instruction_experimenter_header *exp;
-
-    OFL_LOG_DBG(LOG_MODULE, "ofl_exp_beba_inst_unpack");
-
-    if (*len < sizeof(struct ofp_instruction_experimenter_header)) {
-    	OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER instruction has invalid length (%zu).", *len);
-    	return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
-
-    exp = (struct ofp_instruction_experimenter_header *) src;
-
-    if (*len < ntohs(exp->len)) {
-        OFL_LOG_WARN(LOG_MODULE, "Received instruction has invalid length (set to %u, but only %zu received).", ntohs(exp->len), *len);
-        return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
-    }
-    ilen = ntohs(exp->len);
-
-    if (ntohl(exp->experimenter) == BEBA_VENDOR_ID) {
-    	struct ofp_beba_instruction_experimenter_header *beba_exp = (struct ofp_beba_instruction_experimenter_header *) exp;
-    	switch (ntohs(beba_exp->instr_type)) {
-			case OFPIT_IN_SWITCH_PKT_GEN: {
-				struct ofp_exp_instruction_in_switch_pkt_gen *si;
-				struct ofl_exp_instruction_in_switch_pkt_gen *di;
-				struct ofp_action_header *act;
-				ofl_err error;
-				size_t i;
-
-				if (ilen < sizeof(struct ofp_exp_instruction_in_switch_pkt_gen)) {
-					OFL_LOG_WARN(LOG_MODULE, "Received IN_SWITCH_PKT_GEN instruction has invalid length (%zu).", *len);
-					return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
-				}
-				ilen -= sizeof(struct ofp_exp_instruction_in_switch_pkt_gen);
-
-				si = (struct ofp_exp_instruction_in_switch_pkt_gen *)src;
-				di = (struct ofl_exp_instruction_in_switch_pkt_gen *)malloc(sizeof(struct ofl_exp_instruction_in_switch_pkt_gen));
-
-				di->header.header.header.type = ntohs(src->type); //OFPIT_EXPERIMENTER
-				di->header.header.experimenter_id  = ntohl(exp->experimenter); //BEBA_VENDOR_ID
-				di->header.instr_type = ntohl(beba_exp->instr_type); //OFPIT_IN_SWITCH_PKT_GEN
-				di->pkttmp_id = ntohl(si->pkttmp_id);
-
-				error = ofl_utils_count_ofp_actions((uint8_t *)si->actions, ilen, &di->actions_num);
-				if (error) {
-					free(di);
-					return error;
-				}
-				di->actions = (struct ofl_action_header **)malloc(di->actions_num * sizeof(struct ofl_action_header *));
-
-				act = si->actions;
-				for (i = 0; i < di->actions_num; i++) {
-					// TODO We may need to pass the ofl_exp callbacks instead of NULL
-					//error = ofl_actions_unpack(act, &ilen, &(di->actions[i]), exp);
-					error = ofl_actions_unpack(act, &ilen, &(di->actions[i]), NULL);
-					if (error) {
-						*len = *len - ntohs(src->len) + ilen;
-						// TODO We may need to pass the ofl_exp callbacks instead of NULL
-						//OFL_UTILS_FREE_ARR_FUN2(di->actions, i,
-						//		ofl_actions_free, exp);
-						OFL_UTILS_FREE_ARR_FUN2(di->actions, i,
-												ofl_actions_free, NULL);
-						free(di);
-						return error;
-					}
-					act = (struct ofp_action_header *)((uint8_t *)act + ntohs(act->len));
-				}
-
-				inst = (struct ofl_instruction_header *)di;
-				break;
-			}
-			default: {
-				OFL_LOG_WARN(LOG_MODULE, "The received BEBA instruction type (%u) is invalid.", ntohs(beba_exp->instr_type));
-				return ofl_error(OFPET_BAD_INSTRUCTION, OFPBIC_UNKNOWN_INST);
-			}
-    	}
-    }
-
-    // must set type before check, so free works correctly
-    inst->type = (enum ofp_instruction_type)ntohs(src->type);
-
-    if (ilen != 0) {
-    	*len = *len - ntohs(src->len) + ilen;
-    	OFL_LOG_WARN(LOG_MODULE, "The received instruction contained extra bytes (%zu).", ilen);
-    	ofl_exp_beba_inst_free(inst);
-    	return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
-    }
-
-    *len -= ntohs(src->len);
-    (*dst) = inst;
-
     return 0;
 }
 
-int
-ofl_exp_beba_inst_free (struct ofl_instruction_header *i) {
-	struct ofl_instruction_experimenter* exp = (struct ofl_instruction_experimenter *) i;
-	    if (exp->experimenter_id == BEBA_VENDOR_ID) {
-	    	struct ofl_exp_beba_instr_header *ext = (struct ofl_exp_beba_instr_header *)exp;
-	        switch (ext->instr_type) {
-	            case (OFPIT_IN_SWITCH_PKT_GEN):
-	            {
-	            	OFL_LOG_DBG(LOG_MODULE, "Freeing BEBA instruction IN_SWITCH_PKT_GEN.");
-	                struct ofl_exp_instruction_in_switch_pkt_gen *instr = (struct ofl_exp_instruction_in_switch_pkt_gen *)ext;
-					// TODO We may need to use OFL_UTILS_FREE_ARR_FUN2 and pass the ofl_exp callbacks instead of NULL
-	                OFL_UTILS_FREE_ARR_FUN2(instr->actions, instr->actions_num,
-										ofl_actions_free, NULL);
-	                free(instr);
-	                OFL_LOG_DBG(LOG_MODULE, "Done.");
-	                return 0;
-	                break;
-	            }
-	            default:
-	            {
-	            	OFL_LOG_WARN(LOG_MODULE, "Unknown BEBA instruction type. Perhaps not freed correctly");
-	            }
-	        }
-	    }
-	    free(i);
-	    return 1;
-}
-
-size_t
-ofl_exp_beba_inst_ofp_len (struct ofl_instruction_header *i) {
-	struct ofl_instruction_experimenter *exp = (struct ofl_instruction_experimenter *) i;
-
-	if (exp->experimenter_id == BEBA_VENDOR_ID) {
-		struct ofl_exp_beba_instr_header *ext = (struct ofl_exp_beba_instr_header *)exp;
-		switch (ext->instr_type) {
-			case OFPIT_IN_SWITCH_PKT_GEN: {
-				struct ofl_exp_instruction_in_switch_pkt_gen *i = (struct ofl_exp_instruction_in_switch_pkt_gen *)ext;
-				OFL_LOG_DBG(LOG_MODULE, "ofl_exp_beba_inst_ofp_len");
-				// TODO We may need to pass the ofl_exp callbacks instead of NULL
-//				return sizeof(struct ofl_exp_beba_instr_header)
-//						+ ofl_actions_ofp_total_len(i->actions, i->actions_num, exp);
-				return sizeof(struct ofp_exp_instruction_in_switch_pkt_gen)
-						+ ofl_actions_ofp_total_len(i->actions, i->actions_num, NULL);
-			}
-			default:
-				OFL_LOG_WARN(LOG_MODULE, "Trying to len unknown BEBA instruction type.");
-				return 0;
-		}
-	}
-
-}
-
-char *
-ofl_exp_beba_inst_to_string (struct ofl_instruction_header *i) {
-	struct ofl_instruction_experimenter *exp = (struct ofl_instruction_experimenter *) i;
-
-	char *str;
-	size_t str_size;
-	FILE *stream = open_memstream(&str, &str_size);
-
-	if (exp->experimenter_id == BEBA_VENDOR_ID) {
-		struct ofl_exp_beba_instr_header *ext = (struct ofl_exp_beba_instr_header *)exp;
-		switch (ext->instr_type) {
-			case (OFPIT_IN_SWITCH_PKT_GEN): {
-				OFL_LOG_DBG(LOG_MODULE, "Trying to print BEBA Experimenter instruction. Not implemented yet!");
-				fprintf(stream, "OFPIT{type=\"%u\"}", ext->instr_type);
-				break;
-			}
-			default: {
-				OFL_LOG_WARN(LOG_MODULE, "Trying to print unknown BEBA Experimenter instruction.");
-				fprintf(stream, "OFPIT{type=\"%u\"}", ext->instr_type);
-			}
-		}
-	}
-
-	fclose(stream);
-	return str;
-
-}
-
-ofl_err
-handle_pkttmp_mod(struct pipeline *pl, struct ofl_exp_msg_pkttmp_mod *msg,
-                                                const struct sender *sender) {
-
-	OFL_LOG_DBG(LOG_MODULE, "Handling PKTTMP_MOD");
-	/* TODO: complete handling of creating and deleting pkttmp entry */
-    if (msg->command == OFPSC_ADD_PKTTMP) {
-        struct ofl_exp_add_pkttmp *p = (struct ofl_exp_add_pkttmp *) msg->payload;
-        struct pkttmp_entry *e;
-        e = pkttmp_entry_create(pl->dp, pl->dp->pkttmps, p);
-
-		hmap_insert(&pl->dp->pkttmps->entries, &e->node, hash_bytes(&e->pkttmp_id, 4, 0));
-		OFL_LOG_DBG(LOG_MODULE, "PKTTMP id is %d, inserted to hash map", e->pkttmp_id);
-    } /*
-    else if (msg->command == OFPSC_EXP_DEL_FLOW_STATE) {
-        struct ofl_exp_del_flow_state *p = (struct ofl_exp_del_flow_state *) msg->payload;
-        struct state_table *st = pl->tables[p->table_id]->state_table;
-        if (state_table_is_stateful(st) && state_table_is_configured(st)){
-            state_table_del_state(st, p->key, p->key_len);
+uint32_t 
+get_experimenter_id_from_action(struct ofl_instruction_actions *act){
+    int j;
+    for(j=0; j<act->actions_num; j++) {
+        struct ofl_action_header *action = act->actions[j];
+        if (action->type == OFPAT_EXPERIMENTER) {
+           return ((struct ofl_action_experimenter *)action)->experimenter_id;
         }
-        else{
-            //TODO sanvitz: return an experimenter error msg
-             OFL_LOG_WARN(LOG_MODULE, "ERROR STATE MOD at stage %u: stage not stateful or not configured", p->table_id);
-        }
-    } */
-    else {
-        return 1;
     }
-
-    return 0;
 }
 
+/*Functions used by INsP experimenter instruction*/
 struct pkttmp_table *
 pkttmp_table_create(struct datapath *dp) {
-	struct pkttmp_table *table;
-	//size_t i;
+    struct pkttmp_table *table;
+    //size_t i;
 
-	OFL_LOG_DBG(LOG_MODULE, "Creating PKTTMP TABLE.");
+    OFL_LOG_DBG(LOG_MODULE, "Creating PKTTMP TABLE.");
 
     table = xmalloc(sizeof(struct pkttmp_table));
     table->dp = dp;
@@ -2685,8 +2790,8 @@ pkttmp_entry_create(struct datapath *dp, struct pkttmp_table *table, struct ofl_
     e->data = NULL;
     e->data_length = mod->data_length;
     if (e->data_length > 0) {
-    	e->data = xmalloc(e->data_length);
-    	memcpy(e->data, mod->data, e->data_length);
+        e->data = xmalloc(e->data_length);
+        memcpy(e->data, mod->data, e->data_length);
     }
     //e->data = mod->data_length > 0 ? (uint8_t *)memcpy(malloc(mod->data_length), mod->data, mod->data_length) : NULL;
 

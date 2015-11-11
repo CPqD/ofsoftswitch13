@@ -58,12 +58,28 @@ OFL_LOG_INIT(LOG_MODULE)
 
 
 static void
-ofl_msg_print_error(struct ofl_msg_error *msg, FILE *stream) {
-    fprintf(stream, "{type=\"");
-    ofl_error_type_print(stream, msg->type);
-    fprintf(stream, "\", code=\"");
-    ofl_error_code_print(stream, msg->type, msg->code);
-    fprintf(stream, "\", dlen=\"%zu\"}", msg->data_length);
+ofl_msg_print_error(struct ofl_msg_error *msg, FILE *stream, struct ofl_exp *exp) {
+    int error = 0;
+    switch (msg->type) {
+        case (OFPET_EXPERIMENTER): {
+            struct ofl_msg_exp_error *exp_err = (struct ofl_msg_exp_error *) msg;
+            if (exp == NULL || exp->err == NULL || exp->err->to_string == NULL) {
+                fprintf(stream, "{id=\"0x%"PRIx32"\"}", exp_err->experimenter);
+            } else {
+                char *c = exp->err->to_string(exp_err);
+                fprintf(stream, "%s", c);
+                free(c);
+            }
+            return;
+         }
+        default:{
+            fprintf(stream, "{type=\"");
+            ofl_error_type_print(stream, msg->type);
+            fprintf(stream, "\", code=\"");
+            ofl_error_code_print(stream, msg->type, msg->code);
+            fprintf(stream, "\", dlen=\"%zu\"}", msg->data_length);
+        }
+    }
 }
 
 static void
@@ -720,10 +736,9 @@ ofl_msg_to_string(struct ofl_msg_header *msg, struct ofl_exp *exp) {
 void
 ofl_msg_print(FILE *stream, struct ofl_msg_header *msg, struct ofl_exp *exp) {
     ofl_message_type_print(stream, msg->type);
-
     switch (msg->type) {
         case OFPT_HELLO: { return; }
-        case OFPT_ERROR: { ofl_msg_print_error((struct ofl_msg_error *)msg, stream); return; }
+        case OFPT_ERROR: { ofl_msg_print_error((struct ofl_msg_error *)msg, stream, exp); return; }
         case OFPT_ECHO_REQUEST:
         case OFPT_ECHO_REPLY: { ofl_msg_print_echo((struct ofl_msg_echo *)msg, stream); return; }
         case OFPT_EXPERIMENTER: {

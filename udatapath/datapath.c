@@ -56,6 +56,7 @@
 #include "oflib/ofl-log.h"
 #include "oflib-exp/ofl-exp.h"
 #include "oflib-exp/ofl-exp-nicira.h"
+ #include "oflib-exp/ofl-exp-beba.h"
 #include "oflib/ofl-messages.h"
 #include "oflib/ofl-log.h"
 #include "openflow/openflow.h"
@@ -133,13 +134,20 @@ static struct ofl_exp_inst dp_exp_instruction =
          .ofp_len   = ofl_exp_inst_ofp_len,
          .to_string = ofl_exp_inst_to_string};
 
+/* Callbacks for processing experimenter errors in OFLib. */
+static struct ofl_exp_err dp_exp_err =
+        {.pack      = ofl_exp_err_pack,
+         .free      = ofl_exp_err_free,
+         .to_string = ofl_exp_err_to_string};
+
 static struct ofl_exp dp_exp =
         {.act   = &dp_exp_act,
          .inst  = &dp_exp_instruction,
          .match = NULL,
          .stats = &dp_exp_statistics,
          .msg   = &dp_exp_msg,
-         .field = &dp_exp_field};
+         .field = &dp_exp_field,
+         .err   = &dp_exp_err};
 
 /* Generates and returns a random datapath id. */
 static uint64_t
@@ -311,28 +319,41 @@ remote_rconn_run(struct datapath *dp, struct remote *r, uint8_t conn_id) {
             if (buffer == NULL) {
                 break;
             } else {
-                struct ofl_msg_header *msg;
-
+                struct ofl_msg_header *msg = NULL;
                 struct sender sender = {.remote = r, .conn_id = conn_id};
 
                 error = ofl_msg_unpack(buffer->data, buffer->size, &msg, &(sender.xid), dp->exp);
 
                 if (!error) {
                     error = handle_control_msg(dp, msg, &sender);
-
-                    if (error) {
-                        ofl_msg_free(msg, dp->exp);
-                    }
                 }
 
                 if (error) {
-                    struct ofl_msg_error err =
-                            {{.type = OFPT_ERROR},
-                             .type = ofl_error_type(error),
-                             .code = ofl_error_code(error),
-                             .data_length = buffer->size,
-                             .data        = buffer->data};
-                    dp_send_message(dp, (struct ofl_msg_header *)&err, &sender);
+                   /* [*] The highest bit of 'error' is always set to one, but on-the-wire we
+                   need full compliance to OF specification: the 'type' of an experimenter
+                   error message must be 0xffff instead of 0x7ffff. */               
+                   if ((ofl_error_type(error) | 0x8000) == OFPET_EXPERIMENTER){
+                       struct ofl_msg_exp_error err =
+                               {{.type = OFPT_ERROR},
+                                .type = ofl_error_type(error) | 0x8000, // [*]
+                                .exp_type = ofl_error_code(error),
+                                .experimenter = get_experimenter_id(msg),
+                                .data_length = buffer->size,
+                                .data        = buffer->data};
+                       dp_send_message(dp, (struct ofl_msg_header *)&err, &sender);
+                   }
+                   else{
+                       struct ofl_msg_error err =
+                               {{.type = OFPT_ERROR},
+                                .type = ofl_error_type(error),
+                                .code = ofl_error_code(error),
+                                .data_length = buffer->size,
+                                .data        = buffer->data};
+                       dp_send_message(dp, (struct ofl_msg_header *)&err, &sender);
+                   }
+                   if (msg != NULL){
+                        ofl_msg_free(msg, dp->exp);
+                   }
                 }
 
                 ofpbuf_delete(buffer);
