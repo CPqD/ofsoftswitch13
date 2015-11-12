@@ -183,8 +183,6 @@ ofl_structs_instructions_unpack(struct ofp_instruction *src, size_t *len, struct
             break; 
         }
         case OFPIT_EXPERIMENTER: {
-            ofl_err error;
-
             if (exp == NULL || exp->inst == NULL || exp->inst->unpack == NULL) {
                 OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER instruction, but no callback was given.");
                 error = ofl_error(OFPET_BAD_INSTRUCTION, OFPBIC_UNSUP_INST);
@@ -211,7 +209,6 @@ ofl_structs_instructions_unpack(struct ofp_instruction *src, size_t *len, struct
     }
 
     *len -= ntohs(src->len);
-
     return error;
 }
 

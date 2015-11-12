@@ -42,7 +42,7 @@ ofl_structs_add_pkttmp_unpack(struct ofp_exp_add_pkttmp *src, size_t *len, struc
     else
     { //control of struct ofp_extraction length.
        OFL_LOG_WARN(LOG_MODULE, "Received pkttmp mod add_pkttmp is too short (%zu).", *len);
-       return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+       return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
     }
 
     return 0;
@@ -61,7 +61,7 @@ ofl_structs_del_pkttmp_unpack(struct ofp_exp_del_pkttmp *src, size_t *len, struc
     else
     { //control of struct ofp_extraction length.
        OFL_LOG_WARN(LOG_MODULE, "Received pkttmp mod del_pkttmp is too short (%zu).", *len);
-       return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+       return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
     }
 
     *len -= (sizeof(struct ofp_exp_del_pkttmp));
@@ -270,51 +270,43 @@ ofl_exp_beba_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_exper
                     return ofl_structs_set_global_state_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
                 default:
                     return ofl_error(OFPET_EXPERIMENTER, OFPEC_EXP_STATE_MOD_BAD_COMMAND);
-            }          
+            }
+            break;          
         }
 
         case (OFPT_EXP_PKTTMP_MOD):
         {
-            /*TODO: experimenter errors*/
         	struct ofp_exp_msg_pkttmp_mod *sm;
         	struct ofl_exp_msg_pkttmp_mod *dm;
 
-        	if (*len < sizeof(struct ofp_experimenter_header) + 2*sizeof(uint8_t)) {
-        		OFL_LOG_WARN(LOG_MODULE, "Received PKTTMP_MOD message has invalid length (%zu).", *len);
-        		return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
-        	}
+            *len -= sizeof(struct ofp_experimenter_header);
 
-        	*len -= sizeof(struct ofp_experimenter_header);
-
-        	sm = (struct ofp_exp_msg_pkttmp_mod *)exp_header;
-        	dm = (struct ofl_exp_msg_pkttmp_mod *)malloc(sizeof(struct ofl_exp_msg_pkttmp_mod));
+            sm = (struct ofp_exp_msg_pkttmp_mod *)exp_header;
+            dm = (struct ofl_exp_msg_pkttmp_mod *)malloc(sizeof(struct ofl_exp_msg_pkttmp_mod));
 
         	dm->header.header.experimenter_id = ntohl(exp_header->experimenter);
-        	dm->header.type                   = ntohl(exp_header->exp_type);
+            dm->header.type                   = ntohl(exp_header->exp_type);
+
+            (*msg) = (struct ofl_msg_experimenter *)dm;
+
+            if (*len < 2*sizeof(uint8_t)) {
+        		OFL_LOG_WARN(LOG_MODULE, "Received PKTTMP_MOD message has invalid length (%zu).", *len);
+        		return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
+        	}
+        	
         	dm->command = (enum ofp_exp_msg_pkttmp_mod_commands)sm->command;
 
         	*len -= 2*sizeof(uint8_t);
 
-        	if (dm->command == OFPSC_ADD_PKTTMP){
-        		error = ofl_structs_add_pkttmp_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
-        		if (error) {
-        			free(dm);
-        			return error;
-        		}
-
+            switch(dm->command){
+                case OFPSC_ADD_PKTTMP:
+        	        return ofl_structs_add_pkttmp_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
+        	    case OFPSC_DEL_PKTTMP:
+        		    return ofl_structs_del_pkttmp_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
+                default:
+                    return ofl_error(OFPET_EXPERIMENTER, OFPEC_EXP_PKTTMP_MOD_BAD_COMMAND);
         	}
-
-        	else if (dm->command == OFPSC_DEL_PKTTMP){
-        		error = ofl_structs_del_pkttmp_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
-        		if (error) {
-        			free(dm);
-        			return error;
-        		}
-
-        	}
-
-        	(*msg) = (struct ofl_msg_experimenter *)dm;
-        	return 0;
+            break;
         }
 
         default: {
@@ -326,6 +318,7 @@ ofl_exp_beba_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_exper
             return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_MESSAGE);
         }
     }
+    return error;
 }
 
 int
@@ -1293,6 +1286,7 @@ ofl_exp_beba_inst_unpack (struct ofp_instruction *src, size_t *len, struct ofl_i
 
     struct ofl_instruction_header *inst = NULL;
     size_t ilen;
+    ofl_err error = 0;
     struct ofp_instruction_experimenter_header *exp;
 
     OFL_LOG_DBG(LOG_MODULE, "ofl_exp_beba_inst_unpack");
@@ -1310,69 +1304,63 @@ ofl_exp_beba_inst_unpack (struct ofp_instruction *src, size_t *len, struct ofl_i
     }
     ilen = ntohs(exp->len);
 
-    if (ntohl(exp->experimenter) == BEBA_VENDOR_ID) {
-        struct ofp_beba_instruction_experimenter_header *beba_exp = (struct ofp_beba_instruction_experimenter_header *) exp;
-        switch (ntohs(beba_exp->instr_type)) {
-            case OFPIT_IN_SWITCH_PKT_GEN: {
-                struct ofp_exp_instruction_in_switch_pkt_gen *si;
-                struct ofl_exp_instruction_in_switch_pkt_gen *di;
-                struct ofp_action_header *act;
-                ofl_err error;
-                size_t i;
+    struct ofp_beba_instruction_experimenter_header *beba_exp = (struct ofp_beba_instruction_experimenter_header *) exp;
+    switch (ntohl(beba_exp->instr_type)) {
+        case OFPIT_IN_SWITCH_PKT_GEN: {
+            struct ofp_exp_instruction_in_switch_pkt_gen *si;
+            struct ofl_exp_instruction_in_switch_pkt_gen *di;
+            struct ofp_action_header *act;
+            size_t i;
 
-                if (ilen < sizeof(struct ofp_exp_instruction_in_switch_pkt_gen)) {
-                    OFL_LOG_WARN(LOG_MODULE, "Received IN_SWITCH_PKT_GEN instruction has invalid length (%zu).", *len);
-                    return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
-                }
-                ilen -= sizeof(struct ofp_exp_instruction_in_switch_pkt_gen);
+            di = (struct ofl_exp_instruction_in_switch_pkt_gen *)malloc(sizeof(struct ofl_exp_instruction_in_switch_pkt_gen));
+            di->header.header.experimenter_id  = ntohl(exp->experimenter); //BEBA_VENDOR_ID
+            inst = (struct ofl_instruction_header *)di;
 
-                si = (struct ofp_exp_instruction_in_switch_pkt_gen *)src;
-                di = (struct ofl_exp_instruction_in_switch_pkt_gen *)malloc(sizeof(struct ofl_exp_instruction_in_switch_pkt_gen));
+            if (ilen < sizeof(struct ofp_exp_instruction_in_switch_pkt_gen)) {
+                OFL_LOG_WARN(LOG_MODULE, "Received IN_SWITCH_PKT_GEN instruction has invalid length (%zu).", *len);
+                error = ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
+            }
 
-                di->header.header.header.type = ntohs(src->type); //OFPIT_EXPERIMENTER
-                di->header.header.experimenter_id  = ntohl(exp->experimenter); //BEBA_VENDOR_ID
-                di->header.instr_type = ntohl(beba_exp->instr_type); //OFPIT_IN_SWITCH_PKT_GEN
-                di->pkttmp_id = ntohl(si->pkttmp_id);
+            ilen -= sizeof(struct ofp_exp_instruction_in_switch_pkt_gen);
 
-                error = ofl_utils_count_ofp_actions((uint8_t *)si->actions, ilen, &di->actions_num);
-                if (error) {
-                    free(di);
-                    return error;
-                }
-                di->actions = (struct ofl_action_header **)malloc(di->actions_num * sizeof(struct ofl_action_header *));
+            si = (struct ofp_exp_instruction_in_switch_pkt_gen *)src;
+          
+            di->header.instr_type = ntohl(beba_exp->instr_type); //OFPIT_IN_SWITCH_PKT_GEN
+            di->pkttmp_id = ntohl(si->pkttmp_id);
 
-                act = si->actions;
-                for (i = 0; i < di->actions_num; i++) {
-                    // TODO We may need to pass the ofl_exp callbacks instead of NULL
-                    //error = ofl_actions_unpack(act, &ilen, &(di->actions[i]), exp);
-                    error = ofl_actions_unpack(act, &ilen, &(di->actions[i]), NULL);
-                    if (error) {
-                        *len = *len - ntohs(src->len) + ilen;
-                        // TODO We may need to pass the ofl_exp callbacks instead of NULL
-                        //OFL_UTILS_FREE_ARR_FUN2(di->actions, i,
-                        //      ofl_actions_free, exp);
-                        OFL_UTILS_FREE_ARR_FUN2(di->actions, i,
-                                                ofl_actions_free, NULL);
-                        free(di);
-                        return error;
-                    }
-                    act = (struct ofp_action_header *)((uint8_t *)act + ntohs(act->len));
-                }
-
-                inst = (struct ofl_instruction_header *)di;
+            error = ofl_utils_count_ofp_actions((uint8_t *)si->actions, ilen, &di->actions_num);
+            if (error) {
                 break;
             }
-            default: {
-                OFL_LOG_WARN(LOG_MODULE, "The received BEBA instruction type (%u) is invalid.", ntohs(beba_exp->instr_type));
-                return ofl_error(OFPET_BAD_INSTRUCTION, OFPBIC_UNKNOWN_INST);
+            di->actions = (struct ofl_action_header **)malloc(di->actions_num * sizeof(struct ofl_action_header *));
+
+            act = si->actions;
+            for (i = 0; i < di->actions_num; i++) {
+                // TODO We may need to pass the ofl_exp callbacks instead of NULL
+                //error = ofl_actions_unpack(act, &ilen, &(di->actions[i]), exp);
+                error = ofl_actions_unpack(act, &ilen, &(di->actions[i]), NULL);
+                if (error) {
+                    break;
+                }
+                act = (struct ofp_action_header *)((uint8_t *)act + ntohs(act->len));
             }
+
+            break;
+        }
+        default: {
+            struct ofl_instruction_experimenter *di;
+            di = (struct ofl_instruction_experimenter *)malloc(sizeof(struct ofl_instruction_experimenter));
+            di->experimenter_id  = ntohl(exp->experimenter); //BEBA_VENDOR_ID
+            inst = (struct ofl_instruction_header *)di;
+            OFL_LOG_WARN(LOG_MODULE, "The received BEBA instruction type (%u) is invalid.", ntohs(beba_exp->instr_type));
+            error = ofl_error(OFPET_EXPERIMENTER, OFPET_BAD_EXP_INSTRUCTION);
+            break;
         }
     }
 
-    // must set type before check, so free works correctly
-    inst->type = (enum ofp_instruction_type)ntohs(src->type);
+    (*dst) = inst;
 
-    if (ilen != 0) {
+    if (!error & ilen != 0) {
         *len = *len - ntohs(src->len) + ilen;
         OFL_LOG_WARN(LOG_MODULE, "The received instruction contained extra bytes (%zu).", ilen);
         ofl_exp_beba_inst_free(inst);
@@ -1380,9 +1368,7 @@ ofl_exp_beba_inst_unpack (struct ofp_instruction *src, size_t *len, struct ofl_i
     }
 
     *len -= ntohs(src->len);
-    (*dst) = inst;
-
-    return 0;
+    return error;
 }
 
 int
@@ -1945,6 +1931,27 @@ handle_state_mod(struct pipeline *pl, struct ofl_exp_msg_state_mod *msg,
 }
 
 ofl_err
+handle_pkttmp_mod(struct pipeline *pl, struct ofl_exp_msg_pkttmp_mod *msg,
+                                                const struct sender *sender) {
+    OFL_LOG_DBG(LOG_MODULE, "Handling PKTTMP_MOD");
+    /* TODO: complete handling of creating and deleting pkttmp entry */
+    switch (msg->command){
+        case OFPSC_ADD_PKTTMP:{
+            struct ofl_exp_add_pkttmp *p = (struct ofl_exp_add_pkttmp *) msg->payload;
+            struct pkttmp_entry *e;
+            e = pkttmp_entry_create(pl->dp, pl->dp->pkttmps, p);
+
+            hmap_insert(&pl->dp->pkttmps->entries, &e->node, hash_bytes(&e->pkttmp_id, 4, 0));
+            OFL_LOG_DBG(LOG_MODULE, "PKTTMP id is %d, inserted to hash map", e->pkttmp_id);
+            break;}
+
+        default:
+            return ofl_error(OFPET_EXPERIMENTER, OFPEC_EXP_PKTTMP_MOD_FAILED);
+    }
+    return 0;
+}
+
+ofl_err
 handle_stats_request_state(struct pipeline *pl, struct ofl_exp_msg_multipart_request_state *msg, const struct sender *sender, struct ofl_exp_msg_multipart_reply_state *reply) {
     struct ofl_exp_state_stats **stats = xmalloc(sizeof(struct ofl_exp_state_stats *));
     size_t stats_size = 1;
@@ -1979,38 +1986,6 @@ handle_stats_request_global_state(struct pipeline *pl, const struct sender *send
              .experimenter_id = BEBA_VENDOR_ID},
              .type = OFPMP_EXP_GLOBAL_STATE_STATS},
              .global_state = global_state};
-    return 0;
-}
-
-ofl_err
-handle_pkttmp_mod(struct pipeline *pl, struct ofl_exp_msg_pkttmp_mod *msg,
-                                                const struct sender *sender) {
-
-    OFL_LOG_DBG(LOG_MODULE, "Handling PKTTMP_MOD");
-    /* TODO: complete handling of creating and deleting pkttmp entry */
-    if (msg->command == OFPSC_ADD_PKTTMP) {
-        struct ofl_exp_add_pkttmp *p = (struct ofl_exp_add_pkttmp *) msg->payload;
-        struct pkttmp_entry *e;
-        e = pkttmp_entry_create(pl->dp, pl->dp->pkttmps, p);
-
-        hmap_insert(&pl->dp->pkttmps->entries, &e->node, hash_bytes(&e->pkttmp_id, 4, 0));
-        OFL_LOG_DBG(LOG_MODULE, "PKTTMP id is %d, inserted to hash map", e->pkttmp_id);
-    } /*
-    else if (msg->command == OFPSC_EXP_DEL_FLOW_STATE) {
-        struct ofl_exp_del_flow_state *p = (struct ofl_exp_del_flow_state *) msg->payload;
-        struct state_table *st = pl->tables[p->table_id]->state_table;
-        if (state_table_is_stateful(st) && state_table_is_configured(st)){
-            state_table_del_state(st, p->key, p->key_len);
-        }
-        else{
-            //TODO sanvitz: return an experimenter error msg
-             OFL_LOG_WARN(LOG_MODULE, "ERROR STATE MOD at stage %u: stage not stateful or not configured", p->table_id);
-        }
-    } */
-    else {
-        return 1;
-    }
-
     return 0;
 }
 
@@ -2714,6 +2689,12 @@ get_experimenter_id(struct ofl_msg_header *msg){
                     case (OFPIT_APPLY_ACTIONS): {
                         struct ofl_instruction_actions *act = (struct ofl_instruction_actions *)inst;
                         exp_id = get_experimenter_id_from_action(act);
+                        break;
+                    }
+                    case (OFPIT_EXPERIMENTER): {
+                        struct ofl_instruction_experimenter *exp_inst = (struct ofl_instruction_experimenter *) inst;
+                        exp_id = exp_inst -> experimenter_id;
+                        break;
                     }
                 }
             }

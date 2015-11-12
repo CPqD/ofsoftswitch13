@@ -102,7 +102,10 @@ enum ofp_exp_beba_errors{
     OFPEC_BAD_EXP_ACTION,
     OFPEC_BAD_EXP_LEN,
     OFPEC_BAD_TABLE_ID,
-    OFPEC_BAD_MATCH_WILDCARD
+    OFPEC_BAD_MATCH_WILDCARD,
+    OFPET_BAD_EXP_INSTRUCTION,
+    OFPEC_EXP_PKTTMP_MOD_FAILED,
+    OFPEC_EXP_PKTTMP_MOD_BAD_COMMAND
 };
 
 /****************************************************************
