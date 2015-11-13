@@ -234,9 +234,9 @@ ofl_exp_stats_req_pack (struct ofl_msg_multipart_request_header *msg, uint8_t **
     struct ofl_msg_multipart_request_experimenter *ext = (struct ofl_msg_multipart_request_experimenter *) msg;
     switch (ext->experimenter_id) {
 
-        case (BEBA_VENDOR_ID):
+        case (BEBA_VENDOR_ID):{
             return ofl_exp_beba_stats_req_pack(ext, buf, buf_len, exp);
-                
+        }
         default: {
             OFL_LOG_WARN(LOG_MODULE, "Trying to pack unknown multipart EXPERIMENTER message (%u).", ext->experimenter_id);
             return -1;
@@ -252,7 +252,6 @@ ofl_exp_stats_reply_pack (struct ofl_msg_multipart_reply_header *msg, uint8_t **
         case (BEBA_VENDOR_ID): {
             return ofl_exp_beba_stats_reply_pack(ext, buf, buf_len, exp);
         }
-                
         default: {
             OFL_LOG_WARN(LOG_MODULE, "Trying to pack unknown multipart EXPERIMENTER message (%u).", ext->experimenter_id);
             return -1;

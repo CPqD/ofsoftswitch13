@@ -127,12 +127,12 @@ struct ofl_exp_msg_multipart_request_state {
                                            (from ofp_table_multipart), 0xff for all
                                            tables. */
     uint8_t                  get_from_state;
-    uint32_t                 state;                    
+    uint32_t                 state;
     struct ofl_match_header  *match;       /* Fields to match. */
 };
 
 struct ofl_exp_msg_multipart_reply_state {
-    
+
     struct ofl_exp_beba_msg_multipart_reply   header; /* OFPMP_STATE */
 
     size_t                  stats_num;
@@ -167,7 +167,6 @@ struct ofl_exp_action_set_state {
     uint32_t idle_rollback;
     uint32_t hard_timeout;
     uint32_t idle_timeout;
-    
 };
 
 struct ofl_exp_action_set_global_state {
@@ -212,29 +211,59 @@ struct state_table {
     uint8_t stateful;
 };
 
+/*************************************************************************/
+/*                        experimenter notifications                     */
+/*************************************************************************/
+/* State Sync: Notify the controller about a state change. */
+struct ofl_exp_msg_notify_state_change {
+    struct   ofl_exp_beba_msg_header header;
+
+    uint8_t  table_id;
+    uint32_t old_state;
+    uint32_t new_state;
+    uint32_t state_mask;
+    uint32_t key_len;
+    uint8_t  key[OFPSC_MAX_KEY_LEN];
+};
+
+/* State Sync: Notify the controller about a flow change. */
+struct ofl_exp_msg_notify_flow_change {
+    struct ofl_exp_beba_msg_multipart_reply    header;
+
+    uint32_t ntf_type;
+    uint32_t table_id;
+    struct   ofl_match_header  *match;
+    uint32_t instruction_num;
+    struct   ofl_instruction_header **instructions;
+
+};
+
 /*experimenter table functions*/
-struct state_table * 
+struct state_table *
 state_table_create(void);
 
-void 
+void
 state_table_destroy(struct state_table *);
 
-uint8_t 
+uint8_t
 state_table_is_stateful(struct state_table *);
 
-struct state_entry * 
+struct state_entry *
 state_table_lookup(struct state_table*, struct packet *);
 
-void 
+void
 state_table_write_state(struct state_entry *, struct packet *);
 
-ofl_err 
-state_table_set_state(struct state_table *, struct packet *, struct ofl_exp_set_flow_state *msg, struct ofl_exp_action_set_state *act);
+/*
+ * State Sync: One extra argument (i.e., ntf_message) is passed at the end of this function.
+ */
+ofl_err
+state_table_set_state(struct state_table *, struct packet *, struct ofl_exp_set_flow_state *msg, struct ofl_exp_action_set_state *act, struct ofl_exp_msg_notify_state_change * ntf_message);
 
-ofl_err 
+ofl_err
 state_table_set_extractor(struct state_table *, struct key_extractor *, int);
 
-ofl_err 
+ofl_err
 state_table_del_state(struct state_table *, uint8_t *, uint32_t);
 
 void
@@ -256,7 +285,7 @@ ofl_exp_beba_msg_to_string(struct ofl_msg_experimenter *msg);
 
 /*experimenter action functions*/
 
-int 
+int
 ofl_exp_beba_act_pack(struct ofl_action_header *src, struct ofp_action_header *dst);
 
 ofl_err
@@ -265,7 +294,7 @@ ofl_exp_beba_act_unpack(struct ofp_action_header *src, size_t *len, struct ofl_a
 size_t
 ofl_exp_beba_act_ofp_len(struct ofl_action_header *act);
 
-int     
+int
 ofl_exp_beba_act_free(struct ofl_action_header *act);
 
 char *
@@ -300,7 +329,7 @@ ofl_exp_beba_stats_reply_free(struct ofl_msg_multipart_reply_header *msg);
 int
 ofl_exp_beba_field_unpack(struct ofl_match *match, struct oxm_field *f, void *experimenter_id, void *value, void *mask);
 
-void  
+void
 ofl_exp_beba_field_pack(struct ofpbuf *buf, struct ofl_match_tlv *oft);
 
 void
@@ -318,9 +347,12 @@ ofl_exp_beba_field_overlap_a (struct ofl_match_tlv *f_a, int *field_len, uint8_t
 void
 ofl_exp_beba_field_overlap_b (struct ofl_match_tlv *f_b, int *field_len, uint8_t **val_b, uint8_t **mask_b, uint64_t *all_mask);
 
-/* Handles a state_mod message */
+/*
+ * Handles a state_mod message
+ * State Sync: One extra argument (i.e., ntf_message) is passed at the end of this function
+ */
 ofl_err
-handle_state_mod(struct pipeline *pl, struct ofl_exp_msg_state_mod *msg, const struct sender *sender);
+handle_state_mod(struct pipeline *pl, struct ofl_exp_msg_state_mod *msg, const struct sender *sender, struct ofl_exp_msg_notify_state_change * ntf_message);
 
 /* Handles a state stats request. */
 ofl_err
