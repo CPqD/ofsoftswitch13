@@ -188,6 +188,8 @@ static struct names16 band_names[] = {
 #define MATCH_NW_DST_MASK    "ipv4_dst_mask"
 #define MATCH_TP_SRC         "tcp_src"
 #define MATCH_TP_DST         "tcp_dst"
+#define MATCH_TP_FLAG        "tcp_flags"
+#define MATCH_TP_FLAG_MASK   "tcp_flags_mask"
 #define MATCH_UDP_SRC        "udp_src"
 #define MATCH_UDP_DST        "udp_dst"
 #define MATCH_SCTP_SRC       "sctp_src"

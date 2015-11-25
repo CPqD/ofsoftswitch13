@@ -79,6 +79,7 @@
                                   | OFPXMT_OFB_IPV4_DST       \
                                   | OFPXMT_OFB_TCP_SRC        \
                                   | OFPXMT_OFB_TCP_DST        \
+                                  | OFPXMT_OFB_TCP_FLAGS      \
                                   | OFPXMT_OFB_UDP_SRC        \
                                   | OFPXMT_OFB_UDP_DST        \
                                   | OFPXMT_OFB_SCTP_SRC       \

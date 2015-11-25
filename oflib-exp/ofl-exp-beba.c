@@ -2372,6 +2372,9 @@ ofl_structs_state_entry_print(FILE *stream, uint32_t field, uint8_t *key, uint8_
         case OFPXMT_OFB_TCP_DST:
             fprintf(stream, "tcp_dst=\"%d\"", *((uint16_t*) key));
             break;
+        case OFPXMT_OFB_TCP_FLAGS:
+            fprintf(stream,"tcp_flags=\"%d\"", *((uint16_t*) key));
+            break;
         case OFPXMT_OFB_UDP_SRC:
             fprintf(stream, "udp_src=\"%d\"", *((uint16_t*) key));
             break;
@@ -2514,6 +2517,9 @@ ofl_structs_state_entry_print_default(FILE *stream, uint32_t field)
             break;
         case OFPXMT_OFB_TCP_DST:
             fprintf(stream, "tcp_dst=\"*\"");
+            break;
+        case OFPXMT_OFB_TCP_FLAGS:
+            fprintf(stream,"tcp_flags=\"*\"");
             break;
         case OFPXMT_OFB_UDP_SRC:
             fprintf(stream, "udp_src=\"*\"");
