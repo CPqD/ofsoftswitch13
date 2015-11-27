@@ -68,7 +68,7 @@ dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
                 if (state_table_is_stateful(pkt->dp->pipeline->tables[wns->table_id]->state_table) && state_table_is_configured(pkt->dp->pipeline->tables[wns->table_id]->state_table))
                 {
                     struct state_table *st = pkt->dp->pipeline->tables[wns->table_id]->state_table;
-                    VLOG_WARN_RL(LOG_MODULE, &rl, "executing action NEXT STATE at stage %u", wns->table_id);
+                    VLOG_DBG_RL(LOG_MODULE, &rl, "executing action NEXT STATE at stage %u", wns->table_id);
 
                     // State Sync: Get the new state, encoded in ntf_message, and pack a message to be sent via dp_send_message.
                     // This invocation occurs when a state transition happens due to a dynamic event (e.g., a newly received packet).
