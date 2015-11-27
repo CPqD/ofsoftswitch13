@@ -50,6 +50,7 @@ struct ofl_exp_stateful_table_config {
 
 struct ofl_exp_set_extractor {
     uint8_t table_id;
+    uint8_t bit;
     uint32_t field_count;
     uint32_t fields[OFPSC_MAX_FIELD_COUNT];
 };
@@ -167,6 +168,7 @@ struct ofl_exp_action_set_state {
     uint32_t idle_rollback;
     uint32_t hard_timeout;
     uint32_t idle_timeout;
+    uint8_t bit; 
 };
 
 struct ofl_exp_action_set_global_state {
@@ -184,6 +186,7 @@ struct ofl_exp_action_set_global_state {
 
 struct key_extractor {
     uint8_t                     table_id;
+    uint8_t                     bit;
     uint32_t                    field_count;
     uint32_t                    fields[MAX_EXTRACTION_FIELD_COUNT];
 };
@@ -204,6 +207,7 @@ struct state_entry {
 struct state_table {
     struct key_extractor        read_key;
     struct key_extractor        write_key;
+    struct key_extractor        bit_write_key;
     struct hmap                 state_entries;
     struct hmap                 hard_entries;
     struct hmap                 idle_entries;

@@ -71,7 +71,8 @@ struct ofp_exp_action_set_state {
     uint32_t idle_rollback;
     uint32_t hard_timeout;
     uint32_t idle_timeout;
-    uint8_t pad2[4];   /* Align to 64-bits. */
+    uint8_t bit; /* Swapping bit */
+    uint8_t pad2[3];   /* Align to 64-bits. */
 };
 OFP_ASSERT(sizeof(struct ofp_exp_action_set_state) == 48);
 
@@ -165,6 +166,8 @@ struct ofp_exp_stateful_table_config {
 struct ofp_exp_set_extractor {
     uint8_t table_id;
     uint8_t pad[3];
+    uint8_t bit;
+    uint8_t pad2[3];
     uint32_t field_count;
     uint32_t fields[OFPSC_MAX_FIELD_COUNT];
 };
