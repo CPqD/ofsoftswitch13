@@ -234,8 +234,7 @@ struct ofl_exp_msg_notify_flow_change {
     uint32_t table_id;
     struct   ofl_match_header  *match;
     uint32_t instruction_num;
-    struct   ofl_instruction_header **instructions;
-
+    uint32_t * instructions;
 };
 
 /*experimenter table functions*/

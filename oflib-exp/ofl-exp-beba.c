@@ -700,7 +700,6 @@ ofl_exp_beba_stats_reply_pack(struct ofl_msg_multipart_reply_experimenter *ext, 
             struct ofp_multipart_reply *resp;
             struct ofp_exp_msg_flow_ntf * fields;
             struct ofp_experimenter_stats_header *exp_header;
-            struct ofl_instruction_header * instruction;
             uint8_t * ptr;
             uint32_t * data;
             int i;
@@ -722,10 +721,10 @@ ofl_exp_beba_stats_reply_pack(struct ofl_msg_multipart_reply_experimenter *ext, 
             data = *buf + sizeof(struct ofp_multipart_reply) + ROUND_UP(sizeof(struct ofp_exp_msg_flow_ntf)-4+msg->match->length,8);
             ofl_structs_match_pack(msg->match, &(fields->match),ptr, exp);
             *data = htonl(msg->instruction_num);
-            instruction = *(msg->instructions);
+
             ++data;
             for (i=0;i<msg->instruction_num;++i){
-                *data = htonl(instruction[i].type);
+                *data = htonl(msg->instructions[i]);
                 ++data;
             }
             return 0;
@@ -797,6 +796,7 @@ ofl_err
 ofl_exp_beba_stats_reply_unpack(struct ofp_multipart_reply *os, uint8_t* buf, size_t *len, struct ofl_msg_multipart_reply_header **msg, struct ofl_exp *exp) {
 
     struct ofp_experimenter_stats_header *ext = (struct ofp_experimenter_stats_header *)os->body;
+    ofl_err error;
     
     switch (ntohl(ext->exp_type)){
         case (OFPMP_EXP_STATE_STATS):
@@ -854,6 +854,48 @@ ofl_exp_beba_stats_reply_unpack(struct ofp_multipart_reply *os, uint8_t* buf, si
             dm->global_state =  ntohl(sm->global_state);
 
             *msg = (struct ofl_msg_multipart_request_header *)dm;
+            return 0;
+        }
+        case (OFPT_EXP_FLOW_NOTIFICATION):
+        {
+            struct ofp_exp_msg_flow_ntf * sm;
+            struct ofl_exp_msg_notify_flow_change *dm;
+            uint32_t * data;
+            int i;
+
+            sm = (struct ofp_exp_msg_flow_ntf *)os->body;
+            dm = (struct ofl_exp_msg_notify_flow_change *) malloc(sizeof(struct ofl_exp_msg_notify_flow_change));
+
+            dm->header.type = ntohl(ext->exp_type);
+            dm->header.header.experimenter_id = ntohl(ext->experimenter);
+            dm->table_id = ntohl(sm->table_id);
+            dm->ntf_type = ntohl(sm->ntf_type);
+
+            *len -= sizeof(struct ofp_exp_msg_flow_ntf) - sizeof(struct ofp_match);
+
+            error = ofl_structs_match_unpack(&(sm->match), os->body+sizeof(struct ofp_exp_msg_flow_ntf)-4, len, &(dm->match), 1, exp);
+            if (error) {
+                free(dm);
+                return error;
+            }
+
+            data = os->body + ROUND_UP(sizeof(struct ofp_exp_msg_flow_ntf)-4 + dm->match->length, 8);
+            dm->instruction_num = htonl(*data);
+
+            if (dm->instruction_num>0) {
+                dm->instructions = malloc(dm->instruction_num*sizeof(uint32_t));
+                data++;
+                for(i=0; i<(dm->instruction_num); i++){
+                    dm->instructions[i] = htonl(*data);
+                    data++;
+                }
+             } else {
+                dm->instructions = NULL;
+            }
+
+            *len -= ROUND_UP((dm->instruction_num+1)* sizeof(uint32_t), 8);
+            *msg = (struct ofl_msg_multipart_request_header *)dm;
+
             return 0;
         }
         default:
@@ -939,6 +981,20 @@ ofl_exp_beba_stats_reply_to_string(struct ofl_msg_multipart_reply_experimenter *
             fprintf(stream, "\", global_state=\"%s\"",decimal_to_binary(msg->global_state));
             break;
         }
+        case (OFPT_EXP_FLOW_NOTIFICATION):{
+            struct ofl_exp_msg_notify_flow_change * msg = (struct ofl_exp_msg_notify_flow_change *) e;
+            int i;
+
+            fprintf(stream, "\n  flow modification confirmed \n");
+            fprintf(stream, "  flow table    :  %d \n", msg->table_id);
+            fprintf(stream, "  match fields  :  %s \n " , ofl_structs_match_to_string(msg->match, exp));
+            fprintf(stream, " instruction  :  ");
+            for(i=0; i<msg->instruction_num; i++){
+                fprintf(stream, "  %s " , ofl_instruction_type_to_string(msg->instructions[i]));
+            }
+            fprintf(stream, "\n");
+            break;
+        }
     }
     fclose(stream);
     return str;
@@ -982,6 +1038,15 @@ ofl_exp_beba_stats_reply_free(struct ofl_msg_multipart_reply_header *msg) {
         case (OFPMP_EXP_GLOBAL_STATE_STATS):
         {
             struct ofl_exp_msg_multipart_reply_state *a = (struct ofl_exp_msg_multipart_reply_state *) ext;
+            free(a);
+            break;
+        }
+        case (OFPT_EXP_FLOW_NOTIFICATION):
+        {
+            struct ofl_exp_msg_notify_flow_change * a = (struct ofl_exp_msg_notify_flow_change *) ext;
+            if (a->instruction_num>0 & a->instructions!=NULL){
+                free(a->instructions);
+            }
             free(a);
             break;
         }

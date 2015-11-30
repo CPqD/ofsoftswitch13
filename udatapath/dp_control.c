@@ -325,6 +325,8 @@ handle_control_msg(struct datapath *dp, struct ofl_msg_header *msg,
         }
         case OFPT_FLOW_MOD: {
             ofl_err res;
+            int i;
+            struct ofl_instruction_header * instruction;
 
             /* State Sync: Notification is sent to acknowledge a flow modification */
             res = pipeline_handle_flow_mod(dp->pipeline, (struct ofl_msg_flow_mod *)msg, sender);
@@ -339,8 +341,17 @@ handle_control_msg(struct datapath *dp, struct ofl_msg_header *msg,
                                                            .table_id = m->table_id,
                                                            .match = m->match,
                                                            .instruction_num = m->instructions_num,
-                                                           .instructions = m->instructions};
+                                                           .instructions = NULL};
+                if (ntf.instruction_num>0){
+                    ntf.instructions = (uint32_t *) malloc(ntf.instruction_num * sizeof(uint32_t));
+                    instruction = *(m->instructions);
+                    for(i=0;i<ntf.instruction_num;i++){
+                        ntf.instructions[i] = instruction[i].type;
+                    }
+                }
+
                 dp_send_message(dp,(struct ofl_msg_header*)&ntf, sender);
+                if (ntf.instructions != NULL) free(ntf.instructions);
             }
 
             return res;
