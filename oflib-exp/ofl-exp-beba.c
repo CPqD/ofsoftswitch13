@@ -590,8 +590,10 @@ ofl_exp_beba_act_free(struct ofl_action_header *act){
             free(a);
             break;
         }
+        default: {
+            OFL_LOG_WARN(LOG_MODULE, "Trying to free unknown Beba Experimenter action.");
+        }
     }
-    free(act);
     return 0;
 }
 
