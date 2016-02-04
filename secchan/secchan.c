@@ -49,7 +49,6 @@
 #include "failover.h"
 #include "fault.h"
 #include "in-band.h"
-#include "leak-checker.h"
 #include "list.h"
 #include "ofp.h"
 #include "ofpbuf.h"
@@ -845,6 +844,5 @@ usage(void)
     printf("\nOther options:\n"
            "  -h, --help              display this help message\n"
            "  -V, --version           display version information\n");
-    leak_checker_usage();
     exit(EXIT_SUCCESS);
 }

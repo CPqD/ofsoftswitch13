@@ -48,7 +48,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include "dynamic-string.h"
-#include "leak-checker.h"
 #include "ofpbuf.h"
 #include "openflow/openflow.h"
 #include "packets.h"
@@ -719,7 +718,6 @@ ssl_send(struct vconn *vconn, struct ofpbuf *buffer)
             ssl_clear_txbuf(sslv);
             return 0;
         case EAGAIN:
-            leak_checker_claim(buffer);
             ssl_register_tx_waiter(vconn);
             return 0;
         default:

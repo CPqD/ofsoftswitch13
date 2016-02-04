@@ -184,7 +184,7 @@ update_instruction_length(struct ofpbuf *buffer, size_t oia_offset)
 
 struct ofpbuf *
 make_flow_mod(uint8_t command, uint8_t table_id,
-	      const struct flow *flow, size_t actions_len)
+	      const struct flow *flow UNUSED, size_t actions_len)
 {
     struct ofp_flow_mod *ofm;
     size_t size = sizeof *ofm + actions_len;
@@ -636,15 +636,16 @@ check_output_port(uint32_t port, int max_ports, bool table_allowed)
 static int
 check_setqueue_action(const union ofp_action *a, unsigned int len)
 {
-    const struct ofp_action_set_queue *oaq;
+    const struct ofp_action_set_queue *oaq UNUSED; 
     int error;
 
     error = check_action_exact_len(a, len, 8);
     if (error) {
         return error;
     }
-
-    oaq = (const struct ofp_action_set_queue *) a;
+    /*TODO check if this functions is relevant and finish or
+      remove it accordingly */
+    /*oaq = (const struct ofp_action_set_queue *) a;*/
     return 0;
 }
 

@@ -263,7 +263,10 @@ process_exited(struct process *p)
         return true;
     } else {
         char buf[_POSIX_PIPE_BUF];
-        read(fds[0], buf, sizeof buf);
+        if (read(fds[0], buf, sizeof buf) != sizeof(buf)){
+            fprintf(stderr, "read failed: %s\n",
+                strerror(errno));
+        }
         return false;
     }
 }
@@ -367,7 +370,10 @@ sigchld_handler(int signr UNUSED)
             }
         }
     }
-    write(fds[1], "", 1);
+    if (write(fds[1], "", 1) != 1){
+        fprintf(stderr, "write failed: %s\n",
+                 strerror(errno));
+    }
 }
 
 static bool

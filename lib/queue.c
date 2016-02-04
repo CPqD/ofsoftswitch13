@@ -35,7 +35,6 @@
 #include "queue.h"
 #include <assert.h>
 #include "compiler.h"
-#include "leak-checker.h"
 #include "ofpbuf.h"
 
 static void check_queue(struct ofp_queue *q);
@@ -91,7 +90,6 @@ void
 queue_push_tail(struct ofp_queue *q, struct ofpbuf *b)
 {
     check_queue(q);
-    leak_checker_claim(b);
 
     b->next = NULL;
     if (q->n++) {
