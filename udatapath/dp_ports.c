@@ -250,10 +250,10 @@ dp_ports_run(struct datapath *dp) {
 
     // find largest MTU on our interfaces
     // buffer is shared among all (idle) interfaces...
-    LIST_FOR_EACH_SAFE (p, pn, struct sw_port, node, &dp->port_list) {
+    LIST_FOR_EACH_SAFE (p, pn, struct sw_port, node, &dp->port_list) {        
+        const int mtu = netdev_get_mtu(p->netdev);
         if (IS_HW_PORT(p)) 
             continue;
-        const int mtu = netdev_get_mtu(p->netdev);
         if (mtu > max_mtu)
             max_mtu = mtu;
     }

@@ -742,6 +742,7 @@ do_open_netdev(const char *name, int ethertype, int tap_fd,
     uint32_t val;
     init_netdev();
     *netdev_ = NULL;
+    netdev_fd = -1;
 
     netlink_fd = socket(PF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 

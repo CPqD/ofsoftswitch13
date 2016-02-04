@@ -512,15 +512,15 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f,
         }
         case OFI_OXM_OF_PBB_ISID:{
             uint8_t* pbb_isid;
-            pbb_isid = value;                    
+            pbb_isid = (uint8_t*) value;                    
             ofl_structs_match_put_pbb_isid(match, f->header, pbb_isid);
             return 0;
         }
         case OFI_OXM_OF_PBB_ISID_W:{
             uint8_t* pbb_isid;
             uint8_t* pbb_isid_mask;
-            pbb_isid = value;
-            pbb_isid_mask = mask;
+            pbb_isid = (uint8_t*) value;
+            pbb_isid_mask = (uint8_t*) mask;
             if (check_bad_wildcard32(*((uint32_t*) value), *((uint32_t*) mask))){
                 return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_WILDCARDS);
             }            
