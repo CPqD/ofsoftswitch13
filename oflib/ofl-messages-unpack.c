@@ -1222,16 +1222,16 @@ ofl_msg_unpack_multipart_reply_group_desc(struct ofp_multipart_reply *os, size_t
 
 static ofl_err
 ofl_msg_unpack_multipart_reply_group_features(struct ofp_multipart_reply *os, size_t *len, struct ofl_msg_header **msg) {
-    struct ofp_group_features_stats *sm;
+    struct ofp_group_features *sm;
     struct ofl_msg_multipart_reply_group_features *dm;
     int i;
-    if (*len < sizeof(struct ofp_group_features_stats)) {
+    if (*len < sizeof(struct ofp_group_features)) {
         OFL_LOG_WARN(LOG_MODULE, "Received OFPMP_GROUP_FEATURES stats reply has invalid length (%zu).", *len);
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
-    *len -= sizeof(struct ofp_group_features_stats);
+    *len -= sizeof(struct ofp_group_features);
 
-    sm = (struct ofp_group_features_stats *)os->body;
+    sm = (struct ofp_group_features *)os->body;
     dm = (struct ofl_msg_multipart_reply_group_features *) malloc(sizeof(struct ofl_msg_multipart_reply_group_features));
     
     dm->types = ntohl(sm->types);

@@ -94,8 +94,6 @@ size_t
 ofl_structs_instructions_pack(struct ofl_instruction_header *src, struct ofp_instruction *dst, struct ofl_exp *exp) {
 
     dst->type = htons(src->type);
-    memset(dst->pad, 0x00, 4);
-
     switch (src->type) {
         case OFPIT_GOTO_TABLE: {
             struct ofl_instruction_goto_table *si = (struct ofl_instruction_goto_table *)src;

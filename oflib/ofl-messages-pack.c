@@ -732,13 +732,13 @@ ofl_msg_pack_multipart_reply_group_desc(struct ofl_msg_multipart_reply_group_des
 static int
 ofl_msg_pack_multipart_reply_group_features(struct ofl_msg_multipart_reply_group_features *msg, uint8_t **buf, size_t *buf_len) {
    struct ofp_multipart_reply *resp;
-    struct ofp_group_features_stats *stats;
+    struct ofp_group_features *stats;
     int i;
-    *buf_len = sizeof(struct ofp_multipart_reply) + sizeof(struct ofp_group_features_stats);
+    *buf_len = sizeof(struct ofp_multipart_reply) + sizeof(struct ofp_group_features);
     *buf     = (uint8_t *)malloc(*buf_len);
 
     resp = (struct ofp_multipart_reply *)(*buf);
-    stats = (struct ofp_group_features_stats *)resp->body;
+    stats = (struct ofp_group_features *)resp->body;
     stats->types = htonl(msg->types);
     stats->capabilities = htonl(msg->capabilities);
     for(i = 0; i < 4; i++){

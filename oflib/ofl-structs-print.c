@@ -391,20 +391,20 @@ ofl_structs_oxm_tlv_print(FILE *stream, struct ofl_match_tlv *f)
 		case OFPXMT_OFB_MPLS_LABEL:
 			fprintf(stream, "mpls_label=\"%d\"",((uint32_t) *f->value) & 0x000fffff);
 			break;
-		case OFPXMT_OFB_MPLS_TC:
+		case OXM_OF_MPLS_TC:
 			fprintf(stream, "mpls_tc=\"%d\"", *f->value & 0x3);
 			break;
-		case OFPXMT_OFB_MPLS_BOS:
+		case OXM_OF_MPLS_BOS:
 			fprintf(stream, "mpls_bos=\"%d\"", *f->value & 0x1);
 			break;
-		case OFPXMT_OFB_METADATA:
-			fprintf(stream, "metadata=\"0x%"PRIx64"\"", *((uint64_t*) f->value));
+		case OXM_OF_METADATA:
+			fprintf(stream, "metadata=\"0x%llx\"", *((uint64_t*) f->value));
 			if (OXM_HASMASK(f->header)) {
 				fprintf(stream, ", metadata_mask=\"0x%"PRIx64"\"", *((uint64_t*)(f->value+8)));
 			}
 			break;
-		case OFPXMT_OFB_PBB_ISID   :
-			fprintf(stream, "pbb_isid=\"%x%x%x\"", f->value[0],f->value[1], f->value[2]);
+		case OXM_OF_PBB_ISID   :
+			fprintf(stream, "pbb_isid=\"%d\"", *((uint32_t*) f->value));
 			if (OXM_HASMASK(f->header)) {
 				fprintf(stream, ", pbb_isid_mask=\"%x%x%x\"", (f->value+4)[0], (f->value+4)[1], (f->value+4)[2]);
 			}
