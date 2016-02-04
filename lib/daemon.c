@@ -223,10 +223,14 @@ daemonize(void)
             /* Child process. */
             close(fds[0]);
             make_pidfile();
-            write(fds[1], &c, 1);
+            if (write(fds[1], &c, 1) != 1){
+                ofp_fatal(errno, "daemon child failed to write signal startup");
+            }
             close(fds[1]);
             setsid();
-            chdir("/");
+            if (chdir("/") != 0){
+                ofp_fatal(errno, "daemon child failed to change the current directory");
+            }
             break;
 
         case -1:

@@ -1,3 +1,2 @@
-_debian/utilities/ofp-parse-leaks usr/bin
 _debian/utilities/ofp-pki usr/sbin
 _debian/utilities/vlogconf usr/sbin

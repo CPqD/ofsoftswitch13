@@ -450,7 +450,6 @@ require the controller to send the CA certificate, but
 .so lib/vlog.man
 .SS "Other Options"
 .so lib/common.man
-.so lib/leak-checker.man
 
 .SH "SEE ALSO"
 

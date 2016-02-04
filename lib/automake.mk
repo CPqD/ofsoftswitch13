@@ -31,10 +31,10 @@ lib_libopenflow_a_SOURCES = \
 	lib/hmap.h \
 	lib/ipv6_util.c \
 	lib/ipv6_util.h \
-	lib/leak-checker.c \
-	lib/leak-checker.h \
 	lib/list.c \
 	lib/list.h \
+        lib/match.c \
+        lib/match.c \
 	lib/mac-learning.c \
 	lib/mac-learning.h \
 	lib/netdev.c \
