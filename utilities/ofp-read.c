@@ -47,9 +47,10 @@ static size_t read_all(FILE *file, uint8_t **buf)
 	rewind(file);
 
 	data = (uint8_t*) malloc(buf_len);
-	fread(data, buf_len, 1, file);
-	if (ferror(file)) {
-		fprintf(stderr, "Cannot read msg file.\n");
+	if (fread(data, buf_len, 1, file) != 1){
+		if (ferror(file)) {
+			fprintf(stderr, "Cannot read msg file.\n");
+		}
 		return -1;		
 	}
 	*buf = data;
@@ -82,7 +83,6 @@ int main(int argc, char **argv)
 	}
 	buf_len = read_all(msg_file, &buf);
 	buf0 = buf;
-	//printf("buf len = %ld\n", buf_len);
 
 	while (buf_len > 0) {
 		oh = (struct ofp_header *)buf;
