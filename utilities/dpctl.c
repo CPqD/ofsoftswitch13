@@ -179,7 +179,7 @@ static int
 parse16(char *str, struct names16 *names, size_t names_num, uint16_t max, uint16_t *val);
 
 static int
-parse16m(char *str, struct names16 *names, size_t names_num, uint16_t max, uint16_t *val, uint16_t *mask);
+parse16m(char *str, struct names16 *names, size_t names_num, uint16_t max, uint16_t *val, uint16_t *mask) UNUSED;
 
 static int
 parse32(char *str, struct names32 *names, size_t names_num, uint32_t max, uint32_t *val);
