@@ -193,7 +193,7 @@ ofl_structs_instructions_unpack(struct ofp_instruction *src, size_t *len, struct
             break;
         }
         default:
-            OFL_LOG_WARN(LOG_MODULE, "The received instruction type (%u) is invalid.", ntohs(src->type));
+            OFL_LOG_WARN(LOG_MODULE, "The received instruction type (%d) is invalid.", ntohs(src->type));
             return ofl_error(OFPET_BAD_INSTRUCTION, OFPBIC_UNKNOWN_INST);
     }
 

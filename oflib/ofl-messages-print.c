@@ -674,18 +674,14 @@ ofl_msg_print_queue_get_config_reply(struct ofl_msg_queue_get_config_reply *msg,
 
 static void
 ofl_msg_print_role_msg(struct ofl_msg_role_request *msg, FILE *stream){
-
     fprintf(stream, "{role= %d, generation_id= %"PRIu64"}", msg->role, msg->generation_id);
-
 }
 
 static void
 ofl_msg_print_async(struct ofl_msg_async_config* msg, FILE *stream){
-
     fprintf(stream, "{");
     ofl_structs_async_config_print(stream, msg->config);
     fprintf(stream, "}");
-
 }
 
 char *
