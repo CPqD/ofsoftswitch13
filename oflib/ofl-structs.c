@@ -50,7 +50,6 @@ ofl_utils_count_ofp_table_features_properties(void *data, size_t data_len, size_
 
     struct ofp_table_feature_prop_header *prop;
     uint8_t *d;
-
     d = (uint8_t*) data;
     *count = 0;
     while (data_len >= sizeof(struct ofp_table_feature_prop_header)){
@@ -68,9 +67,9 @@ ofl_utils_count_ofp_table_features_properties(void *data, size_t data_len, size_
 
 ofl_err
 ofl_utils_count_ofp_table_features(void *data, size_t data_len, size_t *count){
+    
     struct ofp_table_features *feature;
     uint8_t *d;
-
     d = (uint8_t*) data;
     *count = 0;
     while (data_len >= sizeof(struct ofp_table_features)){
@@ -90,37 +89,33 @@ ofl_utils_count_ofp_table_features(void *data, size_t data_len, size_t *count){
 
 ofl_err
 ofl_utils_count_ofp_instructions(void *data, size_t data_len, size_t *count) {
+    
     struct ofp_instruction *inst;
     uint8_t *d;
-
     d = (uint8_t *)data;
     *count = 0;
     /* this is needed so that buckets are handled correctly */
-    while (data_len >= sizeof(struct ofp_instruction)- 4) {
+    while (data_len > sizeof(struct ofp_instruction)) {
         inst = (struct ofp_instruction *)d;
         if (data_len < ntohs(inst->len) || ntohs(inst->len) < sizeof(struct ofp_instruction) - 4) {
             OFL_LOG_WARN(LOG_MODULE, "Received instruction has invalid length.");
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
-
         }
         data_len -= ntohs(inst->len);
         d += ntohs(inst->len);
         (*count)++;
-
     }
-
     return 0;
 }
 
 
 ofl_err
 ofl_utils_count_ofp_buckets(void *data, size_t data_len, size_t *count) {
+    
     struct ofp_bucket *bucket;
     uint8_t *d;
-
     d = (uint8_t *)data;
     *count = 0;
-
     while (data_len >= sizeof(struct ofp_bucket)) {
         bucket = (struct ofp_bucket *)d;
 
@@ -132,19 +127,17 @@ ofl_utils_count_ofp_buckets(void *data, size_t data_len, size_t *count) {
         d += ntohs(bucket->len);
         (*count)++;
     }
-
     return 0;
 }
 
 
 ofl_err
 ofl_utils_count_ofp_meter_bands(void *data, size_t data_len, size_t *count) {
+    
     struct ofp_meter_band_header *mb;
     uint8_t *d;
-
     d = (uint8_t *)data;
     *count = 0;
-
     while (data_len >= sizeof(struct ofp_meter_band_header)) {
         mb = (struct ofp_meter_band_header *)d;
 
@@ -156,12 +149,12 @@ ofl_utils_count_ofp_meter_bands(void *data, size_t data_len, size_t *count) {
         d += ntohs(mb->len);
         (*count)++;
     }
-
     return 0;
 }
 
 ofl_err
 ofl_utils_count_ofp_ports(void *data UNUSED, size_t data_len, size_t *count) {
+    
     *count = data_len / sizeof(struct ofp_port);
     return 0;
 }
@@ -169,12 +162,11 @@ ofl_utils_count_ofp_ports(void *data UNUSED, size_t data_len, size_t *count) {
 
 ofl_err
 ofl_utils_count_ofp_packet_queues(void *data, size_t data_len, size_t *count) {
+    
     struct ofp_packet_queue *queue;
     uint8_t *d;
-
     d = (uint8_t *)data;
     *count = 0;
-
     while (data_len >= sizeof(struct ofp_packet_queue)) {
         queue = (struct ofp_packet_queue *)d;
 
@@ -186,16 +178,14 @@ ofl_utils_count_ofp_packet_queues(void *data, size_t data_len, size_t *count) {
         d += ntohs(queue->len);
         (*count)++;
     }
-
     return 0;
-
 }
 
 ofl_err
 ofl_utils_count_ofp_flow_stats(void *data, size_t data_len, size_t *count) {
+    
     struct ofp_flow_stats *stat;
     uint8_t *d;
-
     d = (uint8_t *)data;
     *count = 0;
     while (data_len >= sizeof(struct ofp_flow_stats)) {
@@ -208,18 +198,16 @@ ofl_utils_count_ofp_flow_stats(void *data, size_t data_len, size_t *count) {
         d += ntohs(stat->length);
         (*count)++;
     }
-
     return 0;
 }
 
 ofl_err
 ofl_utils_count_ofp_group_stats(void *data, size_t data_len, size_t *count) {
+    
     struct ofp_group_stats *stat;
     uint8_t *d;
-
     d = (uint8_t *)data;
     *count = 0;
-
     while (data_len >= sizeof(struct ofp_group_stats)) {
         stat = (struct ofp_group_stats *)d;
 
@@ -231,44 +219,45 @@ ofl_utils_count_ofp_group_stats(void *data, size_t data_len, size_t *count) {
         d += ntohs(stat->length);
         (*count)++;
     }
-
     return 0;
 }
 
 
 ofl_err
 ofl_utils_count_ofp_table_stats(void *data UNUSED, size_t data_len, size_t *count) {
+    
     *count = data_len / sizeof(struct ofp_table_stats);
     return 0;
-
 }
 
 ofl_err
 ofl_utils_count_ofp_bucket_counters(void *data UNUSED, size_t data_len, size_t *count) {
+
     *count = data_len / sizeof(struct ofp_bucket_counter);
     return 0;
 }
 
 ofl_err
 ofl_utils_count_ofp_port_stats(void *data UNUSED, size_t data_len, size_t *count) {
+
     *count = data_len / sizeof(struct ofp_port_stats);
     return 0;
 }
 
 ofl_err
 ofl_utils_count_ofp_queue_stats(void *data UNUSED, size_t data_len, size_t *count) {
+
     *count = data_len / sizeof(struct ofp_queue_stats);
     return 0;
 }
 
 ofl_err
 ofl_utils_count_ofp_group_desc_stats(void *data UNUSED, size_t data_len, size_t *count) {
+    
     struct ofp_group_desc_stats *stat;
     uint8_t *d;
-
     d = (uint8_t *)data;
     *count = 0;
-
     while (data_len >= sizeof(struct ofp_group_desc_stats)) {
         stat = (struct ofp_group_desc_stats *)d;
 
@@ -280,18 +269,15 @@ ofl_utils_count_ofp_group_desc_stats(void *data UNUSED, size_t data_len, size_t 
         d += ntohs(stat->length);
         (*count)++;
     }
-
     return 0;
 }
 
 ofl_err
-ofl_utils_count_ofp_queue_props(void *data, size_t data_len, size_t *count) {
+ofl_utils_count_ofp_queue_props(void *data, size_t data_len, size_t *count) {    
     struct ofp_queue_prop_header *prop;
     uint8_t *d;
-
     d = (uint8_t *)data;
     (*count) = 0;
-
     while (data_len >= sizeof(struct ofp_queue_prop_header)) {
         prop = (struct ofp_queue_prop_header *)d;
 
@@ -303,15 +289,14 @@ ofl_utils_count_ofp_queue_props(void *data, size_t data_len, size_t *count) {
         d += ntohs(prop->len);
         (*count)++;
     }
-
     return 0;
 }
 
 ofl_err
 ofl_utils_count_ofp_meter_stats(void *data, size_t data_len, size_t *count){
+    
     struct ofp_meter_stats *stats;
     uint8_t *d;
-
     d = (uint8_t *)data;
     (*count) = 0;
 
@@ -331,11 +316,10 @@ ofl_utils_count_ofp_meter_stats(void *data, size_t data_len, size_t *count){
 
 ofl_err
 ofl_utils_count_ofp_meter_band_stats(void *data, size_t data_len, size_t *count){
-    uint8_t *d;
 
+    uint8_t *d;
     d = (uint8_t *)data;
     (*count) = 0;
-
     while (data_len >= sizeof(struct ofp_meter_band_stats)) {
 
         if (data_len < sizeof(struct ofp_meter_band_stats)) {
@@ -351,12 +335,11 @@ ofl_utils_count_ofp_meter_band_stats(void *data, size_t data_len, size_t *count)
 
 ofl_err
 ofl_utils_count_ofp_meter_config(void *data, size_t data_len, size_t *count){
+    
     struct ofp_meter_config *config;
     uint8_t *d;
-
     d = (uint8_t *)data;
     (*count) = 0;
-
     while (data_len >= sizeof(struct ofp_meter_config)) {
         config = (struct ofp_meter_config *)d;
         if (data_len < ntohs(config->length) || ntohs(config->length) < sizeof(struct ofp_meter_config)) {
@@ -373,11 +356,13 @@ ofl_utils_count_ofp_meter_config(void *data, size_t data_len, size_t *count){
 void
 ofl_structs_free_packet_queue(struct ofl_packet_queue *queue) {
     OFL_UTILS_FREE_ARR(queue->properties, queue->properties_num);
+    
     free(queue);
 }
 
 void
 ofl_structs_free_instruction(struct ofl_instruction_header *inst, struct ofl_exp *exp) {
+    
     switch (inst->type) {
         case OFPIT_GOTO_TABLE:
         case OFPIT_WRITE_METADATA:
@@ -406,16 +391,19 @@ ofl_structs_free_instruction(struct ofl_instruction_header *inst, struct ofl_exp
 }
 
 void ofl_structs_free_meter_bands(struct ofl_meter_band_header *meter_band){
+    
     free(meter_band);
 }
 
 void
 ofl_structs_free_meter_band_stats(struct ofl_meter_band_stats* s){
+    
     free(s);
  }
 
 void
 ofl_structs_free_meter_stats(struct ofl_meter_stats *stats){
+    
     OFL_UTILS_FREE_ARR_FUN(stats->band_stats, stats->meter_bands_num,
                             ofl_structs_free_meter_band_stats);
     free(stats);
@@ -423,6 +411,7 @@ ofl_structs_free_meter_stats(struct ofl_meter_stats *stats){
 
 void
 ofl_structs_free_meter_config(struct ofl_meter_config *conf){
+    
     OFL_UTILS_FREE_ARR_FUN(conf->bands, conf->meter_bands_num,
                             ofl_structs_free_meter_bands);
     free(conf);
@@ -430,11 +419,13 @@ ofl_structs_free_meter_config(struct ofl_meter_config *conf){
 
 void
 ofl_structs_free_table_stats(struct ofl_table_stats *stats) {
+    
     free(stats);
 }
 
 void
 ofl_structs_free_bucket(struct ofl_bucket *bucket, struct ofl_exp *exp) {
+    
     OFL_UTILS_FREE_ARR_FUN2(bucket->actions, bucket->actions_num,
                             ofl_actions_free, exp);
     free(bucket);
@@ -443,6 +434,7 @@ ofl_structs_free_bucket(struct ofl_bucket *bucket, struct ofl_exp *exp) {
 
 void
 ofl_structs_free_flow_stats(struct ofl_flow_stats *stats, struct ofl_exp *exp) {
+    
     OFL_UTILS_FREE_ARR_FUN2(stats->instructions, stats->instructions_num,
                             ofl_structs_free_instruction, exp);
     ofl_structs_free_match(stats->match, exp);
@@ -451,18 +443,21 @@ ofl_structs_free_flow_stats(struct ofl_flow_stats *stats, struct ofl_exp *exp) {
 
 void
 ofl_structs_free_port(struct ofl_port *port) {
+    
     free(port->name);
     free(port);
 }
 
 void
 ofl_structs_free_group_stats(struct ofl_group_stats *stats) {
+    
     OFL_UTILS_FREE_ARR(stats->counters, stats->counters_num);
     free(stats);
 }
 
 void
 ofl_structs_free_group_desc_stats(struct ofl_group_desc_stats *stats, struct ofl_exp *exp) {
+    
     OFL_UTILS_FREE_ARR_FUN2(stats->buckets, stats->buckets_num,
                             ofl_structs_free_bucket, exp);
     free(stats);
@@ -470,6 +465,7 @@ ofl_structs_free_group_desc_stats(struct ofl_group_desc_stats *stats, struct ofl
 
 void
 ofl_structs_free_table_features(struct ofl_table_features* features, struct ofl_exp *exp){
+    
     /* We sometime sets it to NULL (see set feature request). Jean II */
     if (features == NULL)
         return;
@@ -482,6 +478,7 @@ ofl_structs_free_table_features(struct ofl_table_features* features, struct ofl_
 
 void
 ofl_structs_free_table_properties(struct ofl_table_feature_prop_header *prop, struct ofl_exp *exp UNUSED){
+    
     switch(prop->type){
         case (OFPTFPT_INSTRUCTIONS):
         case (OFPTFPT_INSTRUCTIONS_MISS):{
@@ -519,6 +516,7 @@ ofl_structs_free_table_properties(struct ofl_table_feature_prop_header *prop, st
 
 void
 ofl_structs_free_match(struct ofl_match_header *match, struct ofl_exp *exp) {
+    
     switch (match->type) {
         case (OFPMT_OXM): {
             if (match->length > sizeof(struct ofp_match)){

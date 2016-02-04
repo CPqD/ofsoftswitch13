@@ -64,21 +64,18 @@ struct pipeline *
 pipeline_create(struct datapath *dp) {
     struct pipeline *pl;
     int i;
-
     pl = xmalloc(sizeof(struct pipeline));
     for (i=0; i<PIPELINE_TABLES; i++) {
         pl->tables[i] = flow_table_create(dp, i);
     }
     pl->dp = dp;
-
+    nblink_initialize();
     return pl;
 }
 
 static bool
 is_table_miss(struct flow_entry *entry){
-
     return ((entry->stats->priority) == 0 && (entry->match->length <= 4));
-
 }
 
 /* Sends a packet to the controller in a packet_in message */
