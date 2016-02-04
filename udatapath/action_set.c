@@ -188,7 +188,7 @@ action_set_write_actions(struct action_set *set,
     for (i=0; i<actions_num; i++) {
         action_set_write_action(set, actions[i]);
     }
-    VLOG_DBG_RL(LOG_MODULE, &rl, action_set_to_string(set));
+    VLOG_DBG_RL(LOG_MODULE, &rl, "%s", action_set_to_string(set));
 }
 
 void

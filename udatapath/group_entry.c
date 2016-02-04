@@ -83,20 +83,15 @@ struct group_entry *
 group_entry_create(struct datapath *dp, struct group_table *table, struct ofl_msg_group_mod *mod) {
     struct group_entry *entry;
     size_t i;
-    uint64_t now;
-
-    now = time_msec();
+    
     entry = xmalloc(sizeof(struct group_entry));
-
     entry->dp          = dp;
     entry->table       = table;
-
     entry->desc = xmalloc(sizeof(struct ofl_group_desc_stats));
     entry->desc->type =        mod->type;
     entry->desc->group_id =    mod->group_id;
     entry->desc->buckets_num = mod->buckets_num;
     entry->desc->buckets     = mod->buckets;
-
     entry->stats = xmalloc(sizeof(struct ofl_group_stats));
     entry->stats->group_id      = mod->group_id;
     entry->stats->ref_count     = 0;
@@ -112,7 +107,6 @@ group_entry_create(struct datapath *dp, struct group_table *table, struct ofl_ms
         entry->stats->counters[i]->packet_count = 0;
         entry->stats->counters[i]->byte_count = 0;
     }
-
     switch (mod->type) {
         case (OFPGT_SELECT): {
             init_select_group(entry, mod);
@@ -122,9 +116,7 @@ group_entry_create(struct datapath *dp, struct group_table *table, struct ofl_ms
             entry->data = NULL;
         }
     }
-
     list_init(&entry->flow_refs);
-
     return entry;
 }
 

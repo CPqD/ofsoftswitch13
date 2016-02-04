@@ -164,6 +164,7 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
     /* Loop over the flow entry's match fields */
     HMAP_FOR_EACH(f, struct ofl_match_tlv, hmap_node, &flow_match->match_fields)
     {
+        char *f_str;
         /* Check presence of match field in packet */
         has_mask = OXM_HASMASK(f->header);
         field_len =  OXM_LENGTH(f->header);
@@ -176,7 +177,6 @@ packet_match(struct ofl_match *flow_match, struct ofl_match *packet){
             packet_header |= field_len;
             flow_mask = f->value + field_len;
         }
-
         /* Lookup the packet header */
         packet_f = oxm_match_lookup(packet_header, packet);
         if (!packet_f) {

@@ -159,8 +159,10 @@ dp_new(void) {
     if(strlen(dp->dp_desc) == 0) {
         /* just use "$HOSTNAME pid=$$" */
         char hostnametmp[DESC_STR_LEN];
-	    gethostname(hostnametmp,sizeof hostnametmp);
-        snprintf(dp->dp_desc, sizeof dp->dp_desc,"%s pid=%u",hostnametmp, getpid());
+        char pid[10];
+        gethostname(hostnametmp,sizeof hostnametmp);
+        sprintf(pid, "%u", getpid());
+        snprintf(dp->dp_desc, strlen(hostnametmp) + 5 + strlen(pid),"%s pid=%s",hostnametmp, pid);
     }
 
     /* FIXME: Should not depend on udatapath_as_lib */
@@ -252,7 +254,7 @@ remote_rconn_run(struct datapath *dp, struct remote *r, uint8_t conn_id) {
     struct rconn *rconn = NULL;
     ofl_err error;
     size_t i;
-
+    rconn = NULL;
     if (conn_id == MAIN_CONNECTION)
         rconn = r->rconn;
     else if (conn_id == PTIN_CONNECTION)
