@@ -258,7 +258,7 @@ in_band_status_cb(struct status_reply *sr, void *in_band_)
 }
 
 void
-get_ofp_packet_payload(struct ofp_packet_in *opi, struct ofpbuf *payload)
+get_ofp_packet_payload(struct ofp_packet_in *opi UNUSED, struct ofpbuf *payload UNUSED)
 {
     //payload->data = opi->data;
     //payload->size = ntohs(opi->header.length) - offsetof(struct ofp_packet_in,

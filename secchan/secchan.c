@@ -343,10 +343,10 @@ get_ofp_packet_in(struct relay *r)
     return NULL;
 }
 
-/* Need to adapt 1.2 packet-in changes */
+/* Need to adapt 1.3 packet-in changes */
 bool
 get_ofp_packet_eth_header(struct relay *r, struct ofp_packet_in **opip,
-                          struct eth_header **ethp)
+                          struct eth_header **ethp UNUSED)
 {
     const int min_len = 0; //offsetof(struct ofp_packet_in, data) + ETH_HEADER_LEN;
     struct ofp_packet_in *opi = get_ofp_packet_in(r);
@@ -599,7 +599,6 @@ parse_options(int argc, char *argv[], struct settings *s)
         {"version",     no_argument, 0, 'V'},
         DAEMON_LONG_OPTIONS,
         VLOG_LONG_OPTIONS,
-        LEAK_CHECKER_LONG_OPTIONS,
 #ifdef HAVE_OPENSSL
         VCONN_SSL_LONG_OPTIONS
         {"bootstrap-ca-cert", required_argument, 0, OPT_BOOTSTRAP_CA_CERT},
@@ -730,8 +729,6 @@ parse_options(int argc, char *argv[], struct settings *s)
         DAEMON_OPTION_HANDLERS
 
         VLOG_OPTION_HANDLERS
-
-        LEAK_CHECKER_OPTION_HANDLERS
 
 #ifdef HAVE_OPENSSL
         VCONN_SSL_OPTION_HANDLERS
