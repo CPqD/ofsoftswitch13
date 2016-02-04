@@ -71,16 +71,10 @@
 #define PIPELINE_TABLES 64
 #define OFP_MAX_TABLE_NAME_LEN 32
 #define OFP_MAX_PORT_NAME_LEN  16
-<<<<<<< HEAD
-#define OFP_TCP_PORT  6653
-#define OFP_SSL_PORT  6653
-=======
-
 /* Official IANA registered port for OpenFlow. */
 #define OFP_TCP_PORT  6653
 #define OFP_SSL_PORT  6653
 
->>>>>>> e309316... Update openflow.h to OpenFlow 1.3.5
 #define OFP_ETH_ALEN 6          /* Bytes in an Ethernet address. */
 
 /* Port numbering. Ports are numbered starting from 1. */
@@ -1833,24 +1827,6 @@ OFP_ASSERT(sizeof(struct ofp_flow_stats_request) == 40);
 
 /* Body of reply to OFPMP_FLOW request. */
 struct ofp_flow_stats {
-<<<<<<< HEAD
-	uint16_t length;        /* Length of this entry. */
-	uint8_t table_id;       /* ID of table flow came from. */
-	uint8_t pad;
-	uint32_t duration_sec;  /* Time flow has been alive in seconds. */
-	uint32_t duration_nsec; /* Time flow has been alive in nanoseconds beyond
-                               duration_sec. */
-	uint16_t priority;      /* Priority of the entry. */
-	uint16_t idle_timeout;  /* Number of seconds idle before expiration. */
-	uint16_t hard_timeout;  /* Number of seconds before expiration. */
-	uint16_t flags;         /* One of OFPFF_*/ 
-    uint8_t pad2[4];        /* Align to 64-bits. */
-	uint64_t cookie;        /* Opaque controller-issued identifier. */
-	uint64_t packet_count;  /* Number of packets in flow. */
-	uint64_t byte_count;    /* Number of bytes in flow. */
-	struct ofp_match match; /* Description of fields. Variable size. */
-    //struct ofp_instruction instructions[0]; /* Instruction set. */
-=======
     uint16_t length;          /* Length of this entry. */
     uint8_t table_id;         /* ID of table flow came from. */
     uint8_t pad;
@@ -1868,7 +1844,6 @@ struct ofp_flow_stats {
     struct ofp_match match;   /* Description of fields. Variable size. */
     /* The variable size and padded match is always followed by instructions. */
     //struct ofp_instruction instructions[0]; /* Instruction set - 0 or more. */
->>>>>>> e309316... Update openflow.h to OpenFlow 1.3.5
 };
 OFP_ASSERT(sizeof(struct ofp_flow_stats) == 56);
 
