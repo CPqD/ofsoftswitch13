@@ -1824,6 +1824,7 @@ ofl_err state_table_set_extractor(struct state_table *table, struct key_extracto
         dest = &table->read_key;
         OFL_LOG_DBG(LOG_MODULE, "Lookup-scope set");
         }
+    dest->table_id = ke->table_id;
     dest->field_count = ke->field_count;
     memcpy(dest->fields, ke->fields, sizeof(uint32_t)*ke->field_count);
     return 0;
