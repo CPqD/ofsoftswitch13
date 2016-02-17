@@ -77,9 +77,9 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
                     has_state = true;
     }
 
-    HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv, hmap_node, 
-            hash_int(OXM_EXP_GLOBAL_STATE,0), &handle->match.match_fields){
-            current_global_state = (uint32_t) *(f->value + EXP_ID_LEN);
+    HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
+                    hmap_node, hash_int(OXM_EXP_GLOBAL_STATE,0), &handle->match.match_fields){
+                    current_global_state = *((uint32_t*) (f->value + EXP_ID_LEN));
     }
 
     HMAP_FOR_EACH_SAFE(iter, next, struct ofl_match_tlv, hmap_node, &handle->match.match_fields){
