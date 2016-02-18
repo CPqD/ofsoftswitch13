@@ -306,39 +306,39 @@ struct oxm_field {
 /* All the known fields. */
 extern struct oxm_field all_fields[NUM_OXM_FIELDS];
 
-bool 
+bool
 check_bad_wildcard(uint8_t value, uint8_t mask);
 
-bool 
+bool
 check_bad_wildcard16(uint16_t value, uint16_t mask);
 
-bool 
+bool
 check_bad_wildcard32(uint32_t value, uint32_t mask);
 
-bool 
-check_bad_wildcard48(uint8_t *value, uint8_t *mask);
+bool
+check_bad_wildcard48(uint8_t const *value, uint8_t const *mask);
 
-bool 
+bool
 check_bad_wildcard64(uint64_t value, uint64_t mask);
 
-bool 
-check_bad_wildcard128(uint8_t *value, uint8_t *mask);
+bool
+check_bad_wildcard128(uint8_t const *value, uint8_t const *mask);
 
 struct oxm_field *
 oxm_field_lookup(uint32_t header);
 
 bool
-oxm_prereqs_ok(const struct oxm_field *field, const struct ofl_match *rule);
+oxm_prereqs_ok(struct oxm_field const *field, struct ofl_match const *rule);
 
 int
-oxm_pull_match(struct ofpbuf * buf, struct ofl_match *match_dst, int match_len, bool check_prereq, struct ofl_exp *exp);
+oxm_pull_match(struct ofpbuf * buf, struct ofl_match *match_dst, int match_len, bool check_prereq, struct ofl_exp const *exp);
 
-int oxm_put_match(struct ofpbuf *buf, struct ofl_match *omt, struct ofl_exp *exp);
+int oxm_put_match(struct ofpbuf *buf, struct ofl_match const *omt, struct ofl_exp const *exp);
 
 struct ofl_match_tlv *
-oxm_match_lookup(uint32_t header, const struct ofl_match *omt);
+oxm_match_lookup(uint32_t header, struct ofl_match const *omt);
 
-uint32_t oxm_entry_ok(const void *, unsigned int );
+uint32_t oxm_entry_ok(const void *, unsigned int);
 
 int
 oxm_field_bytes(uint32_t header);

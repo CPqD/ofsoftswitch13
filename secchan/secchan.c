@@ -353,6 +353,7 @@ get_ofp_packet_eth_header(struct relay *r, struct ofp_packet_in **opip,
     struct ofp_packet_in *opi = get_ofp_packet_in(r);
     if (opi && ntohs(opi->header.length) >= min_len) {
         *opip = opi;
+        // FIXME?
         //*ethp = (void *) opi->data;
         return true;
     }
@@ -698,7 +699,7 @@ parse_options(int argc, char *argv[], struct settings *s)
             break;
 
         case 'F':
-            break;   
+            break;
 
         case OPT_IN_BAND:
             s->in_band = true;

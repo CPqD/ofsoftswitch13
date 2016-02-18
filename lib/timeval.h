@@ -35,20 +35,20 @@
 #define TIMEVAL_H 1
 
 #include <time.h>
-#include "type-props.h"
+#include "type-traits.h"
 #include "util.h"
 
 struct pollfd;
 
 /* POSIX allows floating-point time_t, but we don't support it. */
-BUILD_ASSERT_DECL(TYPE_IS_INTEGER(time_t));
+BUILD_ASSERT_DECL(TYPE_IS_INTEGRAL(time_t));
 
 /* We do try to cater to unsigned time_t, but I want to know about it if we
  * ever encounter such a platform. */
 BUILD_ASSERT_DECL(TYPE_IS_SIGNED(time_t));
 
-#define TIME_MAX TYPE_MAXIMUM(time_t)
-#define TIME_MIN TYPE_MINIMUM(time_t)
+#define TIME_MAX TYPE_LIMITS_MAX(time_t)
+#define TIME_MIN TYPE_LIMITS_MIN(time_t)
 
 /* Interval between updates to the time reported by time_gettimeofday(), in ms.
  * This should not be adjusted much below 10 ms or so with the current

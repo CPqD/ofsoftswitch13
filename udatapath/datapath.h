@@ -1,6 +1,6 @@
 /* Copyright (c) 2008 The Board of Trustees of The Leland Stanford
  * Junior University
- * 
+ *
  * We are making the OpenFlow specification and associated documentation
  * (Software) available for public use and benefit with the expectation
  * that others will use, modify and enhance the Software and contribute
@@ -13,10 +13,10 @@
  * distribute, sublicense, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -25,7 +25,7 @@
  * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * 
+ *
  * The name and trademarks of copyright holder(s) may NOT be used in
  * advertising or publicity pertaining to the Software or any
  * derivatives without specific, written prior permission.
@@ -65,9 +65,11 @@ struct sender;
  ****************************************************************************/
 
 
-struct datapath {
+struct datapath
+{
     /* Strings to describe the manufacturer, hardware, and software. This data
      * is queriable through switch stats request. */
+
     char  *mfr_desc;
     char  *hw_desc;
     char  *sw_desc;
@@ -76,7 +78,7 @@ struct datapath {
 
     uint64_t  id;               /* Unique identifier for this datapath. */
 
-    uint32_t  global_state;    /* Global State for this datapath. */
+    uint32_t  global_state;    /* Global state for this datapath. */
 
     struct list remotes;        /* Remote connections. */
 
@@ -87,7 +89,6 @@ struct datapath {
     size_t n_listeners;
     struct pvconn **listeners_aux;
     size_t n_listeners_aux;
-    
     time_t last_timeout;
 
     struct dp_buffers *buffers;
@@ -135,7 +136,7 @@ struct remote {
     struct list node;
     struct rconn *rconn;
     struct rconn *rconn_aux;
-    
+
 #define TXQ_LIMIT 128           /* Max number of packets to queue for tx. */
     int n_txq;                  /* Number of packets queued for tx on rconn. */
 
@@ -149,7 +150,7 @@ struct remote {
     void *cb_aux;
 
     uint32_t role; /*OpenFlow controller role.*/
-    struct ofl_async_config config;  /* Asynchronous messages configuration, 
+    struct ofl_async_config config;  /* Asynchronous messages configuration,
                                             set from controller*/
 
     /* Multipart request message pending reassembly. */

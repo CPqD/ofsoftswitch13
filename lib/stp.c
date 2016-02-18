@@ -152,12 +152,13 @@ struct stp {
     for ((PORT) = stp_next_enabled_port((STP), (STP)->ports);   \
          (PORT);                                                \
          (PORT) = stp_next_enabled_port((STP), (PORT) + 1))
+
 static struct stp_port *
 stp_next_enabled_port(const struct stp *stp, const struct stp_port *port)
 {
     for (; port < &stp->ports[ARRAY_SIZE(stp->ports)]; port++) {
         if (port->state != STP_DISABLED) {
-            return (struct stp_port *) port;
+            return CONST_CAST(struct stp_port *, port);
         }
     }
     return NULL;
@@ -221,7 +222,7 @@ static void stp_send_bpdu(struct stp_port *, const void *, size_t);
  *
  * When the bridge needs to send out a BPDU, it calls 'send_bpdu'.  This
  * callback may be called from stp_tick() or stp_received_bpdu().  The
- * arguments to 'send_bpdu' are an STP BPDU encapsulated in 
+ * arguments to 'send_bpdu' are an STP BPDU encapsulated in
  */
 struct stp *
 stp_create(const char *name, stp_identifier bridge_id,

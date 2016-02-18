@@ -84,12 +84,12 @@ static size_t
 select_from_ff_group(struct group_entry *entry);
 
 struct group_entry *
-group_entry_create(struct datapath *dp, struct group_table *table, struct ofl_msg_group_mod *mod) {
+group_entry_create(struct datapath *dp, struct group_table *table, struct ofl_msg_group_mod *mod)
+{
     struct group_entry *entry;
     size_t i;
-    uint64_t now;
+    // uint64_t now = time_msec();
 
-    now = time_msec();
     entry = xmalloc(sizeof(struct group_entry));
 
     entry->dp          = dp;

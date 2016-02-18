@@ -44,7 +44,8 @@ OFL_LOG_INIT(LOG_MODULE)
 
 
 int
-ofl_exp_nicira_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf, size_t *buf_len) {
+ofl_exp_nicira_msg_pack(struct ofl_msg_experimenter const *msg, uint8_t **buf, size_t *buf_len)
+{
     if (msg->experimenter_id == NX_VENDOR_ID) {
         struct ofl_exp_nicira_msg_header *exp = (struct ofl_exp_nicira_msg_header *)msg;
         switch (exp->type) {
@@ -75,7 +76,8 @@ ofl_exp_nicira_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf, size_t 
 }
 
 ofl_err
-ofl_exp_nicira_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_experimenter **msg) {
+ofl_exp_nicira_msg_unpack(struct ofp_header const *oh, size_t *len, struct ofl_msg_experimenter **msg)
+{
     struct nicira_header *exp;
 
     if (*len < sizeof(struct nicira_header)) {
@@ -123,7 +125,8 @@ ofl_exp_nicira_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_exp
 }
 
 int
-ofl_exp_nicira_msg_free(struct ofl_msg_experimenter *msg) {
+ofl_exp_nicira_msg_free(struct ofl_msg_experimenter *msg)
+{
     if (msg->experimenter_id == NX_VENDOR_ID) {
         struct ofl_exp_nicira_msg_header *exp = (struct ofl_exp_nicira_msg_header *)msg;
         switch (exp->type) {
@@ -143,7 +146,8 @@ ofl_exp_nicira_msg_free(struct ofl_msg_experimenter *msg) {
 }
 
 char *
-ofl_exp_nicira_msg_to_string(struct ofl_msg_experimenter *msg) {
+ofl_exp_nicira_msg_to_string(struct ofl_msg_experimenter const *msg)
+{
     char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);

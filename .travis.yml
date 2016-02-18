@@ -3,16 +3,6 @@ compiler:
   - gcc
 
 install:
-  - "sudo apt-get -y install zip unzip cmake libpcap-dev libxerces-c2-dev libpcre3-dev flex bison pkg-config autoconf libtool libboost-dev libsqlite3-dev -y"
-  - "wget http://www.nbee.org/download/nbeesrc-jan-10-2013.zip"
-  - "unzip nbeesrc-jan-10-2013.zip"
-  - "cd nbeesrc-jan-10-2013/src"
-  - "cmake ."
-  - "make"
-  - "sudo cp ../bin/libn*.so /usr/local/lib"
-  - "sudo ldconfig"
-  - "sudo cp -R ../include/* /usr/include/"
-  - "cd ../.."
   - "./boot.sh"
 
 script:

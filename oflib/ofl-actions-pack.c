@@ -47,11 +47,12 @@ OFL_LOG_INIT(LOG_MODULE)
 
 
 size_t
-ofl_actions_ofp_len(struct ofl_action_header *action, struct ofl_exp *exp) {
+ofl_actions_ofp_len(struct ofl_action_header const *action, struct ofl_exp const *exp)
+{
     switch (action->type) {
         case OFPAT_OUTPUT:
             return sizeof(struct ofp_action_output);
-       
+
         case OFPAT_COPY_TTL_OUT:
         case OFPAT_COPY_TTL_IN:
             return sizeof(struct ofp_action_header);
@@ -61,7 +62,7 @@ ofl_actions_ofp_len(struct ofl_action_header *action, struct ofl_exp *exp) {
             return sizeof(struct ofp_action_header);
         case OFPAT_PUSH_VLAN:
         case OFPAT_PUSH_PBB:
-        case OFPAT_PUSH_MPLS:  
+        case OFPAT_PUSH_MPLS:
             return sizeof(struct ofp_action_push);
         case OFPAT_POP_VLAN:
         case OFPAT_POP_PBB:
@@ -77,9 +78,9 @@ ofl_actions_ofp_len(struct ofl_action_header *action, struct ofl_exp *exp) {
         case OFPAT_DEC_NW_TTL:
             return sizeof(struct ofp_action_header);
         case OFPAT_SET_FIELD: {
-            struct ofl_action_set_field  *a = (struct ofl_action_set_field  *) action;  
+            struct ofl_action_set_field  *a = (struct ofl_action_set_field  *) action;
             return sizeof(struct ofp_action_set_field) + ROUND_UP(OXM_LENGTH(a->field->header),8) ;
-        }    
+        }
         case OFPAT_EXPERIMENTER: {
             if (exp == NULL || exp->act == NULL || exp->act->ofp_len == NULL) {
                 OFL_LOG_WARN(LOG_MODULE, "requesting experimenter length, but no callback was given.");
@@ -93,23 +94,23 @@ ofl_actions_ofp_len(struct ofl_action_header *action, struct ofl_exp *exp) {
 }
 
 size_t
-ofl_actions_ofp_total_len(struct ofl_action_header **actions,
-                          size_t actions_num, struct ofl_exp *exp) {
+ofl_actions_ofp_total_len(struct ofl_action_header const **actions, size_t actions_num, struct ofl_exp const *exp)
+{
     size_t sum;
-    OFL_UTILS_SUM_ARR_FUN2(sum, actions, actions_num,
-                           ofl_actions_ofp_len, exp);
+    OFL_UTILS_SUM_ARR_FUN2(sum, actions, actions_num, ofl_actions_ofp_len, exp);
     return sum;
 }
 
-size_t
-ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, uint8_t* data,  struct ofl_exp *exp) {
 
+size_t
+ofl_actions_pack(struct ofl_action_header const *src, struct ofp_action_header *dst, uint8_t* data, struct ofl_exp const *exp)
+{
     dst->type = htons(src->type);
     memset(dst->pad, 0x00, 4);
 
     switch (src->type) {
         case OFPAT_OUTPUT: {
-            struct ofl_action_output *sa = (struct ofl_action_output *)src;
+            struct ofl_action_output const *sa = (struct ofl_action_output const *)src;
             struct ofp_action_output *da = (struct ofp_action_output *)dst;
 
             da->len =     htons(sizeof(struct ofp_action_output));
@@ -118,15 +119,15 @@ ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, u
             memset(da->pad, 0x00, 6);
             return sizeof(struct ofp_action_output);
         }
-      
+
         case OFPAT_COPY_TTL_OUT:
         case OFPAT_COPY_TTL_IN: {
             dst->len = htons(sizeof(struct ofp_action_header));
             return sizeof(struct ofp_action_header);
         }
-      
+
         case OFPAT_SET_MPLS_TTL: {
-            struct ofl_action_mpls_ttl *sa = (struct ofl_action_mpls_ttl *)src;
+            struct ofl_action_mpls_ttl const *sa = (struct ofl_action_mpls_ttl const *)src;
             struct ofp_action_mpls_ttl *da = (struct ofp_action_mpls_ttl *)dst;
 
             da->len =      htons(sizeof(struct ofp_action_mpls_ttl));
@@ -139,9 +140,9 @@ ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, u
             return sizeof(struct ofp_action_header);
         }
         case OFPAT_PUSH_VLAN:
-        case OFPAT_PUSH_MPLS: 
+        case OFPAT_PUSH_MPLS:
         case OFPAT_PUSH_PBB:{
-            struct ofl_action_push *sa = (struct ofl_action_push *)src;
+            struct ofl_action_push const *sa = (struct ofl_action_push const *)src;
             struct ofp_action_push *da = (struct ofp_action_push *)dst;
 
             da->len =       htons(sizeof(struct ofp_action_push));
@@ -149,7 +150,7 @@ ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, u
             memset(da->pad, 0x00, 2);
             return sizeof(struct ofp_action_push);
         }
-        case OFPAT_POP_VLAN: 
+        case OFPAT_POP_VLAN:
         case OFPAT_POP_PBB: {
             struct ofp_action_header *da = (struct ofp_action_header *)dst;
 
@@ -157,7 +158,7 @@ ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, u
             return sizeof (struct ofp_action_header);
         }
         case OFPAT_POP_MPLS: {
-            struct ofl_action_pop_mpls *sa = (struct ofl_action_pop_mpls *)src;
+            struct ofl_action_pop_mpls const *sa = (struct ofl_action_pop_mpls const *)src;
             struct ofp_action_pop_mpls *da = (struct ofp_action_pop_mpls *)dst;
 
             da->len =       htons(sizeof(struct ofp_action_pop_mpls));
@@ -166,7 +167,7 @@ ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, u
             return sizeof(struct ofp_action_pop_mpls);
         }
         case OFPAT_SET_QUEUE: {
-            struct ofl_action_set_queue *sa = (struct ofl_action_set_queue *)src;
+            struct ofl_action_set_queue const *sa = (struct ofl_action_set_queue const *)src;
             struct ofp_action_set_queue *da = (struct ofp_action_set_queue *)dst;
 
             da->len =      htons(sizeof(struct ofp_action_set_queue));
@@ -174,7 +175,7 @@ ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, u
             return sizeof(struct ofp_action_set_queue);
         }
         case OFPAT_GROUP: {
-            struct ofl_action_group *sa = (struct ofl_action_group *)src;
+            struct ofl_action_group const *sa = (struct ofl_action_group const *)src;
             struct ofp_action_group *da = (struct ofp_action_group *)dst;
 
             da->len =      htons(sizeof(struct ofp_action_group));
@@ -182,7 +183,7 @@ ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, u
             return sizeof(struct ofp_action_group);
         }
         case OFPAT_SET_NW_TTL: {
-            struct ofl_action_set_nw_ttl *sa = (struct ofl_action_set_nw_ttl *)src;
+            struct ofl_action_set_nw_ttl const *sa = (struct ofl_action_set_nw_ttl const *)src;
             struct ofp_action_nw_ttl *da = (struct ofp_action_nw_ttl *)dst;
 
             da->len =    htons(sizeof(struct ofp_action_nw_ttl));
@@ -195,11 +196,11 @@ ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, u
             return sizeof(struct ofp_action_header);
         }
         case OFPAT_SET_FIELD: {
-            struct ofl_action_set_field *sa = (struct ofl_action_set_field *) src;
+            struct ofl_action_set_field const *sa = (struct ofl_action_set_field const *) src;
             struct ofp_action_set_field *da = (struct ofp_action_set_field *) dst;
             uint32_t header;
             uint8_t padding_size;
-                        
+
             da->len = htons(sizeof(struct ofp_action_set_field) + ROUND_UP(OXM_LENGTH(sa->field->header),8));
             /*Put OXM header in the field*/
             header = htonl(sa->field->header);
@@ -217,12 +218,12 @@ ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, u
                     break;
                 }
                 case 4:{
-                    uint32_t value; 
-					uint8_t field = OXM_FIELD(sa->field->header);					
-					if( field != 11 && field != 12 && field != 22 && field != 23) 
+                    uint32_t value;
+					uint8_t field = OXM_FIELD(sa->field->header);
+					if( field != 11 && field != 12 && field != 22 && field != 23)
 						value = htonl(*((uint32_t*) sa->field->value));
-					else  
-						value = *((uint32_t*) sa->field->value);                   
+					else
+						value = *((uint32_t*) sa->field->value);
 					memcpy(data + (sizeof(struct ofp_action_set_field)), &value, OXM_LENGTH(sa->field->header));
                     break;
                 }
@@ -234,18 +235,21 @@ ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, u
             }
             /*padding*/
             padding_size = ROUND_UP(OXM_LENGTH(sa->field->header),8) - OXM_LENGTH(sa->field->header);
-            memset(data + (sizeof(struct ofp_action_set_field) + OXM_LENGTH(sa->field->header)), 0, padding_size);            
+            memset(data + (sizeof(struct ofp_action_set_field) + OXM_LENGTH(sa->field->header)), 0, padding_size);
             return ntohs((da->len));
-        
+
         }
         case OFPAT_EXPERIMENTER: {
             if (exp == NULL || exp->act == NULL || exp->act->pack == NULL) {
                 OFL_LOG_WARN(LOG_MODULE, "Trying to pack experimenter, but no callback was given.");
                 return 0;
             }
-            return exp->act->pack(src, dst);           
+            /* FIXME */
+            return exp->act->pack(src, dst);
         }
         default:
             return 0;
-    };
+    }
+
+    return 0;
 }

@@ -37,49 +37,49 @@
 
 
 int
-ofl_exp_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf, size_t *buf_len);
+ofl_exp_msg_pack(struct ofl_msg_experimenter const *msg, uint8_t **buf, size_t *buf_len);
 
 ofl_err
-ofl_exp_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_experimenter **msg);
+ofl_exp_msg_unpack(struct ofp_header const *oh, size_t *len, struct ofl_msg_experimenter **msg);
 
 int
 ofl_exp_msg_free(struct ofl_msg_experimenter *msg);
 
 char *
-ofl_exp_msg_to_string(struct ofl_msg_experimenter *msg);
+ofl_exp_msg_to_string(struct ofl_msg_experimenter const *msg);
 
-int 
-ofl_exp_act_pack(struct ofl_action_header *src, struct ofp_action_header *dst);
+int
+ofl_exp_act_pack(struct ofl_action_header const *src, struct ofp_action_header *dst);
 
-ofl_err 
-ofl_exp_act_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action_header **dst);
+ofl_err
+ofl_exp_act_unpack(struct ofp_action_header const *src, size_t *len, struct ofl_action_header **dst);
 
-int     
+int
 ofl_exp_act_free(struct ofl_action_header *act);
 
 size_t
-ofl_exp_act_ofp_len(struct ofl_action_header *act);
+ofl_exp_act_ofp_len(struct ofl_action_header const *act);
 
 char *
-ofl_exp_act_to_string(struct ofl_action_header *act);
+ofl_exp_act_to_string(struct ofl_action_header const *act);
 
-int 
-ofl_exp_stats_req_pack (struct ofl_msg_multipart_request_header *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp);
+int
+ofl_exp_stats_req_pack (struct ofl_msg_multipart_request_header const *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp const *exp);
 
-int 
-ofl_exp_stats_reply_pack (struct ofl_msg_multipart_reply_header *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp);
+int
+ofl_exp_stats_reply_pack (struct ofl_msg_multipart_reply_header const *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp const *exp);
 
 ofl_err
-ofl_exp_stats_req_unpack (struct ofp_multipart_request *os, uint8_t *buf, size_t *len, struct ofl_msg_multipart_request_header **msg, struct ofl_exp *exp);
+ofl_exp_stats_req_unpack (struct ofp_multipart_request const *os, uint8_t const *buf, size_t *len, struct ofl_msg_multipart_request_header **msg, struct ofl_exp const *exp);
 
 ofl_err
-ofl_exp_stats_reply_unpack (struct ofp_multipart_reply *os, uint8_t *buf, size_t *len, struct ofl_msg_multipart_reply_header **msg, struct ofl_exp *exp);
+ofl_exp_stats_reply_unpack (struct ofp_multipart_reply const *os, uint8_t const *buf, size_t *len, struct ofl_msg_multipart_reply_header **msg, struct ofl_exp const *exp);
 
 char *
-ofl_exp_stats_req_to_string (struct ofl_msg_multipart_request_header *msg, struct ofl_exp *exp);
+ofl_exp_stats_req_to_string (struct ofl_msg_multipart_request_header const *msg, struct ofl_exp const *exp);
 
 char *
-ofl_exp_stats_reply_to_string (struct ofl_msg_multipart_reply_header *msg, struct ofl_exp *exp);
+ofl_exp_stats_reply_to_string (struct ofl_msg_multipart_reply_header const *msg, struct ofl_exp const *exp);
 
 int
 ofl_exp_stats_req_free (struct ofl_msg_multipart_request_header *msg);
@@ -88,10 +88,11 @@ int
 ofl_exp_stats_reply_free (struct ofl_msg_multipart_reply_header *msg);
 
 void
-ofl_exp_field_pack(struct ofpbuf *buf, struct ofl_match_tlv *oft);
+ofl_exp_field_pack(struct ofpbuf *buf, struct ofl_match_tlv const *oft);
 
 int
-ofl_exp_field_unpack(struct ofl_match *match, struct oxm_field *f, void *experimenter_id, void *value, void *mask);
+ofl_exp_field_unpack(struct ofl_match *match, struct oxm_field const *f, void const *experimenter_id, void const *value, void const *mask);
+
 
 void
 ofl_exp_field_match(struct ofl_match_tlv *f, int *packet_header, int *field_len, uint8_t **flow_val, uint8_t **flow_mask);
@@ -124,12 +125,12 @@ char *
 ofl_exp_inst_to_string (struct ofl_instruction_header *i);
 
 int
-ofl_exp_err_pack(struct ofl_msg_exp_error *msg, uint8_t **buf, size_t *buf_len);
+ofl_exp_err_pack(struct ofl_msg_exp_error const *msg, uint8_t **buf, size_t *buf_len);
 
 int
 ofl_exp_err_free(struct ofl_msg_exp_error *msg);
 
 char *
-ofl_exp_err_to_string(struct ofl_msg_exp_error *msg);
+ofl_exp_err_to_string(struct ofl_msg_exp_error const *msg);
 
 #endif /* OFL_EXP_H */

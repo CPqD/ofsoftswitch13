@@ -33,7 +33,8 @@
 #include "oxm-match.h"
 
 void
-ofl_structs_match_init(struct ofl_match *match){
+ofl_structs_match_init(struct ofl_match *match)
+{
 
     match->header.type = OFPMT_OXM;
     match->header.length = 0;
@@ -42,7 +43,8 @@ ofl_structs_match_init(struct ofl_match *match){
 
 
 void
-ofl_structs_match_put8(struct ofl_match *match, uint32_t header, uint8_t value){
+ofl_structs_match_put8(struct ofl_match *match, uint32_t header, uint8_t value)
+{
     struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
     int len = sizeof(uint8_t);
 
@@ -54,7 +56,8 @@ ofl_structs_match_put8(struct ofl_match *match, uint32_t header, uint8_t value){
 }
 
 void
-ofl_structs_match_put8m(struct ofl_match *match, uint32_t header, uint8_t value, uint8_t mask){
+ofl_structs_match_put8m(struct ofl_match *match, uint32_t header, uint8_t value, uint8_t mask)
+{
     struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
     int len = sizeof(uint8_t);
 
@@ -67,7 +70,8 @@ ofl_structs_match_put8m(struct ofl_match *match, uint32_t header, uint8_t value,
 }
 
 void
-ofl_structs_match_put16(struct ofl_match *match, uint32_t header, uint16_t value){
+ofl_structs_match_put16(struct ofl_match *match, uint32_t header, uint16_t value)
+{
     struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
     int len = sizeof(uint16_t);
 
@@ -80,7 +84,8 @@ ofl_structs_match_put16(struct ofl_match *match, uint32_t header, uint16_t value
 
 
 void
-ofl_structs_match_put16m(struct ofl_match *match, uint32_t header, uint16_t value, uint16_t mask){
+ofl_structs_match_put16m(struct ofl_match *match, uint32_t header, uint16_t value, uint16_t mask)
+{
     struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
     int len = sizeof(uint16_t);
 
@@ -93,7 +98,8 @@ ofl_structs_match_put16m(struct ofl_match *match, uint32_t header, uint16_t valu
 }
 
 void
-ofl_structs_match_put32(struct ofl_match *match, uint32_t header, uint32_t value){
+ofl_structs_match_put32(struct ofl_match *match, uint32_t header, uint32_t value)
+{
     struct ofl_match_tlv *m = xmalloc(sizeof (struct ofl_match_tlv));
 
     int len = sizeof(uint32_t);
@@ -107,7 +113,8 @@ ofl_structs_match_put32(struct ofl_match *match, uint32_t header, uint32_t value
 }
 
 void
-ofl_structs_match_put32m(struct ofl_match *match, uint32_t header, uint32_t value, uint32_t mask){
+ofl_structs_match_put32m(struct ofl_match *match, uint32_t header, uint32_t value, uint32_t mask)
+{
     struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
     int len = sizeof(uint32_t);
 
@@ -121,7 +128,8 @@ ofl_structs_match_put32m(struct ofl_match *match, uint32_t header, uint32_t valu
 }
 
 void
-ofl_structs_match_put64(struct ofl_match *match, uint32_t header, uint64_t value){
+ofl_structs_match_put64(struct ofl_match *match, uint32_t header, uint64_t value)
+{
     struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
     int len = sizeof(uint64_t);
 
@@ -134,7 +142,8 @@ ofl_structs_match_put64(struct ofl_match *match, uint32_t header, uint64_t value
 }
 
 void
-ofl_structs_match_put64m(struct ofl_match *match, uint32_t header, uint64_t value, uint64_t mask){
+ofl_structs_match_put64m(struct ofl_match *match, uint32_t header, uint64_t value, uint64_t mask)
+{
     struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
     int len = sizeof(uint64_t);
 
@@ -148,7 +157,8 @@ ofl_structs_match_put64m(struct ofl_match *match, uint32_t header, uint64_t valu
 }
 
 void
-ofl_structs_match_put_pbb_isid(struct ofl_match *match, uint32_t header, uint8_t value[PBB_ISID_LEN]){
+ofl_structs_match_put_pbb_isid(struct ofl_match *match, uint32_t header, uint8_t const value[PBB_ISID_LEN])
+{
     struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
     int len = OXM_LENGTH(header);
 
@@ -161,7 +171,8 @@ ofl_structs_match_put_pbb_isid(struct ofl_match *match, uint32_t header, uint8_t
 
 
 void
-ofl_structs_match_put_pbb_isidm(struct ofl_match *match, uint32_t header, uint8_t value[PBB_ISID_LEN], uint8_t mask[PBB_ISID_LEN]){
+ofl_structs_match_put_pbb_isidm(struct ofl_match *match, uint32_t header, uint8_t const value[PBB_ISID_LEN], uint8_t const mask[PBB_ISID_LEN])
+{
     struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
     int len = OXM_LENGTH(header);
 
@@ -174,7 +185,8 @@ ofl_structs_match_put_pbb_isidm(struct ofl_match *match, uint32_t header, uint8_
 }
 
 void
-ofl_structs_match_put_eth(struct ofl_match *match, uint32_t header, uint8_t value[ETH_ADDR_LEN]){
+ofl_structs_match_put_eth(struct ofl_match *match, uint32_t header, uint8_t const value[ETH_ADDR_LEN])
+{
     struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
     int len = ETH_ADDR_LEN;
 
@@ -187,7 +199,8 @@ ofl_structs_match_put_eth(struct ofl_match *match, uint32_t header, uint8_t valu
 }
 
 void
-ofl_structs_match_put_eth_m(struct ofl_match *match, uint32_t header, uint8_t value[ETH_ADDR_LEN], uint8_t mask[ETH_ADDR_LEN]){
+ofl_structs_match_put_eth_m(struct ofl_match *match, uint32_t header, uint8_t const value[ETH_ADDR_LEN], uint8_t const mask[ETH_ADDR_LEN])
+{
     struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
     int len = ETH_ADDR_LEN;
 
@@ -201,7 +214,8 @@ ofl_structs_match_put_eth_m(struct ofl_match *match, uint32_t header, uint8_t va
 }
 
 void
-ofl_structs_match_put_ipv6(struct ofl_match *match, uint32_t header, uint8_t value[IPv6_ADDR_LEN]){
+ofl_structs_match_put_ipv6(struct ofl_match *match, uint32_t header, uint8_t const value[IPv6_ADDR_LEN])
+{
 
     struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
     int len = IPv6_ADDR_LEN;
@@ -215,7 +229,8 @@ ofl_structs_match_put_ipv6(struct ofl_match *match, uint32_t header, uint8_t val
 }
 
 void
-ofl_structs_match_put_ipv6m(struct ofl_match *match, uint32_t header, uint8_t value[IPv6_ADDR_LEN], uint8_t mask[IPv6_ADDR_LEN]){
+ofl_structs_match_put_ipv6m(struct ofl_match *match, uint32_t header, uint8_t const value[IPv6_ADDR_LEN], uint8_t const mask[IPv6_ADDR_LEN])
+{
     struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
     int len = IPv6_ADDR_LEN;
 

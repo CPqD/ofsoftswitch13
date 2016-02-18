@@ -37,55 +37,59 @@
 #include "../oflib/ofl-messages.h"
 
 
-struct ofl_exp_openflow_msg_header {
+struct ofl_exp_openflow_msg_header
+{
     struct ofl_msg_experimenter   header; /* OPENFLOW_VENDOR_ID */
-
     uint32_t   type;
 };
 
-struct ofl_exp_openflow_msg_queue {
+struct ofl_exp_openflow_msg_queue
+{
     struct ofl_exp_openflow_msg_header   header; /* OFP_EXT_QUEUE_MODIFY|DELETE */
-
     uint32_t                  port_id;
     struct ofl_packet_queue  *queue;
 };
 
 
-struct ofl_exp_openflow_msg_set_dp_desc {
+struct ofl_exp_openflow_msg_set_dp_desc
+{
     struct ofl_exp_openflow_msg_header   header; /* OFP_EXT_SET_DESC */
-
     char  *dp_desc;
 };
 
 
-
 int
-ofl_exp_openflow_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf, size_t *buf_len);
+ofl_exp_openflow_msg_pack(struct ofl_msg_experimenter const *msg, uint8_t **buf, size_t *buf_len);
 
 ofl_err
-ofl_exp_openflow_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_experimenter **msg);
+ofl_exp_openflow_msg_unpack(struct ofp_header const *oh, size_t *len, struct ofl_msg_experimenter **msg);
+
 
 int
 ofl_exp_openflow_msg_free(struct ofl_msg_experimenter *msg);
 
 char *
-ofl_exp_openflow_msg_to_string(struct ofl_msg_experimenter *msg);
+ofl_exp_openflow_msg_to_string(struct ofl_msg_experimenter const *msg);
+
 
 /*experimenter action functions*/
 
-int 
-ofl_exp_openflow_act_pack(struct ofl_action_header *src, struct ofp_action_header *dst);
+int
+ofl_exp_openflow_act_pack(struct ofl_action_header const *src, struct ofp_action_header *dst);
 
 ofl_err
-ofl_exp_openflow_act_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action_header **dst);
+ofl_exp_openflow_act_unpack(struct ofp_action_header const *src, size_t *len, struct ofl_action_header **dst);
 
 size_t
-ofl_exp_openflow_act_ofp_len(struct ofl_action_header *act);
+ofl_exp_openflow_act_ofp_len(struct ofl_action_header const *act);
 
-int     
+int
 ofl_exp_openflow_act_free(struct ofl_action_header *act);
 
 char *
-ofl_exp_openflow_act_to_string(struct ofl_action_header *act);
+ofl_exp_openflow_act_to_string(struct ofl_action_header const *act);
+
+void
+ofl_error_beba_exp_type_print(FILE *stream, uint16_t exp_type);
 
 #endif /* OFL_EXP_OPENFLOW_H */

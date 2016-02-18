@@ -1,6 +1,6 @@
 /* Copyright (c) 2008, 2009 The Board of Trustees of The Leland Stanford
  * Junior University
- * 
+ *
  * We are making the OpenFlow specification and associated documentation
  * (Software) available for public use and benefit with the expectation
  * that others will use, modify and enhance the Software and contribute
@@ -13,10 +13,10 @@
  * distribute, sublicense, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -25,7 +25,7 @@
  * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * 
+ *
  * The name and trademarks of copyright holder(s) may NOT be used in
  * advertising or publicity pertaining to the Software or any
  * derivatives without specific, written prior permission.
@@ -73,7 +73,7 @@ struct nl_sock
 };
 
 /* Next nlmsghdr sequence number.
- * 
+ *
  * This implementation uses sequence numbers that are unique process-wide, to
  * avoid a hypothetical race: send request, close socket, open new socket that
  * reuses the old socket's PID value, send request on new socket, receive reply
@@ -201,7 +201,7 @@ error:
 
 /* Destroys netlink socket 'sock'. */
 void
-nl_sock_destroy(struct nl_sock *sock) 
+nl_sock_destroy(struct nl_sock *sock)
 {
     if (sock) {
         close(sock->fd);
@@ -218,7 +218,7 @@ nl_sock_destroy(struct nl_sock *sock)
  * 'wait' is true, then the send will wait until buffer space is ready;
  * otherwise, returns EAGAIN if the 'sock' send buffer is full. */
 int
-nl_sock_send(struct nl_sock *sock, const struct ofpbuf *msg, bool wait) 
+nl_sock_send(struct nl_sock *sock, const struct ofpbuf *msg, bool wait)
 {
     int error;
 
@@ -241,13 +241,13 @@ nl_sock_send(struct nl_sock *sock, const struct ofpbuf *msg, bool wait)
  * returns EAGAIN if the 'sock' send buffer is full. */
 int
 nl_sock_sendv(struct nl_sock *sock, const struct iovec iov[], size_t n_iov,
-              bool wait) 
+              bool wait)
 {
     struct msghdr msg;
     int error;
 
     memset(&msg, 0, sizeof msg);
-    msg.msg_iov = (struct iovec *) iov;
+    msg.msg_iov = CONST_CAST(struct iovec *, iov);
     msg.msg_iovlen = n_iov;
     do {
         int retval;
@@ -269,7 +269,7 @@ nl_sock_sendv(struct nl_sock *sock, const struct iovec iov[], size_t n_iov,
  * If 'wait' is true, nl_sock_recv waits for a message to be ready; otherwise,
  * returns EAGAIN if the 'sock' receive buffer is empty. */
 int
-nl_sock_recv(struct nl_sock *sock, struct ofpbuf **bufp, bool wait) 
+nl_sock_recv(struct nl_sock *sock, struct ofpbuf **bufp, bool wait)
 {
     uint8_t tmp;
     ssize_t bufsize = 2048;
@@ -293,13 +293,13 @@ nl_sock_recv(struct nl_sock *sock, struct ofpbuf **bufp, bool wait)
 try_again:
     /* Attempt to read the message.  We don't know the size of the data
      * yet, so we take a guess at 2048.  If we're wrong, we keep trying
-     * and doubling the buffer size each time. 
+     * and doubling the buffer size each time.
      */
     nlmsghdr = ofpbuf_put_uninit(buf, bufsize);
     iov.iov_base = nlmsghdr;
     iov.iov_len = bufsize;
     do {
-        nbytes = recvmsg(sock->fd, &msg, (wait ? 0 : MSG_DONTWAIT) | MSG_PEEK); 
+        nbytes = recvmsg(sock->fd, &msg, (wait ? 0 : MSG_DONTWAIT) | MSG_PEEK);
     } while (nbytes < 0 && errno == EINTR);
     if (nbytes < 0) {
         ofpbuf_delete(buf);
@@ -351,11 +351,11 @@ try_again:
  *
  * Bare Netlink is an unreliable transport protocol.  This function layers
  * reliable delivery and reply semantics on top of bare Netlink.
- * 
+ *
  * In Netlink, sending a request to the kernel is reliable enough, because the
  * kernel will tell us if the message cannot be queued (and we will in that
  * case put it on the transmit queue and wait until it can be delivered).
- * 
+ *
  * Receiving the reply is the real problem: if the socket buffer is full when
  * the kernel tries to send the reply, the reply will be dropped.  However, the
  * kernel sets a flag that a reply has been dropped.  The next call to recv
@@ -377,7 +377,7 @@ try_again:
  */
 int
 nl_sock_transact(struct nl_sock *sock,
-                 const struct ofpbuf *request, struct ofpbuf **replyp) 
+                 const struct ofpbuf *request, struct ofpbuf **replyp)
 {
     uint32_t seq = nl_msg_nlmsghdr(request)->nlmsg_seq;
     struct nlmsghdr *nlmsghdr;
@@ -389,7 +389,7 @@ nl_sock_transact(struct nl_sock *sock,
     /* Ensure that we get a reply even if this message doesn't ordinarily call
      * for one. */
     nl_msg_nlmsghdr(request)->nlmsg_flags |= NLM_F_ACK;
-    
+
 send:
     retval = nl_sock_send(sock, request, true);
     if (retval) {
@@ -440,7 +440,7 @@ nl_sock_wait(const struct nl_sock *sock, short int events)
  *
  * 'msg' must be at least as large as a nlmsghdr. */
 struct nlmsghdr *
-nl_msg_nlmsghdr(const struct ofpbuf *msg) 
+nl_msg_nlmsghdr(const struct ofpbuf *msg)
 {
     return ofpbuf_at_assert(msg, 0, NLMSG_HDRLEN);
 }
@@ -450,7 +450,7 @@ nl_msg_nlmsghdr(const struct ofpbuf *msg)
  * Returns a null pointer if 'msg' is not large enough to contain an nlmsghdr
  * and a genlmsghdr. */
 struct genlmsghdr *
-nl_msg_genlmsghdr(const struct ofpbuf *msg) 
+nl_msg_genlmsghdr(const struct ofpbuf *msg)
 {
     return ofpbuf_at(msg, NLMSG_HDRLEN, GENL_HDRLEN);
 }
@@ -461,7 +461,7 @@ nl_msg_genlmsghdr(const struct ofpbuf *msg)
  *
  * 'msg' must be at least as large as a nlmsghdr. */
 bool
-nl_msg_nlmsgerr(const struct ofpbuf *msg, int *errorp) 
+nl_msg_nlmsgerr(const struct ofpbuf *msg, int *errorp)
 {
     if (nl_msg_nlmsghdr(msg)->nlmsg_type == NLMSG_ERROR) {
         struct nlmsgerr *err = ofpbuf_at(msg, NLMSG_HDRLEN, sizeof *err);
@@ -484,7 +484,7 @@ nl_msg_nlmsgerr(const struct ofpbuf *msg, int *errorp)
 /* Ensures that 'b' has room for at least 'size' bytes plus netlink padding at
  * its tail end, reallocating and copying its data if necessary. */
 void
-nl_msg_reserve(struct ofpbuf *msg, size_t size) 
+nl_msg_reserve(struct ofpbuf *msg, size_t size)
 {
     ofpbuf_prealloc_tailroom(msg, NLMSG_ALIGN(size));
 }
@@ -507,7 +507,7 @@ nl_msg_reserve(struct ofpbuf *msg, size_t size)
  * message. */
 void
 nl_msg_put_nlmsghdr(struct ofpbuf *msg, struct nl_sock *sock,
-                    size_t expected_payload, uint32_t type, uint32_t flags) 
+                    size_t expected_payload, uint32_t type, uint32_t flags)
 {
     struct nlmsghdr *nlmsghdr;
 
@@ -561,7 +561,7 @@ nl_msg_put_genlmsghdr(struct ofpbuf *msg, struct nl_sock *sock,
  * the tail end of 'msg'.  Data in 'msg' is reallocated and copied if
  * necessary. */
 void
-nl_msg_put(struct ofpbuf *msg, const void *data, size_t size) 
+nl_msg_put(struct ofpbuf *msg, const void *data, size_t size)
 {
     memcpy(nl_msg_put_uninit(msg, size), data, size);
 }
@@ -570,12 +570,12 @@ nl_msg_put(struct ofpbuf *msg, const void *data, size_t size)
  * end of 'msg', reallocating and copying its data if necessary.  Returns a
  * pointer to the first byte of the new data, which is left uninitialized. */
 void *
-nl_msg_put_uninit(struct ofpbuf *msg, size_t size) 
+nl_msg_put_uninit(struct ofpbuf *msg, size_t size)
 {
     size_t pad = NLMSG_ALIGN(size) - size;
     char *p = ofpbuf_put_uninit(msg, size + pad);
     if (pad) {
-        memset(p + size, 0, pad); 
+        memset(p + size, 0, pad);
     }
     return p;
 }
@@ -585,7 +585,7 @@ nl_msg_put_uninit(struct ofpbuf *msg, size_t size)
  * 'msg', reallocating and copying its data if necessary.  Returns a pointer to
  * the first byte of data in the attribute, which is left uninitialized. */
 void *
-nl_msg_put_unspec_uninit(struct ofpbuf *msg, uint16_t type, size_t size) 
+nl_msg_put_unspec_uninit(struct ofpbuf *msg, uint16_t type, size_t size)
 {
     size_t total_size = NLA_HDRLEN + size;
     struct nlattr* nla = nl_msg_put_uninit(msg, total_size);
@@ -601,7 +601,7 @@ nl_msg_put_unspec_uninit(struct ofpbuf *msg, uint16_t type, size_t size)
  * attribute, which is left uninitialized. */
 void
 nl_msg_put_unspec(struct ofpbuf *msg, uint16_t type,
-                  const void *data, size_t size) 
+                  const void *data, size_t size)
 {
     memcpy(nl_msg_put_unspec_uninit(msg, type, size), data, size);
 }
@@ -610,7 +610,7 @@ nl_msg_put_unspec(struct ofpbuf *msg, uint16_t type,
  * (Some Netlink protocols use the presence or absence of an attribute as a
  * Boolean flag.) */
 void
-nl_msg_put_flag(struct ofpbuf *msg, uint16_t type) 
+nl_msg_put_flag(struct ofpbuf *msg, uint16_t type)
 {
     nl_msg_put_unspec(msg, type, NULL, 0);
 }
@@ -618,7 +618,7 @@ nl_msg_put_flag(struct ofpbuf *msg, uint16_t type)
 /* Appends a Netlink attribute of the given 'type' and the given 8-bit 'value'
  * to 'msg'. */
 void
-nl_msg_put_u8(struct ofpbuf *msg, uint16_t type, uint8_t value) 
+nl_msg_put_u8(struct ofpbuf *msg, uint16_t type, uint8_t value)
 {
     nl_msg_put_unspec(msg, type, &value, sizeof value);
 }
@@ -668,7 +668,7 @@ nl_msg_put_nested(struct ofpbuf *msg,
 
 /* Returns the first byte in the payload of attribute 'nla'. */
 const void *
-nl_attr_get(const struct nlattr *nla) 
+nl_attr_get(const struct nlattr *nla)
 {
     assert(nla->nla_len >= NLA_HDRLEN);
     return nla + 1;
@@ -676,7 +676,7 @@ nl_attr_get(const struct nlattr *nla)
 
 /* Returns the number of bytes in the payload of attribute 'nla'. */
 size_t
-nl_attr_get_size(const struct nlattr *nla) 
+nl_attr_get_size(const struct nlattr *nla)
 {
     assert(nla->nla_len >= NLA_HDRLEN);
     return nla->nla_len - NLA_HDRLEN;
@@ -685,7 +685,7 @@ nl_attr_get_size(const struct nlattr *nla)
 /* Asserts that 'nla''s payload is at least 'size' bytes long, and returns the
  * first byte of the payload. */
 const void *
-nl_attr_get_unspec(const struct nlattr *nla, size_t size) 
+nl_attr_get_unspec(const struct nlattr *nla, size_t size)
 {
     assert(nla->nla_len >= NLA_HDRLEN + size);
     return nla + 1;
@@ -694,19 +694,19 @@ nl_attr_get_unspec(const struct nlattr *nla, size_t size)
 /* Returns true if 'nla' is nonnull.  (Some Netlink protocols use the presence
  * or absence of an attribute as a Boolean flag.) */
 bool
-nl_attr_get_flag(const struct nlattr *nla) 
+nl_attr_get_flag(const struct nlattr *nla)
 {
     return nla != NULL;
 }
 
 #define NL_ATTR_GET_AS(NLA, TYPE) \
-        (*(TYPE*) nl_attr_get_unspec(nla, sizeof(TYPE)))
+        (*(const TYPE*)nl_attr_get_unspec(nla, sizeof(TYPE)))
 
 /* Returns the 8-bit value in 'nla''s payload.
  *
  * Asserts that 'nla''s payload is at least 1 byte long. */
 uint8_t
-nl_attr_get_u8(const struct nlattr *nla) 
+nl_attr_get_u8(const struct nlattr *nla)
 {
     return NL_ATTR_GET_AS(nla, uint8_t);
 }
@@ -715,7 +715,7 @@ nl_attr_get_u8(const struct nlattr *nla)
  *
  * Asserts that 'nla''s payload is at least 2 bytes long. */
 uint16_t
-nl_attr_get_u16(const struct nlattr *nla) 
+nl_attr_get_u16(const struct nlattr *nla)
 {
     return NL_ATTR_GET_AS(nla, uint16_t);
 }
@@ -724,7 +724,7 @@ nl_attr_get_u16(const struct nlattr *nla)
  *
  * Asserts that 'nla''s payload is at least 4 bytes long. */
 uint32_t
-nl_attr_get_u32(const struct nlattr *nla) 
+nl_attr_get_u32(const struct nlattr *nla)
 {
     return NL_ATTR_GET_AS(nla, uint32_t);
 }
@@ -733,7 +733,7 @@ nl_attr_get_u32(const struct nlattr *nla)
  *
  * Asserts that 'nla''s payload is at least 8 bytes long. */
 uint64_t
-nl_attr_get_u64(const struct nlattr *nla) 
+nl_attr_get_u64(const struct nlattr *nla)
 {
     return NL_ATTR_GET_AS(nla, uint64_t);
 }
@@ -742,7 +742,7 @@ nl_attr_get_u64(const struct nlattr *nla)
  *
  * Asserts that 'nla''s payload contains a null-terminated string. */
 const char *
-nl_attr_get_string(const struct nlattr *nla) 
+nl_attr_get_string(const struct nlattr *nla)
 {
     assert(nla->nla_len > NLA_HDRLEN);
     assert(memchr(nl_attr_get(nla), '\0', nla->nla_len - NLA_HDRLEN) != NULL);
@@ -752,7 +752,7 @@ nl_attr_get_string(const struct nlattr *nla)
 /* Default minimum and maximum payload sizes for each type of attribute. */
 static const size_t attr_len_range[][2] = {
     [0 ... N_NL_ATTR_TYPES - 1] = { 0, SIZE_MAX },
-    [NL_A_U8] = { 1, 1 },
+    [NL_A_U8]  = { 1, 1 },
     [NL_A_U16] = { 2, 2 },
     [NL_A_U32] = { 4, 4 },
     [NL_A_U64] = { 8, 8 },
@@ -863,11 +863,11 @@ nl_policy_parse(const struct ofpbuf *msg, size_t nla_offset,
 
 /* Miscellaneous.  */
 
-static const struct nl_policy family_policy[CTRL_ATTR_MAX + 1] = { 
+static const struct nl_policy family_policy[CTRL_ATTR_MAX + 1] = {
     [CTRL_ATTR_FAMILY_ID] = {.type = NL_A_U16},
 };
 
-static int do_lookup_genl_family(const char *name) 
+static int do_lookup_genl_family(const char *name)
 {
     struct nl_sock *sock;
     struct ofpbuf request, *reply;
@@ -911,7 +911,7 @@ static int do_lookup_genl_family(const char *name)
  * may use '*number' as the family number.  On failure, returns a positive
  * errno value and '*number' caches the errno value. */
 int
-nl_lookup_genl_family(const char *name, int *number) 
+nl_lookup_genl_family(const char *name, int *number)
 {
     if (*number == 0) {
         *number = do_lookup_genl_family(name);
@@ -975,7 +975,7 @@ nlmsghdr_to_string(const struct nlmsghdr *h, struct ds *ds)
         unsigned int bits;
         const char *name;
     };
-    static const struct nlmsg_flag flags[] = { 
+    static const struct nlmsg_flag flags[] = {
         { NLM_F_REQUEST, "REQUEST" },
         { NLM_F_MULTI, "MULTI" },
         { NLM_F_ACK, "ACK" },
@@ -1071,7 +1071,7 @@ log_nlmsg(const char *function, int error,
         return;
     }
 
-    buffer.data = (void *) message;
+    buffer.data = CONST_CAST(void *, message);
     buffer.size = size;
     nlmsg = nlmsg_to_string(&buffer);
     VLOG_DBG_RL(LOG_MODULE, &rl, "%s (%s): %s", function, strerror(error), nlmsg);

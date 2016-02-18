@@ -165,7 +165,7 @@ void
 ofl_meter_mod_command_print(FILE *stream, uint16_t command);
 
 char *
-ofl_meter_band_type_to_string(uint16_t type); 
+ofl_meter_band_type_to_string(uint16_t type);
 
 void
 ofl_meter_band_type_print(FILE *stream, uint16_t type);
@@ -182,7 +182,7 @@ ofl_stats_type_to_string(uint16_t type);
 void
 ofl_stats_type_print(FILE *stream, uint16_t type);
 
-void 
+void
 ofl_properties_type_print(FILE *stream, uint16_t type);
 
 void
@@ -195,10 +195,10 @@ void
 ofl_async_flow_removed(FILE *stream, uint32_t flow_rem_mask);
 
 char *
-ofl_hex_to_string(uint8_t *buf, size_t buf_size);
+ofl_hex_to_string(uint8_t const *buf, size_t buf_size);
 
 void
-ofl_hex_print(FILE *stream, uint8_t *buf, size_t buf_size);
+ofl_hex_print(FILE *stream, uint8_t const *buf, size_t buf_size);
 
 char
 *decimal_to_binary(uint32_t);

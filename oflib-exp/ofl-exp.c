@@ -49,8 +49,22 @@ OFL_LOG_INIT(LOG_MODULE)
 
 
 
+static char *
+ofl_exp_unknown_id_to_string(int id)
+{
+        char *str;
+        size_t str_size;
+        FILE *stream = open_memstream(&str, &str_size);
+        OFL_LOG_WARN(LOG_MODULE, "Trying to convert to string unknown EXPERIMENTER message (%u).", id);
+        fprintf(stream, "exp{id=\"0x%"PRIx32"\"}", id);
+        fclose(stream);
+        return str;
+}
+
+
 int
-ofl_exp_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf, size_t *buf_len) {
+ofl_exp_msg_pack(struct ofl_msg_experimenter const *msg, uint8_t **buf, size_t *buf_len)
+{
     switch (msg->experimenter_id) {
         case (OPENFLOW_VENDOR_ID): {
             return ofl_exp_openflow_msg_pack(msg, buf, buf_len);
@@ -69,7 +83,8 @@ ofl_exp_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf, size_t *buf_le
 }
 
 ofl_err
-ofl_exp_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_experimenter **msg) {
+ofl_exp_msg_unpack(struct ofp_header const *oh, size_t *len, struct ofl_msg_experimenter **msg)
+{
     struct ofp_experimenter_header *exp;
 
     if (*len < sizeof(struct ofp_experimenter_header)) {
@@ -97,7 +112,8 @@ ofl_exp_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_experiment
 }
 
 int
-ofl_exp_msg_free(struct ofl_msg_experimenter *msg) {
+ofl_exp_msg_free(struct ofl_msg_experimenter *msg)
+{
     switch (msg->experimenter_id) {
         case (OPENFLOW_VENDOR_ID): {
             return ofl_exp_openflow_msg_free(msg);
@@ -117,7 +133,8 @@ ofl_exp_msg_free(struct ofl_msg_experimenter *msg) {
 }
 
 char *
-ofl_exp_msg_to_string(struct ofl_msg_experimenter *msg) {
+ofl_exp_msg_to_string(struct ofl_msg_experimenter const *msg)
+{
     switch (msg->experimenter_id) {
         case (OPENFLOW_VENDOR_ID): {
             return ofl_exp_openflow_msg_to_string(msg);
@@ -129,22 +146,16 @@ ofl_exp_msg_to_string(struct ofl_msg_experimenter *msg) {
             return ofl_exp_beba_msg_to_string(msg);
         }
         default: {
-            char *str;
-            size_t str_size;
-            FILE *stream = open_memstream(&str, &str_size);
-            OFL_LOG_WARN(LOG_MODULE, "Trying to convert to string unknown EXPERIMENTER message (%u).", msg->experimenter_id);
-            fprintf(stream, "exp{id=\"0x%"PRIx32"\"}", msg->experimenter_id);
-            fclose(stream);
-            return str;
+            return ofl_exp_unknown_id_to_string(msg->experimenter_id);
         }
     }
 }
 
-int 
-ofl_exp_act_pack(struct ofl_action_header *src, struct ofp_action_header *dst){
+int
+ofl_exp_act_pack(struct ofl_action_header const *src, struct ofp_action_header *dst)
+{
+    struct ofl_action_experimenter const *exp = (struct ofl_action_experimenter const *) src;
 
-    struct ofl_action_experimenter *exp = (struct ofl_action_experimenter *) src;
-    
     switch (exp->experimenter_id) {
         case (BEBA_VENDOR_ID): {
             return ofl_exp_beba_act_pack(src,dst);
@@ -156,9 +167,9 @@ ofl_exp_act_pack(struct ofl_action_header *src, struct ofp_action_header *dst){
     }
 }
 
-ofl_err 
-ofl_exp_act_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action_header **dst){
-    
+ofl_err
+ofl_exp_act_unpack(struct ofp_action_header const *src, size_t *len, struct ofl_action_header **dst)
+{
     struct ofp_action_experimenter_header *exp;
 
     if (*len < sizeof(struct ofp_action_experimenter_header)) {
@@ -181,11 +192,11 @@ ofl_exp_act_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
 }
 
 
-int     
-ofl_exp_act_free(struct ofl_action_header *act){
-    
+int
+ofl_exp_act_free(struct ofl_action_header *act)
+{
     struct ofl_action_experimenter *exp = (struct ofl_action_experimenter *) act;
-        
+
     switch (exp->experimenter_id) {
         case (BEBA_VENDOR_ID): {
             return ofl_exp_beba_act_free(act);
@@ -198,9 +209,10 @@ ofl_exp_act_free(struct ofl_action_header *act){
 }
 
 size_t
-ofl_exp_act_ofp_len(struct ofl_action_header *act){    
+ofl_exp_act_ofp_len(struct ofl_action_header const *act)
+{
+    struct ofl_action_experimenter const *exp = (struct ofl_action_experimenter const *) act;
 
-    struct ofl_action_experimenter *exp = (struct ofl_action_experimenter *) act;
     switch (exp->experimenter_id) {
         case (BEBA_VENDOR_ID): {
             return ofl_exp_beba_act_ofp_len(act);
@@ -208,35 +220,36 @@ ofl_exp_act_ofp_len(struct ofl_action_header *act){
         default: {
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
         }
-
     }
 }
 
-char *
-ofl_exp_act_to_string(struct ofl_action_header *act){
 
-    struct ofl_action_experimenter* exp = (struct ofl_action_experimenter *) act;
-    
+char *
+ofl_exp_act_to_string(struct ofl_action_header const *act)
+{
+    struct ofl_action_experimenter const * exp = (struct ofl_action_experimenter const *) act;
+
     switch (exp->experimenter_id) {
         case (BEBA_VENDOR_ID): {
             return ofl_exp_beba_act_to_string(act);
         }
         default: {
-            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+            return ofl_exp_unknown_id_to_string(exp->experimenter_id);
         }
-
     }
 }
 
-int 
-ofl_exp_stats_req_pack (struct ofl_msg_multipart_request_header *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp){
 
+int
+ofl_exp_stats_req_pack (struct ofl_msg_multipart_request_header const *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp const *exp)
+{
     struct ofl_msg_multipart_request_experimenter *ext = (struct ofl_msg_multipart_request_experimenter *) msg;
+
     switch (ext->experimenter_id) {
 
-        case (BEBA_VENDOR_ID):{
+        case (BEBA_VENDOR_ID):
             return ofl_exp_beba_stats_req_pack(ext, buf, buf_len, exp);
-        }
+
         default: {
             OFL_LOG_WARN(LOG_MODULE, "Trying to pack unknown multipart EXPERIMENTER message (%u).", ext->experimenter_id);
             return -1;
@@ -244,14 +257,17 @@ ofl_exp_stats_req_pack (struct ofl_msg_multipart_request_header *msg, uint8_t **
     }
 }
 
-int 
-ofl_exp_stats_reply_pack (struct ofl_msg_multipart_reply_header *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp){
-    struct ofl_msg_multipart_reply_experimenter *ext = (struct ofl_msg_multipart_reply_experimenter *) msg;
+int
+ofl_exp_stats_reply_pack (struct ofl_msg_multipart_reply_header const *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp const *exp)
+{
+    struct ofl_msg_multipart_reply_experimenter const *ext = (struct ofl_msg_multipart_reply_experimenter const *) msg;
+
     switch (ext->experimenter_id) {
 
         case (BEBA_VENDOR_ID): {
             return ofl_exp_beba_stats_reply_pack(ext, buf, buf_len, exp);
         }
+
         default: {
             OFL_LOG_WARN(LOG_MODULE, "Trying to pack unknown multipart EXPERIMENTER message (%u).", ext->experimenter_id);
             return -1;
@@ -260,8 +276,9 @@ ofl_exp_stats_reply_pack (struct ofl_msg_multipart_reply_header *msg, uint8_t **
 }
 
 ofl_err
-ofl_exp_stats_req_unpack (struct ofp_multipart_request *os, uint8_t *buf, size_t *len, struct ofl_msg_multipart_request_header **msg, struct ofl_exp *exp){
-
+ofl_exp_stats_req_unpack (struct ofp_multipart_request const *os, uint8_t const *buf, size_t *len,
+              struct ofl_msg_multipart_request_header **msg, struct ofl_exp const *exp)
+{
     struct ofp_experimenter_stats_header *ext  = (struct ofp_experimenter_stats_header *)os->body;
 
     if (*len < sizeof(struct ofp_experimenter_stats_header)) {
@@ -281,7 +298,9 @@ ofl_exp_stats_req_unpack (struct ofp_multipart_request *os, uint8_t *buf, size_t
 }
 
 ofl_err
-ofl_exp_stats_reply_unpack (struct ofp_multipart_reply *os, uint8_t *buf, size_t *len, struct ofl_msg_multipart_reply_header **msg, struct ofl_exp *exp){
+ofl_exp_stats_reply_unpack (struct ofp_multipart_reply const *os, uint8_t const *buf, size_t *len,
+                struct ofl_msg_multipart_reply_header **msg, struct ofl_exp const *exp)
+{
     struct ofp_experimenter_stats_header *ext = (struct ofp_experimenter_stats_header *)os->body;
 
     if (*len < sizeof(struct ofp_experimenter_stats_header)) {
@@ -301,47 +320,40 @@ ofl_exp_stats_reply_unpack (struct ofp_multipart_reply *os, uint8_t *buf, size_t
 }
 
 char *
-ofl_exp_stats_req_to_string (struct ofl_msg_multipart_request_header *msg, struct ofl_exp *exp){
-    struct ofl_msg_multipart_request_experimenter *ext = (struct ofl_msg_multipart_request_experimenter *) msg;
-    char *str;
-    size_t str_size;
-    FILE *stream = open_memstream(&str, &str_size);
+ofl_exp_stats_req_to_string (struct ofl_msg_multipart_request_header const *msg, struct ofl_exp const *exp)
+{
+    struct ofl_msg_multipart_request_experimenter const *ext = (struct ofl_msg_multipart_request_experimenter const *) msg;
     switch (ext->experimenter_id) {
         case (BEBA_VENDOR_ID): {
             return ofl_exp_beba_stats_request_to_string(ext, exp);
         }
         default: {
-            OFL_LOG_WARN(LOG_MODULE, "Trying to convert to string unknown EXPERIMENTER message (%u).", ext->experimenter_id);
-            fprintf(stream, "exp{id=\"0x%"PRIx32"\"}", ext->experimenter_id);           
+        return ofl_exp_unknown_id_to_string(ext->experimenter_id);
         }
     }
-    fclose(stream);
-    return str;
 }
-    
+
 
 char *
-ofl_exp_stats_reply_to_string (struct ofl_msg_multipart_reply_header *msg, struct ofl_exp *exp){
+ofl_exp_stats_reply_to_string (struct ofl_msg_multipart_reply_header const *msg, struct ofl_exp const *exp)
+{
     struct ofl_msg_multipart_reply_experimenter *ext = (struct ofl_msg_multipart_reply_experimenter *) msg;
-    char *str;
-    size_t str_size;
-    FILE *stream = open_memstream(&str, &str_size);
     switch (ext->experimenter_id) {
         case (BEBA_VENDOR_ID): {
             return ofl_exp_beba_stats_reply_to_string(ext, exp);
         }
         default: {
-            OFL_LOG_WARN(LOG_MODULE, "Trying to convert to string unknown EXPERIMENTER message %"PRIx32".", ext->experimenter_id);
-            fprintf(stream, "exp{id=\"0x%"PRIx32"\"}", ext->experimenter_id);
+            return ofl_exp_unknown_id_to_string(ext->experimenter_id);
         }
     }
-    fclose(stream);
-    return str;
 }
 
+
 int
-ofl_exp_stats_req_free (struct ofl_msg_multipart_request_header *msg){
+ofl_exp_stats_req_free (struct ofl_msg_multipart_request_header *msg)
+{
     struct ofl_msg_multipart_request_experimenter *exp = (struct ofl_msg_multipart_request_experimenter *) msg;
+
     switch (exp->experimenter_id) {
         case (BEBA_VENDOR_ID): {
             return ofl_exp_beba_stats_req_free(msg);
@@ -355,7 +367,8 @@ ofl_exp_stats_req_free (struct ofl_msg_multipart_request_header *msg){
 }
 
 int
-ofl_exp_stats_reply_free (struct ofl_msg_multipart_reply_header *msg){
+ofl_exp_stats_reply_free (struct ofl_msg_multipart_reply_header *msg)
+{
     struct ofl_msg_multipart_reply_experimenter *exp = (struct ofl_msg_multipart_reply_experimenter *) msg;
     switch (exp->experimenter_id) {
         case (BEBA_VENDOR_ID): {
@@ -370,8 +383,9 @@ ofl_exp_stats_reply_free (struct ofl_msg_multipart_reply_header *msg){
 }
 
 void
-ofl_exp_field_pack (struct ofpbuf *buf, struct ofl_match_tlv *oft){
-    /*TODO: probably we have to define a structure that points to the experimenter_ID position (Now the experimenter ID is the first value in "value")*/
+ofl_exp_field_pack (struct ofpbuf *buf, struct ofl_match_tlv const *oft)
+{
+    /*TODO pollins: probably we have to define a structure that points to the experimenter_ID position (Now the experimenter ID is the first value in "value")*/
     switch(*((uint32_t*) (oft->value)))
     {
         case BEBA_VENDOR_ID:{
@@ -384,7 +398,8 @@ ofl_exp_field_pack (struct ofpbuf *buf, struct ofl_match_tlv *oft){
 }
 
 int
-ofl_exp_field_unpack (struct ofl_match *match, struct oxm_field *f, void *experimenter_id, void *value, void *mask){
+ofl_exp_field_unpack (struct ofl_match *match, struct oxm_field const *f, void const *experimenter_id, void const *value, void const *mask)
+{
     switch (ntohl(*((uint32_t*) experimenter_id))) {
         case BEBA_VENDOR_ID:{
             return ofl_exp_beba_field_unpack(match, f, experimenter_id, value, mask);
@@ -396,18 +411,20 @@ ofl_exp_field_unpack (struct ofl_match *match, struct oxm_field *f, void *experi
 }
 
 void
-ofl_exp_field_match (struct ofl_match_tlv *f, int *packet_header, int *field_len, uint8_t **flow_val, uint8_t **flow_mask){
+ofl_exp_field_match (struct ofl_match_tlv *f, int *packet_header, int *field_len, uint8_t **flow_val, uint8_t **flow_mask)
+{
     switch(*((uint32_t*) (f->value))){
         case BEBA_VENDOR_ID:
             ofl_exp_beba_field_match(f, packet_header, field_len, flow_val, flow_mask);
             break;
         default:
-            break;             
+            break;
     }
 }
 
 void
-ofl_exp_field_compare (struct ofl_match_tlv *f, struct ofl_match_tlv *packet_f, uint8_t **packet_val){
+ofl_exp_field_compare (struct ofl_match_tlv *f, struct ofl_match_tlv *packet_f, uint8_t **packet_val)
+{
     switch(*((uint32_t*) (f->value)))
     {
         case BEBA_VENDOR_ID:
@@ -419,7 +436,10 @@ ofl_exp_field_compare (struct ofl_match_tlv *f, struct ofl_match_tlv *packet_f, 
 }
 
 void
-ofl_exp_field_match_std (struct ofl_match_tlv *flow_mod_match, struct ofl_match_tlv *flow_entry_match, int *field_len, uint8_t **flow_mod_val, uint8_t **flow_entry_val, uint8_t **flow_mod_mask, uint8_t **flow_entry_mask){
+ofl_exp_field_match_std (struct ofl_match_tlv *flow_mod_match, struct ofl_match_tlv * flow_entry_match UNUSED, int *field_len,
+             uint8_t **flow_mod_val, uint8_t **flow_entry_val, uint8_t **flow_mod_mask, uint8_t **flow_entry_mask)
+{
+    // FIXME!
     switch(*((uint32_t*)(flow_mod_match->value)))
     {
         case BEBA_VENDOR_ID:
@@ -431,7 +451,8 @@ ofl_exp_field_match_std (struct ofl_match_tlv *flow_mod_match, struct ofl_match_
 }
 
 void
-ofl_exp_field_overlap_a (struct ofl_match_tlv *f_a, int *field_len, uint8_t **val_a, uint8_t **mask_a, int *header, int *header_m, uint64_t *all_mask){
+ofl_exp_field_overlap_a (struct ofl_match_tlv *f_a, int *field_len, uint8_t **val_a, uint8_t **mask_a, int *header, int *header_m, uint64_t *all_mask)
+{
     switch(*((uint32_t*) (f_a->value)))
     {
         case BEBA_VENDOR_ID:
@@ -443,7 +464,8 @@ ofl_exp_field_overlap_a (struct ofl_match_tlv *f_a, int *field_len, uint8_t **va
 }
 
 void
-ofl_exp_field_overlap_b (struct ofl_match_tlv *f_b, int *field_len, uint8_t **val_b, uint8_t **mask_b, uint64_t *all_mask){
+ofl_exp_field_overlap_b (struct ofl_match_tlv *f_b, int *field_len, uint8_t **val_b, uint8_t **mask_b, uint64_t *all_mask)
+{
     switch(*((uint32_t*) (f_b->value)))
     {
         case BEBA_VENDOR_ID:
@@ -534,7 +556,7 @@ ofl_exp_inst_to_string (struct ofl_instruction_header *i) {
 }
 
 int
-ofl_exp_err_pack(struct ofl_msg_exp_error *msg, uint8_t **buf, size_t *buf_len){
+ofl_exp_err_pack(struct ofl_msg_exp_error const *msg, uint8_t **buf, size_t *buf_len){
     switch (msg->experimenter){
         case BEBA_VENDOR_ID:{
             ofl_exp_beba_error_pack(msg,buf,buf_len);
@@ -560,19 +582,14 @@ ofl_exp_err_free(struct ofl_msg_exp_error *msg){
 }
 
 char *
-ofl_exp_err_to_string(struct ofl_msg_exp_error *msg){
+ofl_exp_err_to_string(struct ofl_msg_exp_error const *msg)
+{
     switch (msg->experimenter){
         case BEBA_VENDOR_ID:{
             return ofl_exp_beba_error_to_string(msg);
         }
         default:{
-            char *str;
-            size_t str_size;
-            FILE *stream = open_memstream(&str, &str_size);
-            OFL_LOG_WARN(LOG_MODULE, "Trying to convert to string unknown ERROR EXPERIMENTER message (%u).", msg->experimenter);
-            fprintf(stream, " exp{id=\"0x%"PRIx32"\"}", msg->experimenter);
-            fclose(stream);
-            return str;
+            return ofl_exp_unknown_id_to_string(msg->experimenter);
         }
     }
 }

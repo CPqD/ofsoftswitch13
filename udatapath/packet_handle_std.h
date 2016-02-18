@@ -37,7 +37,6 @@
 #include "packets.h"
 #include "match_std.h"
 #include "oflib/ofl-structs.h"
-#include "nbee_link/nbee_link.h"
 
 /****************************************************************************
  * A handler processing a datapath packet for standard matches.
@@ -53,8 +52,8 @@ struct packet_handle_std {
    bool                        valid; /* Set to true if the handler data is valid.
                                            if false, it is revalidated before
                                            executing any methods. */
-   bool						   table_miss; /*Packet was matched
-   											against table miss flow*/
+   bool			       table_miss; /*Packet was matched
+   					     against table miss flow*/
 };
 
 /* Creates a handler */

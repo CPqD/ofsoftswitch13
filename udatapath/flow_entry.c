@@ -1,5 +1,5 @@
 /* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary
- * Copyright (c) 2012, CPqD, Brazil 
+ * Copyright (c) 2012, CPqD, Brazil
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -112,7 +112,7 @@ flow_entry_matches(struct flow_entry *entry, struct ofl_msg_flow_mod *mod, bool 
 	if (check_cookie && ((entry->stats->cookie & mod->cookie_mask) != (mod->cookie & mod->cookie_mask))) {
 		return false;
 	}
-    
+
     if (strict) {
         return ( (entry->stats->priority == mod->priority) &&
                  match_std_strict((struct ofl_match *)mod->match,
@@ -346,14 +346,14 @@ flow_entry_create(struct datapath *dp, struct flow_table *table, struct ofl_msg_
     entry->stats->flags            = mod->flags;
     entry->stats->cookie           = mod->cookie;
     entry->no_pkt_count = ((mod->flags & OFPFF_NO_PKT_COUNTS) != 0 );
-    entry->no_byt_count = ((mod->flags & OFPFF_NO_BYT_COUNTS) != 0 ); 
+    entry->no_byt_count = ((mod->flags & OFPFF_NO_BYT_COUNTS) != 0 );
     if (entry->no_pkt_count)
         entry->stats->packet_count     = 0xffffffffffffffff;
-    else 
+    else
         entry->stats->packet_count     = 0;
     if (entry->no_byt_count)
         entry->stats->byte_count       = 0xffffffffffffffff;
-    else 
+    else
         entry->stats->byte_count       = 0;
 
     entry->stats->match            = mod->match;
@@ -363,8 +363,7 @@ flow_entry_create(struct datapath *dp, struct flow_table *table, struct ofl_msg_
     entry->match = mod->match; /* TODO: MOD MATCH? */
 
     entry->created      = now;
-    entry->remove_at    = mod->hard_timeout == 0 ? 0
-                                  : now + mod->hard_timeout * 1000;
+    entry->remove_at    = mod->hard_timeout == 0 ? 0 : now + mod->hard_timeout * 1000;
     entry->last_used    = now;
     entry->send_removed = ((mod->flags & OFPFF_SEND_FLOW_REM) != 0);
     list_init(&entry->match_node);

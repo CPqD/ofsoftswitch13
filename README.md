@@ -23,61 +23,6 @@ These instructions have been tested on Ubuntu 12.04. Other distributions or vers
 For Ubuntu 14.04, please check @castroflavio solution:
 [How to compile on Ubuntu 14.04][compileubuntu14]
 
-## Before building
-The switch makes use of the NetBee library to parse packets, so we need to install it first.
-
-1. Install the following packages:
-
-    ```
-    $ sudo apt-get install cmake libpcap-dev libxerces-c2-dev libpcre3-dev flex bison pkg-config autoconf libtool libboost-dev
-    ```
-
-2. Download and unpack the source code from: http://www.nbee.org/download/nbeesrc-jan-10-2013.zip
-
-    ```
-    $ wget http://www.nbee.org/download/nbeesrc-jan-10-2013.zip
-    $ unzip nbeesrc-jan-10-2013.zip
-    $ cd nbeesrc-jan-10-2013
-    ```
-2.1 If you're running Ubuntu 14.04, before compiling and installing NetBee you need to downgrade the version of bison shipping with your version of Ubuntu:
-
-    ```
-    $ wget -nc http://de.archive.ubuntu.com/ubuntu/pool/main/b/bison/bison_2.5.dfsg-2.1_amd64.deb \
-        http://de.archive.ubuntu.com/ubuntu/pool/main/b/bison/libbison-dev_2.5.dfsg-2.1_amd64.deb
-    $ sudo dpkg -i bison_2.5.dfsg-2.1_amd64.deb libbison-dev_2.5.dfsg-2.1_amd64.deb
-    $ rm bison_2.5.dfsg-2.1_amd64.deb libbison-dev_2.5.dfsg-2.1_amd64.deb
-    ```
-
-3. Create the build system
-
-    ```
-    $ cd src
-    $ cmake .
-    ```
-
-4. Compile
-
-    ```
-    $ make
-    ```
-
-5. Add the shared libraries built in `/nbeesrc/bin/` to your `/usr/local/lib` directory
-
-    ```
-    $ sudo cp ../bin/libn*.so /usr/local/lib
-    ```
-
-6. Run `ldconfig`
-
-    ```
-    $ sudo ldconfig
-    ```
-
-7. Put the contens of folder `nbeesrc/include` in the `/usr/include`
-
-    ```
-    $ sudo cp -R ../include/* /usr/include/
-    ```
 
 ## Building
 Run the following commands in the `ofsoftswitch13` directory to build and install everything:

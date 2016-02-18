@@ -15,7 +15,7 @@
 #define OFP_GLOBAL_STATE_DEFAULT 0
 
 enum oxm_exp_match_fields {
-    OFPXMT_EXP_GLOBAL_STATE,      /* Global State */
+    OFPXMT_EXP_GLOBAL_STATE,      /* Global state */
     OFPXMT_EXP_STATE       /* Flow State */
 };
 
@@ -93,7 +93,7 @@ OFP_ASSERT(sizeof(struct ofp_exp_action_set_global_state) == 24);
  */
 enum ofp_exp_messages {
     OFPT_EXP_STATE_MOD,
-	OFPT_EXP_PKTTMP_MOD,
+    OFPT_EXP_PKTTMP_MOD,
     OFPT_EXP_STATE_CHANGED,
     OFPT_EXP_FLOW_NOTIFICATION
     // Missing type: Notification for missing packet template (after NEC people provide their code)

@@ -56,7 +56,7 @@
 #include "oflib/ofl-log.h"
 #include "oflib-exp/ofl-exp.h"
 #include "oflib-exp/ofl-exp-nicira.h"
- #include "oflib-exp/ofl-exp-beba.h"
+#include "oflib-exp/ofl-exp-beba.h"
 #include "oflib/ofl-messages.h"
 #include "oflib/ofl-log.h"
 #include "openflow/openflow.h"
@@ -159,7 +159,8 @@ gen_datapath_id(void) {
 
 
 struct datapath *
-dp_new(void) {
+dp_new(void)
+{
     struct datapath *dp;
     dp = xmalloc(sizeof(struct datapath));
 
@@ -177,7 +178,7 @@ dp_new(void) {
 
     dp->id = gen_datapath_id();
 
-    dp->global_state = NULL;
+    dp->global_state = 0;
 
     dp->generation_id = -1;
 
@@ -209,8 +210,8 @@ dp_new(void) {
     if(strlen(dp->dp_desc) == 0) {
         /* just use "$HOSTNAME pid=$$" */
         char hostnametmp[DESC_STR_LEN];
-	    gethostname(hostnametmp,sizeof hostnametmp);
-        snprintf(dp->dp_desc, sizeof dp->dp_desc,"%s pid=%u",hostnametmp, getpid());
+	    gethostname(hostnametmp, sizeof(hostnametmp));
+        snprintf(dp->dp_desc, DESC_STR_LEN,"%s pid=%u",hostnametmp, getpid());
     }
 
     /* FIXME: Should not depend on udatapath_as_lib */
@@ -329,31 +330,31 @@ remote_rconn_run(struct datapath *dp, struct remote *r, uint8_t conn_id) {
                 }
 
                 if (error) {
-                   /* [*] The highest bit of 'error' is always set to one, but on-the-wire we
-                   need full compliance to OF specification: the 'type' of an experimenter
-                   error message must be 0xffff instead of 0x7ffff. */               
-                   if ((ofl_error_type(error) | 0x8000) == OFPET_EXPERIMENTER){
-                       struct ofl_msg_exp_error err =
+                    /* [*] The highest bit of 'error' is always set to one, but on-the-wire we
+                    need full compliance to OF specification: the 'type' of an experimenter
+                    error message must be 0xffff instead of 0x7ffff. */
+                    if ((ofl_error_type(error) | 0x8000) == OFPET_EXPERIMENTER){
+                        struct ofl_msg_exp_error err =
                                {{.type = OFPT_ERROR},
                                 .type = ofl_error_type(error) | 0x8000, // [*]
                                 .exp_type = ofl_error_code(error),
                                 .experimenter = get_experimenter_id(msg),
                                 .data_length = buffer->size,
                                 .data        = buffer->data};
-                       dp_send_message(dp, (struct ofl_msg_header *)&err, &sender);
-                   }
-                   else{
-                       struct ofl_msg_error err =
+                        dp_send_message(dp, (struct ofl_msg_header *)&err, &sender);
+                    }
+                    else{
+                        struct ofl_msg_error err =
                                {{.type = OFPT_ERROR},
                                 .type = ofl_error_type(error),
                                 .code = ofl_error_code(error),
                                 .data_length = buffer->size,
                                 .data        = buffer->data};
-                       dp_send_message(dp, (struct ofl_msg_header *)&err, &sender);
-                   }
-                   if (msg != NULL){
+                        dp_send_message(dp, (struct ofl_msg_header *)&err, &sender);
+                    }
+                    if (msg != NULL){
                         ofl_msg_free(msg, dp->exp);
-                   }
+                    }
                 }
 
                 ofpbuf_delete(buffer);
@@ -645,16 +646,17 @@ dp_send_message(struct datapath *dp, struct ofl_msg_header *msg,
 
 ofl_err
 dp_handle_set_desc(struct datapath *dp, struct ofl_exp_openflow_msg_set_dp_desc *msg,
-                                            const struct sender *sender UNUSED) {
+                                            const struct sender *sender UNUSED)
+{
     dp_set_dp_desc(dp, msg->dp_desc);
     ofl_msg_free((struct ofl_msg_header *)msg, dp->exp);
     return 0;
 }
 
 static ofl_err
-dp_check_generation_id(struct datapath *dp, uint64_t new_gen_id){
-
-    if(dp->generation_id >= 0  && ((int64_t)(new_gen_id - dp->generation_id) < 0) ){        
+dp_check_generation_id(struct datapath *dp, uint64_t new_gen_id)
+{
+    if(new_gen_id < dp->generation_id) {
         return ofl_error(OFPET_ROLE_REQUEST_FAILED, OFPRRFC_STALE);
     }
     else dp->generation_id = new_gen_id;
@@ -664,9 +666,10 @@ dp_check_generation_id(struct datapath *dp, uint64_t new_gen_id){
 
 ofl_err
 dp_handle_role_request(struct datapath *dp, struct ofl_msg_role_request *msg,
-                                            const struct sender *sender) {
+                                            const struct sender *sender)
+{
     uint32_t role = msg->role;
-    uint64_t generation_id = msg->generation_id; 
+    uint64_t generation_id = msg->generation_id;
     switch (msg->role) {
         case OFPCR_ROLE_NOCHANGE:{
             role = sender->remote->role;
@@ -707,7 +710,7 @@ dp_handle_role_request(struct datapath *dp, struct ofl_msg_role_request *msg,
             return ofl_error(OFPET_ROLE_REQUEST_FAILED, OFPRRFC_BAD_ROLE);
         }
     }
-    
+
     {
     struct ofl_msg_role_request reply =
         {{.type = OFPT_ROLE_REPLY},

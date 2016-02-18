@@ -147,7 +147,7 @@ leak_checker_usage(void)
 static void PRINTF_FORMAT(1, 2)
 log_callers(const char *format, ...)
 {
-    struct backtrace backtrace;
+    struct backtrace_info info;
     va_list args;
     int i;
 
@@ -156,9 +156,9 @@ log_callers(const char *format, ...)
     va_end(args);
 
     putc(':', file);
-    backtrace_capture(&backtrace);
-    for (i = 0; i < backtrace.n_frames; i++) {
-        fprintf(file, " 0x%"PRIxPTR"", backtrace.frames[i]);
+    backtrace_capture(&info);
+    for (i = 0; i < info.n_frames; i++) {
+        fprintf(file, " 0x%"PRIxPTR"", info.frames[i]);
     }
     putc('\n', file);
 }

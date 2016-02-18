@@ -38,8 +38,6 @@ AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE
 
-AC_PROG_CXX
-
 AC_PROG_CC
 AM_PROG_CC_C_O
 AC_PROG_CPP
@@ -58,8 +56,6 @@ OFP_CHECK_HWTABLES
 OFP_CHECK_HWLIBS
 AC_SYS_LARGEFILE
 
-AC_CHECK_LIB(nbee,nbGetLastError)
-
 AC_CHECK_FUNCS([strsignal])
 
 AC_ARG_VAR(KARCH, [Kernel Architecture String])
@@ -69,11 +65,12 @@ AC_SUBST(KARCH)
 OFP_CHECK_DPKG_BUILDPACKAGE
 
 OFP_ENABLE_OPTION([-Wall])
+OFP_ENABLE_OPTION([-Wextra])
 OFP_ENABLE_OPTION([-Wno-sign-compare])
 OFP_ENABLE_OPTION([-Wpointer-arith])
 OFP_ENABLE_OPTION([-Wdeclaration-after-statement])
 OFP_ENABLE_OPTION([-Wformat-security])
-OFP_ENABLE_OPTION([-Wswitch-enum])
+#OFP_ENABLE_OPTION([-Wswitch-enum])
 OFP_ENABLE_OPTION([-Wunused-parameter])
 OFP_ENABLE_OPTION([-Wstrict-aliasing])
 OFP_ENABLE_OPTION([-Wbad-function-cast])

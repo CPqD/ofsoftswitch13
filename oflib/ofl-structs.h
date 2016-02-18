@@ -154,7 +154,7 @@ struct ofl_flow_stats {
     uint16_t                        idle_timeout;  /* Number of seconds idle before
                                                      expiration. */
     uint16_t                        hard_timeout;  /* Number of seconds before expiration. */
-    uint16_t                        flags;         /* One of OFPFF_*/ 
+    uint16_t                        flags;         /* One of OFPFF_*/
     uint64_t                        cookie;        /* Opaque controller-issued identifier. */
     uint64_t                        packet_count;  /* Number of packets in flow. */
     uint64_t                        byte_count;    /* Number of bytes in flow. */
@@ -434,29 +434,29 @@ void
 ofl_structs_match_put64m(struct ofl_match *match, uint32_t header, uint64_t value, uint64_t mask);
 
 void
-ofl_structs_match_put_pbb_isid(struct ofl_match *match, uint32_t header, uint8_t value[PBB_ISID_LEN]);
+ofl_structs_match_put_pbb_isid(struct ofl_match *match, uint32_t header, uint8_t const value[PBB_ISID_LEN]);
 
 void
-ofl_structs_match_put_pbb_isidm(struct ofl_match *match, uint32_t header, uint8_t value[PBB_ISID_LEN], uint8_t mask[PBB_ISID_LEN]);
+ofl_structs_match_put_pbb_isidm(struct ofl_match *match, uint32_t header, uint8_t const value[PBB_ISID_LEN], uint8_t const mask[PBB_ISID_LEN]);
 
 void
-ofl_structs_match_put_eth(struct ofl_match *match, uint32_t header, uint8_t value[ETH_ADDR_LEN]);
+ofl_structs_match_put_eth(struct ofl_match *match, uint32_t header, uint8_t const value[ETH_ADDR_LEN]);
 
 void
-ofl_structs_match_put_eth_m(struct ofl_match *match, uint32_t header, uint8_t value[ETH_ADDR_LEN], uint8_t mask[ETH_ADDR_LEN]);
+ofl_structs_match_put_eth_m(struct ofl_match *match, uint32_t header, uint8_t const value[ETH_ADDR_LEN], uint8_t const mask[ETH_ADDR_LEN]);
 
 void
-ofl_structs_match_put_ipv6(struct ofl_match *match, uint32_t header, uint8_t value[IPv6_ADDR_LEN] );
+ofl_structs_match_put_ipv6(struct ofl_match *match, uint32_t header, uint8_t const value[IPv6_ADDR_LEN] );
 
 void
-ofl_structs_match_put_ipv6m(struct ofl_match *match, uint32_t header, uint8_t value[IPv6_ADDR_LEN], uint8_t mask[IPv6_ADDR_LEN]);
+ofl_structs_match_put_ipv6m(struct ofl_match *match, uint32_t header, uint8_t const value[IPv6_ADDR_LEN], uint8_t const mask[IPv6_ADDR_LEN]);
 
 #ifdef __cplusplus
 }
 #endif
 
 int
-ofl_structs_match_ofp_total_len(struct ofl_match *match);
+ofl_structs_match_ofp_total_len(struct ofl_match const *match);
 
 
 /****************************************************************************
@@ -464,114 +464,114 @@ ofl_structs_match_ofp_total_len(struct ofl_match *match);
  ****************************************************************************/
 
 size_t
-ofl_structs_instructions_pack(struct ofl_instruction_header *src, struct ofp_instruction *dst, struct ofl_exp *exp);
+ofl_structs_instructions_pack(struct ofl_instruction_header const *src, struct ofp_instruction *dst, struct ofl_exp const *exp);
 
 size_t
-ofl_structs_meter_band_pack(struct ofl_meter_band_header *src, struct ofp_meter_band_header *dst);
+ofl_structs_meter_band_pack(struct ofl_meter_band_header const *src, struct ofp_meter_band_header *dst);
 
 size_t
-ofl_structs_meter_conf_pack(struct ofl_meter_config *src, struct ofp_meter_config *dst, uint8_t* data);
+ofl_structs_meter_conf_pack(struct ofl_meter_config const *src, struct ofp_meter_config *dst, uint8_t* data);
 
 size_t
-ofl_structs_meter_stats_pack(struct ofl_meter_stats *src, struct ofp_meter_stats *dst);
+ofl_structs_meter_stats_pack(struct ofl_meter_stats const *src, struct ofp_meter_stats *dst);
 
 size_t
-ofl_structs_table_properties_pack(struct ofl_table_feature_prop_header * src, struct ofp_table_feature_prop_header *dst, uint8_t *data, struct ofl_exp *exp);
+ofl_structs_table_properties_pack(struct ofl_table_feature_prop_header const * src, struct ofp_table_feature_prop_header *dst, uint8_t *data, struct ofl_exp const *exp);
 
 size_t
-ofl_structs_table_features_pack(struct ofl_table_features *src, struct ofp_table_features *dst, uint8_t* data, struct ofl_exp *exp);
+ofl_structs_table_features_pack(struct ofl_table_features const *src, struct ofp_table_features *dst, uint8_t* data, struct ofl_exp const *exp);
 
 size_t
-ofl_structs_bucket_pack(struct ofl_bucket *src, struct ofp_bucket *dst, struct ofl_exp *exp);
+ofl_structs_bucket_pack(struct ofl_bucket const *src, struct ofp_bucket *dst, struct ofl_exp const *exp);
 
 size_t
-ofl_structs_flow_stats_pack(struct ofl_flow_stats *src, uint8_t *dst, struct ofl_exp *exp);
+ofl_structs_flow_stats_pack(struct ofl_flow_stats const *src, uint8_t *dst, struct ofl_exp const *exp);
 
 size_t
-ofl_structs_group_stats_pack(struct ofl_group_stats *src, struct ofp_group_stats *dst);
+ofl_structs_group_stats_pack(struct ofl_group_stats const *src, struct ofp_group_stats *dst);
 
 size_t
-ofl_structs_queue_prop_pack(struct ofl_queue_prop_header *src, struct ofp_queue_prop_header *dst);
+ofl_structs_queue_prop_pack(struct ofl_queue_prop_header const *src, struct ofp_queue_prop_header *dst);
 
 size_t
-ofl_structs_packet_queue_pack(struct ofl_packet_queue *src, struct ofp_packet_queue *dst);
+ofl_structs_packet_queue_pack(struct ofl_packet_queue const *src, struct ofp_packet_queue *dst);
 
 size_t
-ofl_structs_port_stats_pack(struct ofl_port_stats *src, struct ofp_port_stats *dst);
-
-
-size_t
-ofl_structs_port_pack(struct ofl_port *src, struct ofp_port *dst);
-
-size_t
-ofl_structs_table_stats_pack(struct ofl_table_stats *src, struct ofp_table_stats *dst);
+ofl_structs_port_stats_pack(struct ofl_port_stats const *src, struct ofp_port_stats *dst);
 
 
 size_t
-ofl_structs_queue_stats_pack(struct ofl_queue_stats *src, struct ofp_queue_stats *dst);
+ofl_structs_port_pack(struct ofl_port const *src, struct ofp_port *dst);
 
 size_t
-ofl_structs_group_desc_stats_pack(struct ofl_group_desc_stats *src, struct ofp_group_desc_stats *dst, struct ofl_exp *exp);
+ofl_structs_table_stats_pack(struct ofl_table_stats const *src, struct ofp_table_stats *dst);
+
 
 size_t
-ofl_structs_bucket_counter_pack(struct ofl_bucket_counter *src, struct ofp_bucket_counter *dst);
+ofl_structs_queue_stats_pack(struct ofl_queue_stats const *src, struct ofp_queue_stats *dst);
 
 size_t
-ofl_structs_match_pack(struct ofl_match_header *src, struct ofp_match *dst, uint8_t* oxm_fields, struct ofl_exp *exp);
+ofl_structs_group_desc_stats_pack(struct ofl_group_desc_stats const *src, struct ofp_group_desc_stats *dst, struct ofl_exp const *exp);
+
+size_t
+ofl_structs_bucket_counter_pack(struct ofl_bucket_counter const *src, struct ofp_bucket_counter *dst);
+
+size_t
+ofl_structs_match_pack(struct ofl_match_header const *src, struct ofp_match *dst, uint8_t * oxm_fields, struct ofl_exp const *exp);
 
 ofl_err
-ofl_structs_instructions_unpack(struct ofp_instruction *src, size_t *len, struct ofl_instruction_header **dst, struct ofl_exp *exp);
+ofl_structs_instructions_unpack(struct ofp_instruction const *src, size_t *len, struct ofl_instruction_header **dst, struct ofl_exp const *exp);
 
 ofl_err
-ofl_structs_table_features_unpack(struct ofp_table_features *src, size_t *len, struct ofl_table_features **dst, struct ofl_exp *exp);
+ofl_structs_table_features_unpack(struct ofp_table_features const *src, size_t *len, struct ofl_table_features **dst, struct ofl_exp const *exp);
 
 ofl_err
-ofl_structs_bucket_unpack(struct ofp_bucket *src, size_t *len, uint8_t gtype, struct ofl_bucket **dst, struct ofl_exp *exp);
+ofl_structs_bucket_unpack(struct ofp_bucket const *src, size_t *len, uint8_t gtype, struct ofl_bucket **dst, struct ofl_exp const *exp);
 
 ofl_err
-ofl_structs_flow_stats_unpack(struct ofp_flow_stats *src,uint8_t *buf, size_t *len, struct ofl_flow_stats **dst, struct ofl_exp *exp);
+ofl_structs_flow_stats_unpack(struct ofp_flow_stats const *src, uint8_t const *buf, size_t *len, struct ofl_flow_stats **dst, struct ofl_exp const *exp);
 
 ofl_err
-ofl_structs_queue_prop_unpack(struct ofp_queue_prop_header *src, size_t *len, struct ofl_queue_prop_header **dst);
+ofl_structs_queue_prop_unpack(struct ofp_queue_prop_header const *src, size_t *len, struct ofl_queue_prop_header **dst);
 
 ofl_err
-ofl_structs_packet_queue_unpack(struct ofp_packet_queue *src, size_t *len, struct ofl_packet_queue **dst);
+ofl_structs_packet_queue_unpack(struct ofp_packet_queue const *src, size_t *len, struct ofl_packet_queue **dst);
 
 ofl_err
-ofl_structs_port_unpack(struct ofp_port *src, size_t *len, struct ofl_port **dst);
+ofl_structs_port_unpack(struct ofp_port const *src, size_t *len, struct ofl_port **dst);
 
 ofl_err
-ofl_structs_table_stats_unpack(struct ofp_table_stats *src, size_t *len, struct ofl_table_stats **dst);
+ofl_structs_table_stats_unpack(struct ofp_table_stats const *src, size_t *len, struct ofl_table_stats **dst);
 
 ofl_err
-ofl_structs_port_stats_unpack(struct ofp_port_stats *src, size_t *len, struct ofl_port_stats **dst);
+ofl_structs_port_stats_unpack(struct ofp_port_stats const *src, size_t *len, struct ofl_port_stats **dst);
 
 ofl_err
-ofl_structs_group_stats_unpack(struct ofp_group_stats *src, size_t *len, struct ofl_group_stats **dst);
+ofl_structs_group_stats_unpack(struct ofp_group_stats const *src, size_t *len, struct ofl_group_stats **dst);
 
 ofl_err
-ofl_structs_queue_stats_unpack(struct ofp_queue_stats *src, size_t *len, struct ofl_queue_stats **dst);
+ofl_structs_queue_stats_unpack(struct ofp_queue_stats const *src, size_t *len, struct ofl_queue_stats **dst);
 
 ofl_err
-ofl_structs_meter_band_unpack(struct ofp_meter_band_header *src, size_t *len, struct ofl_meter_band_header **dst);
+ofl_structs_meter_band_unpack(struct ofp_meter_band_header const *src, size_t *len, struct ofl_meter_band_header **dst);
 
 ofl_err
-ofl_structs_group_desc_stats_unpack(struct ofp_group_desc_stats *src, size_t *len, struct ofl_group_desc_stats **dst, struct ofl_exp *exp);
+ofl_structs_group_desc_stats_unpack(struct ofp_group_desc_stats const *src, size_t *len, struct ofl_group_desc_stats **dst, struct ofl_exp const *exp);
 
 ofl_err
-ofl_structs_bucket_counter_unpack(struct ofp_bucket_counter *src, size_t *len, struct ofl_bucket_counter **dst);
+ofl_structs_bucket_counter_unpack(struct ofp_bucket_counter const *src, size_t *len, struct ofl_bucket_counter **dst);
 
 ofl_err
-ofl_structs_match_unpack(struct ofp_match *src,uint8_t *buf, size_t *len, struct ofl_match_header **dst, bool check_prereq, struct ofl_exp *exp);
+ofl_structs_match_unpack(struct ofp_match const *src, uint8_t const *buf, size_t *len, struct ofl_match_header **dst, bool check_prereq, struct ofl_exp const *exp);
 
 ofl_err
-ofl_structs_meter_band_stats_unpack(struct ofp_meter_band_stats *src, size_t *len, struct ofl_meter_band_stats **dst);
+ofl_structs_meter_band_stats_unpack(struct ofp_meter_band_stats const *src, size_t *len, struct ofl_meter_band_stats **dst);
 
 ofl_err
-ofl_structs_meter_stats_unpack(struct ofp_meter_stats *src, size_t *len, struct ofl_meter_stats **dst);
+ofl_structs_meter_stats_unpack(struct ofp_meter_stats const *src, size_t *len, struct ofl_meter_stats **dst);
 
 ofl_err
-ofl_structs_meter_config_unpack(struct ofp_meter_config *src, size_t *len, struct ofl_meter_config **dst);
+ofl_structs_meter_config_unpack(struct ofp_meter_config const *src, size_t *len, struct ofl_meter_config **dst);
 
 /****************************************************************************
  * Functions for freeing action structures
@@ -584,16 +584,16 @@ void
 ofl_structs_free_packet_queue(struct ofl_packet_queue *queue);
 
 void
-ofl_structs_free_instruction(struct ofl_instruction_header *inst, struct ofl_exp *exp);
+ofl_structs_free_instruction(struct ofl_instruction_header *inst, struct ofl_exp const *exp);
 
 void
 ofl_structs_free_table_stats(struct ofl_table_stats *stats);
 
 void
-ofl_structs_free_bucket(struct ofl_bucket *bucket, struct ofl_exp *exp);
+ofl_structs_free_bucket(struct ofl_bucket *bucket, struct ofl_exp const *exp);
 
 void
-ofl_structs_free_flow_stats(struct ofl_flow_stats *stats, struct ofl_exp *exp);
+ofl_structs_free_flow_stats(struct ofl_flow_stats *stats, struct ofl_exp const *exp);
 
 void
 ofl_structs_free_port(struct ofl_port *port);
@@ -602,10 +602,10 @@ void
 ofl_structs_free_group_stats(struct ofl_group_stats *stats);
 
 void
-ofl_structs_free_group_desc_stats(struct ofl_group_desc_stats *stats, struct ofl_exp *exp);
+ofl_structs_free_group_desc_stats(struct ofl_group_desc_stats *stats, struct ofl_exp const *exp);
 
 void
-ofl_structs_free_match(struct ofl_match_header *match, struct ofl_exp *exp);
+ofl_structs_free_match(struct ofl_match_header *match, struct ofl_exp const *exp);
 
 void
 ofl_structs_free_meter_band_stats(struct ofl_meter_band_stats* s);
@@ -617,10 +617,10 @@ void
 ofl_structs_free_meter_config(struct ofl_meter_config *conf);
 
 void
-ofl_structs_free_table_features(struct ofl_table_features* features, struct ofl_exp *exp);
+ofl_structs_free_table_features(struct ofl_table_features* features, struct ofl_exp const *exp);
 
 void
-ofl_structs_free_table_properties(struct ofl_table_feature_prop_header *prop, struct ofl_exp *exp);
+ofl_structs_free_table_properties(struct ofl_table_feature_prop_header *prop, struct ofl_exp const *exp);
 
 /****************************************************************************
  * Utility functions
@@ -630,132 +630,132 @@ ofl_structs_free_table_properties(struct ofl_table_feature_prop_header *prop, st
  * the count of those structures in the passed in byte array. The functions
  * return an ofl_err in case of an error, or 0 on succes. */
 ofl_err
-ofl_utils_count_ofp_instructions(void *data, size_t data_len, size_t *count);
+ofl_utils_count_ofp_instructions(void const *data, size_t data_len, size_t *count);
 
 ofl_err
-ofl_utils_count_ofp_buckets(void *data, size_t data_len, size_t *count);
+ofl_utils_count_ofp_buckets(void const *data, size_t data_len, size_t *count);
 
 ofl_err
-ofl_utils_count_ofp_meter_bands(void *data, size_t data_len, size_t *count);
+ofl_utils_count_ofp_meter_bands(void const *data, size_t data_len, size_t *count);
 
 ofl_err
-ofl_utils_count_ofp_ports(void *data, size_t data_len, size_t *count);
+ofl_utils_count_ofp_ports(void const *data, size_t data_len, size_t *count);
 
 ofl_err
-ofl_utils_count_ofp_flow_stats(void *data, size_t data_len, size_t *count);
+ofl_utils_count_ofp_flow_stats(void const *data, size_t data_len, size_t *count);
 
 ofl_err
-ofl_utils_count_ofp_group_stats(void *data, size_t data_len, size_t *count);
+ofl_utils_count_ofp_group_stats(void const *data, size_t data_len, size_t *count);
 
 ofl_err
-ofl_utils_count_ofp_table_stats(void *data, size_t data_len, size_t *count);
+ofl_utils_count_ofp_table_stats(void const *data, size_t data_len, size_t *count);
 
 ofl_err
-ofl_utils_count_ofp_bucket_counters(void *data, size_t data_len, size_t *count);
+ofl_utils_count_ofp_bucket_counters(void const *data, size_t data_len, size_t *count);
 
 ofl_err
-ofl_utils_count_ofp_port_stats(void *data, size_t data_len, size_t *count);
+ofl_utils_count_ofp_port_stats(void const *data, size_t data_len, size_t *count);
 
 ofl_err
-ofl_utils_count_ofp_queue_stats(void *data, size_t data_len, size_t *count);
+ofl_utils_count_ofp_queue_stats(void const *data, size_t data_len, size_t *count);
 
 ofl_err
-ofl_utils_count_ofp_group_desc_stats(void *data, size_t data_len, size_t *count);
+ofl_utils_count_ofp_group_desc_stats(void const *data, size_t data_len, size_t *count);
 
 ofl_err
-ofl_utils_count_ofp_packet_queues(void *data, size_t data_len, size_t *count);
+ofl_utils_count_ofp_packet_queues(void const *data, size_t data_len, size_t *count);
 
 ofl_err
-ofl_utils_count_ofp_queue_props(void *data, size_t data_len, size_t *count);
+ofl_utils_count_ofp_queue_props(void const *data, size_t data_len, size_t *count);
 
 ofl_err
-ofl_utils_count_ofp_table_features_properties(void *data, size_t data_len, size_t *count);
+ofl_utils_count_ofp_table_features_properties(void const *data, size_t data_len, size_t *count);
 
 ofl_err
-ofl_utils_count_ofp_table_features(void *data, size_t data_len, size_t *count);
+ofl_utils_count_ofp_table_features(void const *data, size_t data_len, size_t *count);
 
 ofl_err
-ofl_utils_count_ofp_meter_stats(void *data, size_t data_len, size_t *count);
+ofl_utils_count_ofp_meter_stats(void const *data, size_t data_len, size_t *count);
 
 ofl_err
-ofl_utils_count_ofp_meter_band_stats(void *data, size_t data_len, size_t *count);
+ofl_utils_count_ofp_meter_band_stats(void const *data, size_t data_len, size_t *count);
 
 ofl_err
-ofl_utils_count_ofp_meter_config(void *data, size_t data_len, size_t *count);
+ofl_utils_count_ofp_meter_config(void const *data, size_t data_len, size_t *count);
 
 size_t
-ofl_structs_instructions_ofp_total_len(struct ofl_instruction_header **instructions, size_t instructions_num, struct ofl_exp *exp);
+ofl_structs_instructions_ofp_total_len(struct ofl_instruction_header const ** instructions, size_t instructions_num, struct ofl_exp const *exp);
 
 size_t
-ofl_structs_instructions_ofp_len(struct ofl_instruction_header *instruction, struct ofl_exp *exp);
+ofl_structs_instructions_ofp_len(struct ofl_instruction_header const *instruction, struct ofl_exp const *exp);
 
 size_t
-ofl_structs_meter_bands_ofp_total_len(struct ofl_meter_band_header **meter_bands, size_t meter_bands_num);
+ofl_structs_meter_bands_ofp_total_len(struct ofl_meter_band_header const **meter_bands, size_t meter_bands_num);
 
 size_t
-ofl_structs_meter_band_ofp_len(struct ofl_meter_band_header *meter_band);
+ofl_structs_meter_band_ofp_len(struct ofl_meter_band_header const *meter_band);
 
 size_t
-ofl_structs_buckets_ofp_total_len(struct ofl_bucket ** buckets, size_t buckets_num, struct ofl_exp *exp);
+ofl_structs_buckets_ofp_total_len(struct ofl_bucket const ** buckets, size_t buckets_num, struct ofl_exp const *exp);
 
 size_t
-ofl_structs_buckets_ofp_len(struct ofl_bucket *bucket, struct ofl_exp *exp);
+ofl_structs_buckets_ofp_len(struct ofl_bucket const *bucket, struct ofl_exp const *exp);
 
 size_t
-ofl_structs_flow_stats_ofp_total_len(struct ofl_flow_stats ** stats, size_t stats_num, struct ofl_exp *exp);
+ofl_structs_flow_stats_ofp_total_len(struct ofl_flow_stats const ** stats, size_t stats_num, struct ofl_exp const *exp);
 
 size_t
-ofl_structs_flow_stats_ofp_len(struct ofl_flow_stats *stats, struct ofl_exp *exp);
+ofl_structs_flow_stats_ofp_len(struct ofl_flow_stats const *stats, struct ofl_exp const *exp);
 
 size_t
-ofl_structs_group_stats_ofp_total_len(struct ofl_group_stats ** stats, size_t stats_num);
+ofl_structs_group_stats_ofp_total_len(struct ofl_group_stats const ** stats, size_t stats_num);
 
 size_t
-ofl_structs_group_stats_ofp_len(struct ofl_group_stats *stats);
+ofl_structs_group_stats_ofp_len(struct ofl_group_stats const *stats);
 
 size_t
-ofl_structs_group_desc_stats_ofp_total_len(struct ofl_group_desc_stats ** stats, size_t stats_num, struct ofl_exp *exp);
+ofl_structs_group_desc_stats_ofp_total_len(struct ofl_group_desc_stats const ** stats, size_t stats_num, struct ofl_exp const *exp);
 
 size_t
-ofl_structs_table_features_properties_ofp_len(struct ofl_table_feature_prop_header *prop, struct ofl_exp *exp);
+ofl_structs_table_features_properties_ofp_len(struct ofl_table_feature_prop_header const *prop, struct ofl_exp const *exp);
 
 size_t
-ofl_structs_table_features_properties_ofp_total_len(struct ofl_table_feature_prop_header **props, size_t features_num, struct ofl_exp *exp);
+ofl_structs_table_features_properties_ofp_total_len(struct ofl_table_feature_prop_header const **props, size_t features_num, struct ofl_exp const *exp);
 
-size_t ofl_structs_table_features_ofp_total_len(struct ofl_table_features **feat, size_t tables_num, struct ofl_exp * exp);
-
-size_t
-ofl_structs_group_desc_stats_ofp_len(struct ofl_group_desc_stats *stats, struct ofl_exp *exp);
+size_t ofl_structs_table_features_ofp_total_len(struct ofl_table_features const **feat, size_t tables_num, struct ofl_exp const *exp);
 
 size_t
-ofl_structs_queue_prop_ofp_total_len(struct ofl_queue_prop_header ** props, size_t props_num);
+ofl_structs_group_desc_stats_ofp_len(struct ofl_group_desc_stats const *stats, struct ofl_exp const *exp);
 
 size_t
-ofl_structs_queue_prop_ofp_len(struct ofl_queue_prop_header *prop);
+ofl_structs_queue_prop_ofp_total_len(struct ofl_queue_prop_header const ** props, size_t props_num);
 
 size_t
-ofl_structs_packet_queue_ofp_total_len(struct ofl_packet_queue ** queues, size_t queues_num);
+ofl_structs_queue_prop_ofp_len(struct ofl_queue_prop_header const *prop);
 
 size_t
-ofl_structs_packet_queue_ofp_len(struct ofl_packet_queue *queue);
+ofl_structs_packet_queue_ofp_total_len(struct ofl_packet_queue const ** queues, size_t queues_num);
 
 size_t
-ofl_structs_match_ofp_len(struct ofl_match_header *match, struct ofl_exp *exp);
+ofl_structs_packet_queue_ofp_len(struct ofl_packet_queue const *queue);
 
 size_t
-ofl_structs_meter_stats_ofp_total_len(struct ofl_meter_stats **stats, size_t stats_num);
+ofl_structs_match_ofp_len(struct ofl_match_header const *match, struct ofl_exp const *exp);
 
 size_t
-ofl_structs_meter_stats_ofp_len(struct ofl_meter_stats * stats);
+ofl_structs_meter_stats_ofp_total_len(struct ofl_meter_stats const **stats, size_t stats_num);
 
 size_t
-ofl_structs_pack_band_stats(struct ofl_meter_band_stats *src, struct ofp_meter_band_stats *dst);
+ofl_structs_meter_stats_ofp_len(struct ofl_meter_stats const * stats);
 
 size_t
-ofl_structs_meter_conf_ofp_total_len(struct ofl_meter_config **meter_conf, size_t stats_num);
+ofl_structs_pack_band_stats(struct ofl_meter_band_stats const *src, struct ofp_meter_band_stats *dst);
 
 size_t
-ofl_structs_meter_conf_ofp_len(struct ofl_meter_config * meter_conf);
+ofl_structs_meter_conf_ofp_total_len(struct ofl_meter_config const **meter_conf, size_t stats_num);
+
+size_t
+ofl_structs_meter_conf_ofp_len(struct ofl_meter_config const * meter_conf);
 
 
 
@@ -764,22 +764,22 @@ ofl_structs_meter_conf_ofp_len(struct ofl_meter_config * meter_conf);
  ****************************************************************************/
 
 char *
-ofl_structs_port_to_string(struct ofl_port *port);
+ofl_structs_port_to_string(struct ofl_port const *port);
 
 void
-ofl_structs_port_print(FILE *stream, struct ofl_port *port);
+ofl_structs_port_print(FILE *stream, struct ofl_port const *port);
 
 char *
-ofl_structs_instruction_to_string(struct ofl_instruction_header *inst, struct ofl_exp *exp);
+ofl_structs_instruction_to_string(struct ofl_instruction_header const *inst, struct ofl_exp const *exp);
 
 void
-ofl_structs_instruction_print(FILE *stream, struct ofl_instruction_header *inst, struct ofl_exp *exp);
+ofl_structs_instruction_print(FILE *stream, struct ofl_instruction_header const *inst, struct ofl_exp const *exp);
 
 char *
-ofl_structs_match_to_string(struct ofl_match_header *match, struct ofl_exp *exp);
+ofl_structs_match_to_string(struct ofl_match_header *match, struct ofl_exp const *exp);
 
 void
-ofl_structs_match_print(FILE *stream, struct ofl_match_header *match, struct ofl_exp *exp);
+ofl_structs_match_print(FILE *stream, struct ofl_match_header *match, struct ofl_exp const *exp);
 
 char *
 ofl_structs_oxm_tlv_to_string(struct ofl_match_tlv *f);
@@ -800,10 +800,10 @@ void
 ofl_structs_config_print(FILE *stream, struct ofl_config *c);
 
 char *
-ofl_structs_bucket_to_string(struct ofl_bucket *b, struct ofl_exp *exp);
+ofl_structs_bucket_to_string(struct ofl_bucket *b, struct ofl_exp const *exp);
 
 void
-ofl_structs_bucket_print(FILE *stream, struct ofl_bucket *b, struct ofl_exp *exp);
+ofl_structs_bucket_print(FILE *stream, struct ofl_bucket *b, struct ofl_exp const *exp);
 
 char *
 ofl_structs_queue_to_string(struct ofl_packet_queue *q);
@@ -818,10 +818,10 @@ void
 ofl_structs_queue_prop_print(FILE *stream, struct ofl_queue_prop_header *p);
 
 char *
-ofl_structs_flow_stats_to_string(struct ofl_flow_stats *s, struct ofl_exp *exp);
+ofl_structs_flow_stats_to_string(struct ofl_flow_stats *s, struct ofl_exp const *exp);
 
 void
-ofl_structs_flow_stats_print(FILE *stream, struct ofl_flow_stats *s, struct ofl_exp *exp);
+ofl_structs_flow_stats_print(FILE *stream, struct ofl_flow_stats *s, struct ofl_exp const *exp);
 
 char *
 ofl_structs_bucket_counter_to_string(struct ofl_bucket_counter *s);
@@ -866,10 +866,10 @@ void
 ofl_structs_queue_stats_print(FILE *stream, struct ofl_queue_stats *s);
 
 char *
-ofl_structs_group_desc_stats_to_string(struct ofl_group_desc_stats *s, struct ofl_exp *exp);
+ofl_structs_group_desc_stats_to_string(struct ofl_group_desc_stats *s, struct ofl_exp const *exp);
 
 void
-ofl_structs_group_desc_stats_print(FILE *stream, struct ofl_group_desc_stats *s, struct ofl_exp *exp);
+ofl_structs_group_desc_stats_print(FILE *stream, struct ofl_group_desc_stats *s, struct ofl_exp const *exp);
 
 char*
 ofl_structs_meter_band_to_string(struct ofl_meter_band_header* s);

@@ -1,6 +1,6 @@
 /* Copyright (c) 2008, 2009 The Board of Trustees of The Leland Stanford
  * Junior University
- * 
+ *
  * We are making the OpenFlow specification and associated documentation
  * (Software) available for public use and benefit with the expectation
  * that others will use, modify and enhance the Software and contribute
@@ -13,10 +13,10 @@
  * distribute, sublicense, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -25,7 +25,7 @@
  * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * 
+ *
  * The name and trademarks of copyright holder(s) may NOT be used in
  * advertising or publicity pertaining to the Software or any
  * derivatives without specific, written prior permission.
@@ -55,7 +55,7 @@ struct poll_waiter {
     short int events;           /* Events to wait for (POLLIN, POLLOUT). */
     poll_fd_func *function;     /* Callback function, if any, or null. */
     void *aux;                  /* Argument to callback function. */
-    struct backtrace *backtrace; /* Optionally, event that created waiter. */
+    struct backtrace_info *bt_info; /* Optionally, event that created waiter. */
 
     /* Set only when poll_block() is called. */
     struct pollfd *pollfd;      /* Pointer to element of the pollfds array
@@ -73,7 +73,7 @@ static size_t n_waiters;
 static int timeout = -1;
 
 /* Backtrace of 'timeout''s registration, if debugging is enabled. */
-static struct backtrace timeout_backtrace;
+static struct backtrace_info timeout_backtrace;
 
 /* Callback currently running, to allow verifying that poll_cancel() is not
  * being called on a running callback. */
@@ -123,7 +123,7 @@ poll_immediate_wake(void)
 }
 
 static void PRINTF_FORMAT(2, 3)
-log_wakeup(const struct backtrace *backtrace, const char *format, ...)
+log_wakeup(const struct backtrace_info *info, const char *format, ...)
 {
     struct ds ds;
     va_list args;
@@ -133,12 +133,12 @@ log_wakeup(const struct backtrace *backtrace, const char *format, ...)
     ds_put_format_valist(&ds, format, args);
     va_end(args);
 
-    if (backtrace) {
+    if (info) {
         int i;
 
         ds_put_char(&ds, ':');
-        for (i = 0; i < backtrace->n_frames; i++) {
-            ds_put_format(&ds, " 0x%"PRIxPTR"", backtrace->frames[i]);
+        for (i = 0; i < info->n_frames; i++) {
+            ds_put_format(&ds, " 0x%"PRIxPTR"", info->frames[i]);
         }
     }
     VLOG_DBG(LOG_MODULE, "%s", ds_cstr(&ds));
@@ -194,7 +194,7 @@ poll_block(void)
             }
         } else {
             if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
-                log_wakeup(pw->backtrace, "%s%s%s%s%s on fd %d",
+                log_wakeup(pw->bt_info, "%s%s%s%s%s on fd %d",
                            pw->pollfd->revents & POLLIN ? "[POLLIN]" : "",
                            pw->pollfd->revents & POLLOUT ? "[POLLOUT]" : "",
                            pw->pollfd->revents & POLLERR ? "[POLLERR]" : "",
@@ -256,7 +256,7 @@ poll_cancel(struct poll_waiter *pw)
     if (pw) {
         assert(pw != running_cb);
         list_remove(&pw->node);
-        free(pw->backtrace);
+        free(pw->bt_info);
         free(pw);
         n_waiters--;
     }
@@ -271,8 +271,8 @@ new_waiter(int fd, short int events)
     waiter->fd = fd;
     waiter->events = events;
     if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
-        waiter->backtrace = xmalloc(sizeof *waiter->backtrace);
-        backtrace_capture(waiter->backtrace);
+        waiter->bt_info = xmalloc(sizeof *waiter->bt_info);
+        backtrace_capture(waiter->bt_info);
     }
     list_push_back(&waiters, &waiter->node);
     n_waiters++;

@@ -48,7 +48,8 @@ OFL_LOG_INIT(LOG_MODULE)
 
 
 size_t
-ofl_structs_instructions_ofp_len(struct ofl_instruction_header *instruction, struct ofl_exp *exp) {
+ofl_structs_instructions_ofp_len(struct ofl_instruction_header const *instruction, struct ofl_exp const *exp)
+{
     switch (instruction->type) {
         case OFPIT_GOTO_TABLE: {
             return sizeof(struct ofp_instruction_goto_table);
@@ -61,7 +62,7 @@ ofl_structs_instructions_ofp_len(struct ofl_instruction_header *instruction, str
             struct ofl_instruction_actions *i = (struct ofl_instruction_actions *)instruction;
 
             return sizeof(struct ofp_instruction_actions)
-                   + ofl_actions_ofp_total_len(i->actions, i->actions_num, exp);
+                   + ofl_actions_ofp_total_len((struct ofl_action_header const **)i->actions, i->actions_num, exp);
         }
         case OFPIT_CLEAR_ACTIONS: {
             return sizeof(struct ofp_instruction_actions);
@@ -83,7 +84,8 @@ ofl_structs_instructions_ofp_len(struct ofl_instruction_header *instruction, str
 }
 
 size_t
-ofl_structs_instructions_ofp_total_len(struct ofl_instruction_header **instructions, size_t instructions_num, struct ofl_exp *exp) {
+ofl_structs_instructions_ofp_total_len(struct ofl_instruction_header const **instructions, size_t instructions_num, struct ofl_exp const *exp)
+{
     size_t sum;
     OFL_UTILS_SUM_ARR_FUN2(sum, instructions, instructions_num,
             ofl_structs_instructions_ofp_len, exp);
@@ -91,7 +93,8 @@ ofl_structs_instructions_ofp_total_len(struct ofl_instruction_header **instructi
 }
 
 size_t
-ofl_structs_instructions_pack(struct ofl_instruction_header *src, struct ofp_instruction *dst, struct ofl_exp *exp) {
+ofl_structs_instructions_pack(struct ofl_instruction_header const *src, struct ofp_instruction *dst, struct ofl_exp const *exp)
+{
 
     dst->type = htons(src->type);
     memset(dst->pad, 0x00, 4);
@@ -127,7 +130,7 @@ ofl_structs_instructions_pack(struct ofl_instruction_header *src, struct ofp_ins
             struct ofl_instruction_actions *si = (struct ofl_instruction_actions *)src;
             struct ofp_instruction_actions *di = (struct ofp_instruction_actions *)dst;
 
-            total_len = sizeof(struct ofp_instruction_actions) + ofl_actions_ofp_total_len(si->actions, si->actions_num, exp);
+            total_len = sizeof(struct ofp_instruction_actions) + ofl_actions_ofp_total_len((struct ofl_action_header const **)si->actions, si->actions_num, exp);
 
             di->len = htons(total_len);
             memset(di->pad, 0x00, 4);
@@ -174,7 +177,8 @@ ofl_structs_instructions_pack(struct ofl_instruction_header *src, struct ofp_ins
 }
 
 size_t
-ofl_structs_meter_band_ofp_len(struct ofl_meter_band_header *meter_band) {
+ofl_structs_meter_band_ofp_len(struct ofl_meter_band_header const *meter_band)
+{
     switch (meter_band->type) {
         case OFPMBT_DROP:
             return sizeof(struct ofp_meter_band_drop);
@@ -189,7 +193,8 @@ ofl_structs_meter_band_ofp_len(struct ofl_meter_band_header *meter_band) {
 }
 
 size_t
-ofl_structs_meter_bands_ofp_total_len(struct ofl_meter_band_header **meter_bands, size_t meter_bands_num) {
+ofl_structs_meter_bands_ofp_total_len(struct ofl_meter_band_header const **meter_bands, size_t meter_bands_num)
+{
     size_t sum;
     OFL_UTILS_SUM_ARR_FUN(sum, meter_bands, meter_bands_num,
             ofl_structs_meter_band_ofp_len);
@@ -197,7 +202,8 @@ ofl_structs_meter_bands_ofp_total_len(struct ofl_meter_band_header **meter_bands
 }
 
 size_t
-ofl_structs_meter_band_pack(struct ofl_meter_band_header *src, struct ofp_meter_band_header *dst){
+ofl_structs_meter_band_pack(struct ofl_meter_band_header const *src, struct ofp_meter_band_header *dst)
+{
 
     dst->type = htons(src->type);
     dst->rate = htonl(src->rate);
@@ -231,7 +237,8 @@ ofl_structs_meter_band_pack(struct ofl_meter_band_header *src, struct ofp_meter_
 }
 
 size_t
-ofl_structs_table_features_properties_ofp_len(struct ofl_table_feature_prop_header *prop, struct ofl_exp *exp){
+ofl_structs_table_features_properties_ofp_len(struct ofl_table_feature_prop_header const *prop, struct ofl_exp const *exp)
+{
 
     switch(prop->type){
         case OFPTFPT_INSTRUCTIONS:
@@ -294,7 +301,8 @@ ofl_structs_table_features_properties_ofp_len(struct ofl_table_feature_prop_head
 }
 
 size_t
-ofl_structs_table_features_properties_ofp_total_len(struct ofl_table_feature_prop_header **props, size_t features_num, struct ofl_exp *exp){
+ofl_structs_table_features_properties_ofp_total_len(struct ofl_table_feature_prop_header const **props, size_t features_num, struct ofl_exp const *exp)
+{
     int i;
     size_t sum = 0;
     size_t sum_check;
@@ -311,18 +319,19 @@ ofl_structs_table_features_properties_ofp_total_len(struct ofl_table_feature_pro
 	return sum;
 }
 
-size_t ofl_structs_table_features_ofp_total_len(struct ofl_table_features **feat, size_t tables_num, struct ofl_exp * exp){
-
+size_t ofl_structs_table_features_ofp_total_len(struct ofl_table_features const **feat, size_t tables_num, struct ofl_exp const * exp)
+{
     int i, total_len;
     total_len = 0;
     for(i = 0; i < tables_num; i++){
-        total_len +=  sizeof(struct ofp_table_features) + ofl_structs_table_features_properties_ofp_total_len(feat[i]->properties, feat[i]->properties_num, exp);
+        total_len +=  sizeof(struct ofp_table_features) + ofl_structs_table_features_properties_ofp_total_len((struct ofl_table_feature_prop_header const **)feat[i]->properties, feat[i]->properties_num, exp);
     }
     return total_len;
 }
 
 size_t
-ofl_structs_table_properties_pack(struct ofl_table_feature_prop_header * src, struct ofp_table_feature_prop_header *dst, uint8_t *data, struct ofl_exp *exp){
+ofl_structs_table_properties_pack(struct ofl_table_feature_prop_header const * src, struct ofp_table_feature_prop_header *dst, uint8_t *data, struct ofl_exp const *exp)
+{
 
     dst->type = htons(src->type);
     switch (src->type){
@@ -433,13 +442,14 @@ ofl_structs_table_properties_pack(struct ofl_table_feature_prop_header * src, st
 }
 
 size_t
-ofl_structs_table_features_pack(struct ofl_table_features *src, struct ofp_table_features *dst, uint8_t *data,  struct ofl_exp *exp){
+ofl_structs_table_features_pack(struct ofl_table_features const *src, struct ofp_table_features *dst, uint8_t *data,  struct ofl_exp const *exp)
+{
     size_t total_len;
     uint8_t *ptr;
     int i;
 
 
-    total_len = sizeof(struct ofp_table_features) + ofl_structs_table_features_properties_ofp_total_len(src->properties,src->properties_num,exp);
+    total_len = sizeof(struct ofp_table_features) + ofl_structs_table_features_properties_ofp_total_len((struct ofl_table_feature_prop_header const **)src->properties,src->properties_num,exp);
     dst->table_id = src->table_id;
     memset(dst->pad, 0x0,5);
     strncpy(dst->name,src->name, OFP_MAX_TABLE_NAME_LEN);
@@ -457,17 +467,19 @@ ofl_structs_table_features_pack(struct ofl_table_features *src, struct ofp_table
 }
 
 size_t
-ofl_structs_buckets_ofp_len(struct ofl_bucket *bucket, struct ofl_exp *exp) {
+ofl_structs_buckets_ofp_len(struct ofl_bucket const *bucket, struct ofl_exp const *exp)
+{
     size_t total_len, rem;
 
-    total_len = sizeof(struct ofp_bucket) + ofl_actions_ofp_total_len(bucket->actions, bucket->actions_num, exp);
+    total_len = sizeof(struct ofp_bucket) + ofl_actions_ofp_total_len((struct ofl_action_header const **)bucket->actions, bucket->actions_num, exp);
     /* Note: buckets are 64 bit aligned according to spec 1.1 */
     rem = total_len % 8;
     return total_len + (rem == 0 ? 0 : (8 - rem));
 }
 
 size_t
-ofl_structs_buckets_ofp_total_len(struct ofl_bucket **buckets, size_t buckets_num, struct ofl_exp *exp) {
+ofl_structs_buckets_ofp_total_len(struct ofl_bucket const **buckets, size_t buckets_num, struct ofl_exp const *exp)
+{
     size_t sum;
     OFL_UTILS_SUM_ARR_FUN2(sum, buckets, buckets_num,
             ofl_structs_buckets_ofp_len, exp);
@@ -475,12 +487,13 @@ ofl_structs_buckets_ofp_total_len(struct ofl_bucket **buckets, size_t buckets_nu
 }
 
 size_t
-ofl_structs_bucket_pack(struct ofl_bucket *src, struct ofp_bucket *dst, struct ofl_exp *exp) {
+ofl_structs_bucket_pack(struct ofl_bucket const *src, struct ofp_bucket *dst, struct ofl_exp const *exp)
+{
     size_t total_len, rem, align, len;
     uint8_t *data;
     size_t i;
 
-    total_len = sizeof(struct ofp_bucket) + ofl_actions_ofp_total_len(src->actions, src->actions_num, exp);
+    total_len = sizeof(struct ofp_bucket) + ofl_actions_ofp_total_len((struct ofl_action_header const **)src->actions, src->actions_num, exp);
     /* Note: buckets are 64 bit aligned according to spec 1.1 draft 3 */
     rem = total_len % 8;
     align = rem == 0 ? 0 : (8-rem);
@@ -506,14 +519,16 @@ ofl_structs_bucket_pack(struct ofl_bucket *src, struct ofp_bucket *dst, struct o
 
 
 size_t
-ofl_structs_flow_stats_ofp_len(struct ofl_flow_stats *stats, struct ofl_exp *exp) {
+ofl_structs_flow_stats_ofp_len(struct ofl_flow_stats const *stats, struct ofl_exp const *exp)
+{
 
     return ROUND_UP((sizeof(struct ofp_flow_stats) - 4) + stats->match->length,8) +
-           ofl_structs_instructions_ofp_total_len(stats->instructions, stats->instructions_num, exp);
+           ofl_structs_instructions_ofp_total_len((struct ofl_instruction_header const **)stats->instructions, stats->instructions_num, exp);
 }
 
 size_t
-ofl_structs_flow_stats_ofp_total_len(struct ofl_flow_stats ** stats, size_t stats_num, struct ofl_exp *exp) {
+ofl_structs_flow_stats_ofp_total_len(struct ofl_flow_stats const ** stats, size_t stats_num, struct ofl_exp const *exp)
+{
     size_t sum;
     OFL_UTILS_SUM_ARR_FUN2(sum, stats, stats_num,
             ofl_structs_flow_stats_ofp_len, exp);
@@ -521,9 +536,9 @@ ofl_structs_flow_stats_ofp_total_len(struct ofl_flow_stats ** stats, size_t stat
 }
 
 
-
 size_t
-ofl_structs_flow_stats_pack(struct ofl_flow_stats *src, uint8_t *dst, struct ofl_exp *exp) {
+ofl_structs_flow_stats_pack(struct ofl_flow_stats const *src, uint8_t *dst, struct ofl_exp const *exp)
+{
 
     struct ofp_flow_stats *flow_stats;
     size_t total_len;
@@ -531,7 +546,7 @@ ofl_structs_flow_stats_pack(struct ofl_flow_stats *src, uint8_t *dst, struct ofl
     size_t  i;
 
     total_len = ROUND_UP(sizeof(struct ofp_flow_stats) -4 + src->match->length,8) +
-                ofl_structs_instructions_ofp_total_len(src->instructions, src->instructions_num, exp);
+                ofl_structs_instructions_ofp_total_len((struct ofl_instruction_header const **)src->instructions, src->instructions_num, exp);
 
     flow_stats = (struct ofp_flow_stats*) dst;
 
@@ -560,13 +575,15 @@ ofl_structs_flow_stats_pack(struct ofl_flow_stats *src, uint8_t *dst, struct ofl
 }
 
 size_t
-ofl_structs_group_stats_ofp_len(struct ofl_group_stats *stats) {
+ofl_structs_group_stats_ofp_len(struct ofl_group_stats const *stats)
+{
     return sizeof(struct ofp_group_stats) +
            sizeof(struct ofp_bucket_counter) * stats->counters_num;
 }
 
 size_t
-ofl_structs_group_stats_ofp_total_len(struct ofl_group_stats ** stats, size_t stats_num) {
+ofl_structs_group_stats_ofp_total_len(struct ofl_group_stats const ** stats, size_t stats_num)
+{
     size_t sum;
     OFL_UTILS_SUM_ARR_FUN(sum, stats, stats_num,
             ofl_structs_group_stats_ofp_len);
@@ -574,7 +591,8 @@ ofl_structs_group_stats_ofp_total_len(struct ofl_group_stats ** stats, size_t st
 }
 
 size_t
-ofl_structs_group_stats_pack(struct ofl_group_stats *src, struct ofp_group_stats *dst) {
+ofl_structs_group_stats_pack(struct ofl_group_stats const *src, struct ofp_group_stats *dst)
+{
     size_t total_len, len;
     uint8_t *data;
     size_t i;
@@ -603,13 +621,15 @@ ofl_structs_group_stats_pack(struct ofl_group_stats *src, struct ofp_group_stats
 }
 
 size_t
-ofl_structs_meter_stats_ofp_len(struct ofl_meter_stats *stats){
+ofl_structs_meter_stats_ofp_len(struct ofl_meter_stats const *stats)
+{
     return sizeof(struct ofp_meter_stats) +
                 sizeof(struct ofp_meter_band_stats) * stats->meter_bands_num;
 }
 
 size_t
-ofl_structs_pack_band_stats(struct ofl_meter_band_stats *src, struct ofp_meter_band_stats *dst){
+ofl_structs_pack_band_stats(struct ofl_meter_band_stats const *src, struct ofp_meter_band_stats *dst)
+{
 
     dst->packet_band_count = hton64(src->packet_band_count);
     dst->byte_band_count = hton64(src->byte_band_count);
@@ -618,7 +638,8 @@ ofl_structs_pack_band_stats(struct ofl_meter_band_stats *src, struct ofp_meter_b
 }
 
 size_t
-ofl_structs_meter_stats_ofp_total_len(struct ofl_meter_stats **stats, size_t stats_num){
+ofl_structs_meter_stats_ofp_total_len(struct ofl_meter_stats const **stats, size_t stats_num)
+{
     size_t sum;
     OFL_UTILS_SUM_ARR_FUN(sum, stats, stats_num,
             ofl_structs_meter_stats_ofp_len);
@@ -626,7 +647,8 @@ ofl_structs_meter_stats_ofp_total_len(struct ofl_meter_stats **stats, size_t sta
 }
 
 size_t
-ofl_structs_meter_stats_pack(struct ofl_meter_stats *src, struct ofp_meter_stats *dst){
+ofl_structs_meter_stats_pack(struct ofl_meter_stats const *src, struct ofp_meter_stats *dst)
+{
     size_t total_len;
     size_t i;
 
@@ -651,13 +673,15 @@ ofl_structs_meter_stats_pack(struct ofl_meter_stats *src, struct ofp_meter_stats
 }
 
 size_t
-ofl_structs_meter_conf_ofp_len(struct ofl_meter_config * meter_conf){
+ofl_structs_meter_conf_ofp_len(struct ofl_meter_config const * meter_conf)
+{
     return sizeof(struct ofp_meter_config) +
-        ofl_structs_meter_bands_ofp_total_len(meter_conf->bands, meter_conf->meter_bands_num);
+        ofl_structs_meter_bands_ofp_total_len((struct ofl_meter_band_header const **)meter_conf->bands, meter_conf->meter_bands_num);
 }
 
 size_t
-ofl_structs_meter_conf_ofp_total_len(struct ofl_meter_config **meter_conf, size_t stats_num){
+ofl_structs_meter_conf_ofp_total_len(struct ofl_meter_config const **meter_conf, size_t stats_num)
+{
     size_t sum;
     OFL_UTILS_SUM_ARR_FUN(sum, meter_conf, stats_num,
             ofl_structs_meter_conf_ofp_len);
@@ -665,12 +689,13 @@ ofl_structs_meter_conf_ofp_total_len(struct ofl_meter_config **meter_conf, size_
 }
 
 size_t
-ofl_structs_meter_conf_pack(struct ofl_meter_config *src, struct ofp_meter_config *dst, uint8_t* data){
+ofl_structs_meter_conf_pack(struct ofl_meter_config const *src, struct ofp_meter_config *dst, uint8_t* data)
+{
     size_t total_len, len;
     int i;
 
     total_len = sizeof(struct ofp_meter_config) +
-        ofl_structs_meter_bands_ofp_total_len(src->bands, src->meter_bands_num);
+        ofl_structs_meter_bands_ofp_total_len((struct ofl_meter_band_header const **)src->bands, src->meter_bands_num);
 
     dst->length = ntohs(total_len);
     dst->flags = ntohs(src->flags);
@@ -686,13 +711,15 @@ ofl_structs_meter_conf_pack(struct ofl_meter_config *src, struct ofp_meter_confi
 }
 
 size_t
-ofl_structs_group_desc_stats_ofp_len(struct ofl_group_desc_stats *stats, struct ofl_exp *exp) {
+ofl_structs_group_desc_stats_ofp_len(struct ofl_group_desc_stats const *stats, struct ofl_exp const *exp)
+{
     return sizeof(struct ofp_group_desc_stats) +
-           ofl_structs_buckets_ofp_total_len(stats->buckets, stats->buckets_num, exp);
+           ofl_structs_buckets_ofp_total_len((struct ofl_bucket const **)stats->buckets, stats->buckets_num, exp);
 }
 
 size_t
-ofl_structs_group_desc_stats_ofp_total_len(struct ofl_group_desc_stats ** stats, size_t stats_num, struct ofl_exp *exp) {
+ofl_structs_group_desc_stats_ofp_total_len(struct ofl_group_desc_stats const ** stats, size_t stats_num, struct ofl_exp const *exp)
+{
     size_t sum;
     OFL_UTILS_SUM_ARR_FUN2(sum, stats, stats_num,
             ofl_structs_group_desc_stats_ofp_len, exp);
@@ -700,13 +727,14 @@ ofl_structs_group_desc_stats_ofp_total_len(struct ofl_group_desc_stats ** stats,
 }
 
 size_t
-ofl_structs_group_desc_stats_pack(struct ofl_group_desc_stats *src, struct ofp_group_desc_stats *dst, struct ofl_exp *exp) {
+ofl_structs_group_desc_stats_pack(struct ofl_group_desc_stats const *src, struct ofp_group_desc_stats *dst, struct ofl_exp const *exp)
+{
     size_t total_len, len;
     uint8_t *data;
     size_t i;
 
     total_len = sizeof(struct ofp_group_desc_stats) +
-            ofl_structs_buckets_ofp_total_len(src->buckets, src->buckets_num, exp);
+            ofl_structs_buckets_ofp_total_len((struct ofl_bucket const **)src->buckets, src->buckets_num, exp);
 
     dst->length =       htons( total_len);
     dst->type =                src->type;
@@ -725,8 +753,8 @@ ofl_structs_group_desc_stats_pack(struct ofl_group_desc_stats *src, struct ofp_g
 
 
 size_t
-ofl_structs_queue_prop_ofp_total_len(struct ofl_queue_prop_header ** props,
-                                     size_t props_num) {
+ofl_structs_queue_prop_ofp_total_len(struct ofl_queue_prop_header const ** props, size_t props_num)
+{
     size_t sum;
     OFL_UTILS_SUM_ARR_FUN(sum, props, props_num,
             ofl_structs_queue_prop_ofp_len);
@@ -734,7 +762,8 @@ ofl_structs_queue_prop_ofp_total_len(struct ofl_queue_prop_header ** props,
 }
 
 size_t
-ofl_structs_queue_prop_ofp_len(struct ofl_queue_prop_header *prop) {
+ofl_structs_queue_prop_ofp_len(struct ofl_queue_prop_header const *prop)
+{
     switch (prop->type) {
 
         case OFPQT_MIN_RATE: {
@@ -751,8 +780,8 @@ ofl_structs_queue_prop_ofp_len(struct ofl_queue_prop_header *prop) {
 }
 
 size_t
-ofl_structs_queue_prop_pack(struct ofl_queue_prop_header *src,
-                            struct ofp_queue_prop_header *dst) {
+ofl_structs_queue_prop_pack(struct ofl_queue_prop_header const *src, struct ofp_queue_prop_header *dst)
+{
     dst->property = htons(src->type);
     memset(dst->pad, 0x00, 4);
 
@@ -794,8 +823,8 @@ ofl_structs_queue_prop_pack(struct ofl_queue_prop_header *src,
 }
 
 size_t
-ofl_structs_packet_queue_ofp_total_len(struct ofl_packet_queue ** queues,
-                                       size_t queues_num) {
+ofl_structs_packet_queue_ofp_total_len(struct ofl_packet_queue const ** queues, size_t queues_num)
+{
     size_t sum;
     OFL_UTILS_SUM_ARR_FUN(sum, queues, queues_num,
             ofl_structs_packet_queue_ofp_len);
@@ -803,20 +832,22 @@ ofl_structs_packet_queue_ofp_total_len(struct ofl_packet_queue ** queues,
 }
 
 size_t
-ofl_structs_packet_queue_ofp_len(struct ofl_packet_queue *queue) {
+ofl_structs_packet_queue_ofp_len(struct ofl_packet_queue const *queue)
+{
     return sizeof(struct ofp_packet_queue) +
-           ofl_structs_queue_prop_ofp_total_len(queue->properties,
+           ofl_structs_queue_prop_ofp_total_len((struct ofl_queue_prop_header const **)queue->properties,
                                                 queue->properties_num);
 }
 
 size_t
-ofl_structs_packet_queue_pack(struct ofl_packet_queue *src, struct ofp_packet_queue *dst) {
+ofl_structs_packet_queue_pack(struct ofl_packet_queue const *src, struct ofp_packet_queue *dst)
+{
     size_t total_len, len;
     uint8_t *data;
     size_t i;
 
     total_len = sizeof(struct ofp_packet_queue) +
-                ofl_structs_queue_prop_ofp_total_len(src->properties,
+                ofl_structs_queue_prop_ofp_total_len((struct ofl_queue_prop_header const **)src->properties,
                                                      src->properties_num);
 
     dst->len = htons(total_len);
@@ -836,7 +867,8 @@ ofl_structs_packet_queue_pack(struct ofl_packet_queue *src, struct ofp_packet_qu
 
 
 size_t
-ofl_structs_port_pack(struct ofl_port *src, struct ofp_port *dst) {
+ofl_structs_port_pack(struct ofl_port const *src, struct ofp_port *dst)
+{
     dst->port_no    = htonl(src->port_no);
     memset(dst->pad, 0x00, 4);
     memcpy(dst->hw_addr, src->hw_addr, ETH_ADDR_LEN);
@@ -855,7 +887,8 @@ ofl_structs_port_pack(struct ofl_port *src, struct ofp_port *dst) {
 }
 
 size_t
-ofl_structs_table_stats_pack(struct ofl_table_stats *src, struct ofp_table_stats *dst) {
+ofl_structs_table_stats_pack(struct ofl_table_stats const *src, struct ofp_table_stats *dst)
+{
     dst->table_id =    src->table_id;
     memset(dst->pad, 0x00, 3);
     dst->active_count =  htonl( src->active_count);
@@ -866,7 +899,8 @@ ofl_structs_table_stats_pack(struct ofl_table_stats *src, struct ofp_table_stats
 }
 
 size_t
-ofl_structs_port_stats_pack(struct ofl_port_stats *src, struct ofp_port_stats *dst) {
+ofl_structs_port_stats_pack(struct ofl_port_stats const *src, struct ofp_port_stats *dst)
+{
     dst->port_no      = htonl( src->port_no);
     memset(dst->pad, 0x00, 4);
     dst->rx_packets   = hton64(src->rx_packets);
@@ -888,7 +922,8 @@ ofl_structs_port_stats_pack(struct ofl_port_stats *src, struct ofp_port_stats *d
 }
 
 size_t
-ofl_structs_queue_stats_pack(struct ofl_queue_stats *src, struct ofp_queue_stats *dst) {
+ofl_structs_queue_stats_pack(struct ofl_queue_stats const *src, struct ofp_queue_stats *dst)
+{
     dst->port_no = htonl(src->port_no);
     dst->queue_id = htonl(src->queue_id);
     dst->tx_bytes = hton64(src->tx_bytes);
@@ -901,7 +936,8 @@ ofl_structs_queue_stats_pack(struct ofl_queue_stats *src, struct ofp_queue_stats
 }
 
 size_t
-ofl_structs_bucket_counter_pack(struct ofl_bucket_counter *src, struct ofp_bucket_counter *dst) {
+ofl_structs_bucket_counter_pack(struct ofl_bucket_counter const *src, struct ofp_bucket_counter *dst)
+{
     dst->packet_count = hton64(src->packet_count);
     dst->byte_count = hton64(src->byte_count);
 
@@ -910,7 +946,8 @@ ofl_structs_bucket_counter_pack(struct ofl_bucket_counter *src, struct ofp_bucke
 
 
 size_t
-ofl_structs_match_ofp_len(struct ofl_match_header *match, struct ofl_exp *exp) {
+ofl_structs_match_ofp_len(struct ofl_match_header const *match, struct ofl_exp const *exp)
+{
     switch (match->type) {
         case (OFPMT_STANDARD): {
             return (sizeof(struct ofp_match));
@@ -926,7 +963,8 @@ ofl_structs_match_ofp_len(struct ofl_match_header *match, struct ofl_exp *exp) {
 }
 
 size_t
-ofl_structs_match_pack(struct ofl_match_header *src, struct ofp_match *dst, uint8_t* oxm_fields, struct ofl_exp *exp) {
+ofl_structs_match_pack(struct ofl_match_header const *src, struct ofp_match *dst, uint8_t * oxm_fields, struct ofl_exp const *exp)
+{
     switch (src->type) {
         case (OFPMT_OXM): {
             struct ofl_match *m = (struct ofl_match *)src;
@@ -937,7 +975,7 @@ ofl_structs_match_pack(struct ofl_match_header *src, struct ofp_match *dst, uint
             dst->length = htons(sizeof(struct ofp_match) - 4);
             if (src->length){
                 oxm_len = oxm_put_match(b, m, exp);
-                memcpy(oxm_fields, (uint8_t*) ofpbuf_pull(b,oxm_len), oxm_len);
+                memcpy(oxm_fields, (uint8_t*) ofpbuf_pull(b, oxm_len), oxm_len);
                 dst->length = htons(oxm_len + ((sizeof(struct ofp_match )-4)));
                 ofpbuf_delete(b);
                 return ntohs(dst->length);

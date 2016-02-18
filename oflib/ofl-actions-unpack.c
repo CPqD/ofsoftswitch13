@@ -49,7 +49,8 @@ OFL_LOG_INIT(LOG_MODULE)
 
 
 ofl_err
-ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action_header **dst, struct ofl_exp *exp) {
+ofl_actions_unpack(struct ofp_action_header const *src, size_t *len, struct ofl_action_header **dst, struct ofl_exp const *exp)
+{
 
     ofl_err error = 0;
 
@@ -368,6 +369,6 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
         }
     }
     (*dst)->type = (enum ofp_action_type)ntohs(src->type);
-    
+
     return error;
 }

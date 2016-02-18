@@ -54,7 +54,6 @@ static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(60, 60);
 
 void
 dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
-
     if(act->experimenter_id == BEBA_VENDOR_ID)
     {
         struct ofl_exp_beba_act_header *action;
@@ -96,7 +95,7 @@ dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
                 break;
             }
             default:
-                VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute unknown experimenter action (%zu).", htonl(act->experimenter_id));
+                VLOG_WARN_RL(LOG_MODULE, &rl, "Trying to execute unknown experimenter action (%u).", htonl(act->experimenter_id));
                 break;
         }
         if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
@@ -247,7 +246,6 @@ dp_exp_message(struct datapath *dp, struct ofl_msg_experimenter *msg, const stru
                 }
             }
         }
-        break;
         case (BEBA_VENDOR_ID): {
             struct ofl_exp_beba_msg_header *exp = (struct ofl_exp_beba_msg_header *)msg;
             struct ofl_exp_msg_notify_state_change ntf_message;
@@ -272,7 +270,6 @@ dp_exp_message(struct datapath *dp, struct ofl_msg_experimenter *msg, const stru
                 }
             }
         }
-        break;
         default: {
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
         }
