@@ -107,7 +107,7 @@ dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
 }
 
 void
-dp_exp_inst(struct packet *pkt, struct ofl_instruction_experimenter *inst) {
+dp_exp_inst(struct packet *pkt UNUSED, struct ofl_instruction_experimenter *inst) {
 	switch (inst->experimenter_id) {
 		case (BEBA_VENDOR_ID): {
 			struct ofl_exp_beba_instr_header *beba_inst = (struct ofl_exp_beba_instr_header*) inst;
