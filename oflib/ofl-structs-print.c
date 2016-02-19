@@ -601,8 +601,7 @@ void
 ofl_structs_flow_stats_print(FILE *stream, struct ofl_flow_stats *s, struct ofl_exp const *exp)
 {
     size_t i;
-    extern int colors;
-    if(colors) 
+    if(ofl_colored_output())
     {
 	    fprintf(stream, "{\x1B[31mtable\x1B[0m=\"");
 	    ofl_table_print(stream, s->table_id);
@@ -634,7 +633,7 @@ ofl_structs_flow_stats_print(FILE *stream, struct ofl_flow_stats *s, struct ofl_
         ofl_structs_instruction_print(stream, s->instructions[i], exp);
         if (i < s->instructions_num - 1) { fprintf(stream, ", "); };
     }
-    if (colors)
+    if (ofl_colored_output())
     	fprintf(stream, "]}");
 }
 
@@ -652,8 +651,7 @@ ofl_structs_bucket_counter_to_string(struct ofl_bucket_counter *s)
 void
 ofl_structs_bucket_counter_print(FILE *stream, struct ofl_bucket_counter *c)
 {
-	extern int colors;
-    if (colors){
+    if (ofl_colored_output()){
 		fprintf(stream, "{\x1B[32mpkt_cnt\x1B[0m=\"%"PRIu64"\", byte_cnt=\"%"PRIu64"\"}",
                   c->packet_count, c->byte_count);
     }
@@ -680,8 +678,7 @@ void
 ofl_structs_group_stats_print(FILE *stream, struct ofl_group_stats *s)
 {
     size_t i;
-    extern int colors;
-    if (colors)
+    if (ofl_colored_output())
     {
     	fprintf(stream, "{\x1B[31mgroup\x1B[0m=\"");
 		ofl_group_print(stream, s->group_id);
@@ -702,7 +699,7 @@ ofl_structs_group_stats_print(FILE *stream, struct ofl_group_stats *s)
         if (i < s->counters_num - 1) { fprintf(stream, ", "); };
     }
 
-    if(colors)
+    if(ofl_colored_output())
     	fprintf(stream, "]}\n\n");
     else
     	fprintf(stream, "]}");
@@ -1053,11 +1050,10 @@ void
 ofl_structs_group_desc_stats_print(FILE *stream, struct ofl_group_desc_stats *s, struct ofl_exp const *exp)
 {
     size_t i;
-    extern int colors;
 
     fprintf(stream, "{type=\"");
     ofl_group_type_print(stream, s->type);
-    if(colors)
+    if(ofl_colored_output())
     {
     	fprintf(stream, "\", \x1B[31mgroup\x1B[0m=\"");
     	ofl_group_print(stream, s->group_id);
@@ -1073,13 +1069,13 @@ ofl_structs_group_desc_stats_print(FILE *stream, struct ofl_group_desc_stats *s,
     for (i=0; i<s->buckets_num; i++) {
         ofl_structs_bucket_print(stream, s->buckets[i], exp);
         if (i < s->buckets_num - 1) {
-        	if(colors)
+        	if(ofl_colored_output())
                 fprintf(stream, ",\n\n");
             else
                 fprintf(stream, ", "); };
     }
 
-    if(colors)
+    if(ofl_colored_output())
     	fprintf(stream, "]}\n\n");
     else
     	fprintf(stream, "]}");

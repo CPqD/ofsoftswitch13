@@ -204,4 +204,9 @@ ofl_enable_colors(void)
     colors = 1;
 }
 
+static inline int
+ofl_colored_output(){
+    return colors;
+}
+
 #endif /* OFL_H 1 */

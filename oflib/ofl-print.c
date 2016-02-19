@@ -245,8 +245,7 @@ ofl_action_type_to_string(uint16_t type)
 void
 ofl_action_type_print(FILE *stream, uint16_t type)
 {
-    extern int colors;
-    if(colors) {
+    if(ofl_colored_output()) {
         switch (type) {
             case OFPAT_OUTPUT: {   fprintf(stream, "\x1B[36mout\x1B[0m"); return; }
             case OFPAT_SET_FIELD: {   fprintf(stream, "\x1B[36mset_field\x1B[0m"); return; }
@@ -370,8 +369,7 @@ ofl_instruction_type_to_string(uint16_t type)
 void
 ofl_instruction_type_print(FILE *stream, uint16_t type)
 {
-    extern int colors;
-    if(colors)
+    if(ofl_colored_output())
     {
         switch (type) {
             case OFPIT_GOTO_TABLE: {    fprintf(stream, "\x1B[32mgoto\x1B[0m"); return; }

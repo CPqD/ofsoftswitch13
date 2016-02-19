@@ -420,18 +420,17 @@ ofl_msg_print_stats_reply_flow(struct ofl_msg_multipart_reply_flow const *msg, F
 {
     size_t i;
     size_t last_table_id = -1;
-    extern int colors;
 
     fprintf(stream, ", stats=[");
     
     for (i=0; i<msg->stats_num; i++) {
 
-        if(last_table_id != msg->stats[i]->table_id && colors)
+        if(last_table_id != msg->stats[i]->table_id && ofl_colored_output())
             fprintf(stream, "\n\n\x1B[33mTABLE = %d\x1B[0m\n\n",msg->stats[i]->table_id);
         last_table_id = msg->stats[i]->table_id;
         ofl_structs_flow_stats_print(stream, msg->stats[i], exp);
         if (i < msg->stats_num - 1) { 
-            if(colors)
+            if(ofl_colored_output())
                 fprintf(stream, ",\n\n");
             else
                 fprintf(stream, ",\n"); };
@@ -482,14 +481,13 @@ static void
 ofl_msg_print_stats_reply_queue(struct ofl_msg_multipart_reply_queue const *msg, FILE *stream)
 {
     size_t i;
-    extern int colors;
 
     fprintf(stream, ", stats=[");
 
     for (i=0; i<msg->stats_num; i++) {
         ofl_structs_queue_stats_print(stream, msg->stats[i]);
         if (i < msg->stats_num - 1) {
-            if(colors)
+            if(ofl_colored_output())
                 fprintf(stream, ",\n\n");
             else
                 fprintf(stream, ",\n"); };
@@ -501,7 +499,6 @@ static void
 ofl_msg_print_stats_reply_group(struct ofl_msg_multipart_reply_group const *msg, FILE *stream)
 {
     size_t i;
-    extern int colors;
 
     fprintf(stream, ", stats=[");
 

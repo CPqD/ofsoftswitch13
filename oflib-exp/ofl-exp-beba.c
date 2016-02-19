@@ -961,24 +961,24 @@ ofl_exp_beba_stats_reply_to_string(struct ofl_msg_multipart_reply_experimenter c
             struct ofl_exp_msg_multipart_reply_state *msg = (struct ofl_exp_msg_multipart_reply_state *)e;
             size_t i;
             size_t last_table_id = -1;
-            extern int colors;
+
             fprintf(stream, "{exp_type=\"");
             ofl_exp_stats_type_print(stream, e->type);
             fprintf(stream, "\", stats=[");
 
             for (i=0; i<msg->stats_num; i++) {
 
-                if(last_table_id != msg->stats[i]->table_id && colors)
+                if(last_table_id != msg->stats[i]->table_id && ofl_colored_output())
                     fprintf(stream, "\n\n\x1B[33mTABLE = %d\x1B[0m\n\n",msg->stats[i]->table_id);
                 last_table_id = msg->stats[i]->table_id;
                 ofl_structs_state_stats_print(stream, msg->stats[i], exp);
                 if (i < msg->stats_num - 1) {
-                    if(colors)
+                    if(ofl_colored_output())
                         fprintf(stream, ",\n\n");
                     else
                         fprintf(stream, ", "); };
             }
-            if(colors)
+            if(ofl_colored_output())
                 fprintf(stream, "\n\n");
             fprintf(stream, "]");
             break;
@@ -986,7 +986,7 @@ ofl_exp_beba_stats_reply_to_string(struct ofl_msg_multipart_reply_experimenter c
         case (OFPMP_EXP_GLOBAL_STATE_STATS):
         {
             struct ofl_exp_msg_multipart_reply_global_state *msg = (struct ofl_exp_msg_multipart_reply_global_state *)e;
-            extern int colors;
+
             fprintf(stream, "{stat_exp_type=\"");
             ofl_exp_stats_type_print(stream, e->type);
             fprintf(stream, "\", global_state=\"%s\"",decimal_to_binary(msg->global_state));
@@ -2621,8 +2621,7 @@ ofl_structs_state_stats_print(FILE *stream, struct ofl_exp_state_stats *s, struc
 {
     size_t i;
     uint8_t offset=0;
-    extern int colors;
-    if(colors)
+    if(ofl_colored_output())
     {
         fprintf(stream, "{\x1B[31mtable\x1B[0m=\"");
         ofl_table_print(stream, s->table_id);
