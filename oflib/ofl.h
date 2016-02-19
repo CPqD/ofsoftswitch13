@@ -205,7 +205,7 @@ ofl_enable_colors(void)
 }
 
 static inline int
-ofl_colored_output(){
+ofl_colored_output(void){
     return colors;
 }
 
