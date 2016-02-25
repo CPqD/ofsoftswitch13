@@ -209,7 +209,7 @@ ofl_structs_set_global_state_unpack(struct ofp_exp_set_global_state const *src, 
 }
 
 int
-ofl_exp_beba_msg_pack(struct ofl_msg_experimenter const *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp const *exp)
+ofl_exp_beba_msg_pack(struct ofl_msg_experimenter const *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp const *exp UNUSED)
 {
     struct ofl_exp_beba_msg_header *exp_msg = (struct ofl_exp_beba_msg_header *)msg;
     switch (exp_msg->type) {
@@ -1057,7 +1057,7 @@ ofl_exp_beba_stats_reply_free(struct ofl_msg_multipart_reply_header *msg)
         case (OFPT_EXP_FLOW_NOTIFICATION):
         {
             struct ofl_exp_msg_notify_flow_change * a = (struct ofl_exp_msg_notify_flow_change *) ext;
-            if (a->instruction_num>0 & a->instructions!=NULL){
+            if (a->instruction_num>0 && a->instructions!=NULL){
                 free(a->instructions);
             }
             free(a);
@@ -1369,20 +1369,22 @@ ofl_error_beba_exp_type_print(FILE *stream, uint16_t exp_type)
 /* Instruction expertimenter callback implementation */
 //TODO implement callbacks
 int
-ofl_exp_beba_inst_pack (struct ofl_instruction_header *src, struct ofp_instruction *dst) {
+ofl_exp_beba_inst_pack (struct ofl_instruction_header const *src, struct ofp_instruction *dst) {
 
     struct ofl_instruction_experimenter *exp = (struct ofl_instruction_experimenter *) src;
     struct ofl_exp_beba_instr_header *ext = (struct ofl_exp_beba_instr_header *) exp;
 
     switch (ext->instr_type) {
         case OFPIT_IN_SWITCH_PKT_GEN: {
-            OFL_LOG_DBG(LOG_MODULE, "ofl_exp_beba_inst_pack OFPIT_IN_SWITCH_PKT_GEN");
-            size_t total_len, len;
+            size_t total_len;
+            size_t len;
             uint8_t *data;
             size_t i;
 
             struct ofl_exp_instruction_in_switch_pkt_gen *si = (struct ofl_exp_instruction_in_switch_pkt_gen *)src;
             struct ofp_exp_instruction_in_switch_pkt_gen *di = (struct ofp_exp_instruction_in_switch_pkt_gen *)dst;
+
+            OFL_LOG_DBG(LOG_MODULE, "ofl_exp_beba_inst_pack OFPIT_IN_SWITCH_PKT_GEN");
 
             //TODO may need to pass callbacks instead of NULL
             total_len = sizeof(struct ofp_exp_instruction_in_switch_pkt_gen) + ofl_actions_ofp_total_len(si->actions, si->actions_num, NULL);
@@ -1412,7 +1414,7 @@ ofl_exp_beba_inst_pack (struct ofl_instruction_header *src, struct ofp_instructi
 }
 
 ofl_err
-ofl_exp_beba_inst_unpack (struct ofp_instruction *src, size_t *len, struct ofl_instruction_header **dst) {
+ofl_exp_beba_inst_unpack (struct ofp_instruction const *src, size_t *len, struct ofl_instruction_header **dst) {
 
     struct ofl_instruction_header *inst = NULL;
     size_t ilen;
@@ -1490,7 +1492,7 @@ ofl_exp_beba_inst_unpack (struct ofp_instruction *src, size_t *len, struct ofl_i
 
     (*dst) = inst;
 
-    if (!error & ilen != 0) {
+    if (!error && ilen != 0) {
         *len = *len - ntohs(src->len) + ilen;
         OFL_LOG_WARN(LOG_MODULE, "The received instruction contained extra bytes (%zu).", ilen);
         ofl_exp_beba_inst_free(inst);
@@ -1528,7 +1530,7 @@ ofl_exp_beba_inst_free (struct ofl_instruction_header *i) {
 }
 
 size_t
-ofl_exp_beba_inst_ofp_len (struct ofl_instruction_header *i) {
+ofl_exp_beba_inst_ofp_len (struct ofl_instruction_header const *i) {
     struct ofl_instruction_experimenter *exp = (struct ofl_instruction_experimenter *) i;
 
     struct ofl_exp_beba_instr_header *ext = (struct ofl_exp_beba_instr_header *)exp;
@@ -1549,7 +1551,7 @@ ofl_exp_beba_inst_ofp_len (struct ofl_instruction_header *i) {
 }
 
 char *
-ofl_exp_beba_inst_to_string (struct ofl_instruction_header *i)
+ofl_exp_beba_inst_to_string (struct ofl_instruction_header const *i)
 {
     struct ofl_instruction_experimenter *exp = (struct ofl_instruction_experimenter *) i;
 
@@ -1873,8 +1875,7 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
     uint32_t old_state = 0,new_state = 0;
     uint64_t now;
     struct timeval tv;
-    ofl_err res;
-    res = 0;
+    ofl_err res = 0;
 
     int i;
     uint32_t key_len=0; //update-scope key extractor length

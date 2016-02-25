@@ -393,19 +393,19 @@ ofl_utils_count_ofp_state_stats(void *data, size_t data_len, size_t *count);
 
 /* instruction experimenter callback functions */
 int
-ofl_exp_beba_inst_pack (struct ofl_instruction_header *src, struct ofp_instruction *dst);
+ofl_exp_beba_inst_pack (struct ofl_instruction_header const *src, struct ofp_instruction *dst);
 
 ofl_err
-ofl_exp_beba_inst_unpack (struct ofp_instruction *src, size_t *len, struct ofl_instruction_header **dst);
+ofl_exp_beba_inst_unpack (struct ofp_instruction const *src, size_t *len, struct ofl_instruction_header **dst);
 
 int
 ofl_exp_beba_inst_free (struct ofl_instruction_header *i);
 
 size_t
-ofl_exp_beba_inst_ofp_len (struct ofl_instruction_header *i);
+ofl_exp_beba_inst_ofp_len (struct ofl_instruction_header const *i);
 
 char *
-ofl_exp_beba_inst_to_string (struct ofl_instruction_header *i);
+ofl_exp_beba_inst_to_string (struct ofl_instruction_header const *i);
 
 /* Experimenter erorrs callback functions */
 

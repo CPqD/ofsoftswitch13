@@ -477,7 +477,7 @@ ofl_exp_field_overlap_b (struct ofl_match_tlv *f_b, int *field_len, uint8_t **va
 }
 
 int
-ofl_exp_inst_pack (struct ofl_instruction_header *src, struct ofp_instruction *dst) {
+ofl_exp_inst_pack (struct ofl_instruction_header const *src, struct ofp_instruction *dst) {
 	struct ofl_instruction_experimenter *exp = (struct ofl_instruction_experimenter *) src;
 	switch (exp->experimenter_id) {
 		case (BEBA_VENDOR_ID): {
@@ -491,7 +491,7 @@ ofl_exp_inst_pack (struct ofl_instruction_header *src, struct ofp_instruction *d
 }
 
 ofl_err
-ofl_exp_inst_unpack (struct ofp_instruction *src, size_t *len, struct ofl_instruction_header **dst) {
+ofl_exp_inst_unpack (struct ofp_instruction const *src, size_t *len, struct ofl_instruction_header **dst) {
     struct ofp_instruction_experimenter_header *exp;
 
     if (*len < sizeof(struct ofp_instruction_experimenter_header)) {
@@ -528,7 +528,7 @@ ofl_exp_inst_free (struct ofl_instruction_header *i) {
 }
 
 size_t
-ofl_exp_inst_ofp_len (struct ofl_instruction_header *i) {
+ofl_exp_inst_ofp_len (struct ofl_instruction_header const *i) {
 	struct ofl_instruction_experimenter *exp = (struct ofl_instruction_experimenter *) i;
 	switch (exp->experimenter_id) {
 		case (BEBA_VENDOR_ID): {
@@ -542,7 +542,7 @@ ofl_exp_inst_ofp_len (struct ofl_instruction_header *i) {
 }
 
 char *
-ofl_exp_inst_to_string (struct ofl_instruction_header *i) {
+ofl_exp_inst_to_string (struct ofl_instruction_header const *i) {
 	struct ofl_instruction_experimenter *exp = (struct ofl_instruction_experimenter *) i;
     switch (exp->experimenter_id) {
         case (BEBA_VENDOR_ID): {
