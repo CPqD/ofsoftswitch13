@@ -1057,7 +1057,7 @@ ofl_msg_pack(struct ofl_msg_header const *msg, uint32_t xid, uint8_t **buf, size
                 OFL_LOG_WARN(LOG_MODULE, "Trying to pack experimenter msg, but no callback was given.");
                 error = -1;
             } else {
-                error = exp->msg->pack((struct ofl_msg_experimenter *)msg, buf, buf_len);
+                error = exp->msg->pack((struct ofl_msg_experimenter *)msg, buf, buf_len, exp);
             }
             break;
         }

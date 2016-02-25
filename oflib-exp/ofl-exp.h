@@ -37,7 +37,7 @@
 
 
 int
-ofl_exp_msg_pack(struct ofl_msg_experimenter const *msg, uint8_t **buf, size_t *buf_len);
+ofl_exp_msg_pack(struct ofl_msg_experimenter const *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp const *exp);
 
 ofl_err
 ofl_exp_msg_unpack(struct ofp_header const *oh, size_t *len, struct ofl_msg_experimenter **msg);

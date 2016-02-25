@@ -209,13 +209,13 @@ ofl_structs_set_global_state_unpack(struct ofp_exp_set_global_state const *src, 
 }
 
 int
-ofl_exp_beba_msg_pack(struct ofl_msg_experimenter const *msg, uint8_t **buf, size_t *buf_len)
+ofl_exp_beba_msg_pack(struct ofl_msg_experimenter const *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp const *exp)
 {
-    struct ofl_exp_beba_msg_header *exp = (struct ofl_exp_beba_msg_header *)msg;
-    switch (exp->type) {
+    struct ofl_exp_beba_msg_header *exp_msg = (struct ofl_exp_beba_msg_header *)msg;
+    switch (exp_msg->type) {
        /* State Sync: Pack the state change message */
        case(OFPT_EXP_STATE_CHANGED): {
-           struct ofl_exp_msg_notify_state_change *ntf = (struct ofl_exp_msg_notify_state_change *) exp;
+           struct ofl_exp_msg_notify_state_change *ntf = (struct ofl_exp_msg_notify_state_change *) exp_msg;
            struct ofp_exp_msg_state_ntf *ntf_msg;
 
            *buf_len = sizeof(struct ofp_exp_msg_state_ntf);

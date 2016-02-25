@@ -63,7 +63,7 @@ ofl_exp_unknown_id_to_string(int id)
 
 
 int
-ofl_exp_msg_pack(struct ofl_msg_experimenter const *msg, uint8_t **buf, size_t *buf_len)
+ofl_exp_msg_pack(struct ofl_msg_experimenter const *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp const *exp)
 {
     switch (msg->experimenter_id) {
         case (OPENFLOW_VENDOR_ID): {
@@ -73,7 +73,7 @@ ofl_exp_msg_pack(struct ofl_msg_experimenter const *msg, uint8_t **buf, size_t *
             return ofl_exp_nicira_msg_pack(msg, buf, buf_len);
         }
         case (BEBA_VENDOR_ID): {
-            return ofl_exp_beba_msg_pack(msg, buf, buf_len);
+            return ofl_exp_beba_msg_pack(msg, buf, buf_len, exp);
         }
         default: {
             OFL_LOG_WARN(LOG_MODULE, "Trying to pack unknown EXPERIMENTER message (%u).", msg->experimenter_id);
