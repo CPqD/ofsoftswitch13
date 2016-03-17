@@ -176,6 +176,11 @@ struct ofl_exp_action_set_global_state {
     uint32_t global_state_mask;
 };
 
+struct ofl_exp_action_inc_state {
+    struct ofl_exp_beba_act_header header; /* OFPAT_EXP_INC_STATE */
+ 
+    uint8_t table_id; 
+};
 
 /*************************************************************************/
 /*                        experimenter state table						 */
@@ -238,6 +243,8 @@ struct ofl_exp_msg_notify_flow_change {
 };
 
 /*experimenter table functions*/
+int __extract_key(uint8_t *, struct key_extractor *, struct packet *);
+
 struct state_table *
 state_table_create(void);
 
@@ -260,6 +267,9 @@ state_table_write_state(struct state_entry *, struct packet *);
  */
 ofl_err
 state_table_set_state(struct state_table *, struct packet *, struct ofl_exp_set_flow_state *msg, struct ofl_exp_action_set_state *act, struct ofl_exp_msg_notify_state_change * ntf_message);
+
+ofl_err
+state_table_inc_state(struct state_table *, struct packet *, struct ofl_exp_action_inc_state *act, struct ofl_exp_msg_notify_state_change * ntf_message);
 
 ofl_err
 state_table_set_extractor(struct state_table *, struct key_extractor *, int);

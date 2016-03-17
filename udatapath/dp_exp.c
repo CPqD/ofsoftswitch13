@@ -47,6 +47,9 @@
 #include "openflow/beba-ext.h"
 #include "vlog.h"
 #include "pipeline.h"
+#include <sys/time.h>
+#include "lib/hash.h"
+#include "oflib/oxm-match.h"
 
 #define LOG_MODULE VLM_dp_exp
 
@@ -92,6 +95,20 @@ dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
 
                 global_state = (global_state & ~(wns->global_state_mask)) | (wns->global_state & wns->global_state_mask);
                 pkt->dp->global_state = global_state;
+                break;
+            }
+            case(OFPAT_EXP_INC_STATE):
+            {
+                struct ofl_exp_action_inc_state *wns = (struct ofl_exp_action_inc_state *)action;
+                if (state_table_is_stateful(pkt->dp->pipeline->tables[wns->table_id]->state_table) && state_table_is_configured(pkt->dp->pipeline->tables[wns->table_id]->state_table))
+                {
+                    struct state_table *table = pkt->dp->pipeline->tables[wns->table_id]->state_table;
+                    state_table_inc_state(table, pkt, wns, &ntf_message); //ntf_message not implemented in this case                
+                }
+                else
+                {
+                    VLOG_WARN_RL(LOG_MODULE, &rl, "ERROR NEXT STATE at stage %u: stage not stateful", wns->table_id);
+                }
                 break;
             }
             default:
