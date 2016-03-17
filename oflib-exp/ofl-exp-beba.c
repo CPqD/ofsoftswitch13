@@ -477,6 +477,37 @@ ofl_exp_beba_act_unpack(struct ofp_action_header const *src, size_t *len, struct
             break;
         }
 
+        case (OFPAT_EXP_INC_STATE):
+        {
+            struct ofp_exp_action_inc_state *sa;
+            struct ofl_exp_action_inc_state *da;
+            sa = (struct ofp_exp_action_inc_state*)ext;
+            da = (struct ofl_exp_action_inc_state *)malloc(sizeof(struct ofl_exp_action_inc_state));
+
+            da->header.header.experimenter_id = ntohl(exp->experimenter);
+            da->header.act_type = ntohl(ext->act_type);
+
+            *dst = (struct ofl_action_header *)da;
+            if (*len < sizeof(struct ofp_exp_action_inc_state)) {
+                OFL_LOG_WARN(LOG_MODULE, "Received SET INC STATE action has invalid length (%zu).", *len);
+                return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
+            }
+
+            if (sa->table_id >= PIPELINE_TABLES) {
+                if (OFL_LOG_IS_WARN_ENABLED(LOG_MODULE)) {
+                    char *ts = ofl_table_to_string(sa->table_id);
+                    OFL_LOG_WARN(LOG_MODULE, "Received SET INC STATE action has invalid table_id (%s).", ts);
+                    free(ts);
+                }
+                return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_TABLE_ID);
+            }
+            
+            da->table_id = sa->table_id;
+
+            *len -= sizeof(struct ofp_exp_action_inc_state);
+            break;
+        }
+
         default:
         {
             struct ofl_action_experimenter *da;
@@ -533,6 +564,20 @@ ofl_exp_beba_act_pack(struct ofl_action_header const *src, struct ofp_action_hea
 
             return sizeof(struct ofp_exp_action_set_global_state);
         }
+        case (OFPAT_EXP_INC_STATE):
+        {
+            struct ofl_exp_action_inc_state *sa = (struct ofl_exp_action_inc_state *) ext;
+            struct ofp_exp_action_inc_state *da = (struct ofp_exp_action_inc_state *) dst;
+
+            da->header.header.experimenter = htonl(exp->experimenter_id);
+            da->header.act_type = htonl(ext->act_type);
+            memset(da->header.pad, 0x00, 4);
+            da->table_id = sa->table_id;
+            memset(da->pad, 0x00, 7);
+            dst->len = htons(sizeof(struct ofp_exp_action_inc_state));
+
+            return sizeof(struct ofp_exp_action_inc_state);
+        }
         default:
             return 0;
     }
@@ -549,6 +594,8 @@ ofl_exp_beba_act_ofp_len(struct ofl_action_header const *act)
             return sizeof(struct ofp_exp_action_set_state);
         case (OFPAT_EXP_SET_GLOBAL_STATE):
             return sizeof(struct ofp_exp_action_set_global_state);
+        case (OFPAT_EXP_INC_STATE):
+            return sizeof(struct ofp_exp_action_inc_state);
         default:
             return 0;
     }
@@ -577,6 +624,13 @@ ofl_exp_beba_act_to_string(struct ofl_action_header const *act)
             sprintf(string, "{set_global_state=[global_state=%s]}", string_value);
             return string;
         }
+        case (OFPAT_EXP_INC_STATE):
+        {
+            struct ofl_exp_action_inc_state *a = (struct ofl_exp_action_inc_state *)ext;
+            char *string = malloc(100);
+            sprintf(string, "{inc_state=[table_id=\"%u\"]}", a->table_id);
+            return string;
+        }
     }
     return NULL;
 }
@@ -599,6 +653,12 @@ ofl_exp_beba_act_free(struct ofl_action_header *act)
             struct ofl_exp_action_set_global_state *a = (struct ofl_exp_action_set_global_state *)ext;
             free(a);
             break;
+        }
+        case (OFPAT_EXP_INC_STATE):
+        {
+            struct ofl_exp_action_inc_state *a = (struct ofl_exp_action_inc_state *)ext;
+            free(a);
+            break;   
         }
         default: {
             OFL_LOG_WARN(LOG_MODULE, "Trying to free unknown Beba Experimenter action.");
@@ -1579,8 +1639,6 @@ ofl_exp_beba_inst_to_string (struct ofl_instruction_header const *i)
 
 /*experimenter table functions*/
 
-int __extract_key(uint8_t *, struct key_extractor *, struct packet *);
-
 struct state_table * state_table_create(void)
 {
     struct state_table *table = malloc(sizeof(struct state_table));
@@ -2050,6 +2108,54 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
         hmap_insert(&table->idle_entries, &e->idle_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
     }
     return res;
+}
+
+ofl_err state_table_inc_state(struct state_table *table, struct packet *pkt,
+                           struct ofl_exp_action_inc_state *act,
+                           struct ofl_exp_msg_notify_state_change *ntf_message){
+
+    uint8_t key[MAX_STATE_KEY_LEN] = {0};
+    uint32_t state = (uint32_t) 1; // Initial State condition
+    struct state_entry *e;
+    struct timeval tv;
+    uint64_t now;
+    ofl_err res = 0;
+
+    int i;
+    uint32_t key_len=0; //update-scope key extractor length
+    struct key_extractor *extractor=&table->write_key;
+    for (i=0; i<extractor->field_count; i++)
+    {
+        uint32_t type = (int)extractor->fields[i];
+        key_len = key_len + OXM_LENGTH(type);
+    }
+
+    if(!__extract_key(key, &table->write_key, pkt)){
+       OFL_LOG_DBG(LOG_MODULE, "lookup key fields not found in the packet's header");
+       return res;
+    }
+
+    HMAP_FOR_EACH_WITH_HASH(e, struct state_entry,
+        hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries){
+        if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
+            state_table_del_state(table, key, key_len);
+        }
+        state = e->state + (uint32_t) 1;
+    }
+
+    gettimeofday(&tv,NULL);
+    now = 1000000 * tv.tv_sec + tv.tv_usec;
+    e = xmalloc(sizeof(struct state_entry));
+    e->created = now;
+    e->stats = xmalloc(sizeof(struct ofl_exp_state_stats));
+    e->stats->idle_timeout = 0;
+    e->stats->hard_timeout = 0;
+    e->stats->idle_rollback = 0;
+    e->stats->hard_rollback = 0;
+    e->state = state;
+    memcpy(e->key, key, MAX_STATE_KEY_LEN);
+    hmap_insert(&table->state_entries, &e->hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
+    return 0;
 }
 
 /*
