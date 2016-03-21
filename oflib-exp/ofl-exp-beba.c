@@ -672,6 +672,7 @@ ofl_exp_beba_stats_req_pack(struct ofl_msg_multipart_request_experimenter const 
 {
     struct ofl_exp_beba_msg_multipart_request *e = (struct ofl_exp_beba_msg_multipart_request *)ext;
     switch (e->type){
+        case (OFPMP_EXP_STATE_STATS_AND_DELETE):
         case (OFPMP_EXP_STATE_STATS):
         {
             struct ofl_exp_msg_multipart_request_state *msg = (struct ofl_exp_msg_multipart_request_state *)e;
@@ -687,6 +688,10 @@ ofl_exp_beba_stats_req_pack(struct ofl_msg_multipart_request_experimenter const 
             exp_header = (struct ofp_experimenter_stats_header *)stats;
             exp_header -> experimenter = htonl(BEBA_VENDOR_ID);
             exp_header -> exp_type = htonl(OFPMP_EXP_STATE_STATS);
+            if (e->type == OFPMP_EXP_STATE_STATS)
+                exp_header -> exp_type = htonl(OFPMP_EXP_STATE_STATS);
+            else if (e->type == OFPMP_EXP_STATE_STATS_AND_DELETE)
+                exp_header -> exp_type = htonl(OFPMP_EXP_STATE_STATS_AND_DELETE);
             stats->table_id = msg->table_id;
             stats->get_from_state = msg->get_from_state;
             stats->state = htonl(msg->state);
@@ -724,6 +729,7 @@ ofl_exp_beba_stats_reply_pack(struct ofl_msg_multipart_reply_experimenter const 
 {
     struct ofl_exp_beba_msg_multipart_reply *e = (struct ofl_exp_beba_msg_multipart_reply *)ext;
     switch (e->type){
+        case (OFPMP_EXP_STATE_STATS_AND_DELETE):
         case (OFPMP_EXP_STATE_STATS):
         {
             struct ofl_exp_msg_multipart_reply_state *msg = (struct ofl_exp_msg_multipart_reply_state *)e;
@@ -739,6 +745,11 @@ ofl_exp_beba_stats_reply_pack(struct ofl_msg_multipart_reply_experimenter const 
             ext_header = (struct ofp_experimenter_stats_header*) data;
             ext_header->experimenter = htonl(BEBA_VENDOR_ID);
             ext_header->exp_type = htonl(OFPMP_EXP_STATE_STATS);
+            if (e->type == OFPMP_EXP_STATE_STATS)
+                ext_header->exp_type = htonl(OFPMP_EXP_STATE_STATS);
+            else if (e->type == OFPMP_EXP_STATE_STATS_AND_DELETE)
+                ext_header->exp_type = htonl(OFPMP_EXP_STATE_STATS_AND_DELETE);
+            
             data += sizeof(struct ofp_experimenter_stats_header);
             for (i=0; i<msg->stats_num; i++) {
                 data += ofl_structs_state_stats_pack(msg->stats[i], data, exp);
@@ -811,6 +822,7 @@ ofl_exp_beba_stats_req_unpack(struct ofp_multipart_request const *os, uint8_t co
 {
     struct ofp_experimenter_stats_header *ext = (struct ofp_experimenter_stats_header *)os->body;
     switch (ntohl(ext->exp_type)){
+        case (OFPMP_EXP_STATE_STATS_AND_DELETE):
         case (OFPMP_EXP_STATE_STATS):
         {
             struct ofp_exp_state_stats_request *sm;
@@ -870,6 +882,7 @@ ofl_exp_beba_stats_reply_unpack(struct ofp_multipart_reply const *os, uint8_t co
 {
     struct ofp_experimenter_stats_header *ext = (struct ofp_experimenter_stats_header *)os->body;
     switch (ntohl(ext->exp_type)){
+        case (OFPMP_EXP_STATE_STATS_AND_DELETE):
         case (OFPMP_EXP_STATE_STATS):
         {
             struct ofp_exp_state_stats *stat;
@@ -983,6 +996,7 @@ ofl_exp_beba_stats_request_to_string(struct ofl_msg_multipart_request_experiment
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
     switch (e->type){
+        case (OFPMP_EXP_STATE_STATS_AND_DELETE):
         case (OFPMP_EXP_STATE_STATS):
         {
             struct ofl_exp_msg_multipart_request_state const *msg = (struct ofl_exp_msg_multipart_request_state const *)e;
@@ -1016,6 +1030,7 @@ ofl_exp_beba_stats_reply_to_string(struct ofl_msg_multipart_reply_experimenter c
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
     switch (e->type){
+        case (OFPMP_EXP_STATE_STATS_AND_DELETE):
         case (OFPMP_EXP_STATE_STATS):
         {
             struct ofl_exp_msg_multipart_reply_state *msg = (struct ofl_exp_msg_multipart_reply_state *)e;
@@ -1077,6 +1092,7 @@ ofl_exp_beba_stats_req_free(struct ofl_msg_multipart_request_header *msg)
     struct ofl_msg_multipart_request_experimenter* exp = (struct ofl_msg_multipart_request_experimenter *) msg;
     struct ofl_exp_beba_msg_multipart_request *ext = (struct ofl_exp_beba_msg_multipart_request *)exp;
     switch (ext->type) {
+        case (OFPMP_EXP_STATE_STATS_AND_DELETE):
         case (OFPMP_EXP_STATE_STATS):
         {
             struct ofl_exp_msg_multipart_request_state *a = (struct ofl_exp_msg_multipart_request_state *) ext;
@@ -1102,6 +1118,7 @@ ofl_exp_beba_stats_reply_free(struct ofl_msg_multipart_reply_header *msg)
     struct ofl_msg_multipart_reply_experimenter* exp = (struct ofl_msg_multipart_reply_experimenter *) msg;
     struct ofl_exp_beba_msg_multipart_reply *ext = (struct ofl_exp_beba_msg_multipart_reply *)exp;
     switch (ext->type) {
+        case (OFPMP_EXP_STATE_STATS_AND_DELETE):
         case (OFPMP_EXP_STATE_STATS):
         {
             struct ofl_exp_msg_multipart_reply_state *a = (struct ofl_exp_msg_multipart_reply_state *) ext;
@@ -2279,6 +2296,34 @@ handle_stats_request_state(struct pipeline *pl, struct ofl_exp_msg_multipart_req
 }
 
 ofl_err
+handle_stats_request_state_and_delete(struct pipeline *pl, struct ofl_exp_msg_multipart_request_state *msg, const struct sender *sender UNUSED, struct ofl_exp_msg_multipart_reply_state *reply) {
+    struct ofl_exp_state_stats **stats = xmalloc(sizeof(struct ofl_exp_state_stats *));
+    size_t stats_size = 1;
+    size_t stats_num = 0;
+    if (msg->table_id == 0xff) {
+        size_t i;
+        for (i=0; i<PIPELINE_TABLES; i++) {
+            if (state_table_is_stateful(pl->tables[i]->state_table) && state_table_is_configured(pl->tables[i]->state_table))
+                state_table_stats(pl->tables[i]->state_table, msg, &stats, &stats_size, &stats_num, i);
+                state_table_delete_states(pl->tables[i]->state_table);
+        }
+    } else {
+        if (state_table_is_stateful(pl->tables[msg->table_id]->state_table) && state_table_is_configured(pl->tables[msg->table_id]->state_table))
+            state_table_stats(pl->tables[msg->table_id]->state_table, msg, &stats, &stats_size, &stats_num, msg->table_id);
+            state_table_delete_states(pl->tables[msg->table_id]->state_table);   
+    }
+    *reply = (struct ofl_exp_msg_multipart_reply_state)
+            {{{{{.type = OFPT_MULTIPART_REPLY},
+              .type = OFPMP_EXPERIMENTER, .flags = 0x0000},
+             .experimenter_id = BEBA_VENDOR_ID},
+             .type = OFPMP_EXP_STATE_STATS_AND_DELETE},
+             .stats = stats,
+             .stats_num = stats_num};
+    return 0;
+}
+
+
+ofl_err
 handle_stats_request_global_state(struct pipeline *pl, const struct sender *sender UNUSED, struct ofl_exp_msg_multipart_reply_global_state *reply) {
     uint32_t global_state = pl->dp->global_state;
 
@@ -2398,6 +2443,27 @@ state_table_stats(struct state_table *table, struct ofl_exp_msg_multipart_reques
         (*stats)[(*stats_num)]->idle_rollback = 0;
         (*stats)[(*stats_num)]->hard_rollback = 0;
         (*stats_num)++;
+    }
+}
+
+void
+state_table_delete_states(struct state_table *table)
+{
+    struct state_entry *e;
+    uint8_t found = 0;
+
+    HMAP_FOR_EACH(e, struct state_entry, hmap_node, &table->state_entries) {
+        hmap_remove_and_shrink(&table->state_entries, &e->hmap_node);
+        found = 1;
+    }
+    if (!found){
+        return;
+    }
+    HMAP_FOR_EACH(e, struct state_entry, hard_node, &table->hard_entries) {
+        hmap_remove_and_shrink(&table->hard_entries, &e->hard_node);
+    }
+    HMAP_FOR_EACH(e, struct state_entry, idle_node, &table->idle_entries) {
+        hmap_remove_and_shrink(&table->idle_entries, &e->idle_node);
     }
 }
 
@@ -2855,6 +2921,7 @@ void
 ofl_exp_stats_type_print(FILE *stream, uint32_t type)
 {
     switch (type) {
+        case (OFPMP_EXP_STATE_STATS_AND_DELETE):
         case (OFPMP_EXP_STATE_STATS):          { fprintf(stream, "state"); return; }
         case (OFPMP_EXP_GLOBAL_STATE_STATS):          { fprintf(stream, "global_state"); return; }
         default: {                    fprintf(stream, "?(%u)", type); return; }
