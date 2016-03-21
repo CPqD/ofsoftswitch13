@@ -249,7 +249,8 @@ enum ofp_exp_msg_pkttmp_mod_commands {
 ****************************************************************/
 enum ofp_stats_extension_commands {
     OFPMP_EXP_STATE_STATS,      
-    OFPMP_EXP_GLOBAL_STATE_STATS
+    OFPMP_EXP_GLOBAL_STATE_STATS,
+    OFPMP_EXP_STATE_STATS_AND_DELETE
 };
 
 struct ofp_exp_state_entry{
