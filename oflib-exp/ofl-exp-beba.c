@@ -33,7 +33,7 @@ ofl_structs_add_pkttmp_unpack(struct ofp_exp_add_pkttmp *src, size_t *len, struc
     if( *len >= sizeof(struct ofp_exp_add_pkttmp) )
     {
         OFL_LOG_DBG(LOG_MODULE, "Received PKTTMP_MOD message to set pkttmp_id (%"PRIu32") [Msg_len: %zu].", src->pkttmp_id, *len);
-        dst->pkttmp_id = src->pkttmp_id;
+        dst->pkttmp_id = ntohl(src->pkttmp_id);
 
         *len -= sizeof(struct ofp_exp_add_pkttmp);
         data = ((uint8_t *)src) + sizeof(struct ofp_exp_add_pkttmp);
@@ -59,7 +59,7 @@ ofl_structs_del_pkttmp_unpack(struct ofp_exp_del_pkttmp *src, size_t *len, struc
     if( *len == sizeof(struct ofp_exp_del_pkttmp) )
     {
         OFL_LOG_DBG(LOG_MODULE, "NOT IMPLEMENTED! Received PKTTMP_MOD message to delete pkttmp_id (%"PRIu32").", src->pkttmp_id );
-        dst->pkttmp_id = src->pkttmp_id;
+        dst->pkttmp_id = ntohl(src->pkttmp_id);
     }
     else
     { //control of struct ofp_extraction length.
