@@ -122,7 +122,7 @@ dp_exp_inst(struct packet *pkt UNUSED, struct ofl_instruction_experimenter *inst
 					struct packet *gen_pkt;
 
 					HMAP_FOR_EACH_WITH_HASH(pkttmp, struct pkttmp_entry, node,
-							hash_bytes(&beba_insw_i->pkttmp_id, 4, 0), &t->entries) {
+							beba_insw_i->pkttmp_id, &t->entries) {
 						//VLOG_WARN_RL(LOG_MODULE, &rl, "Retrieving: pkttmp id %u!", pkttmp->pkttmp_id);
 						found = 1;
 

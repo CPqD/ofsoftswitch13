@@ -2137,7 +2137,7 @@ handle_pkttmp_mod(struct pipeline *pl, struct ofl_exp_msg_pkttmp_mod *msg,
             struct pkttmp_entry *e;
             e = pkttmp_entry_create(pl->dp, pl->dp->pkttmps, p);
 
-            hmap_insert(&pl->dp->pkttmps->entries, &e->node, hash_bytes(&e->pkttmp_id, 4, 0));
+            hmap_insert(&pl->dp->pkttmps->entries, &e->node, e->pkttmp_id);
             OFL_LOG_DBG(LOG_MODULE, "PKTTMP id is %d, inserted to hash map", e->pkttmp_id);
             break;}
 
