@@ -59,6 +59,38 @@ int packet_parse(struct packet const *pkt, struct ofl_match *m, struct protocols
 
 	protocol_reset(proto);
 
+#ifdef SKIP_TRILL
+	/* Optional functionality that removes TRILL encapsulation in live trials. */
+	size_t search_offset = 0;
+
+	/* Search for network layer protocol or TRILL header. */
+	if (pkt->buffer->size > search_offset + sizeof(struct eth_header)) {
+		struct eth_header* outer_eth = (struct eth_header *)((uint8_t const *) pkt->buffer->data + search_offset);
+		search_offset += sizeof(struct eth_header);
+		uint16_t outer_type = ntohs(outer_eth->eth_type);
+		while ((outer_type >= ETH_TYPE_II_START) && (
+				(outer_type == ETH_TYPE_VLAN) ||
+				(outer_type == ETH_TYPE_SVLAN) ||
+				(outer_type == ETH_TYPE_VLAN_QinQ) ||
+				(outer_type == ETH_TYPE_VLAN_PBB_B) ||
+				(outer_type == ETH_TYPE_VLAN_PBB_S)
+			) && (pkt->buffer->size > search_offset + sizeof(struct vlan_header))
+		)	{
+			/* Skip VLANs */
+			struct vlan_header* outer_vlan = (struct vlan_header *)((uint8_t const *) pkt->buffer->data + search_offset);
+			search_offset += sizeof(struct vlan_header);
+			outer_type = ntohs(outer_vlan->vlan_next_type);
+		}
+		if (outer_type == ETH_TYPE_TRILL) {
+			uint8_t const *trill = (uint8_t const *) pkt->buffer->data;
+			uint16_t o1 = (trill[search_offset] & 0x07) << 2;
+			uint16_t o2 = (trill[search_offset + 1] & 0xc0) >> 2;
+			uint16_t trill_options = o1 | o2;
+			offset = search_offset + 6 + trill_options * 4;
+		}
+	}
+#endif
+
         /* Ethernet */
 
         if (pkt->buffer->size < offset + sizeof(struct eth_header)) {
