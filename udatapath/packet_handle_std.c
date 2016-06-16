@@ -53,6 +53,7 @@ int packet_parse(struct packet const *pkt, struct ofl_match *, struct protocols_
 int packet_parse(struct packet const *pkt, struct ofl_match *m, struct protocols_std *proto)
 {
 	size_t offset = 0;
+	uint16_t eth_type = 0x0000;
         uint8_t next_proto = 0;
 
 	/* Resets all protocol fields to NULL */
@@ -68,11 +69,13 @@ int packet_parse(struct packet const *pkt, struct ofl_match *m, struct protocols
         proto->eth = (struct eth_header *)((uint8_t const *) pkt->buffer->data + offset);
         offset += sizeof(struct eth_header);
 
-        if (ntohs(proto->eth->eth_type) >= ETH_TYPE_II_START) {
+				eth_type = ntohs(proto->eth->eth_type);
+
+        if (eth_type >= ETH_TYPE_II_START) {
             /* Ethernet II */
             ofl_structs_match_put_eth(m, OXM_OF_ETH_SRC, proto->eth->eth_src);
             ofl_structs_match_put_eth(m, OXM_OF_ETH_DST, proto->eth->eth_dst);
-            ofl_structs_match_put16(m, OXM_OF_ETH_TYPE, ntohs(proto->eth->eth_type));
+            ofl_structs_match_put16(m, OXM_OF_ETH_TYPE, eth_type);
 
         } else {
 
@@ -104,14 +107,16 @@ int packet_parse(struct packet const *pkt, struct ofl_match *m, struct protocols
                 return -1;
             }
 
+						eth_type = ntohs(proto->eth->eth_type);
+
             ofl_structs_match_put_eth(m, OXM_OF_ETH_SRC, proto->eth->eth_src);
             ofl_structs_match_put_eth(m, OXM_OF_ETH_DST, proto->eth->eth_dst);
-            ofl_structs_match_put16 (m, OXM_OF_ETH_TYPE, ntohs(proto->eth->eth_type));
+            ofl_structs_match_put16 (m, OXM_OF_ETH_TYPE, eth_type);
         }
 
         /* VLAN */
-        if (ntohs(proto->eth->eth_type) == ETH_TYPE_VLAN ||
-            ntohs(proto->eth->eth_type) == ETH_TYPE_VLAN_PBB) {
+        if (eth_type == ETH_TYPE_VLAN ||
+            eth_type == ETH_TYPE_VLAN_PBB) {
 
             uint16_t vlan_id;
             uint8_t vlan_pcp;
@@ -130,14 +135,14 @@ int packet_parse(struct packet const *pkt, struct ofl_match *m, struct protocols
             ofl_structs_match_put8(m, OXM_OF_VLAN_PCP, vlan_pcp);
 
             // Note: DL type is updated
-            ofl_structs_match_put16(m, OXM_OF_ETH_TYPE,
-                                           ntohs(proto->vlan->vlan_next_type));
+						eth_type = ntohs(proto->vlan->vlan_next_type);
+            ofl_structs_match_put16(m, OXM_OF_ETH_TYPE, eth_type);
 
         }
 
         /* skip through rest of VLAN tags */
-        while (ntohs(proto->eth->eth_type) == ETH_TYPE_VLAN ||
-               ntohs(proto->eth->eth_type) == ETH_TYPE_VLAN_PBB) {
+        while (eth_type == ETH_TYPE_VLAN ||
+               eth_type == ETH_TYPE_VLAN_PBB) {
 
             if (pkt->buffer->size < offset + sizeof(struct vlan_header)) {
                 return -1;
@@ -145,12 +150,12 @@ int packet_parse(struct packet const *pkt, struct ofl_match *m, struct protocols
             proto->vlan_last = (struct vlan_header *)((uint8_t const *) pkt->buffer->data + offset);
             offset += sizeof(struct vlan_header);
 
-            ofl_structs_match_put16(m, OXM_OF_ETH_TYPE,
-                                           ntohs(proto->vlan->vlan_next_type));
+						eth_type = ntohs(proto->vlan->vlan_next_type);
+            ofl_structs_match_put16(m, OXM_OF_ETH_TYPE, eth_type);
         }
 
         /* PBB ISID */
-        if (ntohs(proto->eth->eth_type) == ETH_TYPE_PBB){
+        if (eth_type == ETH_TYPE_PBB){
             uint32_t isid;
             if (pkt->buffer->size < offset + sizeof(struct pbb_header)) {
                 return -1;
@@ -164,8 +169,8 @@ int packet_parse(struct packet const *pkt, struct ofl_match *m, struct protocols
             return 0;
         }
 
-        if (ntohs(proto->eth->eth_type) == ETH_TYPE_MPLS ||
-            ntohs(proto->eth->eth_type) == ETH_TYPE_MPLS_MCAST) {
+        if (eth_type == ETH_TYPE_MPLS ||
+            eth_type == ETH_TYPE_MPLS_MCAST) {
             uint32_t mpls_label;
             uint32_t mpls_tc;
             uint32_t mpls_bos;
@@ -189,7 +194,7 @@ int packet_parse(struct packet const *pkt, struct ofl_match *m, struct protocols
         }
 
         /* ARP */
-        if (ntohs(proto->eth->eth_type) == ETH_TYPE_ARP) {
+        if (eth_type == ETH_TYPE_ARP) {
             if (pkt->buffer->size < offset + sizeof(struct arp_eth_header)) {
                 return -1;
             }
@@ -221,7 +226,7 @@ int packet_parse(struct packet const *pkt, struct ofl_match *m, struct protocols
             return 0;
         }
         /* Network Layer */
-        else if (ntohs(proto->eth->eth_type) == ETH_TYPE_IP) {
+        else if (eth_type == ETH_TYPE_IP) {
             if (pkt->buffer->size < offset + sizeof(struct ip_header)) {
                 return -1;
             }
@@ -243,7 +248,7 @@ int packet_parse(struct packet const *pkt, struct ofl_match *m, struct protocols
             }
             next_proto = proto->ipv4->ip_proto;
         }
-        else if (ntohs(proto->eth->eth_type) == ETH_TYPE_IPV6){
+        else if (eth_type == ETH_TYPE_IPV6){
             uint32_t ipv6_fl;
             if (pkt->buffer->size < offset + sizeof(struct ipv6_header)) {
                 return -1;
