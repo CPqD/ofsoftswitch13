@@ -75,7 +75,10 @@ int packet_parse(struct packet const *pkt, struct ofl_match *m, struct protocols
             /* Ethernet II */
             ofl_structs_match_put_eth(m, OXM_OF_ETH_SRC, proto->eth->eth_src);
             ofl_structs_match_put_eth(m, OXM_OF_ETH_DST, proto->eth->eth_dst);
-            ofl_structs_match_put16(m, OXM_OF_ETH_TYPE, eth_type);
+            if (eth_type != ETH_TYPE_VLAN &&
+                eth_type != ETH_TYPE_VLAN_PBB) {
+                ofl_structs_match_put16(m, OXM_OF_ETH_TYPE, eth_type);
+            };
 
         } else {
 
@@ -136,7 +139,10 @@ int packet_parse(struct packet const *pkt, struct ofl_match *m, struct protocols
 
             // Note: DL type is updated
 						eth_type = ntohs(proto->vlan->vlan_next_type);
-            ofl_structs_match_put16(m, OXM_OF_ETH_TYPE, eth_type);
+            if (eth_type != ETH_TYPE_VLAN &&
+                eth_type != ETH_TYPE_VLAN_PBB) {
+                ofl_structs_match_put16(m, OXM_OF_ETH_TYPE, eth_type);
+            };
 
         }
 
@@ -151,7 +157,10 @@ int packet_parse(struct packet const *pkt, struct ofl_match *m, struct protocols
             offset += sizeof(struct vlan_header);
 
 						eth_type = ntohs(proto->vlan->vlan_next_type);
-            ofl_structs_match_put16(m, OXM_OF_ETH_TYPE, eth_type);
+            if (eth_type != ETH_TYPE_VLAN &&
+                eth_type != ETH_TYPE_VLAN_PBB) {
+                ofl_structs_match_put16(m, OXM_OF_ETH_TYPE, eth_type);
+            };
         }
 
         /* PBB ISID */
