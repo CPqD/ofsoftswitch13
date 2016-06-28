@@ -91,4 +91,7 @@ AC_CONFIG_FILES([Makefile
 #datapath/linux-2.6/Makefile.main
 #])
 
+AC_CHECK_LIB([pcap],[pcap_create])
+AC_CHECK_HEADERS([linux/pf_q.h])
+
 AC_OUTPUT

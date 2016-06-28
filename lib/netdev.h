@@ -1,6 +1,6 @@
 /* Copyright (c) 2008, 2009 The Board of Trustees of The Leland Stanford
  * Junior University
- * 
+ *
  * We are making the OpenFlow specification and associated documentation
  * (Software) available for public use and benefit with the expectation
  * that others will use, modify and enhance the Software and contribute
@@ -13,10 +13,10 @@
  * distribute, sublicense, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -25,7 +25,7 @@
  * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * 
+ *
  * The name and trademarks of copyright holder(s) may NOT be used in
  * advertising or publicity pertaining to the Software or any
  * derivatives without specific, written prior permission.
@@ -77,24 +77,18 @@ enum netdev_link_state {
 #define NETDEV_MAX_QUEUES 8
 
 
-
 struct netdev;
 
-int netdev_open(const char *name, int ethertype, struct netdev **);
-int netdev_open_tap(const char *name, struct netdev **);
-void netdev_close(struct netdev *);
+/* Network device management API */
 
-int netdev_recv(struct netdev *, struct ofpbuf *, size_t);
-void netdev_recv_wait(struct netdev *);
+int netdev_open_tap(const char *name, struct netdev **);
 int netdev_link_state(struct netdev *netdev);
-int netdev_drain(struct netdev *);
-int netdev_send(struct netdev *, const struct ofpbuf *, uint16_t class_id);
-void netdev_send_wait(struct netdev *);
 int netdev_set_etheraddr(struct netdev *, const uint8_t mac[6]);
 const uint8_t *netdev_get_etheraddr(const struct netdev *);
 const char *netdev_get_name(const struct netdev *);
 int netdev_get_mtu(const struct netdev *);
 uint32_t netdev_get_features(struct netdev *, int);
+
 bool netdev_get_in4(const struct netdev *, struct in_addr *);
 int netdev_set_in4(struct netdev *, struct in_addr addr, struct in_addr mask);
 int netdev_add_router(struct in_addr router);
@@ -104,13 +98,29 @@ int netdev_set_flags(struct netdev *, enum netdev_flags, bool permanent);
 int netdev_turn_flags_on(struct netdev *, enum netdev_flags, bool permanent);
 int netdev_turn_flags_off(struct netdev *, enum netdev_flags, bool permanent);
 int netdev_arp_lookup(const struct netdev *, uint32_t ip, uint8_t mac[6]);
+
+void netdev_enumerate(struct svec *);
+int netdev_nodev_get_flags(const char *netdev_name, enum netdev_flags *);
+
+
+/* Network device I/O API */
+
+int netdev_open(const char *name, int ethertype, struct netdev **);
+void netdev_close(struct netdev *);
+int netdev_recv(struct netdev *, struct ofpbuf *, size_t);
+void netdev_recv_wait(struct netdev *);
+int netdev_drain(struct netdev *);
+int netdev_send(struct netdev *, const struct ofpbuf *, uint16_t class_id);
+void netdev_send_wait(struct netdev *);
+
+
+/* Network device TC/QOS API */
+
 int netdev_setup_slicing(struct netdev *, uint16_t);
 int netdev_setup_class(const struct netdev *, uint16_t , uint16_t);
 int netdev_change_class(const struct netdev *, uint16_t , uint16_t);
 int netdev_delete_class(const struct netdev *, uint16_t);
 
-void netdev_enumerate(struct svec *);
-int netdev_nodev_get_flags(const char *netdev_name, enum netdev_flags *);
 
 /* Generic interface for monitoring network devices.
  *
@@ -118,6 +128,7 @@ int netdev_nodev_get_flags(const char *netdev_name, enum netdev_flags *);
  * reports when that state changes.  At a minimum, it must report when a
  * device's link status changes.
  */
+
 struct netdev_monitor;
 int netdev_monitor_create(struct netdev_monitor **);
 void netdev_monitor_destroy(struct netdev_monitor *);
@@ -125,5 +136,6 @@ void netdev_monitor_set_devices(struct netdev_monitor *, char **, size_t);
 const char *netdev_monitor_poll(struct netdev_monitor *);
 void netdev_monitor_run(struct netdev_monitor *);
 void netdev_monitor_wait(struct netdev_monitor *);
+
 
 #endif /* netdev.h */
