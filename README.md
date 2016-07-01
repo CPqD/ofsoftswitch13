@@ -2,7 +2,10 @@
 
 This is an [OpenFlow 1.3][ofp13] compatible user-space software switch implementation. The code is based on the [Ericsson TrafficLab 1.1 softswitch
 implementation][ericssonsw11], with changes in the forwarding plane to support
-OpenFlow 1.3.
+OpenFlow 1.3. 
+
+**Important notice:**  Despite the fact the switch is still popular for adventurers trying to implement own changes to OpenFlow, support  now is on a best-effort base. Currently, there are lots of complaints about performance degradation, broken features and installation problems. Although not confirmed, most of the problems seem to be due to most recent linux versions. As the main contributor of the switch, I would like to keep the project alive and fix all the recurrent issues. However, life moves and new projects come, resulting in no time to work on it. I am still happy to help anyone who comes asking for advice on how to make changes in the code, but I cannot guarantee quick and active replies.  
+ *-Eder*
 
 The following components are available in this package:
 * `ofdatapath`: the switch implementation
@@ -129,8 +132,8 @@ code from the original Stanford switch).
 
 # Acknowledgments
 
-This project is supported by Ericsson Innovation Center in Brazil.
-Maintained by CPqD in technical collaboration with Ericsson Research.
+This project was supported by Ericsson Innovation Center in Brazil.
+Formerly maintained by CPqD in technical collaboration with Ericsson Research.
 
 **Contributions:**
 
