@@ -276,6 +276,7 @@ dp_ports_run(struct datapath *dp) {
         if (IS_HW_PORT(p)) {
             continue;
         }
+
         if (buffer == NULL) {
             /* Allocate buffer with some headroom to add headers in forwarding
              * to the controller or adding a vlan tag, plus an extra 2 bytes to
@@ -283,6 +284,7 @@ dp_ports_run(struct datapath *dp) {
             const int headroom = 128 + 2;
             buffer = ofpbuf_new_with_headroom(VLAN_ETH_HEADER_LEN + max_mtu, headroom);
         }
+
         error = netdev_recv(p->netdev, buffer, VLAN_ETH_HEADER_LEN + max_mtu);
         if (!error) {
             p->stats->rx_packets++;
@@ -585,7 +587,7 @@ dp_ports_output(struct datapath *dp, struct ofpbuf *buffer, uint32_t out_port,
     p = dp_ports_lookup(dp, out_port);
 
     /* FIXME:  Needs update for queuing */
-    #if defined(OF_HW_PLAT) && !defined(USE_NETDEV)
+#if defined(OF_HW_PLAT) && !defined(USE_NETDEV)
     if ((p != NULL) && IS_HW_PORT(p)) {
         if (dp && dp->hw_drv) {
             if (dp->hw_drv->port_link_get(dp->hw_drv, p->port_no)) {

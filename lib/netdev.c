@@ -745,6 +745,7 @@ do_open_netdev(const char *name, int ethertype, int tap_fd, struct netdev **netd
     int error;
     struct netdev *netdev;
     uint32_t val;
+
 #ifdef HAVE_LIBPCAP
     char pcap_errbuf[PCAP_ERRBUF_SIZE];
     pcap_t *pcap = NULL;
@@ -859,7 +860,7 @@ do_open_netdev(const char *name, int ethertype, int tap_fd, struct netdev **netd
 
 #ifdef HAVE_LIBPCAP
     /* open pcap device if it's not a tap */
-    if (strncmp(name, "tap", 3)) {
+    if (strncmp(name, "tap", 3) != 0) {
 	    pcap = pcap_open_live(name, 1514, 1, 10, pcap_errbuf);
 	    if (!pcap) {
 		VLOG_ERR(LOG_MODULE, "pcap: pcap_open_live on %s device failed: %s",
@@ -1161,7 +1162,6 @@ netdev_recv(struct netdev *netdev, struct ofpbuf *buffer, size_t max_mtu)
 			pad_to_minimum_length(buffer);
 			return 0;
 		}
-		/* TODO: fix a possible starvation */
 	}
 #endif
 	return netdev_recv_linux(netdev, buffer, max_mtu);
@@ -1240,7 +1240,7 @@ int
 netdev_send(struct netdev *netdev, const struct ofpbuf *buffer, uint16_t class_id)
 {
 #ifdef HAVE_LIBPCAP
-	if (netdev->pcap && (class_id == 0)) {
+	if (netdev->pcap) {
 		int rc = pcap_inject(netdev->pcap, buffer->data, buffer->size);
 		if (rc < 0) {
 			VLOG_WARN_RL(LOG_MODULE, &rl, "pcap error sending Ethernet packet on %s: %s",

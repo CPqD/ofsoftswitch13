@@ -97,7 +97,7 @@ int
 main(int argc, char *argv[])
 {
     return udatapath_cmd(argc, argv);
-    
+
 }
 #endif
 

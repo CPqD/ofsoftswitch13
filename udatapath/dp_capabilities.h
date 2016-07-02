@@ -48,8 +48,8 @@
                                | OFPC_GROUP_STATS          \
                             /* | OFPC_IP_REASM       */    \
                                | OFPC_QUEUE_STATS)
-                               /*| OFPC_PORT_BLOCKED */    
-    
+                               /*| OFPC_PORT_BLOCKED */
+
 #define DP_SUPPORTED_ACTIONS ( (1 << OFPAT_OUTPUT)          \
                              | (2 << OFPAT_COPY_TTL_OUT)    \
                              | (3 << OFPAT_COPY_TTL_IN)     \
@@ -62,8 +62,8 @@
                              | (10 << OFPAT_SET_QUEUE)      \
                              | (11 << OFPAT_GROUP)          \
                              | (12 << OFPAT_SET_NW_TTL)     \
-                             | (13 << OFPAT_DEC_NW_TTL)      )    
-                           
+                             | (13 << OFPAT_DEC_NW_TTL)      )
+
 #define DP_SUPPORTED_MATCH_FIELDS ( OFPXMT_OFB_IN_PORT        \
                                   | OFPXMT_OFB_IN_PHY_PORT    \
                                   | OFPXMT_OFB_METADATA       \
@@ -100,7 +100,7 @@
                                   | OFPXMT_OFB_IPV6_ND_TLL    \
                                   | OFPXMT_OFB_MPLS_LABEL     \
                                   | OFPXMT_OFB_MPLS_TC         )
-                                
+
 #define DP_SUPPORTED_GROUPS ( OFPGT_ALL      \
 							| OFPGT_SELECT   \
 							| OFPGT_INDIRECT \
