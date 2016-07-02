@@ -106,7 +106,7 @@ udatapath_cmd(int argc, char *argv[])
 {
     int n_listeners;
     int error;
-    int i;
+    int i, n;
 
     set_program_name(argv[0]);
     register_fault_handlers();
@@ -175,10 +175,12 @@ udatapath_cmd(int argc, char *argv[])
     die_if_already_running();
     daemonize();
 
-    for (;;) {
-        dp_run(dp);
-        dp_wait(dp);
+    for (n = 0;; n++) {
+        dp_run(dp, n);
+        dp_wait(dp, n);
+#ifndef HAVE_LIBPCAP
         poll_block();
+#endif
     }
 
     return 0;

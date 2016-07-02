@@ -70,6 +70,7 @@ static pthread_mutex_t pkt_q_mutex = PTHREAD_MUTEX_INITIALIZER;
 #define PKT_Q_LOCK pthread_mutex_lock(&pkt_q_mutex)
 #define PKT_Q_UNLOCK pthread_mutex_unlock(&pkt_q_mutex)
 
+
 static void
 enqueue_pkt(struct datapath *dp, struct ofpbuf *buffer, of_port_t port_no,
             int reason)
@@ -226,10 +227,10 @@ process_buffer(struct datapath *dp, struct sw_port *p, struct ofpbuf *buffer) {
 }
 
 void
-dp_ports_run(struct datapath *dp) {
+dp_ports_run(struct datapath *dp, int nrun) {
     // static, so an unused buffer can be reused at the dp_ports_run call
     static struct ofpbuf *buffer = NULL;
-    int max_mtu = 0;
+    static int max_mtu = 1500;
 
     struct sw_port *p, *pn;
 
@@ -248,30 +249,39 @@ dp_ports_run(struct datapath *dp) {
     }
 #endif
 
-    // find largest MTU on our interfaces
-    // buffer is shared among all (idle) interfaces...
-    LIST_FOR_EACH_SAFE (p, pn, struct sw_port, node, &dp->port_list)
+    DP_RELAX_WITH(nrun)
     {
-	int mtu;
-        if (IS_HW_PORT(p))
-            continue;
-        mtu = netdev_get_mtu(p->netdev);
-        if (mtu > max_mtu)
-            max_mtu = mtu;
+	    // find largest MTU on our interfaces
+	    // buffer is shared among all (idle) interfaces...
+	    LIST_FOR_EACH_SAFE (p, pn, struct sw_port, node, &dp->port_list)
+	    {
+		int mtu;
+		if (IS_HW_PORT(p))
+		    continue;
+		mtu = netdev_get_mtu(p->netdev);
+		if (mtu > max_mtu)
+		    max_mtu = mtu;
+	    }
     }
 
     LIST_FOR_EACH_SAFE (p, pn, struct sw_port, node, &dp->port_list) {
+
         int error;
-        /* Check for interface state change */
-        enum netdev_link_state link_state = netdev_link_state(p->netdev);
-        if (link_state == NETDEV_LINK_UP){
-            p->conf->state &= ~OFPPS_LINK_DOWN;
-            dp_port_live_update(p);
-        }
-        else if (link_state == NETDEV_LINK_DOWN){
-            p->conf->state |= OFPPS_LINK_DOWN;
-            dp_port_live_update(p);
-        }
+
+	DP_RELAX_WITH(nrun)
+	{
+		/* Check for interface state change */
+
+		enum netdev_link_state link_state = netdev_link_state(p->netdev);
+		if (link_state == NETDEV_LINK_UP){
+		    p->conf->state &= ~OFPPS_LINK_DOWN;
+		    dp_port_live_update(p);
+		}
+		else if (link_state == NETDEV_LINK_DOWN){
+		    p->conf->state |= OFPPS_LINK_DOWN;
+		    dp_port_live_update(p);
+		}
+	}
 
         if (IS_HW_PORT(p)) {
             continue;

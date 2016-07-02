@@ -124,7 +124,7 @@ dp_ports_add_local(struct datapath *dp, const char *netdev);
 
 /* Receives datapath packets, and runs them through the pipeline. */
 void
-dp_ports_run(struct datapath *dp);
+dp_ports_run(struct datapath *dp, int nrun);
 
 /* Returns the given port. */
 struct sw_port *
