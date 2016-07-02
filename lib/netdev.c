@@ -1162,6 +1162,7 @@ netdev_recv(struct netdev *netdev, struct ofpbuf *buffer, size_t max_mtu)
 			pad_to_minimum_length(buffer);
 			return 0;
 		}
+		return EAGAIN;
 	}
 #endif
 	return netdev_recv_linux(netdev, buffer, max_mtu);
@@ -1174,9 +1175,12 @@ void
 netdev_recv_wait(struct netdev *netdev)
 {
     (void)netdev;
-#ifndef HAVE_LIBPCAP
-    poll_fd_wait(netdev->tap_fd, POLLIN);
+#ifdef HAVE_LIBPCAP
+    if (netdev->pcap)
+	poll_immediate_wake();
+    else
 #endif
+	poll_fd_wait(netdev->tap_fd, POLLIN);
 }
 
 /* Discards all packets waiting to be received from 'netdev'. */
@@ -1265,14 +1269,18 @@ void
 netdev_send_wait(struct netdev *netdev)
 {
     (void)netdev;
-#ifndef HAVE_LIBPCAP
+
+#ifdef HAVE_LIBPCAP
+    if (netdev->pcap)
+	poll_immediate_wake();
+    else
+#endif
     if (netdev->tap_fd == netdev->netdev_fd) {
         poll_fd_wait(netdev->tap_fd, POLLOUT);
     } else {
         /* TAP device always accepts packets.*/
         poll_immediate_wake();
     }
-#endif
 }
 
 /* Attempts to set 'netdev''s MAC address to 'mac'.  Returns 0 if successful,
