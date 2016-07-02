@@ -199,7 +199,7 @@ stp_periodic_cb(void *stp_)
 static void
 stp_wait_cb(void *stp_ UNUSED)
 {
-    poll_timer_wait(1000);
+    poll_set_timer_wait(1000);
 }
 
 static void

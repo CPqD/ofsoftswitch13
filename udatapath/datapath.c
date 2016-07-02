@@ -246,7 +246,7 @@ dp_run(struct datapath *dp) {
         pipeline_timeout(dp->pipeline);
     }
 
-    poll_timer_wait(100);
+    poll_set_timer_wait(100);
     dp_ports_run(dp);
 
     /* Talk to remotes. */

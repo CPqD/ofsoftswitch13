@@ -125,14 +125,14 @@ udatapath_cmd(int argc, char *argv[])
 
     if (use_multiple_connections && (argc - optind) % 2 != 0)
         OFP_FATAL(0, "when using multiple connections, you must specify an even number of listeners");
-        
+
     n_listeners = 0;
     for (i = optind; i < argc; i += 2) {
         const char *pvconn_name = argv[i];
         const char *pvconn_name_aux = NULL;
         struct pvconn *pvconn, *pvconn_aux = NULL;
         int retval, retval_aux;
-        
+
         if (use_multiple_connections)
             pvconn_name_aux = argv[i + 1];
 

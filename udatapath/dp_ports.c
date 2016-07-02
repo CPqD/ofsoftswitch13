@@ -295,7 +295,6 @@ dp_ports_run(struct datapath *dp) {
                         netdev_get_name(p->netdev), strerror(error));
         }
     }
-
 }
 
 /* Returns the speed value in kbps of the highest bit set in the bitfield. */

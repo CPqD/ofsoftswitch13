@@ -104,7 +104,7 @@ poll_fd_wait(int fd, short int events)
  * is affected.  The timer will need to be re-registered after poll_block() is
  * called if it is to persist. */
 void
-poll_timer_wait(int msec)
+poll_set_timer_wait(int msec)
 {
     if (timeout < 0 || msec < timeout) {
         timeout = MAX(0, msec);
@@ -119,7 +119,7 @@ poll_timer_wait(int msec)
 void
 poll_immediate_wake(void)
 {
-    poll_timer_wait(0);
+    poll_set_timer_wait(0);
 }
 
 static void PRINTF_FORMAT(2, 3)
@@ -146,7 +146,7 @@ log_wakeup(const struct backtrace_info *info, const char *format, ...)
 }
 
 /* Blocks until one or more of the events registered with poll_fd_wait()
- * occurs, or until the minimum duration registered with poll_timer_wait()
+ * occurs, or until the minimum duration registered with poll_set_timer_wait()
  * elapses, or not at all if poll_immediate_wake() has been called.
  *
  * Also executes any autonomous subroutines registered with poll_fd_callback(),
@@ -261,7 +261,7 @@ poll_cancel(struct poll_waiter *pw)
         n_waiters--;
     }
 }
-
+
 /* Creates and returns a new poll_waiter for 'fd' and 'events'. */
 static struct poll_waiter *
 new_waiter(int fd, short int events)
