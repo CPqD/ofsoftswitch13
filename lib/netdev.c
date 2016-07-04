@@ -75,7 +75,7 @@
 #include <linux/if_tun.h>
 #include <linux/if_packet.h>
 
-#ifdef HAVE_LIBPCAP
+#if defined(HAVE_LIBPCAP) && defined(BEBA_USE_LIBPCAP)
 #include <pcap/pcap.h>
 #ifdef HAVE_LINUX_PF_Q_H
 #include <linux/pf_q.h>
@@ -149,7 +149,7 @@ struct netdev {
 
     int netlink_fd;
 
-#ifdef HAVE_LIBPCAP
+#if defined(HAVE_LIBPCAP) && defined(BEBA_USE_LIBPCAP)
     pcap_t *pcap;
 #endif
 
@@ -746,7 +746,7 @@ do_open_netdev(const char *name, int ethertype, int tap_fd, struct netdev **netd
     struct netdev *netdev;
     uint32_t val;
 
-#ifdef HAVE_LIBPCAP
+#if defined(HAVE_LIBPCAP) && defined(BEBA_USE_LIBPCAP)
     char pcap_errbuf[PCAP_ERRBUF_SIZE];
     pcap_t *pcap = NULL;
 #endif
@@ -858,7 +858,7 @@ do_open_netdev(const char *name, int ethertype, int tap_fd, struct netdev **netd
 
     get_ipv6_address(name, &in6);
 
-#ifdef HAVE_LIBPCAP
+#if defined(HAVE_LIBPCAP) && defined(BEBA_USE_LIBPCAP)
     /* open pcap device if it's not a tap */
     if (strncmp(name, "tap", 3) != 0) {
 	    pcap = pcap_open_live(name, 1514, 1, -1, pcap_errbuf);
@@ -879,7 +879,7 @@ do_open_netdev(const char *name, int ethertype, int tap_fd, struct netdev **netd
     netdev->netdev_fd = netdev_fd;
     netdev->netlink_fd = netlink_fd;
     netdev->tap_fd = tap_fd < 0 ? netdev_fd : tap_fd;
-#ifdef HAVE_LIBPCAP
+#if defined(HAVE_LIBPCAP) && defined(BEBA_USE_LIBPCAP)
     netdev->pcap = pcap;
 #endif
     netdev->queue_fd[0] = netdev->tap_fd;
@@ -910,7 +910,7 @@ error:
 
 error_already_set:
 
-#ifdef HAVE_LIBPCAP
+#if defined(HAVE_LIBPCAP) && defined(BEBA_USE_LIBPCAP)
     if (pcap)
 	pcap_close(pcap);
 #endif
@@ -945,7 +945,7 @@ netdev_close(struct netdev *netdev)
         /* Free. */
         free(netdev->name);
         close(netdev->netdev_fd);
-#ifdef HAVE_LIBPCAP
+#if defined(HAVE_LIBPCAP) && defined(BEBA_USE_LIBPCAP)
 	if (netdev->pcap)
 		pcap_close(netdev->pcap);
 #endif
@@ -1144,7 +1144,7 @@ netdev_recv_linux(struct netdev *netdev, struct ofpbuf *buffer, size_t max_mtu)
 int
 netdev_recv(struct netdev *netdev, struct ofpbuf *buffer, size_t max_mtu)
 {
-#ifdef HAVE_LIBPCAP
+#if defined(HAVE_LIBPCAP) && defined(BEBA_USE_LIBPCAP)
 	const u_char *pkt;
 #ifdef HAVE_LINUX_PF_Q_H
 	struct pfq_pcap_pkthdr hdr;
@@ -1175,7 +1175,7 @@ void
 netdev_recv_wait(struct netdev *netdev)
 {
     (void)netdev;
-#ifdef HAVE_LIBPCAP
+#if defined(HAVE_LIBPCAP) && defined(BEBA_USE_LIBPCAP)
     if (netdev->pcap)
 	poll_immediate_wake();
     else
@@ -1243,7 +1243,7 @@ netdev_send_linux(struct netdev *netdev, const struct ofpbuf *buffer, uint16_t c
 int
 netdev_send(struct netdev *netdev, const struct ofpbuf *buffer, uint16_t class_id)
 {
-#ifdef HAVE_LIBPCAP
+#if defined(HAVE_LIBPCAP) && defined(BEBA_USE_LIBPCAP)
 	if (netdev->pcap) {
 
 		int rc = pcap_inject(netdev->pcap, buffer->data, buffer->size);
@@ -1271,7 +1271,7 @@ netdev_send_wait(struct netdev *netdev)
 {
     (void)netdev;
 
-#ifdef HAVE_LIBPCAP
+#if defined(HAVE_LIBPCAP) && defined(BEBA_USE_LIBPCAP)
     if (netdev->pcap)
 	poll_immediate_wake();
     else

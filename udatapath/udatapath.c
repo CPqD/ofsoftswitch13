@@ -178,7 +178,7 @@ udatapath_cmd(int argc, char *argv[])
     for (n = 0;; n++) {
         dp_run(dp, n);
         dp_wait(dp, n);
-#ifndef HAVE_LIBPCAP
+#if !defined(BEBA_USE_LIBPCAP)
         poll_block();
 #endif
     }

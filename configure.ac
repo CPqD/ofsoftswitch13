@@ -60,6 +60,11 @@ AC_CHECK_FUNCS([strsignal])
 
 AC_ARG_VAR(KARCH, [Kernel Architecture String])
 AC_SUBST(KARCH)
+
+# BEBA options
+
+AC_DEFINE(BEBA_USE_LIBPCAP, 1, [BEBA pcap packet I/O acceleration])
+
 #OFP_CHECK_LINUX(l26, 2.6, KBLD26, KSRC26, L26_ENABLED)
 
 OFP_CHECK_DPKG_BUILDPACKAGE
