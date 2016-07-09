@@ -287,25 +287,31 @@ dp_ports_run(struct datapath *dp, int nrun) {
             continue;
         }
 
-        if (buffer == NULL) {
-            /* Allocate buffer with some headroom to add headers in forwarding
-             * to the controller or adding a vlan tag, plus an extra 2 bytes to
-             * allow IP headers to be aligned on a 4-byte boundary.  */
-            const int headroom = 128 + 2;
-            buffer = ofpbuf_new_with_headroom(VLAN_ETH_HEADER_LEN + max_mtu, headroom);
-        }
 
-        error = netdev_recv(p->netdev, buffer, VLAN_ETH_HEADER_LEN + max_mtu);
-        if (!error) {
-            p->stats->rx_packets++;
-            p->stats->rx_bytes += buffer->size;
-            // process_buffer takes ownership of ofpbuf buffer
-            process_buffer(dp, p, buffer);
-            buffer = NULL;
-        } else if (error != EAGAIN) {
-            VLOG_ERR_RL(LOG_MODULE, &rl, "error receiving data from %s: %s",
-                        netdev_get_name(p->netdev), strerror(error));
-        }
+	size_t x, budget = 128;
+
+	for(x = 0; x < budget; x++)
+	{
+	    if (buffer == NULL) {
+	        /* Allocate buffer with some headroom to add headers in forwarding
+	         * to the controller or adding a vlan tag, plus an extra 2 bytes to
+	         * allow IP headers to be aligned on a 4-byte boundary.  */
+	        const int headroom = 128 + 2;
+	        buffer = ofpbuf_new_with_headroom(VLAN_ETH_HEADER_LEN + max_mtu, headroom);
+	    }
+
+	    error = netdev_recv(p->netdev, buffer, VLAN_ETH_HEADER_LEN + max_mtu);
+	    if (!error) {
+	        p->stats->rx_packets++;
+	        p->stats->rx_bytes += buffer->size;
+	        // process_buffer takes ownership of ofpbuf buffer
+	        process_buffer(dp, p, buffer);
+	        buffer = NULL;
+	    }
+	    else {
+		break;
+	    }
+	}
     }
 }
 
