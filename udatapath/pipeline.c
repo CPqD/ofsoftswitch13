@@ -467,7 +467,7 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
 	VLOG_DBG(LOG_MODULE, "multipart request: create reassembly buffer (%zu)", feat->tables_num);
 
 	/* Create a buffer the do reassembly. */
-	saved_msg = (struct ofl_msg_multipart_request_table_features*) malloc(sizeof(struct ofl_msg_multipart_request_table_features));
+	saved_msg = (struct ofl_msg_multipart_request_table_features*) xmalloc(sizeof(struct ofl_msg_multipart_request_table_features));
 	saved_msg->header.header.type = OFPT_MULTIPART_REQUEST;
 	saved_msg->header.type = OFPMP_TABLE_FEATURES;
 	saved_msg->header.flags = 0;

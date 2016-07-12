@@ -343,7 +343,7 @@ handle_control_msg(struct datapath *dp, struct ofl_msg_header *msg,
                                                            .instruction_num = m->instructions_num,
                                                            .instructions = NULL};
                 if (ntf.instruction_num>0){
-                    ntf.instructions = (uint32_t *) malloc(ntf.instruction_num * sizeof(uint32_t));
+                    ntf.instructions = (uint32_t *) xmalloc(ntf.instruction_num * sizeof(uint32_t));
                     instruction = *(m->instructions);
                     for(i=0;i<ntf.instruction_num;i++){
                         ntf.instructions[i] = instruction[i].type;

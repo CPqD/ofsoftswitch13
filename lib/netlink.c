@@ -110,7 +110,7 @@ nl_sock_create(int protocol, int multicast_group,
     }
 
     *sockp = NULL;
-    sock = malloc(sizeof *sock);
+    sock = xmalloc(sizeof *sock);
     if (sock == NULL) {
         return ENOMEM;
     }

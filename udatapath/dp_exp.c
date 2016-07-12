@@ -138,7 +138,7 @@ dp_exp_inst(struct packet *pkt UNUSED, struct ofl_instruction_experimenter *inst
 
 						/* NOTE: the created packet will take the ownership of data. */
 						buf = ofpbuf_new(0);
-						uint8_t *data = (uint8_t *)memcpy(malloc(pkttmp->data_length), pkttmp->data, pkttmp->data_length);
+						uint8_t *data = (uint8_t *)memcpy(xmalloc(pkttmp->data_length), pkttmp->data, pkttmp->data_length);
 						// TODO apply copy_instrs
 						ofpbuf_use(buf, data, pkttmp->data_length);
 						ofpbuf_put_uninit(buf, pkttmp->data_length);
