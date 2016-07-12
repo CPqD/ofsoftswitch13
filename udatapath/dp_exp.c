@@ -85,11 +85,11 @@ dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
                 }
                 break;
             }
-            case (OFPAT_EXP_SET_GLOBAL_STATE): 
+            case (OFPAT_EXP_SET_GLOBAL_STATE):
             {
                 struct ofl_exp_action_set_global_state *wns = (struct ofl_exp_action_set_global_state *)action;
                 uint32_t global_state = pkt->dp->global_state;
-                
+
                 global_state = (global_state & ~(wns->global_state_mask)) | (wns->global_state & wns->global_state_mask);
                 pkt->dp->global_state = global_state;
                 break;
