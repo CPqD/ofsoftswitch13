@@ -69,7 +69,6 @@ pipeline_create(struct datapath *dp) {
         pl->tables[i] = flow_table_create(dp, i);
     }
     pl->dp = dp;
-    nblink_initialize();
     return pl;
 }
 

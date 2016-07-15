@@ -37,7 +37,6 @@
 #include "packets.h"
 #include "match_std.h"
 #include "oflib/ofl-structs.h"
-#include "nbee_link/nbee_link.h"
 
 /****************************************************************************
  * A handler processing a datapath packet for standard matches.
