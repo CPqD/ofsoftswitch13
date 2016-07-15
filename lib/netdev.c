@@ -77,7 +77,7 @@
 
 #if defined(HAVE_LIBPCAP) && defined(BEBA_USE_LIBPCAP)
 #include <pcap/pcap.h>
-#warning BEBA netdev using libpcap!
+#pragma message "BEBA netdev is using libpcap!"
 #ifdef HAVE_LINUX_PF_Q_H
 #include <linux/pf_q.h>
 #endif

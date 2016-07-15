@@ -64,8 +64,8 @@ struct sender;
  * The datapath
  ****************************************************************************/
 
-#define DP_RELAX_FACTOR		((1<<10)-1)
-#define DP_RELAX_WITH(n)	if ((n & DP_RELAX_FACTOR)== 0)
+#define DP_RELAX_FACTOR_MASK	((1UL << BEBA_CTRL_RELAX)-1)
+#define DP_RELAX_WITH(n)	if ((n & DP_RELAX_FACTOR_MASK)== 0)
 
 struct datapath
 {

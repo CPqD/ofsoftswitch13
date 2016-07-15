@@ -267,6 +267,7 @@ dp_ports_run(struct datapath *dp, int nrun) {
     LIST_FOR_EACH_SAFE (p, pn, struct sw_port, node, &dp->port_list) {
 
         int error;
+        size_t x;
 
 	DP_RELAX_WITH(nrun)
 	{
@@ -287,10 +288,7 @@ dp_ports_run(struct datapath *dp, int nrun) {
             continue;
         }
 
-
-	size_t x, budget = 128;
-
-	for(x = 0; x < budget; x++)
+	for(x = 0; x < BEBA_WORK_BUDGET; x++)
 	{
 	    if (buffer == NULL) {
 	        /* Allocate buffer with some headroom to add headers in forwarding
