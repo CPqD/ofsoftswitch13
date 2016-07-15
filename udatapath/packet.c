@@ -133,7 +133,7 @@ packet_to_string(struct packet *pkt) {
     fprintf(stream, "\", buffer=\"");
     ofl_buffer_print(stream, pkt->buffer_id);
     fprintf(stream, "\", std=");
-    //packet_handle_std_print(stream, pkt->handle_std);
+    packet_handle_std_print(stream, pkt->handle_std);
     fprintf(stream, "}");
 
     fclose(stream);
