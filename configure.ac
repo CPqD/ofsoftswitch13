@@ -58,8 +58,6 @@ OFP_CHECK_HWTABLES
 OFP_CHECK_HWLIBS
 AC_SYS_LARGEFILE
 
-AC_CHECK_LIB(nbee,nbGetLastError)
-
 AC_CHECK_FUNCS([strsignal])
 
 AC_ARG_VAR(KARCH, [Kernel Architecture String])
