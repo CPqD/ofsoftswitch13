@@ -123,7 +123,11 @@ dp_exp_inst(struct packet *pkt UNUSED, struct ofl_instruction_experimenter *inst
 
 					HMAP_FOR_EACH_WITH_HASH(pkttmp, struct pkttmp_entry, node,
 							beba_insw_i->pkttmp_id, &t->entries) {
+
+						uint8_t *data;
+
 						//VLOG_WARN_RL(LOG_MODULE, &rl, "Retrieving: pkttmp id %u!", pkttmp->pkttmp_id);
+						//
 						found = 1;
 
 						// ** Packet generation **
@@ -138,7 +142,8 @@ dp_exp_inst(struct packet *pkt UNUSED, struct ofl_instruction_experimenter *inst
 
 						/* NOTE: the created packet will take the ownership of data. */
 						buf = ofpbuf_new(0);
-						uint8_t *data = (uint8_t *)memcpy(xmalloc(pkttmp->data_length), pkttmp->data, pkttmp->data_length);
+						data = (uint8_t *)memcpy(xmalloc(pkttmp->data_length), pkttmp->data, pkttmp->data_length);
+
 						// TODO apply copy_instrs
 						ofpbuf_use(buf, data, pkttmp->data_length);
 						ofpbuf_put_uninit(buf, pkttmp->data_length);

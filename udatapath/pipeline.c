@@ -120,11 +120,11 @@ send_packet_to_controller(struct pipeline *pl, struct packet *pkt, uint8_t table
 /* Pass the packet through the flow tables.
  * This function takes ownership of the packet and will destroy it. */
 void
-pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
+pipeline_process_packet(struct pipeline *pl, struct packet *pkt)
+{
     struct flow_table *table, *next_table;
     struct ofl_match_tlv *f;
 
-    //printf("here is pipeline processing packet\n");
     if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
         char *pkt_str = packet_to_string(pkt);
         VLOG_DBG_RL(LOG_MODULE, &rl, "processing packet: %s", pkt_str);
@@ -154,7 +154,6 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
         table         = next_table;
         next_table    = NULL;
 
-
         //removes eventual old 'state' virtual header field
 
         HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
@@ -180,13 +179,13 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
                     *flags = (*flags & 0x00000000 ) | (pkt->dp->global_state);
         }
 
-		if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
-			char *m = ofl_structs_match_to_string((struct ofl_match_header*)&(pkt->handle_std->match), pkt->dp->exp);
-			VLOG_DBG_RL(LOG_MODULE, &rl, "searching table entry in table %d for packet match: %s.", table->stats->table_id,m);
-			free(m);
-		}
+	if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
+		char *m = ofl_structs_match_to_string((struct ofl_match_header*)&(pkt->handle_std->match), pkt->dp->exp);
+		VLOG_DBG_RL(LOG_MODULE, &rl, "searching table entry in table %d for packet match: %s.", table->stats->table_id,m);
+		free(m);
+	}
 
-		entry = flow_table_lookup(table, pkt, pkt->dp->exp);
+	entry = flow_table_lookup(table, pkt, pkt->dp->exp);
 
 
         if (entry != NULL) {
@@ -211,12 +210,13 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
             }
 
         } else {
-			/* OpenFlow 1.3 default behavior on a table miss */
-			VLOG_DBG_RL(LOG_MODULE, &rl, "No matching entry found. Dropping packet.");
-			packet_destroy(pkt);
-			return;
+		/* OpenFlow 1.3 default behavior on a table miss */
+		VLOG_DBG_RL(LOG_MODULE, &rl, "No matching entry found. Dropping packet.");
+		packet_destroy(pkt);
+		return;
         }
     }
+
     VLOG_WARN_RL(LOG_MODULE, &rl, "Reached outside of pipeline processing cycle.");
 }
 

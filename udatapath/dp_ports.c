@@ -213,7 +213,8 @@ dp_hw_drv_init(struct datapath *dp)
 
 /* Runs a datapath packet through the pipeline, if the port is not set to down. */
 static void
-process_buffer(struct datapath *dp, struct sw_port *p, struct ofpbuf *buffer) {
+process_buffer(struct datapath *dp, struct sw_port *p, struct ofpbuf *buffer)
+{
     struct packet *pkt;
 
     if (p->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN) != 0)) {
@@ -621,9 +622,9 @@ dp_ports_output(struct datapath *dp, struct ofpbuf *buffer, uint32_t out_port,
         }
         return;
     }
+#endif
 
     /* Fall through to software controlled ports if not HW port */
-#endif
     if (p != NULL && p->netdev != NULL) {
         if (!(p->conf->config & OFPPC_PORT_DOWN)) {
             /* avoid the queue lookup for best-effort traffic */
