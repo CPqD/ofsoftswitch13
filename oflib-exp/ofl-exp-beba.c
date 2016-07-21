@@ -28,7 +28,7 @@ static ofl_err
 ofl_structs_add_pkttmp_unpack(struct ofp_exp_add_pkttmp *src, size_t *len, struct ofl_exp_add_pkttmp *dst) {
     //int i;
     //uint8_t key[OFPSC_MAX_KEY_LEN] = {0};
-	uint8_t *data = NULL;
+    uint8_t *data = NULL;
 
     if( *len >= sizeof(struct ofp_exp_add_pkttmp) )
     {
@@ -252,7 +252,7 @@ ofl_exp_beba_msg_unpack(struct ofp_header const *oh, size_t *len, struct ofl_msg
     exp_header = (struct ofp_experimenter_header *)oh;
 
     switch (ntohl(exp_header->exp_type)) {
-        case (OFPT_EXP_STATE_MOD): 
+        case (OFPT_EXP_STATE_MOD):
         {
             struct ofp_exp_msg_state_mod *sm;
             struct ofl_exp_msg_state_mod *dm;
@@ -296,7 +296,7 @@ ofl_exp_beba_msg_unpack(struct ofp_header const *oh, size_t *len, struct ofl_msg
                                                           (struct ofl_exp_set_global_state *)&(dm->payload[0]));
                 default:
                     return ofl_error(OFPET_EXPERIMENTER, OFPEC_EXP_STATE_MOD_BAD_COMMAND);
-            }      
+            }
         }
 
         case (OFPT_EXP_PKTTMP_MOD):
@@ -318,7 +318,7 @@ ofl_exp_beba_msg_unpack(struct ofp_header const *oh, size_t *len, struct ofl_msg
                 OFL_LOG_WARN(LOG_MODULE, "Received PKTTMP_MOD message has invalid length (%zu).", *len);
                 return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
             }
-            
+
             dm->command = (enum ofp_exp_msg_pkttmp_mod_commands)sm->command;
 
             *len -= 2*sizeof(uint8_t);
@@ -2175,7 +2175,7 @@ handle_stats_request_state(struct pipeline *pl, struct ofl_exp_msg_multipart_req
 ofl_err
 handle_stats_request_global_state(struct pipeline *pl, const struct sender *sender UNUSED, struct ofl_exp_msg_multipart_reply_global_state *reply) {
     uint32_t global_state = pl->dp->global_state;
-    
+
     *reply = (struct ofl_exp_msg_multipart_reply_global_state)
             {{{{{.type = OFPT_MULTIPART_REPLY},
               .type = OFPMP_EXPERIMENTER, .flags = 0x0000},
@@ -2195,7 +2195,7 @@ state_table_stats(struct state_table *table, struct ofl_exp_msg_multipart_reques
     uint32_t fields[MAX_EXTRACTION_FIELD_COUNT] = {0};
     struct timeval tv;
     struct key_extractor *extractor=&table->read_key;
-    
+
     struct ofl_match const * a = (struct ofl_match const *)msg->match;
     struct ofl_match_tlv *state_key_match;
     uint8_t count = 0;
@@ -2247,7 +2247,7 @@ state_table_stats(struct state_table *table, struct ofl_exp_msg_multipart_reques
             found = 1;
             HMAP_FOR_EACH(state_key_match, struct ofl_match_tlv, hmap_node, &a->match_fields)
             {
-                if(memcmp(state_key_match->value,&entry->key[offset[aux]], length[aux])) 
+                if(memcmp(state_key_match->value,&entry->key[offset[aux]], length[aux]))
                     found = 0;
                 aux+=1;
             }

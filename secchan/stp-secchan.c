@@ -74,6 +74,7 @@ stp_local_packet_cb(struct relay *r, void *stp_)
     struct flow flow;
 
     oh = msg->data;
+
     /*if (oh->type == OFPT_FEATURES_REPLY
         && msg->size >= offsetof(struct ofp_switch_features, ports)) {
     	TODO Zoltan: Temporarily removed when moving to Openflow 1.1
@@ -199,7 +200,7 @@ stp_periodic_cb(void *stp_)
 static void
 stp_wait_cb(void *stp_ UNUSED)
 {
-    poll_timer_wait(1000);
+    poll_set_timer_wait(1000);
 }
 
 static void

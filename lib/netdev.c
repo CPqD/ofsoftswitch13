@@ -75,6 +75,13 @@
 #include <linux/if_tun.h>
 #include <linux/if_packet.h>
 
+#if defined(HAVE_LIBPCAP) && defined(BEBA_USE_LIBPCAP)
+#include <pcap/pcap.h>
+#pragma message "BEBA netdev is using libpcap!"
+#ifdef HAVE_LINUX_PF_Q_H
+#include <linux/pf_q.h>
+#endif
+#endif
 
 #ifdef PACKET_AUXDATA
 #   define HAVE_PACKET_AUXDATA
@@ -143,6 +150,10 @@ struct netdev {
 
     int netlink_fd;
 
+#if defined(HAVE_LIBPCAP) && defined(BEBA_USE_LIBPCAP)
+    pcap_t *pcap;
+#endif
+
     /* one socket per queue.These are valid only for ordinary network devices*/
     int queue_fd[NETDEV_MAX_QUEUES + 1];
     uint16_t num_queues;
@@ -178,8 +189,8 @@ static int af_inet_sock = -1;
 static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(5, 20);
 
 static void init_netdev(void);
-static int do_open_netdev(const char *name, int ethertype, int tap_fd,
-                          struct netdev **netdev_);
+static int do_open_netdev(const char *name, int ethertype, int tap_fd, struct netdev **netdev_);
+
 static int restore_flags(struct netdev *netdev);
 static int get_flags(const char *netdev_name, int *flagsp);
 static int set_flags(const char *netdev_name, int flags);
@@ -719,8 +730,7 @@ netdev_open_tap(const char *name, struct netdev **netdevp)
 }
 
 static int
-do_open_netdev(const char *name, int ethertype, int tap_fd,
-               struct netdev **netdev_)
+do_open_netdev(const char *name, int ethertype, int tap_fd, struct netdev **netdev_)
 {
     int netdev_fd = 0;
     int netlink_fd;
@@ -737,11 +747,16 @@ do_open_netdev(const char *name, int ethertype, int tap_fd,
     struct netdev *netdev;
     uint32_t val;
 
+#if defined(HAVE_LIBPCAP) && defined(BEBA_USE_LIBPCAP)
+    char pcap_errbuf[PCAP_ERRBUF_SIZE];
+    pcap_t *pcap = NULL;
+#endif
+
     init_netdev();
     *netdev_ = NULL;
 
+    /* Open netlink socket. */
     netlink_fd = socket(PF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
-
     if (netlink_fd < 0) {
         return errno;
     }
@@ -783,6 +798,7 @@ do_open_netdev(const char *name, int ethertype, int tap_fd,
         VLOG_ERR(LOG_MODULE, "netlink bind to %s failed: %s", name, strerror(errno));
         goto error;
     }
+
     /* Get ethernet device index. */
     strncpy(ifr.ifr_name, name, sizeof ifr.ifr_name);
     if (ioctl(netdev_fd, SIOCGIFINDEX, &ifr) < 0) {
@@ -843,6 +859,18 @@ do_open_netdev(const char *name, int ethertype, int tap_fd,
 
     get_ipv6_address(name, &in6);
 
+#if defined(HAVE_LIBPCAP) && defined(BEBA_USE_LIBPCAP)
+    /* open pcap device if it's not a tap */
+    if (strncmp(name, "tap", 3) != 0) {
+	    pcap = pcap_open_live(name, 1514, 1, -1, pcap_errbuf);
+	    if (!pcap) {
+		VLOG_ERR(LOG_MODULE, "pcap: pcap_open_live on %s device failed: %s",
+			 name, pcap_errbuf);
+		goto error;
+	    }
+    }
+#endif
+
     /* Allocate network device. */
     netdev = xmalloc(sizeof *netdev);
     netdev->name = xstrdup(name);
@@ -852,6 +880,9 @@ do_open_netdev(const char *name, int ethertype, int tap_fd,
     netdev->netdev_fd = netdev_fd;
     netdev->netlink_fd = netlink_fd;
     netdev->tap_fd = tap_fd < 0 ? netdev_fd : tap_fd;
+#if defined(HAVE_LIBPCAP) && defined(BEBA_USE_LIBPCAP)
+    netdev->pcap = pcap;
+#endif
     netdev->queue_fd[0] = netdev->tap_fd;
     memcpy(netdev->etheraddr, etheraddr, sizeof etheraddr);
     netdev->mtu = mtu;
@@ -877,7 +908,13 @@ do_open_netdev(const char *name, int ethertype, int tap_fd,
 
 error:
     error = errno;
+
 error_already_set:
+
+#if defined(HAVE_LIBPCAP) && defined(BEBA_USE_LIBPCAP)
+    if (pcap)
+	pcap_close(pcap);
+#endif
 
     if (netdev_fd)
 	close(netdev_fd);
@@ -909,6 +946,10 @@ netdev_close(struct netdev *netdev)
         /* Free. */
         free(netdev->name);
         close(netdev->netdev_fd);
+#if defined(HAVE_LIBPCAP) && defined(BEBA_USE_LIBPCAP)
+	if (netdev->pcap)
+		pcap_close(netdev->pcap);
+#endif
         if (netdev->netdev_fd != netdev->tap_fd) {
             close(netdev->tap_fd);
         }
@@ -976,8 +1017,9 @@ netdev_link_state(struct netdev *netdev)
  * positive errno value.  Returns EAGAIN immediately if no packet is ready to
  * be returned.
  */
-int
-netdev_recv(struct netdev *netdev, struct ofpbuf *buffer, size_t max_mtu)
+
+static int
+netdev_recv_linux(struct netdev *netdev, struct ofpbuf *buffer, size_t max_mtu)
 {
 #ifdef HAVE_PACKET_AUXDATA
     /* Code from libpcap to reconstruct VLAN header */
@@ -1003,16 +1045,16 @@ netdev_recv(struct netdev *netdev, struct ofpbuf *buffer, size_t max_mtu)
     memset(&msg, 0, sizeof(struct msghdr));
     memset(cmsg_buf.buf, 0, CMSG_SPACE(sizeof(struct tpacket_auxdata)));
 
-    msg.msg_name    = &from;
-    msg.msg_namelen   = sizeof(from);
-    msg.msg_iov   = &iov;
-    msg.msg_iovlen    = 1;
-    msg.msg_control   = &cmsg_buf;
+    msg.msg_name	= &from;
+    msg.msg_namelen	= sizeof(from);
+    msg.msg_iov		= &iov;
+    msg.msg_iovlen	= 1;
+    msg.msg_control     = &cmsg_buf;
     msg.msg_controllen  = sizeof(cmsg_buf);
-    msg.msg_flags   = 0;
+    msg.msg_flags	= 0;
 
-    iov.iov_len   = max_mtu;
-    iov.iov_base    = buffer->data;
+    iov.iov_len		= max_mtu;
+    iov.iov_base	= buffer->data;
 
 #else
     /* prepare to call recvfrom */
@@ -1100,12 +1142,46 @@ netdev_recv(struct netdev *netdev, struct ofpbuf *buffer, size_t max_mtu)
 
 }
 
+int
+netdev_recv(struct netdev *netdev, struct ofpbuf *buffer, size_t max_mtu)
+{
+#if defined(HAVE_LIBPCAP) && defined(BEBA_USE_LIBPCAP)
+	const u_char *pkt;
+#ifdef HAVE_LINUX_PF_Q_H
+	struct pfq_pcap_pkthdr hdr;
+#else
+	struct pcap_pkthdr hdr;
+#endif
+
+	if (netdev->pcap)
+	{
+		pkt = pcap_next(netdev->pcap, (struct pcap_pkthdr *)&hdr);
+		if (pkt)
+		{
+			memcpy(ofpbuf_tail(buffer), pkt, MIN(ofpbuf_tailroom(buffer), hdr.caplen));
+			buffer->size += hdr.caplen;
+			pad_to_minimum_length(buffer);
+			return 0;
+		}
+		return EAGAIN;
+	}
+#endif
+	return netdev_recv_linux(netdev, buffer, max_mtu);
+}
+
+
 /* Registers with the poll loop to wake up from the next call to poll_block()
  * when a packet is ready to be received with netdev_recv() on 'netdev'. */
 void
 netdev_recv_wait(struct netdev *netdev)
 {
-    poll_fd_wait(netdev->tap_fd, POLLIN);
+    (void)netdev;
+#if defined(HAVE_LIBPCAP) && defined(BEBA_USE_LIBPCAP)
+    if (netdev->pcap)
+	poll_immediate_wake();
+    else
+#endif
+	poll_fd_wait(netdev->tap_fd, POLLIN);
 }
 
 /* Discards all packets waiting to be received from 'netdev'. */
@@ -1133,9 +1209,8 @@ netdev_drain(struct netdev *netdev)
  * The kernel maintains a packet transmission queue, so the caller is not
  * expected to do additional queuing of packets.
  */
-int
-netdev_send(struct netdev *netdev, const struct ofpbuf *buffer,
-            uint16_t class_id)
+static int
+netdev_send_linux(struct netdev *netdev, const struct ofpbuf *buffer, uint16_t class_id)
 {
     ssize_t n_bytes;
 
@@ -1165,6 +1240,26 @@ netdev_send(struct netdev *netdev, const struct ofpbuf *buffer,
     }
 }
 
+
+int
+netdev_send(struct netdev *netdev, const struct ofpbuf *buffer, uint16_t class_id)
+{
+#if defined(HAVE_LIBPCAP) && defined(BEBA_USE_LIBPCAP)
+	if (netdev->pcap) {
+
+		int rc = pcap_inject(netdev->pcap, buffer->data, buffer->size);
+		if (rc < 0) {
+			VLOG_WARN_RL(LOG_MODULE, &rl, "pcap error sending Ethernet packet on %s: %s",
+						netdev->name, pcap_geterr(netdev->pcap));
+			return EMSGSIZE;
+		}
+		return rc == 0 ? EAGAIN : 0;
+	}
+#endif
+	return netdev_send_linux(netdev, buffer, class_id);
+}
+
+
 /* Registers with the poll loop to wake up from the next call to poll_block()
  * when the packet transmission queue has sufficient room to transmit a packet
  * with netdev_send().
@@ -1175,6 +1270,13 @@ netdev_send(struct netdev *netdev, const struct ofpbuf *buffer,
 void
 netdev_send_wait(struct netdev *netdev)
 {
+    (void)netdev;
+
+#if defined(HAVE_LIBPCAP) && defined(BEBA_USE_LIBPCAP)
+    if (netdev->pcap)
+	poll_immediate_wake();
+    else
+#endif
     if (netdev->tap_fd == netdev->netdev_fd) {
         poll_fd_wait(netdev->tap_fd, POLLOUT);
     } else {

@@ -230,7 +230,7 @@ rate_limit_wait_cb(void *rl_)
         } else {
             /* We have to wait for the bucket to re-fill.  We could calculate
              * the exact amount of time here for increased smoothness. */
-            poll_timer_wait(TIME_UPDATE_INTERVAL / 2);
+            poll_set_timer_wait(TIME_UPDATE_INTERVAL / 2);
         }
     }
 }

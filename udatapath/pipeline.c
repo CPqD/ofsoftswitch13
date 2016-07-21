@@ -120,11 +120,11 @@ send_packet_to_controller(struct pipeline *pl, struct packet *pkt, uint8_t table
 /* Pass the packet through the flow tables.
  * This function takes ownership of the packet and will destroy it. */
 void
-pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
+pipeline_process_packet(struct pipeline *pl, struct packet *pkt)
+{
     struct flow_table *table, *next_table;
     struct ofl_match_tlv *f;
 
-    //printf("here is pipeline processing packet\n");
     if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
         char *pkt_str = packet_to_string(pkt);
         VLOG_DBG_RL(LOG_MODULE, &rl, "processing packet: %s", pkt_str);
@@ -153,41 +153,39 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
         pkt->table_id = next_table->stats->table_id;
         table         = next_table;
         next_table    = NULL;
-		
-		
+
         //removes eventual old 'state' virtual header field
-        
+
         HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
                     hmap_node, hash_int(OXM_EXP_STATE,0), &pkt->handle_std->match.match_fields){
                         hmap_remove_and_shrink(&pkt->handle_std->match.match_fields,&f->hmap_node);
         }
 
 
-		if (state_table_is_stateful(table->state_table) && state_table_is_configured(table->state_table)) {
-            state_entry = state_table_lookup(table->state_table, pkt);
-            if(state_entry!=NULL){
-
-        		ofl_structs_match_exp_put32(&pkt->handle_std->match, OXM_EXP_STATE, 0xBEBABEBA, 0x00000000);
-                state_table_write_state(state_entry, pkt);
-            }
+	if (state_table_is_stateful(table->state_table) && state_table_is_configured(table->state_table)) {
+		state_entry = state_table_lookup(table->state_table, pkt);
+		if(state_entry!=NULL){
+			ofl_structs_match_exp_put32(&pkt->handle_std->match, OXM_EXP_STATE, 0xBEBABEBA, 0x00000000);
+			state_table_write_state(state_entry, pkt);
 		}
-        
+	 }
+
         //set 'flags' virtual header field value
 
 
-        HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv, 
+        HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
             hmap_node, hash_int(OXM_EXP_GLOBAL_STATE,0), &pkt->handle_std->match.match_fields){
                     uint32_t *flags = (uint32_t*) (f->value + EXP_ID_LEN);
                     *flags = (*flags & 0x00000000 ) | (pkt->dp->global_state);
         }
 
-		if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
-			char *m = ofl_structs_match_to_string((struct ofl_match_header*)&(pkt->handle_std->match), pkt->dp->exp);
-			VLOG_DBG_RL(LOG_MODULE, &rl, "searching table entry in table %d for packet match: %s.", table->stats->table_id,m);
-			free(m);
-		}
+	if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
+		char *m = ofl_structs_match_to_string((struct ofl_match_header*)&(pkt->handle_std->match), pkt->dp->exp);
+		VLOG_DBG_RL(LOG_MODULE, &rl, "searching table entry in table %d for packet match: %s.", table->stats->table_id,m);
+		free(m);
+	}
 
-		entry = flow_table_lookup(table, pkt, pkt->dp->exp);
+	entry = flow_table_lookup(table, pkt, pkt->dp->exp);
 
 
         if (entry != NULL) {
@@ -195,7 +193,7 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
                 char *m = ofl_structs_flow_stats_to_string(entry->stats, pkt->dp->exp);
                 VLOG_DBG_RL(LOG_MODULE, &rl, "found matching entry: %s.", m);
                 free(m);
-            } 
+            }
 
             pkt->handle_std->table_miss = is_table_miss(entry);
             execute_entry(pl, entry, &next_table, &pkt);
@@ -212,12 +210,13 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
             }
 
         } else {
-			/* OpenFlow 1.3 default behavior on a table miss */
-			VLOG_DBG_RL(LOG_MODULE, &rl, "No matching entry found. Dropping packet.");
-			packet_destroy(pkt);
-			return;
+		/* OpenFlow 1.3 default behavior on a table miss */
+		VLOG_DBG_RL(LOG_MODULE, &rl, "No matching entry found. Dropping packet.");
+		packet_destroy(pkt);
+		return;
         }
     }
+
     VLOG_WARN_RL(LOG_MODULE, &rl, "Reached outside of pipeline processing cycle.");
 }
 
@@ -468,7 +467,7 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
 	VLOG_DBG(LOG_MODULE, "multipart request: create reassembly buffer (%zu)", feat->tables_num);
 
 	/* Create a buffer the do reassembly. */
-	saved_msg = (struct ofl_msg_multipart_request_table_features*) malloc(sizeof(struct ofl_msg_multipart_request_table_features));
+	saved_msg = (struct ofl_msg_multipart_request_table_features*) xmalloc(sizeof(struct ofl_msg_multipart_request_table_features));
 	saved_msg->header.header.type = OFPT_MULTIPART_REQUEST;
 	saved_msg->header.type = OFPMP_TABLE_FEATURES;
 	saved_msg->header.flags = 0;

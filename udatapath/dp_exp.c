@@ -85,11 +85,11 @@ dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
                 }
                 break;
             }
-            case (OFPAT_EXP_SET_GLOBAL_STATE): 
+            case (OFPAT_EXP_SET_GLOBAL_STATE):
             {
                 struct ofl_exp_action_set_global_state *wns = (struct ofl_exp_action_set_global_state *)action;
                 uint32_t global_state = pkt->dp->global_state;
-                
+
                 global_state = (global_state & ~(wns->global_state_mask)) | (wns->global_state & wns->global_state_mask);
                 pkt->dp->global_state = global_state;
                 break;
@@ -123,7 +123,11 @@ dp_exp_inst(struct packet *pkt UNUSED, struct ofl_instruction_experimenter *inst
 
 					HMAP_FOR_EACH_WITH_HASH(pkttmp, struct pkttmp_entry, node,
 							beba_insw_i->pkttmp_id, &t->entries) {
+
+						uint8_t *data;
+
 						//VLOG_WARN_RL(LOG_MODULE, &rl, "Retrieving: pkttmp id %u!", pkttmp->pkttmp_id);
+						//
 						found = 1;
 
 						// ** Packet generation **
@@ -138,7 +142,8 @@ dp_exp_inst(struct packet *pkt UNUSED, struct ofl_instruction_experimenter *inst
 
 						/* NOTE: the created packet will take the ownership of data. */
 						buf = ofpbuf_new(0);
-						uint8_t *data = (uint8_t *)memcpy(malloc(pkttmp->data_length), pkttmp->data, pkttmp->data_length);
+						data = (uint8_t *)memcpy(xmalloc(pkttmp->data_length), pkttmp->data, pkttmp->data_length);
+
 						// TODO apply copy_instrs
 						ofpbuf_use(buf, data, pkttmp->data_length);
 						ofpbuf_put_uninit(buf, pkttmp->data_length);

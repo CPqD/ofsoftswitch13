@@ -124,7 +124,7 @@ dp_ports_add_local(struct datapath *dp, const char *netdev);
 
 /* Receives datapath packets, and runs them through the pipeline. */
 void
-dp_ports_run(struct datapath *dp);
+dp_ports_run(struct datapath *dp, int nrun);
 
 /* Returns the given port. */
 struct sw_port *
@@ -158,7 +158,7 @@ ofl_err
 dp_ports_handle_stats_request_port(struct datapath *dp,
                                   struct ofl_msg_multipart_request_port *msg,
                                   const struct sender *sender);
-                                  
+
 /* Handles a port desc request message. */
 ofl_err
 dp_ports_handle_port_desc_request(struct datapath *dp,

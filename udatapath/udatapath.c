@@ -97,7 +97,7 @@ int
 main(int argc, char *argv[])
 {
     return udatapath_cmd(argc, argv);
-    
+
 }
 #endif
 
@@ -106,7 +106,7 @@ udatapath_cmd(int argc, char *argv[])
 {
     int n_listeners;
     int error;
-    int i;
+    int i, n;
 
     set_program_name(argv[0]);
     register_fault_handlers();
@@ -125,14 +125,14 @@ udatapath_cmd(int argc, char *argv[])
 
     if (use_multiple_connections && (argc - optind) % 2 != 0)
         OFP_FATAL(0, "when using multiple connections, you must specify an even number of listeners");
-        
+
     n_listeners = 0;
     for (i = optind; i < argc; i += 2) {
         const char *pvconn_name = argv[i];
         const char *pvconn_name_aux = NULL;
         struct pvconn *pvconn, *pvconn_aux = NULL;
         int retval, retval_aux;
-        
+
         if (use_multiple_connections)
             pvconn_name_aux = argv[i + 1];
 
@@ -175,10 +175,12 @@ udatapath_cmd(int argc, char *argv[])
     die_if_already_running();
     daemonize();
 
-    for (;;) {
-        dp_run(dp);
-        dp_wait(dp);
+    for (n = 0;; n++) {
+        dp_run(dp, n);
+#if !defined(BEBA_USE_LIBPCAP)
+        dp_wait(dp, n);
         poll_block();
+#endif
     }
 
     return 0;

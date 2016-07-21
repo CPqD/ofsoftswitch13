@@ -235,7 +235,7 @@ dp_add_pvconn(struct datapath *dp, struct pvconn *pvconn, struct pvconn *pvconn_
 }
 
 void
-dp_run(struct datapath *dp) {
+dp_run(struct datapath *dp, int nrun) {
     time_t now = time_now();
     struct remote *r, *rn;
     size_t i;
@@ -246,39 +246,43 @@ dp_run(struct datapath *dp) {
         pipeline_timeout(dp->pipeline);
     }
 
-    poll_timer_wait(100);
-    dp_ports_run(dp);
+    poll_set_timer_wait(100);
 
-    /* Talk to remotes. */
-    LIST_FOR_EACH_SAFE (r, rn, struct remote, node, &dp->remotes) {
-        remote_run(dp, r);
-    }
+    dp_ports_run(dp, nrun);
 
-    for (i = 0; i < dp->n_listeners; ) {
-        struct pvconn *pvconn = dp->listeners[i];
-        struct vconn *new_vconn;
+    DP_RELAX_WITH(nrun)
+    {
+	    /* Talk to remotes. */
+	    LIST_FOR_EACH_SAFE (r, rn, struct remote, node, &dp->remotes) {
+		remote_run(dp, r);
+	    }
 
-        int retval = pvconn_accept(pvconn, OFP_VERSION, &new_vconn);
-        if (!retval) {
-            struct rconn * rconn_aux = NULL;
-            if (dp->n_listeners_aux && dp->listeners_aux[i] != NULL) {
-                struct pvconn *pvconn_aux = dp->listeners_aux[i];
-                struct vconn *new_vconn_aux;
-                int retval_aux = pvconn_accept(pvconn_aux, OFP_VERSION, &new_vconn_aux);
-                if (!retval_aux)
-                    rconn_aux = rconn_new_from_vconn("passive_aux", new_vconn_aux);
-            }
-            remote_create(dp, rconn_new_from_vconn("passive", new_vconn), rconn_aux);
-        }
-        else if (retval != EAGAIN) {
-            VLOG_WARN_RL(LOG_MODULE, &rl, "accept failed (%s)", strerror(retval));
-            dp->listeners[i] = dp->listeners[--dp->n_listeners];
-            if (dp->n_listeners_aux) {
-                dp->listeners_aux[i] = dp->listeners_aux[--dp->n_listeners_aux];
-            }
-            continue;
-        }
-        i++;
+	    for (i = 0; i < dp->n_listeners; ) {
+		struct pvconn *pvconn = dp->listeners[i];
+		struct vconn *new_vconn;
+
+		int retval = pvconn_accept(pvconn, OFP_VERSION, &new_vconn);
+		if (!retval) {
+		    struct rconn * rconn_aux = NULL;
+		    if (dp->n_listeners_aux && dp->listeners_aux[i] != NULL) {
+			struct pvconn *pvconn_aux = dp->listeners_aux[i];
+			struct vconn *new_vconn_aux;
+			int retval_aux = pvconn_accept(pvconn_aux, OFP_VERSION, &new_vconn_aux);
+			if (!retval_aux)
+			    rconn_aux = rconn_new_from_vconn("passive_aux", new_vconn_aux);
+		    }
+		    remote_create(dp, rconn_new_from_vconn("passive", new_vconn), rconn_aux);
+		}
+		else if (retval != EAGAIN) {
+		    VLOG_WARN_RL(LOG_MODULE, &rl, "accept failed (%s)", strerror(retval));
+		    dp->listeners[i] = dp->listeners[--dp->n_listeners];
+		    if (dp->n_listeners_aux) {
+			dp->listeners_aux[i] = dp->listeners_aux[--dp->n_listeners_aux];
+		    }
+		    continue;
+		}
+		i++;
+	    }
     }
 }
 
@@ -432,7 +436,7 @@ remote_create(struct datapath *dp, struct rconn *rconn, struct rconn *rconn_aux)
 
 
 void
-dp_wait(struct datapath *dp)
+dp_wait(struct datapath *dp, int nrun)
 {
     struct sw_port *p;
     struct remote *r;
@@ -444,11 +448,15 @@ dp_wait(struct datapath *dp)
         }
         netdev_recv_wait(p->netdev);
     }
-    LIST_FOR_EACH (r, struct remote, node, &dp->remotes) {
-        remote_wait(r);
-    }
-    for (i = 0; i < dp->n_listeners; i++) {
-        pvconn_wait(dp->listeners[i]);
+
+    DP_RELAX_WITH(nrun)
+    {
+	    LIST_FOR_EACH (r, struct remote, node, &dp->remotes) {
+		remote_wait(r);
+	    }
+	    for (i = 0; i < dp->n_listeners; i++) {
+		pvconn_wait(dp->listeners[i]);
+	    }
     }
 }
 

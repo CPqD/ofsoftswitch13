@@ -60,6 +60,13 @@ AC_CHECK_FUNCS([strsignal])
 
 AC_ARG_VAR(KARCH, [Kernel Architecture String])
 AC_SUBST(KARCH)
+
+# BEBA options
+
+AC_DEFINE(BEBA_USE_LIBPCAP,      1,   [BEBA pcap packet I/O acceleration])
+AC_DEFINE(BEBA_WORK_BUDGET,      128, [BEBA work budget for batch I/O acceleration])
+AC_DEFINE(BEBA_CTRL_PLANE_RELAX, 10,  [BEBA control-plane relax factor])
+
 #OFP_CHECK_LINUX(l26, 2.6, KBLD26, KSRC26, L26_ENABLED)
 
 OFP_CHECK_DPKG_BUILDPACKAGE
@@ -90,5 +97,8 @@ AC_CONFIG_FILES([Makefile
 #datapath/linux-2.6/Makefile
 #datapath/linux-2.6/Makefile.main
 #])
+
+AC_CHECK_LIB([pcap],[pcap_create])
+AC_CHECK_HEADERS([linux/pf_q.h])
 
 AC_OUTPUT

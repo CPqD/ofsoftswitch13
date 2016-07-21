@@ -820,7 +820,7 @@ dhclient_wait(struct dhclient *cli)
         if (wake <= now) {
             poll_immediate_wake();
         } else {
-            poll_timer_wait(sat_mul(sat_sub(wake, now), 1000));
+            poll_set_timer_wait(sat_mul(sat_sub(wake, now), 1000));
         }
     }
     /* Reset timeout to 1 second.  This will have no effect ordinarily, because
