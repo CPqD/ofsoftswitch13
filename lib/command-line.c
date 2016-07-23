@@ -46,7 +46,7 @@ long_options_to_short_options(const struct option options[])
 {
     char short_options[UCHAR_MAX * 3 + 1];
     char *p = short_options;
-    
+
     for (; options->name; options++) {
         const struct option *o = options;
         if (o->flag == NULL && o->val > 0 && o->val <= UCHAR_MAX) {
@@ -60,7 +60,7 @@ long_options_to_short_options(const struct option options[])
         }
     }
     *p = '\0';
-    
+
     return xstrdup(short_options);
 }
 
