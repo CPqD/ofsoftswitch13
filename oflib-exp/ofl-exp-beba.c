@@ -218,7 +218,7 @@ ofl_exp_beba_msg_pack(struct ofl_msg_experimenter const *msg, uint8_t **buf, siz
            struct ofl_exp_msg_notify_state_change *ntf = (struct ofl_exp_msg_notify_state_change *) exp_msg;
            struct ofp_exp_msg_state_ntf *ntf_msg;
 
-           *buf_len = sizeof(struct ofp_exp_msg_state_ntf);
+           *buf_len = sizeof(struct ofp_experimenter_header) + 5*sizeof(uint32_t) + ntf->key_len*sizeof(uint8_t); //sizeof(struct ofp_exp_msg_state_ntf);
            *buf     = (uint8_t *)malloc(*buf_len);
 
            ntf_msg = (struct ofp_exp_msg_state_notification *)(*buf);
@@ -332,6 +332,35 @@ ofl_exp_beba_msg_unpack(struct ofp_header const *oh, size_t *len, struct ofl_msg
                     return ofl_error(OFPET_EXPERIMENTER, OFPEC_EXP_PKTTMP_MOD_BAD_COMMAND);
             }
         }
+        case (OFPT_EXP_STATE_CHANGED):
+        {
+            struct ofp_exp_msg_state_ntf *sm;
+            struct ofl_exp_msg_notify_state_change *dm;
+
+            *len -= sizeof(struct ofp_experimenter_header);
+
+            sm = (struct ofp_exp_msg_state_ntf *)exp_header;
+            dm = (struct ofl_exp_msg_notify_state_change *)malloc(sizeof(struct ofl_exp_msg_notify_state_change));
+
+            dm->header.header.experimenter_id = ntohl(exp_header->experimenter);
+            dm->header.type                   = ntohl(exp_header->exp_type);
+
+            (*msg) = (struct ofl_msg_experimenter *)dm;
+
+            if (*len < 5*sizeof(uint32_t)) {
+                OFL_LOG_WARN(LOG_MODULE, "Received OFPT_EXP_STATE_CHANGED message has invalid length (%zu).", *len);
+                return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
+            }
+
+            dm->table_id = ntohl(sm->table_id);
+            dm->old_state = ntohl(sm->old_state);
+            dm->new_state = ntohl(sm->new_state);
+            dm->state_mask = ntohl(sm->state_mask);
+            dm->key_len = ntohl(sm->key_len);
+            memcpy(dm->key, sm->key, dm->key_len);
+            *len -= 5*sizeof(uint32_t) + dm->key_len*sizeof(uint8_t);
+            return 0;
+        }
 
         default: {
             struct ofl_msg_experimenter *dm;
@@ -363,6 +392,12 @@ ofl_exp_beba_msg_free(struct ofl_msg_experimenter *msg)
             free(msg);
             break;
         }
+        case (OFPT_EXP_STATE_CHANGED):
+        {
+            OFL_LOG_DBG(LOG_MODULE, "Free Beba OFPT_EXP_STATE_CHANGED Experimenter message. bebaexp{type=\"%u\"}", exp->type);
+            free(msg);
+            break;
+        }
         default: {
             OFL_LOG_WARN(LOG_MODULE, "Trying to free unknown Beba Experimenter message.");
         }
@@ -391,6 +426,16 @@ ofl_exp_beba_msg_to_string(struct ofl_msg_experimenter const *msg)
             OFL_LOG_DBG(LOG_MODULE, "Print Beba PKTTMP_MOD Experimenter message BEBA_MSG{type=\"%u\", command=\"%u\"}", exp->type, pkttmp_mod->command);
             break;
         }
+        case (OFPT_EXP_STATE_CHANGED):
+        {
+            OFL_LOG_DBG(LOG_MODULE, "Print Beba OFPT_EXP_STATE_CHANGED Experimenter message BEBA_MSG{type=\"%u\"}", exp->type);
+            break;
+        }
+        /*case (OFPT_EXP_FLOW_NOTIFICATION):
+        {
+            OFL_LOG_DBG(LOG_MODULE, "Print Beba OFPT_EXP_FLOW_NOTIFICATION Experimenter message BEBA_MSG{type=\"%u\"}", exp->type);
+            break;
+        }*/
         default: {
             OFL_LOG_WARN(LOG_MODULE, "Trying to print unknown Beba Experimenter message UNKN_BEBA_MSG{type=\"%u\"}", exp->type);
             break;
@@ -892,13 +937,13 @@ ofl_exp_beba_stats_reply_unpack(struct ofp_multipart_reply const *os, uint8_t co
             }
 
             data = os->body + ROUND_UP(sizeof(struct ofp_exp_msg_flow_ntf)-4 + dm->match->length, 8);
-            dm->instruction_num = htonl(*data);
+            dm->instruction_num = ntohl(*data);
 
             if (dm->instruction_num>0) {
                 dm->instructions = malloc(dm->instruction_num*sizeof(uint32_t));
                 data++;
                 for(i=0; i<(dm->instruction_num); i++){
-                    dm->instructions[i] = htonl(*data);
+                    dm->instructions[i] = ntohl(*data);
                     data++;
                 }
              } else {
