@@ -333,15 +333,15 @@ handle_control_msg(struct datapath *dp, struct ofl_msg_header *msg,
 
             if(!res) {
                 struct ofl_msg_flow_mod *m = (struct ofl_msg_flow_mod *)msg;
-                struct ofl_exp_msg_notify_flow_change ntf= {{{{{.type = OFPT_MULTIPART_REPLY},
-                                                           .type = OFPMP_EXPERIMENTER, .flags = 0x0000},
-                                                           .experimenter_id = BEBA_VENDOR_ID},
-                                                           .type = OFPT_EXP_FLOW_NOTIFICATION },
-                                                           .ntf_type = OFPT_FLOW_MOD,
-                                                           .table_id = m->table_id,
-                                                           .match = m->match,
-                                                           .instruction_num = m->instructions_num,
-                                                           .instructions = NULL};
+                struct ofl_exp_msg_notify_flow_change ntf= {{{.header = OFPT_EXPERIMENTER,
+                                                                .experimenter_id = BEBA_VENDOR_ID},
+                                                               .type = OFPT_EXP_FLOW_NOTIFICATION},
+                                                               .table_id = m->table_id,
+                                                               .ntf_type = OFPT_FLOW_MOD,
+                                                               .match = m->match,
+                                                               .instruction_num = m->instructions_num,
+                                                               .instructions = NULL};
+
                 if (ntf.instruction_num>0){
                     ntf.instructions = (uint32_t *) xmalloc(ntf.instruction_num * sizeof(uint32_t));
                     instruction = *(m->instructions);

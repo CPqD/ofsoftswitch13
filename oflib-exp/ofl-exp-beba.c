@@ -221,7 +221,8 @@ ofl_exp_beba_msg_pack(struct ofl_msg_experimenter const *msg, uint8_t **buf, siz
            *buf_len = sizeof(struct ofp_experimenter_header) + 5*sizeof(uint32_t) + ntf->key_len*sizeof(uint8_t); //sizeof(struct ofp_exp_msg_state_ntf);
            *buf     = (uint8_t *)malloc(*buf_len);
 
-           ntf_msg = (struct ofp_exp_msg_state_notification *)(*buf);
+           ntf_msg = (struct ofp_exp_msg_state_ntf *)(*buf);
+
            ntf_msg->header.experimenter = htonl(BEBA_VENDOR_ID);
            ntf_msg->header.exp_type = htonl(OFPT_EXP_STATE_CHANGED);
            ntf_msg->table_id = htonl(ntf->table_id);
@@ -231,16 +232,51 @@ ofl_exp_beba_msg_pack(struct ofl_msg_experimenter const *msg, uint8_t **buf, siz
            ntf_msg->key_len = htonl(ntf->key_len);
            memcpy(ntf_msg->key, ntf->key, ntf->key_len);
            return 0;
-       }
-       default: {
-           OFL_LOG_WARN(LOG_MODULE, "Trying to print unknown Beba Experimenter message.");
-           return -1;
-       }
+        }
+        /* State Sync: Pack positive flow modification acknowledgment. */
+        case (OFPT_EXP_FLOW_NOTIFICATION) :
+        {
+            struct ofl_exp_msg_notify_flow_change *ntf = (struct ofl_exp_msg_notify_flow_change *)exp_msg;
+            struct ofp_exp_msg_flow_ntf * ntf_msg;
+
+            uint8_t * ptr;
+            uint32_t * data;
+            int i;
+
+            *buf_len = ROUND_UP(sizeof(struct ofp_exp_msg_flow_ntf)-4 + ntf->match->length,8) +
+                      ROUND_UP((ntf->instruction_num+1)*sizeof(uint32_t),8);
+            *buf     = (uint8_t *)malloc(*buf_len);
+
+            ntf_msg = (struct ofp_exp_msg_flow_ntf *)(*buf);
+
+            ntf_msg->header.experimenter = htonl(BEBA_VENDOR_ID);
+            ntf_msg->header.exp_type = htonl(OFPT_EXP_FLOW_NOTIFICATION);
+            ntf_msg->table_id = htonl(ntf->table_id);
+            ntf_msg->ntf_type = htonl(ntf->ntf_type);
+
+            ptr = *buf + sizeof(struct ofp_exp_msg_flow_ntf)-4;
+            ofl_structs_match_pack(ntf->match, &(ntf_msg->match),ptr, exp);
+
+            data = (uint32_t *)(*buf + ROUND_UP(sizeof(struct ofp_exp_msg_flow_ntf)-4+ntf->match->length,8));
+            *data = htonl(ntf->instruction_num);
+            //NB: instructions are not full 'struct ofp_instruction'. We send back to the ctrl just a list of instruction types
+
+            ++data;
+            for (i=0;i<ntf->instruction_num;++i){
+               *data = htonl(ntf->instructions[i]);
+               ++data;
+            }
+            return 0;
+        }
+        default: {
+            OFL_LOG_WARN(LOG_MODULE, "Trying to pack unknown Beba Experimenter message.");
+            return -1;
+        }
     }
 }
 
 ofl_err
-ofl_exp_beba_msg_unpack(struct ofp_header const *oh, size_t *len, struct ofl_msg_experimenter **msg)
+ofl_exp_beba_msg_unpack(struct ofp_header const *oh, size_t *len, struct ofl_msg_experimenter **msg, struct ofl_exp const *exp)
 {
     struct ofp_experimenter_header *exp_header;
 
@@ -298,7 +334,6 @@ ofl_exp_beba_msg_unpack(struct ofp_header const *oh, size_t *len, struct ofl_msg
                     return ofl_error(OFPET_EXPERIMENTER, OFPEC_EXP_STATE_MOD_BAD_COMMAND);
             }
         }
-
         case (OFPT_EXP_PKTTMP_MOD):
         {
             struct ofp_exp_msg_pkttmp_mod *sm;
@@ -361,7 +396,52 @@ ofl_exp_beba_msg_unpack(struct ofp_header const *oh, size_t *len, struct ofl_msg
             *len -= 5*sizeof(uint32_t) + dm->key_len*sizeof(uint8_t);
             return 0;
         }
+        case (OFPT_EXP_FLOW_NOTIFICATION):
+        {
+            struct ofp_exp_msg_flow_ntf * sm;
+            struct ofl_exp_msg_notify_flow_change *dm;
+            uint32_t * data;
+            int i;
+            ofl_err error;
 
+            sm = (struct ofp_exp_msg_flow_ntf *)exp_header;
+            dm = (struct ofl_exp_msg_notify_flow_change *) malloc(sizeof(struct ofl_exp_msg_notify_flow_change));
+
+            dm->header.header.experimenter_id = ntohl(exp_header->experimenter);
+            dm->header.type = ntohl(exp_header->exp_type);
+
+            *msg = (struct ofl_msg_experimenter *)dm;
+            
+            dm->table_id = ntohl(sm->table_id);
+            dm->ntf_type = ntohl(sm->ntf_type);
+
+            *len -= ((sizeof(struct ofp_exp_msg_flow_ntf)) - sizeof(struct ofp_match));
+            error = ofl_structs_match_unpack(&(sm->match), ((uint8_t *)oh)+sizeof(struct ofp_exp_msg_flow_ntf)-4, len, &(dm->match), 0, exp);
+
+            if (error) {
+                free(dm);
+                return error;
+            }
+
+            data = (uint32_t * )(((uint8_t *)oh) + ROUND_UP(sizeof(struct ofp_exp_msg_flow_ntf)-4 + dm->match->length, 8));
+            //NB: instructions are not full 'struct ofp_instruction'. We send back to the ctrl just a list of instruction types
+            dm->instruction_num = ntohl(*data);
+
+            if (dm->instruction_num>0) {
+                dm->instructions = malloc(dm->instruction_num*sizeof(uint32_t));
+                data++;
+                for(i=0; i<(dm->instruction_num); i++){
+                    dm->instructions[i] = ntohl(*data);
+                    data++;
+                }
+             } else {
+                dm->instructions = NULL;
+            }
+
+            *len -= ROUND_UP((dm->instruction_num+1)* sizeof(uint32_t), 8);
+
+            return 0;
+        }
         default: {
             struct ofl_msg_experimenter *dm;
             dm = (struct ofl_msg_experimenter *)malloc(sizeof(struct ofl_msg_experimenter));
@@ -398,6 +478,16 @@ ofl_exp_beba_msg_free(struct ofl_msg_experimenter *msg)
             free(msg);
             break;
         }
+        case (OFPT_EXP_FLOW_NOTIFICATION):
+        {
+            struct ofl_exp_msg_notify_flow_change * msg = (struct ofl_exp_msg_notify_flow_change *) exp;
+            OFL_LOG_DBG(LOG_MODULE, "Free Beba FLOW_NOTIFICATION Experimenter message. bebaexp{type=\"%u\", table_id=\"%u\"}", exp->type, msg->table_id);
+            if (msg->instruction_num>0 && msg->instructions!=NULL){
+                free(msg->instructions);
+            }
+            free(msg);
+            break;
+        }
         default: {
             OFL_LOG_WARN(LOG_MODULE, "Trying to free unknown Beba Experimenter message.");
         }
@@ -431,11 +521,17 @@ ofl_exp_beba_msg_to_string(struct ofl_msg_experimenter const *msg)
             OFL_LOG_DBG(LOG_MODULE, "Print Beba OFPT_EXP_STATE_CHANGED Experimenter message BEBA_MSG{type=\"%u\"}", exp->type);
             break;
         }
-        /*case (OFPT_EXP_FLOW_NOTIFICATION):
-        {
-            OFL_LOG_DBG(LOG_MODULE, "Print Beba OFPT_EXP_FLOW_NOTIFICATION Experimenter message BEBA_MSG{type=\"%u\"}", exp->type);
+        case (OFPT_EXP_FLOW_NOTIFICATION):{
+            struct ofl_exp_msg_notify_flow_change * msg = (struct ofl_exp_msg_notify_flow_change *) exp;
+            int i;
+
+            OFL_LOG_DBG(LOG_MODULE, "Flow modification confirmed, flow table: \"%u\" , match fields \"%s\" ", msg->table_id, ofl_structs_match_to_string(msg->match, exp));
+            OFL_LOG_DBG(LOG_MODULE, "Instructions : ");
+            for(i=0; i<msg->instruction_num; i++){
+                OFL_LOG_DBG(LOG_MODULE, "  \"%s\"  ", ofl_instruction_type_to_string(msg->instructions[i]));
+            }
             break;
-        }*/
+        }
         default: {
             OFL_LOG_WARN(LOG_MODULE, "Trying to print unknown Beba Experimenter message UNKN_BEBA_MSG{type=\"%u\"}", exp->type);
             break;
@@ -750,42 +846,6 @@ ofl_exp_beba_stats_reply_pack(struct ofl_msg_multipart_reply_experimenter const 
             stats->global_state=htonl(msg->global_state);
             return 0;
         }
-        /* State Sync: Pack positive flow modification acknowledgment. */
-        case (OFPT_EXP_FLOW_NOTIFICATION) :
-        {
-            struct ofl_exp_msg_notify_flow_change *msg = (struct ofl_exp_msg_notify_flow_change *)e;
-            struct ofp_multipart_reply *resp;
-            struct ofp_exp_msg_flow_ntf * fields;
-            struct ofp_experimenter_stats_header *exp_header;
-            uint8_t * ptr;
-            uint32_t * data;
-            int i;
-
-            *buf_len = sizeof(struct ofp_multipart_reply)+ ROUND_UP(sizeof(struct ofp_exp_msg_flow_ntf)-4 + msg->match->length,8) +
-                       ROUND_UP((msg->instruction_num+1)*sizeof(uint32_t),8);
-            *buf     = (uint8_t *)malloc(*buf_len);
-
-            resp = (struct ofp_multipart_reply *)(*buf);
-            fields = (struct ofp_exp_flow_ntf_msg *)resp->body;
-            exp_header = (struct ofp_experimenter_stats_header *)fields;
-
-            exp_header -> experimenter = htonl(BEBA_VENDOR_ID);
-            exp_header -> exp_type = htonl(OFPT_EXP_FLOW_NOTIFICATION);
-            fields->table_id = htonl(msg->table_id);
-            fields->ntf_type = htonl(msg->ntf_type);
-
-            ptr = *buf + sizeof(struct ofp_multipart_reply) + sizeof(struct ofp_exp_msg_flow_ntf)-4;
-            data = *buf + sizeof(struct ofp_multipart_reply) + ROUND_UP(sizeof(struct ofp_exp_msg_flow_ntf)-4+msg->match->length,8);
-            ofl_structs_match_pack(msg->match, &(fields->match),ptr, exp);
-            *data = htonl(msg->instruction_num);
-
-            ++data;
-            for (i=0;i<msg->instruction_num;++i){
-                *data = htonl(msg->instructions[i]);
-                ++data;
-            }
-            return 0;
-        }
         default:
             return -1;
     }
@@ -912,49 +972,6 @@ ofl_exp_beba_stats_reply_unpack(struct ofp_multipart_reply const *os, uint8_t co
             *msg = (struct ofl_msg_multipart_reply_header *)dm;
             return 0;
         }
-        case (OFPT_EXP_FLOW_NOTIFICATION):
-        {
-            struct ofp_exp_msg_flow_ntf * sm;
-            struct ofl_exp_msg_notify_flow_change *dm;
-            uint32_t * data;
-            int i;
-            ofl_err error;
-
-            sm = (struct ofp_exp_msg_flow_ntf *)os->body;
-            dm = (struct ofl_exp_msg_notify_flow_change *) malloc(sizeof(struct ofl_exp_msg_notify_flow_change));
-
-            dm->header.type = ntohl(ext->exp_type);
-            dm->header.header.experimenter_id = ntohl(ext->experimenter);
-            dm->table_id = ntohl(sm->table_id);
-            dm->ntf_type = ntohl(sm->ntf_type);
-
-            *len -= sizeof(struct ofp_exp_msg_flow_ntf) - sizeof(struct ofp_match);
-
-            error = ofl_structs_match_unpack(&(sm->match), os->body+sizeof(struct ofp_exp_msg_flow_ntf)-4, len, &(dm->match), 1, exp);
-            if (error) {
-                free(dm);
-                return error;
-            }
-
-            data = os->body + ROUND_UP(sizeof(struct ofp_exp_msg_flow_ntf)-4 + dm->match->length, 8);
-            dm->instruction_num = ntohl(*data);
-
-            if (dm->instruction_num>0) {
-                dm->instructions = malloc(dm->instruction_num*sizeof(uint32_t));
-                data++;
-                for(i=0; i<(dm->instruction_num); i++){
-                    dm->instructions[i] = ntohl(*data);
-                    data++;
-                }
-             } else {
-                dm->instructions = NULL;
-            }
-
-            *len -= ROUND_UP((dm->instruction_num+1)* sizeof(uint32_t), 8);
-            *msg = (struct ofl_msg_multipart_request_header *)dm;
-
-            return 0;
-        }
         default:
             return -1;
     }
@@ -1037,20 +1054,6 @@ ofl_exp_beba_stats_reply_to_string(struct ofl_msg_multipart_reply_experimenter c
             fprintf(stream, "\", global_state=\"%s\"",decimal_to_binary(msg->global_state));
             break;
         }
-        case (OFPT_EXP_FLOW_NOTIFICATION):{
-            struct ofl_exp_msg_notify_flow_change * msg = (struct ofl_exp_msg_notify_flow_change *) e;
-            int i;
-
-            fprintf(stream, "\n  flow modification confirmed \n");
-            fprintf(stream, "  flow table    :  %d \n", msg->table_id);
-            fprintf(stream, "  match fields  :  %s \n " , ofl_structs_match_to_string(msg->match, exp));
-            fprintf(stream, " instruction  :  ");
-            for(i=0; i<msg->instruction_num; i++){
-                fprintf(stream, "  %s " , ofl_instruction_type_to_string(msg->instructions[i]));
-            }
-            fprintf(stream, "\n");
-            break;
-        }
     }
     fclose(stream);
     return str;
@@ -1096,15 +1099,6 @@ ofl_exp_beba_stats_reply_free(struct ofl_msg_multipart_reply_header *msg)
         case (OFPMP_EXP_GLOBAL_STATE_STATS):
         {
             struct ofl_exp_msg_multipart_reply_global_state *a = (struct ofl_exp_msg_multipart_reply_global_state *) ext;
-            free(a);
-            break;
-        }
-        case (OFPT_EXP_FLOW_NOTIFICATION):
-        {
-            struct ofl_exp_msg_notify_flow_change * a = (struct ofl_exp_msg_notify_flow_change *) ext;
-            if (a->instruction_num>0 && a->instructions!=NULL){
-                free(a->instructions);
-            }
             free(a);
             break;
         }
@@ -1813,7 +1807,7 @@ struct state_entry * state_table_lookup(struct state_table* table, struct packet
 
     if (e == NULL)
     {
-        OFL_LOG_DBG(LOG_MODULE, "not found the corresponding state value\n");
+        OFL_LOG_DBG(LOG_MODULE, "not found the corresponding state value");
         return &table->default_state_entry;
     }
     else

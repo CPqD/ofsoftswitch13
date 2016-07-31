@@ -83,7 +83,7 @@ ofl_exp_msg_pack(struct ofl_msg_experimenter const *msg, uint8_t **buf, size_t *
 }
 
 ofl_err
-ofl_exp_msg_unpack(struct ofp_header const *oh, size_t *len, struct ofl_msg_experimenter **msg)
+ofl_exp_msg_unpack(struct ofp_header const *oh, size_t *len, struct ofl_msg_experimenter **msg, struct ofl_exp const * ofl_exp)
 {
     struct ofp_experimenter_header *exp;
 
@@ -102,7 +102,7 @@ ofl_exp_msg_unpack(struct ofp_header const *oh, size_t *len, struct ofl_msg_expe
             return ofl_exp_nicira_msg_unpack(oh, len, msg);
         }
         case (BEBA_VENDOR_ID): {
-            return ofl_exp_beba_msg_unpack(oh, len, msg);
+            return ofl_exp_beba_msg_unpack(oh, len, msg, ofl_exp);
         }
         default: {
             OFL_LOG_WARN(LOG_MODULE, "Trying to unpack unknown EXPERIMENTER message (%u).", ntohl(exp->experimenter));

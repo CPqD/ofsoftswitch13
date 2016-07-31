@@ -1684,7 +1684,7 @@ ofl_msg_unpack(uint8_t const *buf, size_t buf_len, struct ofl_msg_header **msg, 
                 OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER message, but no callback was given.");
                 error = ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
             } else {
-                error = exp->msg->unpack(oh, &len, (struct ofl_msg_experimenter **)msg);
+                error = exp->msg->unpack(oh, &len, (struct ofl_msg_experimenter **)msg, exp);
             }
             break;
 

@@ -151,7 +151,7 @@ struct ofp_exp_msg_state_ntf {
  * Useful for bulk updates
  */
 struct ofp_exp_msg_flow_ntf {
-    struct   ofp_experimenter_stats_header header;
+    struct   ofp_experimenter_header header;
     uint32_t table_id;
     uint32_t ntf_type;
     struct   ofp_match match;
