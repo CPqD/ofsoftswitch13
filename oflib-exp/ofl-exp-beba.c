@@ -496,33 +496,33 @@ ofl_exp_beba_msg_free(struct ofl_msg_experimenter *msg)
 }
 
 char *
-ofl_exp_beba_msg_to_string(struct ofl_msg_experimenter const *msg)
+ofl_exp_beba_msg_to_string(struct ofl_msg_experimenter const *msg, struct ofl_exp const *exp)
 {
     char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
 
-    struct ofl_exp_beba_msg_header *exp = (struct ofl_exp_beba_msg_header *)msg;
-    switch (exp->type) {
+    struct ofl_exp_beba_msg_header *exp_msg = (struct ofl_exp_beba_msg_header *)msg;
+    switch (exp_msg->type) {
         case (OFPT_EXP_STATE_MOD):
         {
-            struct ofl_exp_msg_state_mod *state_mod = (struct ofl_exp_msg_state_mod *)exp;
-            OFL_LOG_DBG(LOG_MODULE, "Print Beba STATE_MOD Experimenter message BEBA_MSG{type=\"%u\", command=\"%u\"}", exp->type, state_mod->command);
+            struct ofl_exp_msg_state_mod *state_mod = (struct ofl_exp_msg_state_mod *)exp_msg;
+            OFL_LOG_DBG(LOG_MODULE, "Print Beba STATE_MOD Experimenter message BEBA_MSG{type=\"%u\", command=\"%u\"}", exp_msg->type, state_mod->command);
             break;
         }
         case (OFPT_EXP_PKTTMP_MOD):
         {
-            struct ofl_exp_msg_pkttmp_mod *pkttmp_mod = (struct ofl_exp_msg_pkttmp_mod *)exp;
-            OFL_LOG_DBG(LOG_MODULE, "Print Beba PKTTMP_MOD Experimenter message BEBA_MSG{type=\"%u\", command=\"%u\"}", exp->type, pkttmp_mod->command);
+            struct ofl_exp_msg_pkttmp_mod *pkttmp_mod = (struct ofl_exp_msg_pkttmp_mod *)exp_msg;
+            OFL_LOG_DBG(LOG_MODULE, "Print Beba PKTTMP_MOD Experimenter message BEBA_MSG{type=\"%u\", command=\"%u\"}", exp_msg->type, pkttmp_mod->command);
             break;
         }
         case (OFPT_EXP_STATE_CHANGED):
         {
-            OFL_LOG_DBG(LOG_MODULE, "Print Beba OFPT_EXP_STATE_CHANGED Experimenter message BEBA_MSG{type=\"%u\"}", exp->type);
+            OFL_LOG_DBG(LOG_MODULE, "Print Beba OFPT_EXP_STATE_CHANGED Experimenter message BEBA_MSG{type=\"%u\"}", exp_msg->type);
             break;
         }
         case (OFPT_EXP_FLOW_NOTIFICATION):{
-            struct ofl_exp_msg_notify_flow_change * msg = (struct ofl_exp_msg_notify_flow_change *) exp;
+            struct ofl_exp_msg_notify_flow_change * msg = (struct ofl_exp_msg_notify_flow_change *) exp_msg;
             int i;
 
             OFL_LOG_DBG(LOG_MODULE, "Flow modification confirmed, flow table: \"%u\" , match fields \"%s\" ", msg->table_id, ofl_structs_match_to_string(msg->match, exp));
@@ -533,7 +533,7 @@ ofl_exp_beba_msg_to_string(struct ofl_msg_experimenter const *msg)
             break;
         }
         default: {
-            OFL_LOG_WARN(LOG_MODULE, "Trying to print unknown Beba Experimenter message UNKN_BEBA_MSG{type=\"%u\"}", exp->type);
+            OFL_LOG_WARN(LOG_MODULE, "Trying to print unknown Beba Experimenter message UNKN_BEBA_MSG{type=\"%u\"}", exp_msg->type);
             break;
         }
     }
@@ -2015,7 +2015,7 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
 
                 /* State Sync: Notify the controller about state transition by sending the old and new state of the particular update key. */
                 *ntf_message = (struct ofl_exp_msg_notify_state_change)
-                               {{{.header = OFPT_EXPERIMENTER,
+                               {{{{.type = OFPT_EXPERIMENTER},
                                   .experimenter_id = BEBA_VENDOR_ID},
                                   .type = OFPT_EXP_STATE_CHANGED},
                                   .table_id = extractor->table_id,
@@ -2062,7 +2062,7 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
     // Old state was the default state, new state is just set and the controller needs to know it as well.
     new_state = e->state;
     *ntf_message = (struct ofl_exp_msg_notify_state_change)
-                   {{{.header = OFPT_EXPERIMENTER,
+                   {{{{.type = OFPT_EXPERIMENTER},
                       .experimenter_id = BEBA_VENDOR_ID},
                       .type = OFPT_EXP_STATE_CHANGED},
                       .table_id = extractor->table_id,

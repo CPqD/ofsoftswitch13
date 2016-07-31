@@ -281,7 +281,7 @@ int
 ofl_exp_beba_msg_free(struct ofl_msg_experimenter *msg);
 
 char *
-ofl_exp_beba_msg_to_string(struct ofl_msg_experimenter const *msg);
+ofl_exp_beba_msg_to_string(struct ofl_msg_experimenter const *msg, struct ofl_exp const *exp);
 
 /*experimenter action functions*/
 

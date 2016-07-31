@@ -790,7 +790,7 @@ ofl_msg_print(FILE *stream, struct ofl_msg_header const *msg, struct ofl_exp con
             if (exp == NULL || exp->msg == NULL || exp->msg->to_string == NULL) {
                 ofl_msg_print_experimenter((struct ofl_msg_experimenter const *)msg, stream);
             } else {
-                char *c = exp->msg->to_string((struct ofl_msg_experimenter *)msg);
+                char *c = exp->msg->to_string((struct ofl_msg_experimenter *)msg, exp);
                 fprintf(stream, "%s", c);
                 free(c);
             }

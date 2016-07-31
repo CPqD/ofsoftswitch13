@@ -133,7 +133,7 @@ ofl_exp_msg_free(struct ofl_msg_experimenter *msg)
 }
 
 char *
-ofl_exp_msg_to_string(struct ofl_msg_experimenter const *msg)
+ofl_exp_msg_to_string(struct ofl_msg_experimenter const *msg, struct ofl_exp const *exp)
 {
     switch (msg->experimenter_id) {
         case (OPENFLOW_VENDOR_ID): {
@@ -143,7 +143,7 @@ ofl_exp_msg_to_string(struct ofl_msg_experimenter const *msg)
             return ofl_exp_nicira_msg_to_string(msg);
         }
         case (BEBA_VENDOR_ID): {
-            return ofl_exp_beba_msg_to_string(msg);
+            return ofl_exp_beba_msg_to_string(msg,exp);
         }
         default: {
             return ofl_exp_unknown_id_to_string(msg->experimenter_id);

@@ -46,7 +46,7 @@ int
 ofl_exp_msg_free(struct ofl_msg_experimenter *msg);
 
 char *
-ofl_exp_msg_to_string(struct ofl_msg_experimenter const *msg);
+ofl_exp_msg_to_string(struct ofl_msg_experimenter const *msg, struct ofl_exp const *exp);
 
 int
 ofl_exp_act_pack(struct ofl_action_header const *src, struct ofp_action_header *dst);

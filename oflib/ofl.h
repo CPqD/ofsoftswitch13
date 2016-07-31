@@ -132,7 +132,7 @@ struct ofl_exp_msg {
     int     (*pack)             (struct ofl_msg_experimenter const *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp const *exp);
     ofl_err (*unpack)           (struct ofp_header const *oh, size_t *len, struct ofl_msg_experimenter **msg, struct ofl_exp const *exp);
     int     (*free)             (struct ofl_msg_experimenter *msg);
-    char   *(*to_string)        (struct ofl_msg_experimenter const *msg);
+    char   *(*to_string)        (struct ofl_msg_experimenter const *msg, struct ofl_exp const *exp);
 };
 
 /* Callback functions for handling experimenter match fields. */
