@@ -25,7 +25,7 @@ OFL_LOG_INIT(LOG_MODULE)
 
 /* functions used  by ofp_exp_msg_pkttmp_mod */
 static ofl_err
-ofl_structs_add_pkttmp_unpack(struct ofp_exp_add_pkttmp *src, size_t *len, struct ofl_exp_add_pkttmp *dst) {
+ofl_structs_add_pkttmp_unpack(struct ofp_exp_add_pkttmp const *src, size_t *len, struct ofl_exp_add_pkttmp *dst) {
     //int i;
     //uint8_t key[OFPSC_MAX_KEY_LEN] = {0};
     uint8_t *data = NULL;
@@ -52,7 +52,7 @@ ofl_structs_add_pkttmp_unpack(struct ofp_exp_add_pkttmp *src, size_t *len, struc
 }
 
 static ofl_err
-ofl_structs_del_pkttmp_unpack(struct ofp_exp_del_pkttmp *src, size_t *len, struct ofl_exp_del_pkttmp *dst) {
+ofl_structs_del_pkttmp_unpack(struct ofp_exp_del_pkttmp const *src, size_t *len, struct ofl_exp_del_pkttmp *dst) {
     //int i;
     //uint8_t key[OFPSC_MAX_KEY_LEN] = {0};
 
@@ -360,9 +360,9 @@ ofl_exp_beba_msg_unpack(struct ofp_header const *oh, size_t *len, struct ofl_msg
 
             switch(dm->command){
                 case OFPSC_ADD_PKTTMP:
-                    return ofl_structs_add_pkttmp_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
+                    return ofl_structs_add_pkttmp_unpack((struct ofp_exp_add_pkttmp const *)&(sm->payload[0]), len, (struct ofl_exp_add_pkttmp *)&(dm->payload[0]));
                 case OFPSC_DEL_PKTTMP:
-                    return ofl_structs_del_pkttmp_unpack(&(sm->payload[0]), len, &(dm->payload[0]));
+                    return ofl_structs_del_pkttmp_unpack((struct ofp_exp_del_pkttmp const *)&(sm->payload[0]), len, (struct ofl_exp_del_pkttmp *)&(dm->payload[0]));
                 default:
                     return ofl_error(OFPET_EXPERIMENTER, OFPEC_EXP_PKTTMP_MOD_BAD_COMMAND);
             }
@@ -725,7 +725,6 @@ ofl_exp_beba_act_to_string(struct ofl_action_header const *act)
 int
 ofl_exp_beba_act_free(struct ofl_action_header *act)
 {
-
     struct ofl_action_experimenter* exp = (struct ofl_action_experimenter *) act;
     struct ofl_exp_beba_act_header *ext = (struct ofl_exp_beba_act_header *)exp;
     switch (ext->act_type) {
@@ -1426,7 +1425,7 @@ ofl_exp_beba_inst_pack (struct ofl_instruction_header const *src, struct ofp_ins
             OFL_LOG_DBG(LOG_MODULE, "ofl_exp_beba_inst_pack OFPIT_IN_SWITCH_PKT_GEN");
 
             //TODO may need to pass callbacks instead of NULL
-            total_len = sizeof(struct ofp_exp_instruction_in_switch_pkt_gen) + ofl_actions_ofp_total_len(si->actions, si->actions_num, NULL);
+            total_len = sizeof(struct ofp_exp_instruction_in_switch_pkt_gen) + ofl_actions_ofp_total_len((struct ofl_action_header const **)si->actions, si->actions_num, NULL);
 
             di->header.header.type = htons(src->type); //OFPIT_EXPERIMENTER
             di->header.header.experimenter  = htonl(exp->experimenter_id); //BEBA_VENDOR_ID
@@ -1459,6 +1458,7 @@ ofl_exp_beba_inst_unpack (struct ofp_instruction const *src, size_t *len, struct
     size_t ilen;
     ofl_err error = 0;
     struct ofp_instruction_experimenter_header *exp;
+    struct ofp_beba_instruction_experimenter_header *beba_exp;
 
     OFL_LOG_DBG(LOG_MODULE, "ofl_exp_beba_inst_unpack");
 
@@ -1475,7 +1475,7 @@ ofl_exp_beba_inst_unpack (struct ofp_instruction const *src, size_t *len, struct
     }
     ilen = ntohs(exp->len);
 
-    struct ofp_beba_instruction_experimenter_header *beba_exp = (struct ofp_beba_instruction_experimenter_header *) exp;
+    beba_exp = (struct ofp_beba_instruction_experimenter_header *) exp;
     switch (ntohl(beba_exp->instr_type)) {
         case OFPIT_IN_SWITCH_PKT_GEN: {
             struct ofp_exp_instruction_in_switch_pkt_gen *si;
@@ -1545,25 +1545,26 @@ ofl_exp_beba_inst_unpack (struct ofp_instruction const *src, size_t *len, struct
 int
 ofl_exp_beba_inst_free (struct ofl_instruction_header *i) {
     struct ofl_instruction_experimenter* exp = (struct ofl_instruction_experimenter *) i;
-        struct ofl_exp_beba_instr_header *ext = (struct ofl_exp_beba_instr_header *)exp;
-        switch (ext->instr_type) {
-            case (OFPIT_IN_SWITCH_PKT_GEN):
-            {
-                OFL_LOG_DBG(LOG_MODULE, "Freeing BEBA instruction IN_SWITCH_PKT_GEN.");
-                struct ofl_exp_instruction_in_switch_pkt_gen *instr = (struct ofl_exp_instruction_in_switch_pkt_gen *)ext;
-                // TODO We may need to use OFL_UTILS_FREE_ARR_FUN2 and pass the ofl_exp callbacks instead of NULL
-                OFL_UTILS_FREE_ARR_FUN2(instr->actions, instr->actions_num,
-                                    ofl_actions_free, NULL);
-                free(instr);
-                OFL_LOG_DBG(LOG_MODULE, "Done.");
-                return 0;
-                break;
-            }
-            default:
-            {
-                OFL_LOG_WARN(LOG_MODULE, "Unknown BEBA instruction type. Perhaps not freed correctly");
-            }
+    struct ofl_exp_beba_instr_header *ext = (struct ofl_exp_beba_instr_header *)exp;
+    struct ofl_exp_instruction_in_switch_pkt_gen *instr;
+    switch (ext->instr_type) {
+        case (OFPIT_IN_SWITCH_PKT_GEN):
+        {
+            OFL_LOG_DBG(LOG_MODULE, "Freeing BEBA instruction IN_SWITCH_PKT_GEN.");
+            instr = (struct ofl_exp_instruction_in_switch_pkt_gen *)ext;
+            // TODO We may need to use OFL_UTILS_FREE_ARR_FUN2 and pass the ofl_exp callbacks instead of NULL
+            OFL_UTILS_FREE_ARR_FUN2(instr->actions, instr->actions_num,
+                                ofl_actions_free, NULL);
+            free(instr);
+            OFL_LOG_DBG(LOG_MODULE, "Done.");
+            return 0;
+            break;
         }
+        default:
+        {
+            OFL_LOG_WARN(LOG_MODULE, "Unknown BEBA instruction type. Perhaps not freed correctly");
+        }
+    }
     free(i);
     return 1;
 }
@@ -1581,7 +1582,7 @@ ofl_exp_beba_inst_ofp_len (struct ofl_instruction_header const *i) {
 //              return sizeof(struct ofl_exp_beba_instr_header)
 //                      + ofl_actions_ofp_total_len(i->actions, i->actions_num, exp);
             return sizeof(struct ofp_exp_instruction_in_switch_pkt_gen)
-                    + ofl_actions_ofp_total_len(i->actions, i->actions_num, NULL);
+                    + ofl_actions_ofp_total_len((struct ofl_action_header const **)i->actions, i->actions_num, NULL);
         }
         default:
             OFL_LOG_WARN(LOG_MODULE, "Trying to len unknown BEBA instruction type.");
@@ -2167,7 +2168,7 @@ handle_state_mod(struct pipeline *pl, struct ofl_exp_msg_state_mod *msg,
 
 ofl_err
 handle_pkttmp_mod(struct pipeline *pl, struct ofl_exp_msg_pkttmp_mod *msg,
-                                                const struct sender *sender) {
+                                                const struct sender *sender UNUSED) {
     OFL_LOG_DBG(LOG_MODULE, "Handling PKTTMP_MOD");
     /* TODO: complete handling of creating and deleting pkttmp entry */
     switch (msg->command){
@@ -3034,7 +3035,7 @@ pkttmp_entry_create(struct datapath *dp, struct pkttmp_table *table, struct ofl_
     //e->data = mod->data_length > 0 ? (uint8_t *)memcpy(malloc(mod->data_length), mod->data, mod->data_length) : NULL;
 
 
-    OFL_LOG_DBG(LOG_MODULE, "Creating PKTTMP entry with following values id %u, data_len %u.",e->pkttmp_id, e->data_length);
+    OFL_LOG_DBG(LOG_MODULE, "Creating PKTTMP entry with following values id %u, data_len %zu.",e->pkttmp_id, e->data_length);
 
     return e;
 }
