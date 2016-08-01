@@ -1776,8 +1776,6 @@ ofl_msg_unpack(uint8_t const *buf, size_t buf_len, struct ofl_msg_header **msg, 
         }
     }
 
-    (*msg)->type = (enum ofp_type)oh->type;
-
     if (error) {
         if (OFL_LOG_IS_DBG_ENABLED(LOG_MODULE)) {
             char *str = ofl_hex_to_string(buf, buf_len < 1024 ? buf_len : 1024);
@@ -1802,6 +1800,8 @@ ofl_msg_unpack(uint8_t const *buf, size_t buf_len, struct ofl_msg_header **msg, 
             free(str);
         }
     }
+
+    (*msg)->type = (enum ofp_type)oh->type;
 
     return 0;
 }
