@@ -231,6 +231,33 @@ int inst_compare(const void *inst1, const void *inst2){
     return i1->type < i2->type;
 }
 
+void
+send_flow_notification(struct datapath *dp, struct ofl_msg_flow_mod *msg,const struct sender *sender){
+    struct ofl_instruction_header * instruction;
+    size_t i;
+
+    /* Flow Mod Sync: Notification is sent to acknowledge a flow modification */
+    struct ofl_exp_msg_notify_flow_change ntf = {{{{.type = OFPT_EXPERIMENTER},
+                                                   .experimenter_id = BEBA_VENDOR_ID},
+                                                   .type = OFPT_EXP_FLOW_NOTIFICATION},
+                                                   .table_id = msg->table_id,
+                                                   .ntf_type = OFPT_FLOW_MOD,
+                                                   .match = msg->match,
+                                                   .instruction_num = msg->instructions_num,
+                                                   .instructions = NULL};
+
+    if (ntf.instruction_num>0){
+        ntf.instructions = (uint32_t *) xmalloc(ntf.instruction_num * sizeof(uint32_t));
+        instruction = *(msg->instructions);
+        for(i=0;i<ntf.instruction_num;i++){
+            ntf.instructions[i] = instruction[i].type;
+        }
+    }
+
+    dp_send_message(dp,(struct ofl_msg_header*)&ntf, sender);
+    if (ntf.instructions != NULL) free(ntf.instructions);
+}
+
 ofl_err
 pipeline_handle_flow_mod(struct pipeline *pl, struct ofl_msg_flow_mod *msg,
                                                 const struct sender *sender) {
@@ -286,6 +313,7 @@ pipeline_handle_flow_mod(struct pipeline *pl, struct ofl_msg_flow_mod *msg,
             if (error) {
                 return error;
             } else {
+                send_flow_notification(pl->dp, msg, sender);
                 ofl_msg_free_flow_mod(msg, !match_kept, !insts_kept, pl->dp->exp);
                 return 0;
             }
@@ -309,7 +337,8 @@ pipeline_handle_flow_mod(struct pipeline *pl, struct ofl_msg_flow_mod *msg,
                 VLOG_WARN_RL(LOG_MODULE, &rl, "The buffer flow_mod referred to was empty (%u).", msg->buffer_id);
             }
         }
-
+        
+        send_flow_notification(pl->dp, msg, sender);
         ofl_msg_free_flow_mod(msg, !match_kept, !insts_kept, pl->dp->exp);
         return 0;
     }

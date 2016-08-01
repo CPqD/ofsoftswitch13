@@ -324,37 +324,7 @@ handle_control_msg(struct datapath *dp, struct ofl_msg_header *msg,
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_TYPE);
         }
         case OFPT_FLOW_MOD: {
-            ofl_err res;
-            int i;
-            struct ofl_instruction_header * instruction;
-
-            /* State Sync: Notification is sent to acknowledge a flow modification */
-            res = pipeline_handle_flow_mod(dp->pipeline, (struct ofl_msg_flow_mod *)msg, sender);
-
-            if(!res) {
-                struct ofl_msg_flow_mod *m = (struct ofl_msg_flow_mod *)msg;
-                struct ofl_exp_msg_notify_flow_change ntf = {{{{.type = OFPT_EXPERIMENTER},
-                                                               .experimenter_id = BEBA_VENDOR_ID},
-                                                               .type = OFPT_EXP_FLOW_NOTIFICATION},
-                                                               .table_id = m->table_id,
-                                                               .ntf_type = OFPT_FLOW_MOD,
-                                                               .match = m->match,
-                                                               .instruction_num = m->instructions_num,
-                                                               .instructions = NULL};
-
-                if (ntf.instruction_num>0){
-                    ntf.instructions = (uint32_t *) xmalloc(ntf.instruction_num * sizeof(uint32_t));
-                    instruction = *(m->instructions);
-                    for(i=0;i<ntf.instruction_num;i++){
-                        ntf.instructions[i] = instruction[i].type;
-                    }
-                }
-
-                dp_send_message(dp,(struct ofl_msg_header*)&ntf, sender);
-                if (ntf.instructions != NULL) free(ntf.instructions);
-            }
-
-            return res;
+            return pipeline_handle_flow_mod(dp->pipeline, (struct ofl_msg_flow_mod *)msg, sender);
         }
         case OFPT_GROUP_MOD: {
             return group_table_handle_group_mod(dp->groups, (struct ofl_msg_group_mod *)msg, sender);
