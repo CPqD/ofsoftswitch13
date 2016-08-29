@@ -47,12 +47,6 @@ static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(60, 60);
 
 struct action_set_entry;
 
-struct action_set {
-    struct list     actions;   /* the list of actions in the action set,
-+                                   stored in the order of precedence as defined
-+                                   by the specification. */
-    struct ofl_exp *exp;       /* experimenter callbacks */
-};
 
 struct action_set_entry {
     struct list                node;
@@ -105,9 +99,17 @@ action_set_create(struct ofl_exp *exp) {
     return set;
 }
 
+
+void
+action_set_init(struct action_set *set, struct ofl_exp *exp) {
+    list_init(&set->actions);
+    set->exp = exp;
+}
+
 void action_set_destroy(struct action_set *set) {
     action_set_clear_actions(set);
-    free(set);
+    // FLAT
+    // free(set);
 }
 
 static struct action_set_entry *
@@ -216,7 +218,7 @@ action_set_execute(struct action_set *set, struct packet *pkt, uint64_t cookie) 
 
     /* Clear the action set in any case. Group processing depend on
      * a clean action-set. Jean II */
-    action_set_clear_actions(pkt->action_set);
+    action_set_clear_actions(&pkt->action_set);
 
         /* According to the spec. if there was a group action, the output
          * port action should be ignored */

@@ -1675,7 +1675,7 @@ int __extract_key(uint8_t *buf, struct key_extractor *extractor, struct packet *
     for (i=0; i<extractor->field_count; i++) {
         uint32_t type = (int)extractor->fields[i];
         HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
-            hmap_node, hash_int(type, 0), &pkt->handle_std->match.match_fields){
+            hmap_node, hash_int(type, 0), &pkt->handle_std.match.match_fields){
                 if (type == f->header) {
                     memcpy(&buf[extracted_key_len], f->value, OXM_LENGTH(f->header));
                     extracted_key_len = extracted_key_len + OXM_LENGTH(f->header);//keeps only 8 last bits of oxm_header that contains oxm_length(in which length of oxm_payload)
@@ -1820,7 +1820,7 @@ void state_table_write_state(struct state_entry *entry, struct packet *pkt)
     struct  ofl_match_tlv *f;
 
     HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
-        hmap_node, hash_int(OXM_EXP_STATE,0), &pkt->handle_std->match.match_fields){
+        hmap_node, hash_int(OXM_EXP_STATE,0), &pkt->handle_std.match.match_fields){
                 uint32_t *state = (uint32_t*) (f->value + EXP_ID_LEN);
                 *state = (*state & 0x00000000) | (entry->state);
     }

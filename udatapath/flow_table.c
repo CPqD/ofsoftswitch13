@@ -221,8 +221,8 @@ flow_table_lookup(struct flow_table *table, struct packet *pkt, struct ofl_exp *
         /* select appropriate handler, based on match type of flow entry. */
         switch (m->type) {
             case (OFPMT_OXM): {
-               if (packet_handle_std_match(pkt->handle_std, (struct ofl_match *)m, exp)) {
-                    if (!entry->no_byt_count)                                            
+               if (packet_handle_std_match(&pkt->handle_std, (struct ofl_match *)m, exp)) {
+                    if (!entry->no_byt_count)
                         entry->stats->byte_count += pkt->buffer->size;
                     if (!entry->no_pkt_count)
                         entry->stats->packet_count++;

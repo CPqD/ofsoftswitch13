@@ -34,15 +34,21 @@
 
 #include <sys/types.h>
 #include <stdio.h>
-#include "datapath.h"
-#include "packet.h"
 #include "oflib/ofl.h"
 #include "oflib/ofl-actions.h"
 #include "oflib/ofl-structs.h"
+#include "list.h"
 
-struct action_set;
 struct datapath;
 struct packet;
+
+
+struct action_set {
+    struct list     actions;   /* the list of actions in the action set,
+                                   stored in the order of precedence as defined
+                                   by the specification. */
+    struct ofl_exp *exp;       /* experimenter callbacks */
+};
 
 
 /****************************************************************************
@@ -51,6 +57,9 @@ struct packet;
 
 struct action_set *
 action_set_create(struct ofl_exp *exp);
+
+void
+action_set_init(struct action_set *, struct ofl_exp *exp);
 
 /* Destroys an action set */
 void
