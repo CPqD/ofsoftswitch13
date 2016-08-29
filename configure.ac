@@ -66,6 +66,9 @@ AC_SUBST(KARCH)
 AC_DEFINE(BEBA_USE_LIBPCAP,      1,   [BEBA pcap packet I/O acceleration])
 AC_DEFINE(BEBA_WORK_BUDGET,      128, [BEBA work budget for batch I/O acceleration])
 AC_DEFINE(BEBA_CTRL_PLANE_RELAX, 10,  [BEBA control-plane relax factor])
+AC_DEFINE(BEBA_MATCH_POOL_SIZE,  16,  [BEBA size of match-pool for small TLV node])
+AC_DEFINE(BEBA_MATCH_VALUE_SIZE, 20,  [BEBA size of TLV value])
+
 
 #OFP_CHECK_LINUX(l26, 2.6, KBLD26, KSRC26, L26_ENABLED)
 
