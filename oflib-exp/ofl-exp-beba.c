@@ -2132,7 +2132,6 @@ ofl_err state_table_inc_state(struct state_table *table, struct packet *pkt,
                            struct ofl_exp_msg_notify_state_change *ntf_message){
 
     uint8_t key[MAX_STATE_KEY_LEN] = {0};
-    uint32_t state = (uint32_t) 1; // Initial State condition
     struct state_entry *e;
     struct timeval tv;
     uint64_t now;
@@ -2155,9 +2154,9 @@ ofl_err state_table_inc_state(struct state_table *table, struct packet *pkt,
     HMAP_FOR_EACH_WITH_HASH(e, struct state_entry,
         hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries){
         if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
-            state_table_del_state(table, key, key_len);
+            e->state += (uint32_t) 1;
+            return 0;
         }
-        state = e->state + (uint32_t) 1;
     }
 
     gettimeofday(&tv,NULL);
@@ -2169,7 +2168,7 @@ ofl_err state_table_inc_state(struct state_table *table, struct packet *pkt,
     e->stats->hard_timeout = 0;
     e->stats->idle_rollback = 0;
     e->stats->hard_rollback = 0;
-    e->state = state;
+    e->state = (uint32_t) 1; // Initial condition
     memcpy(e->key, key, MAX_STATE_KEY_LEN);
     hmap_insert(&table->state_entries, &e->hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
     return 0;
