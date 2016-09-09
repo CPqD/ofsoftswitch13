@@ -50,7 +50,8 @@ OFP_ASSERT(sizeof(struct ofp_exp_instruction_in_switch_pkt_gen) == 24);
  ****************************************************************/
 enum ofp_exp_actions {
     OFPAT_EXP_SET_STATE,
-    OFPAT_EXP_SET_GLOBAL_STATE
+    OFPAT_EXP_SET_GLOBAL_STATE,
+    OFPAT_EXP_INC_STATE
 };
 
 struct ofp_beba_action_experimenter_header {
@@ -84,6 +85,13 @@ struct ofp_exp_action_set_global_state {
 };
 OFP_ASSERT(sizeof(struct ofp_exp_action_set_global_state) == 24);
 
+/* Action structure for OFPAT_EXP_INC_STATE */
+struct ofp_exp_action_inc_state {
+    struct ofp_beba_action_experimenter_header header;
+    uint8_t table_id;
+    uint8_t pad[7]; 
+};
+OFP_ASSERT(sizeof(struct ofp_exp_action_inc_state) == 24);
 
 /*EXPERIMENTER MESSAGES*/
 /*
@@ -241,7 +249,8 @@ enum ofp_exp_msg_pkttmp_mod_commands {
 ****************************************************************/
 enum ofp_stats_extension_commands {
     OFPMP_EXP_STATE_STATS,      
-    OFPMP_EXP_GLOBAL_STATE_STATS
+    OFPMP_EXP_GLOBAL_STATE_STATS,
+    OFPMP_EXP_STATE_STATS_AND_DELETE
 };
 
 struct ofp_exp_state_entry{
