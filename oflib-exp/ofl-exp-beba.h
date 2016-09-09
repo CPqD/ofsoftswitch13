@@ -268,7 +268,7 @@ ofl_err
 state_table_set_state(struct state_table *, struct packet *, struct ofl_exp_set_flow_state *msg, struct ofl_exp_action_set_state *act, struct ofl_exp_msg_notify_state_change * ntf_message);
 
 ofl_err
-state_table_inc_state(struct state_table *, struct packet *, struct ofl_exp_action_inc_state *act, struct ofl_exp_msg_notify_state_change * ntf_message);
+state_table_inc_state(struct state_table *, struct packet *);
 
 ofl_err
 state_table_set_extractor(struct state_table *, struct key_extractor *, int);

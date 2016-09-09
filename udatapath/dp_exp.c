@@ -103,7 +103,7 @@ dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
                 if (state_table_is_stateful(pkt->dp->pipeline->tables[wns->table_id]->state_table) && state_table_is_configured(pkt->dp->pipeline->tables[wns->table_id]->state_table))
                 {
                     struct state_table *table = pkt->dp->pipeline->tables[wns->table_id]->state_table;
-                    state_table_inc_state(table, pkt, wns, &ntf_message); //ntf_message not implemented in this case                
+                    state_table_inc_state(table, pkt);
                 }
                 else
                 {

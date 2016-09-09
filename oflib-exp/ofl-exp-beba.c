@@ -2167,9 +2167,7 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
     return res;
 }
 
-ofl_err state_table_inc_state(struct state_table *table, struct packet *pkt,
-                           struct ofl_exp_action_inc_state *act,
-                           struct ofl_exp_msg_notify_state_change *ntf_message){
+ofl_err state_table_inc_state(struct state_table *table, struct packet *pkt){
 
     uint8_t key[MAX_STATE_KEY_LEN] = {0};
     struct state_entry *e;
