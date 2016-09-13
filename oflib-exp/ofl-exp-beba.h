@@ -368,17 +368,13 @@ handle_state_mod(struct pipeline *pl, struct ofl_exp_msg_state_mod *msg, const s
 ofl_err
 handle_stats_request_state(struct pipeline *pl, struct ofl_exp_msg_multipart_request_state *msg, const struct sender *sender, struct ofl_exp_msg_multipart_reply_state *reply);
 
-/* Handles a state stats and delete request. */
-ofl_err
-handle_stats_request_state_and_delete(struct pipeline *pl, struct ofl_exp_msg_multipart_request_state *msg, const struct sender *sender, struct ofl_exp_msg_multipart_reply_state *reply);
-
 /* Handles a global state stats request. */
 ofl_err
 handle_stats_request_global_state(struct pipeline *pl, const struct sender *sender, struct ofl_exp_msg_multipart_reply_global_state *reply);
 
 void
 state_table_stats(struct state_table *table, struct ofl_exp_msg_multipart_request_state *msg,
-                 struct ofl_exp_state_stats ***stats, size_t *stats_size, size_t *stats_num, uint8_t table_id);
+                 struct ofl_exp_state_stats ***stats, size_t *stats_size, size_t *stats_num, uint8_t table_id, bool delete_entries);
 
 void
 state_table_delete_states(struct state_table *table);

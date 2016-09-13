@@ -2316,49 +2316,21 @@ handle_stats_request_state(struct pipeline *pl, struct ofl_exp_msg_multipart_req
         size_t i;
         for (i=0; i<PIPELINE_TABLES; i++) {
             if (state_table_is_stateful(pl->tables[i]->state_table) && state_table_is_configured(pl->tables[i]->state_table))
-                state_table_stats(pl->tables[i]->state_table, msg, &stats, &stats_size, &stats_num, i);
+                state_table_stats(pl->tables[i]->state_table, msg, &stats, &stats_size, &stats_num, i, msg->header.type == OFPMP_EXP_STATE_STATS_AND_DELETE);
         }
     } else {
         if (state_table_is_stateful(pl->tables[msg->table_id]->state_table) && state_table_is_configured(pl->tables[msg->table_id]->state_table))
-            state_table_stats(pl->tables[msg->table_id]->state_table, msg, &stats, &stats_size, &stats_num, msg->table_id);
+            state_table_stats(pl->tables[msg->table_id]->state_table, msg, &stats, &stats_size, &stats_num, msg->table_id, msg->header.type == OFPMP_EXP_STATE_STATS_AND_DELETE);
     }
     *reply = (struct ofl_exp_msg_multipart_reply_state)
             {{{{{.type = OFPT_MULTIPART_REPLY},
               .type = OFPMP_EXPERIMENTER, .flags = 0x0000},
              .experimenter_id = BEBA_VENDOR_ID},
-             .type = OFPMP_EXP_STATE_STATS},
+             .type = msg->header.type},
              .stats = stats,
              .stats_num = stats_num};
     return 0;
 }
-
-ofl_err
-handle_stats_request_state_and_delete(struct pipeline *pl, struct ofl_exp_msg_multipart_request_state *msg, const struct sender *sender UNUSED, struct ofl_exp_msg_multipart_reply_state *reply) {
-    struct ofl_exp_state_stats **stats = xmalloc(sizeof(struct ofl_exp_state_stats *));
-    size_t stats_size = 1;
-    size_t stats_num = 0;
-    if (msg->table_id == 0xff) {
-        size_t i;
-        for (i=0; i<PIPELINE_TABLES; i++) {
-            if (state_table_is_stateful(pl->tables[i]->state_table) && state_table_is_configured(pl->tables[i]->state_table))
-                state_table_stats(pl->tables[i]->state_table, msg, &stats, &stats_size, &stats_num, i);
-                state_table_delete_states(pl->tables[i]->state_table);
-        }
-    } else {
-        if (state_table_is_stateful(pl->tables[msg->table_id]->state_table) && state_table_is_configured(pl->tables[msg->table_id]->state_table))
-            state_table_stats(pl->tables[msg->table_id]->state_table, msg, &stats, &stats_size, &stats_num, msg->table_id);
-            state_table_delete_states(pl->tables[msg->table_id]->state_table);   
-    }
-    *reply = (struct ofl_exp_msg_multipart_reply_state)
-            {{{{{.type = OFPT_MULTIPART_REPLY},
-              .type = OFPMP_EXPERIMENTER, .flags = 0x0000},
-             .experimenter_id = BEBA_VENDOR_ID},
-             .type = OFPMP_EXP_STATE_STATS_AND_DELETE},
-             .stats = stats,
-             .stats_num = stats_num};
-    return 0;
-}
-
 
 ofl_err
 handle_stats_request_global_state(struct pipeline *pl, const struct sender *sender UNUSED, struct ofl_exp_msg_multipart_reply_global_state *reply) {
@@ -2375,7 +2347,7 @@ handle_stats_request_global_state(struct pipeline *pl, const struct sender *send
 
 void
 state_table_stats(struct state_table *table, struct ofl_exp_msg_multipart_request_state *msg,
-                 struct ofl_exp_state_stats ***stats, size_t *stats_size, size_t *stats_num, uint8_t table_id)
+                 struct ofl_exp_state_stats ***stats, size_t *stats_size, size_t *stats_num, uint8_t table_id, bool delete_entries)
 {
     struct state_entry *entry;
     size_t  i;
@@ -2424,43 +2396,53 @@ state_table_stats(struct state_table *table, struct ofl_exp_msg_multipart_reques
     //for each state entry
     HMAP_FOR_EACH(entry, struct state_entry, hmap_node, &table->state_entries) {
         if ((*stats_size) == (*stats_num)) {
-                (*stats) = xrealloc(*stats, (sizeof(struct ofl_exp_state_stats *)) * (*stats_size) * 2);
-                *stats_size *= 2;
-            }
-            if(entry == NULL)
-                break;
-
-            //for each received match_field compare the received value with the state entry's key
-            aux = 0;
-            found = 1;
-            HMAP_FOR_EACH(state_key_match, struct ofl_match_tlv, hmap_node, &a->match_fields)
-            {
-                if(memcmp(state_key_match->value,&entry->key[offset[aux]], length[aux]))
-                    found = 0;
-                aux+=1;
-            }
-
-            if(found && ((msg->get_from_state && msg->state == entry->state) || (!msg->get_from_state)))
-            {
-                gettimeofday(&tv,NULL);
-                (*stats)[(*stats_num)] = malloc(sizeof(struct ofl_exp_state_stats));
-                (*stats)[(*stats_num)]->idle_timeout = entry->stats->idle_timeout;
-                (*stats)[(*stats_num)]->hard_timeout = entry->stats->hard_timeout;
-                (*stats)[(*stats_num)]->idle_rollback = entry->stats->idle_rollback;
-                (*stats)[(*stats_num)]->hard_rollback = entry->stats->hard_rollback;
-                (*stats)[(*stats_num)]->duration_sec  =  (1000000 * tv.tv_sec + tv.tv_usec - entry->created) / 1000000;
-                (*stats)[(*stats_num)]->duration_nsec = ((1000000 * tv.tv_sec + tv.tv_usec - entry->created) % 1000000)*1000;
-                for (i=0;i<extractor->field_count;i++)
-                    (*stats)[(*stats_num)]->fields[i]=fields[i];
-                (*stats)[(*stats_num)]->table_id = table_id;
-                (*stats)[(*stats_num)]->field_count = extractor->field_count;
-                (*stats)[(*stats_num)]->entry.key_len = key_len;
-                for (i=0;i<key_len;i++)
-                    (*stats)[(*stats_num)]->entry.key[i]=entry->key[i];
-                (*stats)[(*stats_num)]->entry.state = entry->state;
-                (*stats_num)++;
-             }
+            (*stats) = xrealloc(*stats, (sizeof(struct ofl_exp_state_stats *)) * (*stats_size) * 2);
+            *stats_size *= 2;
         }
+
+        if(entry == NULL)
+            break;
+
+        //for each received match_field compare the received value with the state entry's key
+        aux = 0;
+        found = 1;
+        HMAP_FOR_EACH(state_key_match, struct ofl_match_tlv, hmap_node, &a->match_fields)
+        {
+            if(memcmp(state_key_match->value,&entry->key[offset[aux]], length[aux]))
+                found = 0;
+            aux+=1;
+        }
+
+        if(found && ((msg->get_from_state && msg->state == entry->state) || (!msg->get_from_state)))
+        {
+            gettimeofday(&tv,NULL);
+            (*stats)[(*stats_num)] = malloc(sizeof(struct ofl_exp_state_stats));
+            (*stats)[(*stats_num)]->idle_timeout = entry->stats->idle_timeout;
+            (*stats)[(*stats_num)]->hard_timeout = entry->stats->hard_timeout;
+            (*stats)[(*stats_num)]->idle_rollback = entry->stats->idle_rollback;
+            (*stats)[(*stats_num)]->hard_rollback = entry->stats->hard_rollback;
+            (*stats)[(*stats_num)]->duration_sec  =  (1000000 * tv.tv_sec + tv.tv_usec - entry->created) / 1000000;
+            (*stats)[(*stats_num)]->duration_nsec = ((1000000 * tv.tv_sec + tv.tv_usec - entry->created) % 1000000)*1000;
+            for (i=0;i<extractor->field_count;i++)
+                (*stats)[(*stats_num)]->fields[i]=fields[i];
+            (*stats)[(*stats_num)]->table_id = table_id;
+            (*stats)[(*stats_num)]->field_count = extractor->field_count;
+            (*stats)[(*stats_num)]->entry.key_len = key_len;
+            for (i=0;i<key_len;i++)
+                (*stats)[(*stats_num)]->entry.key[i]=entry->key[i];
+            (*stats)[(*stats_num)]->entry.state = entry->state;
+            (*stats_num)++;
+
+            if (delete_entries){
+                if (entry->stats->idle_timeout>0)
+                    hmap_remove_and_shrink(&table->idle_entries, &entry->idle_node);
+                if (entry->stats->hard_timeout>0)
+                    hmap_remove_and_shrink(&table->hard_entries, &entry->hard_node);
+                hmap_remove_and_shrink(&table->state_entries, &entry->hmap_node);
+            }
+        }
+    }
+
      /*DEFAULT ENTRY*/
     if(!msg->get_from_state || (msg->get_from_state && msg->state == STATE_DEFAULT))
     {
@@ -2480,27 +2462,6 @@ state_table_stats(struct state_table *table, struct ofl_exp_msg_multipart_reques
         (*stats)[(*stats_num)]->idle_rollback = 0;
         (*stats)[(*stats_num)]->hard_rollback = 0;
         (*stats_num)++;
-    }
-}
-
-void
-state_table_delete_states(struct state_table *table)
-{
-    struct state_entry *e;
-    uint8_t found = 0;
-
-    HMAP_FOR_EACH(e, struct state_entry, hmap_node, &table->state_entries) {
-        hmap_remove_and_shrink(&table->state_entries, &e->hmap_node);
-        found = 1;
-    }
-    if (!found){
-        return;
-    }
-    HMAP_FOR_EACH(e, struct state_entry, hard_node, &table->hard_entries) {
-        hmap_remove_and_shrink(&table->hard_entries, &e->hard_node);
-    }
-    HMAP_FOR_EACH(e, struct state_entry, idle_node, &table->idle_entries) {
-        hmap_remove_and_shrink(&table->idle_entries, &e->idle_node);
     }
 }
 
