@@ -1,5 +1,5 @@
 /* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary
- 
+
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -61,9 +61,15 @@ struct packet {
 
     uint16_t            out_port_max_len;	/* max length to send, if out_port is OFPP_CONTROLLER */
     uint8_t             table_id;			/* table in which is processed */
-    bool                packet_out;			/* true if the packet arrived in a packet out msg */
 
+    bool                packet_out;			/* true if the packet arrived in a packet out msg */
+    bool		ownership;			/* if the memory for the struct packet is to be freed (true) or
+							   not (false) */
 };
+
+/* Creates a packet. */
+void
+packet_emplace(struct packet *pkt, struct datapath *dp, uint32_t in_port, struct ofpbuf *buf, bool packet_out);
 
 /* Creates a packet. */
 struct packet *

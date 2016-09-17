@@ -43,12 +43,9 @@
 #include "util.h"
 
 
-struct packet *
-packet_create(struct datapath *dp, uint32_t in_port,
+void
+packet_emplace(struct packet *pkt, struct datapath *dp, uint32_t in_port,
     struct ofpbuf *buf, bool packet_out) {
-    struct packet *pkt;
-
-    pkt = xmalloc(sizeof(struct packet));
 
     pkt->dp         = dp;
     pkt->buffer     = buf;
@@ -63,8 +60,18 @@ packet_create(struct datapath *dp, uint32_t in_port,
     pkt->out_queue        = 0;
     pkt->buffer_id        = NO_BUFFER;
     pkt->table_id         = 0;
+    pkt->ownership	  = false;
+    packet_handle_std_init(&pkt->handle_std, pkt);
+}
 
-	packet_handle_std_init(&pkt->handle_std, pkt);
+struct packet *
+packet_create(struct datapath *dp, uint32_t in_port,
+    struct ofpbuf *buf, bool packet_out)
+{
+    struct packet *pkt;
+    pkt = xmalloc(sizeof(struct packet));
+    packet_emplace(pkt, dp, in_port, buf, packet_out);
+    pkt->ownership = true;
     return pkt;
 }
 
@@ -94,8 +101,9 @@ packet_clone(struct packet *pkt) {
                                          // but this buffer is a copy of that,
                                          // and might be altered later
     clone->table_id         = pkt->table_id;
+    clone->ownership        = true;
 
-	packet_handle_std_init(&clone->handle_std, pkt);
+    packet_handle_std_init(&clone->handle_std, pkt);
     // FLAT: optimization on packet clone is not supported.
     // clone->handle_std = packet_handle_std_clone(clone, pkt->handle_std);
 
@@ -118,7 +126,9 @@ packet_destroy(struct packet *pkt) {
     action_set_destroy(&pkt->action_set);
     ofpbuf_delete(pkt->buffer);
     packet_handle_std_destroy(&pkt->handle_std);
-    free(pkt);
+
+    if (pkt->ownership)
+	free(pkt);
 }
 
 char *
