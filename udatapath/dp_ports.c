@@ -215,16 +215,15 @@ dp_hw_drv_init(struct datapath *dp)
 static void
 process_buffer(struct datapath *dp, struct sw_port *p, struct ofpbuf *buffer)
 {
-    struct packet *pkt;
+    struct packet pkt;
 
     if (p->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN) != 0)) {
         ofpbuf_delete(buffer);
         return;
     }
 
-    // packet takes ownership of ofpbuf buffer
-    pkt = packet_create(dp, p->stats->port_no, buffer, false);
-    pipeline_process_packet(dp->pipeline, pkt);
+    packet_emplace(&pkt, dp, p->stats->port_no, buffer, false);
+    pipeline_process_packet(dp->pipeline, &pkt);
 }
 
 void
