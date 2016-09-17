@@ -53,13 +53,13 @@ static inline size_t hmap_node_hash(const struct hmap_node *node)
 /* A hash map. */
 struct hmap {
     struct hmap_node **buckets;
-    struct hmap_node *one;
+    struct hmap_node *cache[BEBA_HMAP_INIT_SIZE];
     size_t mask;
     size_t n;
 };
 
 /* Initializer for an empty hash map. */
-#define HMAP_INITIALIZER(HMAP) { &(HMAP)->one, NULL, 0, 0 }
+#define HMAP_INITIALIZER(HMAP) { (HMAP)->cache, {NULL}, BEBA_HMAP_INIT_SIZE-1, 0 }
 
 #define HMAP_NODE_NULL ((struct hmap_node *) 1)
 #define HMAP_NODE_NULL_INITIALIZER { 0, HMAP_NODE_NULL }

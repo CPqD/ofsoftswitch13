@@ -41,9 +41,9 @@
 void
 hmap_init(struct hmap *hmap)
 {
-    hmap->buckets = &hmap->one;
-    hmap->one = NULL;
-    hmap->mask = 0;
+    hmap->buckets = hmap->cache;
+    memset(hmap->cache, 0, sizeof(void *)*BEBA_HMAP_INIT_SIZE);
+    hmap->mask = BEBA_HMAP_INIT_SIZE-1;
     hmap->n = 0;
 }
 
@@ -52,7 +52,7 @@ hmap_init(struct hmap *hmap)
 void
 hmap_destroy(struct hmap *hmap)
 {
-    if (hmap && hmap->buckets != &hmap->one) {
+    if (hmap && hmap->buckets != hmap->cache) {
         free(hmap->buckets);
     }
 }
@@ -64,11 +64,11 @@ hmap_swap(struct hmap *a, struct hmap *b)
     struct hmap tmp = *a;
     *a = *b;
     *b = tmp;
-    if (a->buckets == &b->one) {
-        a->buckets = &a->one;
+    if (a->buckets == b->cache) {
+        a->buckets = a->cache;
     }
-    if (b->buckets == &a->one) {
-        b->buckets = &b->one;
+    if (b->buckets == a->cache) {
+        b->buckets = b->cache;
     }
 }
 
