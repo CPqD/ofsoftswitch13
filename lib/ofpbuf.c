@@ -54,7 +54,6 @@ ofpbuf_use(struct ofpbuf *b, void *base, size_t allocated)
     b->l2 = b->l3 = b->l4 = b->l7 = NULL;
     b->next = NULL;
     b->private_p = NULL;
-    b->ownership = true;
 }
 
 
@@ -90,6 +89,7 @@ ofpbuf_new(size_t size)
 {
     struct ofpbuf *b = xmalloc(sizeof *b);
     ofpbuf_init(b, size);
+    b->ownership = true;
     return b;
 }
 
