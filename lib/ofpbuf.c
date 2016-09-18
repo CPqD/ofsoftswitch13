@@ -54,6 +54,7 @@ ofpbuf_use(struct ofpbuf *b, void *base, size_t allocated)
     b->l2 = b->l3 = b->l4 = b->l7 = NULL;
     b->next = NULL;
     b->private_p = NULL;
+    b->ownership = false;
 }
 
 /* Initializes 'b' as an empty ofpbuf with an initial capacity of 'size'
@@ -88,6 +89,7 @@ ofpbuf_new(size_t size)
 {
     struct ofpbuf *b = xmalloc(sizeof *b);
     ofpbuf_init(b, size);
+    b->ownership = true;
     return b;
 }
 
@@ -100,6 +102,16 @@ ofpbuf_new_with_headroom(size_t size, size_t headroom)
     ofpbuf_reserve(b, headroom);
     return b;
 }
+
+/* Emplace a ofpbuf with an initial capacity of 'size'
+ * bytes. */
+void
+ofpbuf_emplace(struct ofpbuf *b, size_t size, size_t headroom)
+{
+    ofpbuf_init(b, size + headroom);
+    ofpbuf_reserve(b, headroom);
+}
+
 
 struct ofpbuf *
 ofpbuf_clone(const struct ofpbuf *buffer)
@@ -127,11 +139,12 @@ ofpbuf_clone_data(const void *data, size_t size)
 
 /* Frees memory that 'b' points to, as well as 'b' itself. */
 void
-ofpbuf_delete(struct ofpbuf *b) 
+ofpbuf_delete(struct ofpbuf *b)
 {
     if (b) {
         ofpbuf_uninit(b);
-        free(b);
+        if (b->ownership)
+		free(b);
     }
 }
 
