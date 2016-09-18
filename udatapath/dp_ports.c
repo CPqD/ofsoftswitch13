@@ -295,7 +295,12 @@ dp_ports_run(struct datapath *dp, int nrun) {
 	     * to the controller or adding a vlan tag, plus an extra 2 bytes to
 	     * allow IP headers to be aligned on a 4-byte boundary.  */
 	    const int headroom = 128 + 2;
+
+#if BEBA_USE_LIBPCAP_ZEROCOPY
+	    ofpbuf_emplace(&buffer, 0, 0);
+#else
 	    ofpbuf_emplace(&buffer, VLAN_ETH_HEADER_LEN + max_mtu, headroom);
+#endif
 
 	    error = netdev_recv(p->netdev, &buffer, VLAN_ETH_HEADER_LEN + max_mtu);
 	    if (!error) {
