@@ -228,8 +228,9 @@ process_buffer(struct datapath *dp, struct sw_port *p, struct ofpbuf *buffer)
 
 void
 dp_ports_run(struct datapath *dp, int nrun) {
+
     // static, so an unused buffer can be reused at the dp_ports_run call
-    static struct ofpbuf *buffer = NULL;
+    static struct ofpbuf buffer;
     static int max_mtu = 1500;
 
     struct sw_port *p, *pn;
@@ -290,21 +291,18 @@ dp_ports_run(struct datapath *dp, int nrun) {
 
 	for(x = 0; x < BEBA_WORK_BUDGET; x++)
 	{
-	    if (buffer == NULL) {
-	        /* Allocate buffer with some headroom to add headers in forwarding
-	         * to the controller or adding a vlan tag, plus an extra 2 bytes to
-	         * allow IP headers to be aligned on a 4-byte boundary.  */
-	        const int headroom = 128 + 2;
-	        buffer = ofpbuf_new_with_headroom(VLAN_ETH_HEADER_LEN + max_mtu, headroom);
-	    }
+	    /* Emplace a buffer with some headroom to add headers in forwarding
+	     * to the controller or adding a vlan tag, plus an extra 2 bytes to
+	     * allow IP headers to be aligned on a 4-byte boundary.  */
+	    const int headroom = 128 + 2;
+	    ofpbuf_emplace(&buffer, VLAN_ETH_HEADER_LEN + max_mtu, headroom);
 
-	    error = netdev_recv(p->netdev, buffer, VLAN_ETH_HEADER_LEN + max_mtu);
+	    error = netdev_recv(p->netdev, &buffer, VLAN_ETH_HEADER_LEN + max_mtu);
 	    if (!error) {
 	        p->stats->rx_packets++;
-	        p->stats->rx_bytes += buffer->size;
+	        p->stats->rx_bytes += buffer.size;
 	        // process_buffer takes ownership of ofpbuf buffer
-	        process_buffer(dp, p, buffer);
-	        buffer = NULL;
+	        process_buffer(dp, p, &buffer);
 	    }
 	    else {
 		break;
