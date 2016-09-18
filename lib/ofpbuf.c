@@ -54,8 +54,9 @@ ofpbuf_use(struct ofpbuf *b, void *base, size_t allocated)
     b->l2 = b->l3 = b->l4 = b->l7 = NULL;
     b->next = NULL;
     b->private_p = NULL;
-    b->ownership = false;
+    b->ownership = true;
 }
+
 
 /* Initializes 'b' as an empty ofpbuf with an initial capacity of 'size'
  * bytes. */
@@ -89,7 +90,6 @@ ofpbuf_new(size_t size)
 {
     struct ofpbuf *b = xmalloc(sizeof *b);
     ofpbuf_init(b, size);
-    b->ownership = true;
     return b;
 }
 
@@ -110,6 +110,7 @@ ofpbuf_emplace(struct ofpbuf *b, size_t size, size_t headroom)
 {
     ofpbuf_init(b, size + headroom);
     ofpbuf_reserve(b, headroom);
+    b->ownership = false;
 }
 
 

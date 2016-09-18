@@ -305,6 +305,7 @@ dp_ports_run(struct datapath *dp, int nrun) {
 	        process_buffer(dp, p, &buffer);
 	    }
 	    else {
+		ofpbuf_delete(&buffer);
 		break;
 	    }
 	}
