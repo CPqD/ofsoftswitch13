@@ -226,6 +226,7 @@ process_buffer(struct datapath *dp, struct sw_port *p, struct ofpbuf *buffer)
     pipeline_process_packet(dp->pipeline, &pkt);
 }
 
+
 void
 dp_ports_run(struct datapath *dp, int nrun) {
 
@@ -285,9 +286,11 @@ dp_ports_run(struct datapath *dp, int nrun) {
 		}
 	}
 
+#if defined(OF_HW_PLAT)
         if (IS_HW_PORT(p)) {
             continue;
         }
+#endif
 
 	for(x = 0; x < BEBA_WORK_BUDGET; x++)
 	{
