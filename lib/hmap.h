@@ -37,6 +37,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include "util.h"
+#include "compiler.h"
 
 /* A hash map node, to be embedded inside the data structure being mapped. */
 struct hmap_node {
@@ -210,6 +211,7 @@ hmap_next__(const struct hmap *hmap, size_t start)
         if (node) {
             return node;
         }
+        __builtin_prefetch(&hmap->buckets[i+1], 0, 1);
     }
     return NULL;
 }
