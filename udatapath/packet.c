@@ -103,7 +103,7 @@ packet_clone(struct packet *pkt) {
     clone->table_id         = pkt->table_id;
     clone->ownership        = true;
 
-    packet_handle_std_init(&clone->handle_std, pkt);
+    packet_handle_std_init(&clone->handle_std, clone);
     // FLAT: optimization on packet clone is not supported.
     // clone->handle_std = packet_handle_std_clone(clone, pkt->handle_std);
 
