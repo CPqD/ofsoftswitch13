@@ -42,7 +42,6 @@ lib_libopenflow_a_SOURCES = \
 	lib/ofp.c \
 	lib/ofp.h \
 	lib/ofp.h \
-	lib/ofpbuf.c \
 	lib/ofpbuf.h \
 	lib/packets.h \
 	lib/pcap.c \
@@ -125,7 +124,7 @@ endif
 
 if HAVE_OPENSSL
 lib_libopenflow_a_SOURCES += \
-	lib/vconn-ssl.c 
+	lib/vconn-ssl.c
 nodist_lib_libopenflow_a_SOURCES = lib/dhparams.c
 lib/dhparams.c: lib/dh1024.pem lib/dh2048.pem lib/dh4096.pem
 	(echo '#include "lib/dhparams.h"' &&				\
