@@ -411,7 +411,7 @@ ofl_exp_beba_msg_unpack(struct ofp_header const *oh, size_t *len, struct ofl_msg
             dm->header.type = ntohl(exp_header->exp_type);
 
             *msg = (struct ofl_msg_experimenter *)dm;
-            
+
             dm->table_id = ntohl(sm->table_id);
             dm->ntf_type = ntohl(sm->ntf_type);
 
@@ -642,7 +642,7 @@ ofl_exp_beba_act_unpack(struct ofp_action_header const *src, size_t *len, struct
                 }
                 return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_TABLE_ID);
             }
-            
+
             da->table_id = sa->table_id;
 
             *len -= sizeof(struct ofp_exp_action_inc_state);
@@ -798,7 +798,7 @@ ofl_exp_beba_act_free(struct ofl_action_header *act)
         {
             struct ofl_exp_action_inc_state *a = (struct ofl_exp_action_inc_state *)ext;
             free(a);
-            break;   
+            break;
         }
         default: {
             OFL_LOG_WARN(LOG_MODULE, "Trying to free unknown Beba Experimenter action.");
@@ -889,7 +889,7 @@ ofl_exp_beba_stats_reply_pack(struct ofl_msg_multipart_reply_experimenter const 
                 ext_header->exp_type = htonl(OFPMP_EXP_STATE_STATS);
             else if (e->type == OFPMP_EXP_STATE_STATS_AND_DELETE)
                 ext_header->exp_type = htonl(OFPMP_EXP_STATE_STATS_AND_DELETE);
-            
+
             data += sizeof(struct ofp_experimenter_stats_header);
             for (i=0; i<msg->stats_num; i++) {
                 data += ofl_structs_state_stats_pack(msg->stats[i], data, exp);
@@ -1183,77 +1183,6 @@ ofl_exp_beba_stats_reply_free(struct ofl_msg_multipart_reply_header *msg)
         }
     }
     return 0;
-}
-
-/*experimenter match fields*/
-
-static void
-oxm_put_exp_header(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id)
-{
-    uint32_t n_header = htonl(header);
-    ofpbuf_put(buf, &n_header, sizeof n_header);
-    ofpbuf_put(buf, &experimenter_id, EXP_ID_LEN);
-
-}
-
-static void
-oxm_put_exp_8(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint8_t value)
-{
-    oxm_put_exp_header(buf, header, experimenter_id);
-    ofpbuf_put(buf, &value, sizeof value);
-}
-
-static void
-oxm_put_exp_8w(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint8_t value, uint8_t mask)
-{
-    oxm_put_exp_header(buf, header, experimenter_id);
-    ofpbuf_put(buf, &value, sizeof value);
-    ofpbuf_put(buf, &mask, sizeof mask);
-}
-
-static void
-oxm_put_exp_16(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint16_t value)
-{
-    oxm_put_exp_header(buf, header, experimenter_id);
-    ofpbuf_put(buf, &value, sizeof value);
-}
-
-static void
-oxm_put_exp_16w(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint16_t value, uint16_t mask)
-{
-    oxm_put_exp_header(buf, header, experimenter_id);
-    ofpbuf_put(buf, &value, sizeof value);
-    ofpbuf_put(buf, &mask, sizeof mask);
-}
-
-static void
-oxm_put_exp_32(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint32_t value)
-{
-    oxm_put_exp_header(buf, header, experimenter_id);
-    ofpbuf_put(buf, &value, sizeof value);
-}
-
-static void
-oxm_put_exp_32w(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint32_t value, uint32_t mask)
-{
-    oxm_put_exp_header(buf, header, experimenter_id);
-    ofpbuf_put(buf, &value, sizeof value);
-    ofpbuf_put(buf, &mask, sizeof mask);
-}
-
-static void
-oxm_put_exp_64(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint64_t value)
-{
-    oxm_put_exp_header(buf, header, experimenter_id);
-    ofpbuf_put(buf, &value, sizeof value);
-}
-
-static void
-oxm_put_exp_64w(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint64_t value, uint64_t mask)
-{
-    oxm_put_exp_header(buf, header, experimenter_id);
-    ofpbuf_put(buf, &value, sizeof value);
-    ofpbuf_put(buf, &mask, sizeof mask);
 }
 
 int
