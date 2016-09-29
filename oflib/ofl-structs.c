@@ -559,8 +559,10 @@ ofl_structs_free_match(struct ofl_match_header *match, struct ofl_exp const *exp
                 struct ofl_match_tlv *tlv, *next;
                 HMAP_FOR_EACH_SAFE(tlv, next, struct ofl_match_tlv, hmap_node, &m->match_fields)
                 {
-                    free(tlv->value);
-                    free(tlv);
+                	if (tlv->ownership) {
+						free(tlv->value);
+						free(tlv);
+					}
                 }
                 hmap_destroy(&m->match_fields);
                 free(m);

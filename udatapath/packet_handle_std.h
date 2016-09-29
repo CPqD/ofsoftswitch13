@@ -33,7 +33,6 @@
 
 #include <stdbool.h>
 #include <stdio.h>
-#include "packet.h"
 #include "packets.h"
 #include "match_std.h"
 #include "oflib/ofl-structs.h"
@@ -45,20 +44,26 @@
 /* The data associated with the handler */
 struct packet_handle_std {
    struct packet              *pkt;
-   struct protocols_std       *proto;
+   struct protocols_std        proto;
+
    struct ofl_match  match;  /* Match fields extracted from the packet
-                                           are also stored in a match structure
-                                           for convenience */
-   bool                        valid; /* Set to true if the handler data is valid.
-                                           if false, it is revalidated before
+                                are also stored in a match structure
+                                for convenience */
+
+   bool  valid; /* Set to true if the handler data is valid.
+                   if false, it is revalidated before
                                            executing any methods. */
-   bool			       table_miss; /*Packet was matched
-   					     against table miss flow*/
+   bool	 table_miss; /* Packet was matched
+   					    against table miss flow*/
 };
+
 
 /* Creates a handler */
 struct packet_handle_std *
 packet_handle_std_create(struct packet *pkt);
+
+void
+packet_handle_std_init(struct packet_handle_std *, struct packet *pkt);
 
 /* Destroys a handler */
 void

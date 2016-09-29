@@ -26,7 +26,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- * 
+ *
  */
 
 #include <stdbool.h>
@@ -41,7 +41,7 @@
 #include "oflib/ofl-structs.h"
 #include "oflib/ofl-utils.h"
 #include "oflib/ofl-messages.h"
-#include "timeval.h" 
+#include "timeval.h"
 #include <math.h>
 #include "vlog.h"
 #define LOG_MODULE VLM_meter_e
@@ -122,7 +122,7 @@ meter_entry_create(struct datapath *dp, struct meter_table *table, struct ofl_ms
     entry->stats->meter_bands_num    = mod->meter_bands_num;
     entry->stats->duration_nsec  = 0;
     entry->stats->duration_sec = 0;
-    entry->created      = now;    
+    entry->created      = now;
     entry->stats->band_stats      = (struct ofl_meter_band_stats **) xmalloc(sizeof(struct ofl_meter_band_stats *) * entry->stats->meter_bands_num);
 
 
@@ -176,7 +176,7 @@ consume_tokens(struct ofl_meter_band_stats *band, uint16_t meter_flag, struct pa
         }
 
     }
-    else if(meter_flag & OFPMF_PKTPS) {       
+    else if(meter_flag & OFPMF_PKTPS) {
         if (band->tokens >= 1000) {
             band->tokens -= 1000;
             return true;
@@ -208,7 +208,7 @@ choose_band(struct meter_entry *entry, struct packet *pkt)
 
 void
 meter_entry_apply(struct meter_entry *entry, struct packet **pkt){
-    
+
     size_t b;
     bool drop = false;
 
@@ -224,15 +224,15 @@ meter_entry_apply(struct meter_entry *entry, struct packet **pkt){
                 break;
             }
             case OFPMBT_DSCP_REMARK:{
-                packet_handle_std_validate((*pkt)->handle_std);
-            if ((*pkt)->handle_std->valid)
+                packet_handle_std_validate(&(*pkt)->handle_std);
+            if ((*pkt)->handle_std.valid)
             {
                 struct ofl_meter_band_dscp_remark *band_header = (struct ofl_meter_band_dscp_remark *)  entry->config->bands[b];
                 /* Nothing prevent this band to be used for non-IP packets, so filter them out. Jean II */
-                if ((*pkt)->handle_std->proto->ipv4 != NULL) {
-                    
+                if ((*pkt)->handle_std.proto.ipv4 != NULL) {
+
                     // Fetch dscp in ipv4 header
-                    struct ip_header *ipv4 = (*pkt)->handle_std->proto->ipv4;
+                    struct ip_header *ipv4 = (*pkt)->handle_std.proto.ipv4;
                     uint8_t old_drop = ipv4->ip_tos & 0x1C;
                     /* The spec says that we need to increase
                                        the drop precedence of the packet.
@@ -249,8 +249,8 @@ meter_entry_apply(struct meter_entry *entry, struct packet **pkt){
                         ipv4->ip_tos = new_tos;
                     }
                 }
-                else if ((*pkt)->handle_std->proto->ipv6 != NULL){
-                    struct ipv6_header *ipv6 = (*pkt)->handle_std->proto->ipv6;
+                else if ((*pkt)->handle_std.proto.ipv6 != NULL){
+                    struct ipv6_header *ipv6 = (*pkt)->handle_std.proto.ipv6;
                     uint32_t ipv6_ver_tc_fl = ntohl(ipv6->ipv6_ver_tc_fl);
                     uint32_t old_drop = ipv6_ver_tc_fl & 0x1C00000;
                     if (((old_drop == 0x800000) && (band_header->prec_level <= 2)) || ((old_drop == 0x1000000) && (band_header->prec_level <= 1))){
@@ -259,7 +259,7 @@ meter_entry_apply(struct meter_entry *entry, struct packet **pkt){
                         ipv6->ipv6_ver_tc_fl = htonl(new_drop | (ipv6_ver_tc_fl & 0xFE3FFFFF));
                     }
                 }
-                (*pkt)->handle_std->valid = false;
+                (*pkt)->handle_std.valid = false;
         }
                 break;
             }

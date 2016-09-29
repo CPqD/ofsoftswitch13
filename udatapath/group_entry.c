@@ -168,7 +168,7 @@ execute_all(struct group_entry *entry, struct packet *pkt) {
             free(b);
         }
 
-        action_set_write_actions(p->action_set, bucket->actions_num, bucket->actions);
+        action_set_write_actions(&p->action_set, bucket->actions_num, bucket->actions);
 
         entry->stats->byte_count += p->buffer->size;
         entry->stats->packet_count++;
@@ -178,7 +178,7 @@ execute_all(struct group_entry *entry, struct packet *pkt) {
         /* Cookie field is set 0xffffffffffffffff
            because we cannot associate to any
            particular flow */
-        action_set_execute(p->action_set, p, 0xffffffffffffffff);
+        action_set_execute(&p->action_set, p, 0xffffffffffffffff);
         /* Clone will be destroyed above. Jean II */
     }
     packet_destroy(pkt);
@@ -198,7 +198,7 @@ execute_select(struct group_entry *entry, struct packet *pkt) {
             free(b);
         }
 
-        action_set_write_actions(pkt->action_set, bucket->actions_num, bucket->actions);
+        action_set_write_actions(&pkt->action_set, bucket->actions_num, bucket->actions);
 
         entry->stats->byte_count += pkt->buffer->size;
         entry->stats->packet_count++;
@@ -207,7 +207,7 @@ execute_select(struct group_entry *entry, struct packet *pkt) {
         /* Cookie field is set 0xffffffffffffffff
            because we cannot associate to any
            particular flow */
-        action_set_execute(pkt->action_set, pkt, 0xffffffffffffffff);
+        action_set_execute(&pkt->action_set, pkt, 0xffffffffffffffff);
     } else {
         VLOG_DBG_RL(LOG_MODULE, &rl, "No bucket in group.");
         packet_destroy(pkt);
@@ -227,7 +227,7 @@ execute_indirect(struct group_entry *entry, struct packet *pkt) {
             free(b);
         }
 
-        action_set_write_actions(pkt->action_set, bucket->actions_num, bucket->actions);
+        action_set_write_actions(&pkt->action_set, bucket->actions_num, bucket->actions);
 
         entry->stats->byte_count += pkt->buffer->size;
         entry->stats->packet_count++;
@@ -236,7 +236,7 @@ execute_indirect(struct group_entry *entry, struct packet *pkt) {
         /* Cookie field is set 0xffffffffffffffff
            because we cannot associate to any
            particular flow */
-        action_set_execute(pkt->action_set, pkt, 0xffffffffffffffff);
+        action_set_execute(&pkt->action_set, pkt, 0xffffffffffffffff);
     } else {
         VLOG_DBG_RL(LOG_MODULE, &rl, "No bucket in group.");
         packet_destroy(pkt);
@@ -257,7 +257,7 @@ execute_ff(struct group_entry *entry, struct packet *pkt) {
             free(b);
         }
 
-        action_set_write_actions(pkt->action_set, bucket->actions_num, bucket->actions);
+        action_set_write_actions(&pkt->action_set, bucket->actions_num, bucket->actions);
 
         entry->stats->byte_count += pkt->buffer->size;
         entry->stats->packet_count++;
@@ -266,7 +266,7 @@ execute_ff(struct group_entry *entry, struct packet *pkt) {
         /* Cookie field is set 0xffffffffffffffff
            because we cannot associate to any
            particular flow */
-        action_set_execute(pkt->action_set, pkt, 0xffffffffffffffff);
+        action_set_execute(&pkt->action_set, pkt, 0xffffffffffffffff);
     } else {
         VLOG_DBG_RL(LOG_MODULE, &rl, "No bucket in group.");
         packet_destroy(pkt);

@@ -215,22 +215,23 @@ dp_hw_drv_init(struct datapath *dp)
 static void
 process_buffer(struct datapath *dp, struct sw_port *p, struct ofpbuf *buffer)
 {
-    struct packet *pkt;
+    struct packet pkt;
 
     if (p->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN) != 0)) {
         ofpbuf_delete(buffer);
         return;
     }
 
-    // packet takes ownership of ofpbuf buffer
-    pkt = packet_create(dp, p->stats->port_no, buffer, false);
-    pipeline_process_packet(dp->pipeline, pkt);
+    packet_emplace(&pkt, dp, p->stats->port_no, buffer, false);
+    pipeline_process_packet(dp->pipeline, &pkt);
 }
+
 
 void
 dp_ports_run(struct datapath *dp, int nrun) {
+
     // static, so an unused buffer can be reused at the dp_ports_run call
-    static struct ofpbuf *buffer = NULL;
+    static struct ofpbuf buffer;
     static int max_mtu = 1500;
 
     struct sw_port *p, *pn;
@@ -285,29 +286,34 @@ dp_ports_run(struct datapath *dp, int nrun) {
 		}
 	}
 
+#if defined(OF_HW_PLAT)
         if (IS_HW_PORT(p)) {
             continue;
         }
+#endif
 
 	for(x = 0; x < BEBA_WORK_BUDGET; x++)
 	{
-	    if (buffer == NULL) {
-	        /* Allocate buffer with some headroom to add headers in forwarding
-	         * to the controller or adding a vlan tag, plus an extra 2 bytes to
-	         * allow IP headers to be aligned on a 4-byte boundary.  */
-	        const int headroom = 128 + 2;
-	        buffer = ofpbuf_new_with_headroom(VLAN_ETH_HEADER_LEN + max_mtu, headroom);
-	    }
+	    /* Emplace a buffer with some headroom to add headers in forwarding
+	     * to the controller or adding a vlan tag, plus an extra 2 bytes to
+	     * allow IP headers to be aligned on a 4-byte boundary.  */
+	    const int headroom = 128 + 2;
 
-	    error = netdev_recv(p->netdev, buffer, VLAN_ETH_HEADER_LEN + max_mtu);
+#if BEBA_USE_LIBPCAP_ZEROCOPY
+	    ofpbuf_emplace(&buffer, 0, 0);
+#else
+	    ofpbuf_emplace(&buffer, VLAN_ETH_HEADER_LEN + max_mtu, headroom);
+#endif
+
+	    error = netdev_recv(p->netdev, &buffer, VLAN_ETH_HEADER_LEN + max_mtu);
 	    if (!error) {
 	        p->stats->rx_packets++;
-	        p->stats->rx_bytes += buffer->size;
+	        p->stats->rx_bytes += buffer.size;
 	        // process_buffer takes ownership of ofpbuf buffer
-	        process_buffer(dp, p, buffer);
-	        buffer = NULL;
+	        process_buffer(dp, p, &buffer);
 	    }
 	    else {
+		ofpbuf_delete(&buffer);
 		break;
 	    }
 	}

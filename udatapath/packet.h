@@ -1,5 +1,5 @@
 /* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary
- 
+
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,36 +35,41 @@
 
 #include <stdbool.h>
 #include "action_set.h"
-#include "datapath.h"
 #include "packet_handle_std.h"
-#include "ofpbuf.h"
-#include "oflib/ofl-structs.h"
-#include "packets.h"
-
 
 /****************************************************************************
  * Represents a packet received on the datapath, and its associated processing
  * state.
  ****************************************************************************/
 
+struct datapath;
+struct ofpbuf;
 
 struct packet {
     struct datapath    *dp;
-    struct ofpbuf      *buffer;    /* buffer containing the packet */
+    struct ofpbuf      *buffer;				/* buffer containing the packet */
+
+    struct action_set		  action_set;	/* action set associated with the packet */
+    struct packet_handle_std  handle_std;	/* handler for standard match structure */
+
     uint32_t            in_port;
-    struct action_set  *action_set; /* action set associated with the packet */
-    bool                packet_out; /* true if the packet arrived in a packet out msg */
-
-    uint32_t            out_group; /* OFPG_ANY = no out group */
-    uint32_t            out_port;  /* OFPP_ANY = no out port */
-    uint16_t            out_port_max_len;  /* max length to send, if out_port is OFPP_CONTROLLER */
+    uint32_t            out_group;			/* OFPG_ANY = no out group */
+    uint32_t            out_port;			/* OFPP_ANY = no out port */
     uint32_t            out_queue;
-    uint8_t             table_id; /* table in which is processed */
-    uint32_t            buffer_id; /* if packet is stored in buffer, buffer_id;
-                                      otherwise 0xffffffff */
+    uint32_t            buffer_id;			/* if packet is stored in buffer, buffer_id;
+											   otherwise 0xffffffff */
 
-    struct packet_handle_std  *handle_std; /* handler for standard match structure */
+    uint16_t            out_port_max_len;	/* max length to send, if out_port is OFPP_CONTROLLER */
+    uint8_t             table_id;			/* table in which is processed */
+
+    bool                packet_out;			/* true if the packet arrived in a packet out msg */
+    bool		ownership;			/* if the memory for the struct packet is to be freed (true) or
+							   not (false) */
 };
+
+/* Creates a packet. */
+void
+packet_emplace(struct packet *pkt, struct datapath *dp, uint32_t in_port, struct ofpbuf *buf, bool packet_out);
 
 /* Creates a packet. */
 struct packet *

@@ -229,16 +229,28 @@ struct ofl_match_header {
     uint16_t   length;           /* Match length */
 };
 
+struct ofl_match_tlv {
+    struct hmap_node hmap_node;
+    uint32_t header;							/* TLV header */
+    bool	 ownership;							/* true (dynamic memory allocation) */
+    uint8_t *value;								/* TLV value ptr */
+};
+
+struct ofl_match_small_tlv {
+    struct hmap_node hmap_node;
+    uint32_t header;							/* TLV header */
+    bool	 ownership;							/* = false (memory is not to be released) */
+    uint8_t *value;								/* TLV value ptr */
+    uint8_t _storage[BEBA_MATCH_VALUE_SIZE];	/* TLV value size */
+};
+
+
 struct ofl_match {
     struct ofl_match_header   header; /* Match header */
     struct hmap match_fields;         /* Match fields. Contain OXM TLV's  */
-};
 
-struct ofl_match_tlv{
-
-    struct hmap_node hmap_node;
-    uint32_t header;    /* TLV header */
-    uint8_t *value;     /* TLV value */
+    struct ofl_match_small_tlv pool[BEBA_MATCH_POOL_SIZE];
+    size_t pool_size;
 };
 
 
@@ -403,12 +415,17 @@ struct ofl_meter_features {
 /****************************************************************************
  * Utility functions to match structure
  ****************************************************************************/
-void
-ofl_structs_match_init(struct ofl_match *match);
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+void
+ofl_structs_match_init(struct ofl_match *match);
+
+struct ofl_match_tlv *
+ofl_alloc_match_tlv(struct ofl_match *match, size_t size);
+
 void
 ofl_structs_match_put8(struct ofl_match *match, uint32_t header, uint8_t value);
 

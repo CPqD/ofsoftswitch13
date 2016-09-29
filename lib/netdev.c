@@ -1158,7 +1158,15 @@ netdev_recv(struct netdev *netdev, struct ofpbuf *buffer, size_t max_mtu)
 		pkt = pcap_next(netdev->pcap, (struct pcap_pkthdr *)&hdr);
 		if (pkt)
 		{
-			memcpy(ofpbuf_tail(buffer), pkt, MIN(ofpbuf_tailroom(buffer), hdr.caplen));
+#if BEBA_USE_LIBPCAP_ZEROCOPY
+			if (buffer->base)
+				memcpy(ofpbuf_tail(buffer), pkt, MIN(ofpbuf_tailroom(buffer), hdr.caplen));
+			else
+				buffer->data = pkt;
+#else
+				memcpy(ofpbuf_tail(buffer), pkt, MIN(ofpbuf_tailroom(buffer), hdr.caplen));
+#endif
+
 			buffer->size += hdr.caplen;
 			pad_to_minimum_length(buffer);
 			return 0;
@@ -1166,6 +1174,12 @@ netdev_recv(struct netdev *netdev, struct ofpbuf *buffer, size_t max_mtu)
 		return EAGAIN;
 	}
 #endif
+
+#if BEBA_USE_LIBPCAP_ZEROCOPY
+	if (!buffer->base)
+		ofpbuf_reinit(buffer, VLAN_ETH_HEADER_LEN + 1500 + 128 + 2);
+#endif
+
 	return netdev_recv_linux(netdev, buffer, max_mtu);
 }
 

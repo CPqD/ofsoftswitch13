@@ -1,5 +1,5 @@
 /* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary
- * Copyright (c) 2012, CPqD, Brazil  
+ * Copyright (c) 2012, CPqD, Brazil
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,17 +43,15 @@
 #include "util.h"
 
 
-struct packet *
-packet_create(struct datapath *dp, uint32_t in_port,
+void
+packet_emplace(struct packet *pkt, struct datapath *dp, uint32_t in_port,
     struct ofpbuf *buf, bool packet_out) {
-    struct packet *pkt;
-
-    pkt = xmalloc(sizeof(struct packet));
 
     pkt->dp         = dp;
     pkt->buffer     = buf;
     pkt->in_port    = in_port;
-    pkt->action_set = action_set_create(dp->exp);
+
+    action_set_init(&pkt->action_set, dp->exp);
 
     pkt->packet_out       = packet_out;
     pkt->out_group        = OFPG_ANY;
@@ -62,8 +60,18 @@ packet_create(struct datapath *dp, uint32_t in_port,
     pkt->out_queue        = 0;
     pkt->buffer_id        = NO_BUFFER;
     pkt->table_id         = 0;
+    pkt->ownership	  = false;
+    packet_handle_std_init(&pkt->handle_std, pkt);
+}
 
-    pkt->handle_std = packet_handle_std_create(pkt);
+struct packet *
+packet_create(struct datapath *dp, uint32_t in_port,
+    struct ofpbuf *buf, bool packet_out)
+{
+    struct packet *pkt;
+    pkt = xmalloc(sizeof(struct packet));
+    packet_emplace(pkt, dp, in_port, buf, packet_out);
+    pkt->ownership = true;
     return pkt;
 }
 
@@ -75,11 +83,13 @@ packet_clone(struct packet *pkt) {
     clone->dp         = pkt->dp;
     clone->buffer     = ofpbuf_clone(pkt->buffer);
     clone->in_port    = pkt->in_port;
+
     /* There is no case we need to keep the action-set, but if it's needed
      * we could add a parameter to the function... Jean II
      * clone->action_set = action_set_clone(pkt->action_set);
      */
-    clone->action_set = action_set_create(pkt->dp->exp);
+
+    action_set_init(&clone->action_set, pkt->dp->exp);
 
 
     clone->packet_out       = pkt->packet_out;
@@ -91,8 +101,11 @@ packet_clone(struct packet *pkt) {
                                          // but this buffer is a copy of that,
                                          // and might be altered later
     clone->table_id         = pkt->table_id;
+    clone->ownership        = true;
 
-    clone->handle_std = packet_handle_std_clone(clone, pkt->handle_std);
+    packet_handle_std_init(&clone->handle_std, clone);
+    // FLAT: optimization on packet clone is not supported.
+    // clone->handle_std = packet_handle_std_clone(clone, pkt->handle_std);
 
     return clone;
 }
@@ -101,7 +114,7 @@ void
 packet_destroy(struct packet *pkt) {
     /* If packet is saved in a buffer, do not destroy it,
      * if buffer is still valid */
-     
+
     if (pkt->buffer_id != NO_BUFFER) {
         if (dp_buffers_is_alive(pkt->dp->buffers, pkt->buffer_id)) {
             return;
@@ -110,10 +123,12 @@ packet_destroy(struct packet *pkt) {
         }
     }
 
-    action_set_destroy(pkt->action_set);
+    action_set_destroy(&pkt->action_set);
     ofpbuf_delete(pkt->buffer);
-    packet_handle_std_destroy(pkt->handle_std);
-    free(pkt);
+    packet_handle_std_destroy(&pkt->handle_std);
+
+    if (pkt->ownership)
+	free(pkt);
 }
 
 char *
@@ -125,7 +140,7 @@ packet_to_string(struct packet *pkt) {
     fprintf(stream, "pkt{in=\"");
     ofl_port_print(stream, pkt->in_port);
     fprintf(stream, "\", actset=");
-    action_set_print(stream, pkt->action_set);
+    action_set_print(stream, &pkt->action_set);
     fprintf(stream, ", pktout=\"%u\", ogrp=\"", pkt->packet_out);
     ofl_group_print(stream, pkt->out_group);
     fprintf(stream, "\", oprt=\"");

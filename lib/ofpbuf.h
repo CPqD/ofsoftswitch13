@@ -36,6 +36,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 /* Buffer for holding arbitrary data.  An ofpbuf is automatically reallocated
  * as necessary if it grows too large for the available memory. */
@@ -56,6 +57,8 @@ struct ofpbuf {
 
     struct ofpbuf *next;        /* Next in a list of ofpbufs. */
     void *private_p;            /* Private pointer for use by owner. */
+
+    bool ownership;
 };
 
 void ofpbuf_use(struct ofpbuf *, void *, size_t);
@@ -66,6 +69,9 @@ void ofpbuf_reinit(struct ofpbuf *, size_t);
 
 struct ofpbuf *ofpbuf_new(size_t);
 struct ofpbuf *ofpbuf_new_with_headroom(size_t, size_t headroom);
+
+void ofpbuf_emplace(struct ofpbuf *buf, size_t, size_t headroom);
+
 struct ofpbuf *ofpbuf_clone(const struct ofpbuf *);
 struct ofpbuf *ofpbuf_clone_with_headroom(const struct ofpbuf *,
                                           size_t headroom);
