@@ -65,8 +65,8 @@ AC_SUBST(KARCH)
 
 AC_DEFINE(BEBA_USE_LIBPCAP,         1,   [BEBA pcap packet I/O acceleration])
 AC_DEFINE(BEBA_USE_LIBPCAP_ZEROCOPY,1,   [BEBA zero-copy using pcap buffers])
-AC_DEFINE(BEBA_WORK_BUDGET,         64,  [BEBA work budget for batch I/O acceleration])
-AC_DEFINE(BEBA_CTRL_PLANE_RELAX,    10,  [BEBA control-plane relax factor (power of 2)])
+AC_DEFINE(BEBA_WORK_BUDGET,         128, [BEBA work budget for batch I/O acceleration])
+AC_DEFINE(BEBA_CTRL_PLANE_RELAX,    12,  [BEBA control-plane relax factor (power of 2)])
 AC_DEFINE(BEBA_MATCH_POOL_SIZE,     16,  [BEBA size of pool for small TLV node])
 AC_DEFINE(BEBA_MATCH_VALUE_SIZE,    16,  [BEBA size of TLV value])
 AC_DEFINE(BEBA_HMAP_INIT_SIZE,      8,   [BEBA size of init hmap])
@@ -78,6 +78,7 @@ OFP_CHECK_DPKG_BUILDPACKAGE
 
 OFP_ENABLE_OPTION([-Wall])
 OFP_ENABLE_OPTION([-Wextra])
+OFP_ENABLE_OPTION([-Wno-free-nonheap-object])
 OFP_ENABLE_OPTION([-Wno-sign-compare])
 OFP_ENABLE_OPTION([-Wpointer-arith])
 OFP_ENABLE_OPTION([-Wdeclaration-after-statement])
