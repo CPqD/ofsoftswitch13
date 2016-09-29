@@ -33,15 +33,6 @@
 #include "oxm-match.h"
 #include "compiler.h"
 
-void
-ofl_structs_match_init(struct ofl_match *match)
-{
-    match->header.type = OFPMT_OXM;
-    match->header.length = 0;
-    match->match_fields = (struct hmap) HMAP_INITIALIZER(&match->match_fields);
-    match->pool_size = 0;
-}
-
 
 void
 ofl_structs_match_put_pbb_isid(struct ofl_match *match, uint32_t header, uint8_t const value[PBB_ISID_LEN])

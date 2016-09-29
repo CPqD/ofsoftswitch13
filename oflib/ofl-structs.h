@@ -253,6 +253,7 @@ struct ofl_match {
 
     struct ofl_match_small_tlv pool[BEBA_MATCH_POOL_SIZE];
     size_t pool_size;
+    bool   dirty;
 };
 
 
@@ -432,6 +433,7 @@ ofl_alloc_match_tlv(struct ofl_match *match, size_t size)
 		struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));
 		m->value = malloc(size);
 		m->ownership = true;
+		match->dirty = true;
 		return m;
 	}
 
@@ -442,8 +444,16 @@ ofl_alloc_match_tlv(struct ofl_match *match, size_t size)
 }
 
 
-void
-ofl_structs_match_init(struct ofl_match *match);
+static inline void
+ofl_structs_match_init(struct ofl_match *match)
+{
+    match->header.type = OFPMT_OXM;
+    match->header.length = 0;
+    match->match_fields = (struct hmap) HMAP_INITIALIZER(&match->match_fields);
+    match->pool_size = 0;
+    match->dirty = false;
+}
+
 
 struct ofl_match_tlv *
 ofl_alloc_match_tlv(struct ofl_match *match, size_t size);
