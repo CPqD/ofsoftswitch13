@@ -434,12 +434,15 @@ packet_handle_std_validate(struct packet_handle_std *handle) {
         current_global_state = *((uint32_t*) (f->value + EXP_ID_LEN));
     }
 
+    if (handle->match.dirty)
+    {
     HMAP_FOR_EACH_SAFE(iter, next, struct ofl_match_tlv, hmap_node, &handle->match.match_fields)
     {
-    	if (iter->ownership) {
+	if (iter->ownership) {
 			free(iter->value);
 			free(iter);
 		}
+    }
     }
 
     ofl_structs_match_init(&handle->match);
@@ -529,6 +532,7 @@ packet_handle_std_destroy(struct packet_handle_std *handle) {
 			free(iter);
 		}
 	    }
+	    handle->match.dirty = false;
     }
 
     // FLAT
