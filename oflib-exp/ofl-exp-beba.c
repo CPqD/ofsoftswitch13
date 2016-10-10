@@ -1946,6 +1946,8 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
 
     if (pkt)
     {
+        struct key_extractor* key_extractor_ptr;
+
         //SET_STATE action
         state = act->state;
         state_mask = act->state_mask;
@@ -1953,9 +1955,8 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
         hard_rollback = act->hard_rollback;
         idle_timeout = act->idle_timeout;
         hard_timeout = act->hard_timeout;
-       
+
         // Extract the key regarding to set bit value in the set-state message
-        struct key_extractor* key_extractor_ptr;
         if(act->bit == 0){
             // Get the normal extract key
             key_extractor_ptr = &table->write_key;

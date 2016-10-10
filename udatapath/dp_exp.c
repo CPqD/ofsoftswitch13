@@ -33,6 +33,7 @@
 #include <string.h>
 #include "datapath.h"
 #include "dp_exp.h"
+#include "dp_actions.h"
 #include "packet.h"
 #include "oflib/ofl.h"
 #include "oflib/ofl-actions.h"

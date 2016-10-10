@@ -184,10 +184,10 @@ parse_ext_hdr(char *str, uint16_t *ext_hdr);
 + * Pase the TCP flags and mask which can be in the form A/B
 + * Parameters:
 + * - flags = pointer to the flag parameter (it will be filled with value)
-+ * - mask = pointer to the mask parameter. If no mask is available, the NULL value is set. 
++ * - mask = pointer to the mask parameter. If no mask is available, the NULL value is set.
 + *          in the case of success match, memory is allocated for the element. Therefore, the
 + *          memory has to be freed out of the function!
-+ * 
++ *
 + * Return: Zero value in the case of success, non zero value otherwise. -1 is returned inn the case of
 + *         parsing error, -2 is returned in the case of the bad allocation of memory.
 + */
@@ -1535,7 +1535,7 @@ parse_match(char *str, struct ofl_match_header **match)
                 ofp_fatal(0,"Error parsing tcp_flags: %s.",token);
             }
             else if(parserStat == -2){
-                ofp_fatal(0,"Unable to allocate memory for the tcp_flag_mask.",token);
+                ofp_fatal(0,"Unable to allocate memory for the tcp_flag_mask: %s.",token);
             }
             else {
                if(tp_flag_mask == NULL)
@@ -1544,7 +1544,7 @@ parse_match(char *str, struct ofl_match_header **match)
                     ofl_structs_match_put16m(m,OXM_OF_TCP_FLAGS_W,tp_flag,*tp_flag_mask);
                 }
             }
-        
+
             // Free allocated memory
             free(tp_flag_mask);
             continue;
@@ -2862,19 +2862,20 @@ parse8(char *str, struct names8 *names, size_t names_num, uint8_t max, uint8_t *
 parse_tcp_flags(char* str, uint16_t* flags, uint16_t** mask)
 {
     int flagsTokenParser;
-    int maskTokenParser;   
+    int maskTokenParser;
     // Temporal mask
     uint16_t tmpMask;
-    char* token;
     char* str_ptr;
     char* str_orig = strdup(str);
+    char* flagsToken;
+    char* maskToken;
     if(str_orig == NULL) {
          return -2;
      }
 
    // Prepare tokens
-   char* flagsToken = strtok_r(str_orig,MASK_SEP,&str_ptr);
-   char* maskToken = strtok_r(NULL,MASK_SEP,&str_ptr);
+   flagsToken = strtok_r(str_orig,MASK_SEP,&str_ptr);
+   maskToken = strtok_r(NULL,MASK_SEP,&str_ptr);
 
    flagsTokenParser = sscanf(flagsToken,"%"SCNu16,flags);
    if(maskToken != NULL)
@@ -2891,18 +2892,18 @@ parse_tcp_flags(char* str, uint16_t* flags, uint16_t** mask)
         // Success, prepare place for mask setup the value
        *mask = (uint16_t*)malloc(sizeof(uint16_t));
         if(mask == NULL) {
-            free(str_orig); 
+            free(str_orig);
             return -2;
         }
 
-        //setup the value :-) 
+        //setup the value :-)
         **mask = tmpMask;
    }
    else if(maskToken == NULL) {
         mask = NULL;
     }
     else {
-        // Somthing bad ... 
+        // Somthing bad ...
         free(str_orig);
         return -1;
     }

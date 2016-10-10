@@ -1163,7 +1163,7 @@ netdev_recv(struct netdev *netdev, struct ofpbuf *buffer, size_t max_mtu)
 			if (buffer->base)
 				memcpy(ofpbuf_tail(buffer), pkt, MIN(ofpbuf_tailroom(buffer), hdr.caplen));
 			else
-				buffer->data = pkt;
+				buffer->data = (u_char *)pkt;
 #else
 				memcpy(ofpbuf_tail(buffer), pkt, MIN(ofpbuf_tailroom(buffer), hdr.caplen));
 #endif
