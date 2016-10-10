@@ -49,6 +49,7 @@ hmap_init(struct hmap *hmap)
 
 /* Frees memory reserved by 'hmap'.  It is the client's responsibility to free
  * the nodes themselves, if necessary. */
+
 void
 hmap_destroy(struct hmap *hmap)
 {

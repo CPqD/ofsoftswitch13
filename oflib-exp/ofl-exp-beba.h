@@ -6,6 +6,7 @@
 #include "../udatapath/pipeline.h"
 #include "../oflib/ofl-structs.h"
 #include "../oflib/ofl-messages.h"
+#include "../oflib/oxm-match.h"
 #include "../include/openflow/beba-ext.h"
 
 
@@ -178,8 +179,8 @@ struct ofl_exp_action_set_global_state {
 
 struct ofl_exp_action_inc_state {
     struct ofl_exp_beba_act_header header; /* OFPAT_EXP_INC_STATE */
- 
-    uint8_t table_id; 
+
+    uint8_t table_id;
 };
 
 /*************************************************************************/
@@ -424,7 +425,7 @@ ofl_exp_beba_inst_to_string (struct ofl_instruction_header const *i);
 void
 ofl_exp_beba_error_pack (struct ofl_msg_exp_error const *msg, uint8_t **buf, size_t *buf_len);
 
-void 
+void
 ofl_exp_beba_error_free (struct ofl_msg_exp_error *msg);
 
 char *
@@ -522,5 +523,76 @@ get_experimenter_id_from_match(struct ofl_match const *flow_mod_match);
 
 uint32_t
 get_experimenter_id_from_action(struct ofl_instruction_actions const *act);
+
+/*experimenter match fields*/
+
+static inline void
+oxm_put_exp_header(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id)
+{
+    uint32_t n_header = htonl(header);
+    ofpbuf_put(buf, &n_header, sizeof n_header);
+    ofpbuf_put(buf, &experimenter_id, EXP_ID_LEN);
+
+}
+
+static inline void
+oxm_put_exp_8(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint8_t value)
+{
+    oxm_put_exp_header(buf, header, experimenter_id);
+    ofpbuf_put(buf, &value, sizeof value);
+}
+
+static inline void
+oxm_put_exp_8w(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint8_t value, uint8_t mask)
+{
+    oxm_put_exp_header(buf, header, experimenter_id);
+    ofpbuf_put(buf, &value, sizeof value);
+    ofpbuf_put(buf, &mask, sizeof mask);
+}
+
+static inline void
+oxm_put_exp_16(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint16_t value)
+{
+    oxm_put_exp_header(buf, header, experimenter_id);
+    ofpbuf_put(buf, &value, sizeof value);
+}
+
+static inline void
+oxm_put_exp_16w(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint16_t value, uint16_t mask)
+{
+    oxm_put_exp_header(buf, header, experimenter_id);
+    ofpbuf_put(buf, &value, sizeof value);
+    ofpbuf_put(buf, &mask, sizeof mask);
+}
+
+static inline void
+oxm_put_exp_32(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint32_t value)
+{
+    oxm_put_exp_header(buf, header, experimenter_id);
+    ofpbuf_put(buf, &value, sizeof value);
+}
+
+static inline void
+oxm_put_exp_32w(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint32_t value, uint32_t mask)
+{
+    oxm_put_exp_header(buf, header, experimenter_id);
+    ofpbuf_put(buf, &value, sizeof value);
+    ofpbuf_put(buf, &mask, sizeof mask);
+}
+
+static inline void
+oxm_put_exp_64(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint64_t value)
+{
+    oxm_put_exp_header(buf, header, experimenter_id);
+    ofpbuf_put(buf, &value, sizeof value);
+}
+
+static inline void
+oxm_put_exp_64w(struct ofpbuf *buf, uint32_t header, uint32_t experimenter_id, uint64_t value, uint64_t mask)
+{
+    oxm_put_exp_header(buf, header, experimenter_id);
+    ofpbuf_put(buf, &value, sizeof value);
+    ofpbuf_put(buf, &mask, sizeof mask);
+}
 
 #endif /* OFL_EXP_BEBA_H */

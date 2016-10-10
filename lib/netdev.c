@@ -866,6 +866,7 @@ do_open_netdev(const char *name, int ethertype, int tap_fd, struct netdev **netd
 	    if (!pcap) {
 		VLOG_ERR(LOG_MODULE, "pcap: pcap_open_live on %s device failed: %s",
 			 name, pcap_errbuf);
+		fprintf(stderr, "pcap: pcap_open_live on %s device failed: %s\n", name, pcap_errbuf);
 		goto error;
 	    }
     }
