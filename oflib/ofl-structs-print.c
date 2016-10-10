@@ -305,6 +305,14 @@ ofl_structs_oxm_tlv_print(FILE *stream, struct ofl_match_tlv *f)
 						fprintf(stream, ", eth_dst_mask=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value + 6));
 					}
 					break;
+
+				case  OFPXMT_OFB_TCP_FLAGS:
+					fprintf(stream, "tcp_flags=\"0x%"PRIx16"\"", *((uint16_t*)(f->value)));
+					if (OXM_HASMASK(f->header)) {
+						fprintf(stream, ", tcp_flags_mask=\"0x%"PRIx16"\"", *((uint16_t*)(f->value + 2)));
+					}
+					break;
+
 				case OFPXMT_OFB_IPV4_DST:
 					fprintf(stream, "ipv4_dst=\""IP_FMT"\"", IP_ARGS(f->value));
 					if (OXM_HASMASK(f->header)) {

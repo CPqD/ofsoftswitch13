@@ -100,7 +100,7 @@ static ofl_err
 ofl_structs_extraction_unpack(struct ofp_exp_set_extractor const *src, size_t *len, struct ofl_exp_set_extractor *dst)
 {
     int i;
-    if(*len == ((1+ntohl(src->field_count))*sizeof(uint32_t) + 4*sizeof(uint8_t)) && (ntohl(src->field_count)>0))
+    if(*len == ((1+ntohl(src->field_count))*sizeof(uint32_t) + 4*sizeof(uint8_t) + 4*sizeof(uint8_t)) && (ntohl(src->field_count)>0))
     {
         if (src->table_id >= PIPELINE_TABLES) {
             OFL_LOG_WARN(LOG_MODULE, "Received STATE_MOD message has invalid table id (%d).", src->table_id );
@@ -108,6 +108,7 @@ ofl_structs_extraction_unpack(struct ofp_exp_set_extractor const *src, size_t *l
         }
         dst->table_id = src->table_id;
         dst->field_count=ntohl(src->field_count);
+        dst->bit = src->bit;
         for (i=0;i<dst->field_count;i++)
         {
             dst->fields[i]=ntohl(src->fields[i]);
@@ -119,7 +120,7 @@ ofl_structs_extraction_unpack(struct ofp_exp_set_extractor const *src, size_t *l
        return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
     }
 
-    *len -= (((1+ntohl(src->field_count))*sizeof(uint32_t)) + 4*sizeof(uint8_t));
+    *len -= (((1+ntohl(src->field_count))*sizeof(uint32_t)) + 4*sizeof(uint8_t) + 4*sizeof(uint8_t));
 
     return 0;
 }
@@ -590,6 +591,7 @@ ofl_exp_beba_act_unpack(struct ofp_action_header const *src, size_t *len, struct
             da->idle_rollback = ntohl(sa->idle_rollback);
             da->hard_timeout = ntohl(sa->hard_timeout);
             da->idle_timeout = ntohl(sa->idle_timeout);
+            da->bit = sa->bit;
 
             *len -= sizeof(struct ofp_exp_action_set_state);
             break;
@@ -688,6 +690,8 @@ ofl_exp_beba_act_pack(struct ofl_action_header const *src, struct ofp_action_hea
             da->idle_timeout = htonl(sa->idle_timeout);
             memset(da->pad2, 0x00, 4);
             dst->len = htons(sizeof(struct ofp_exp_action_set_state));
+            da->bit = sa->bit;
+            memset(da->pad2, 0x00, 3);
 
             return sizeof(struct ofp_exp_action_set_state);
         }
@@ -753,7 +757,7 @@ ofl_exp_beba_act_to_string(struct ofl_action_header const *act)
         {
             struct ofl_exp_action_set_state *a = (struct ofl_exp_action_set_state *)ext;
             char *string = malloc(200);
-            sprintf(string, "{set_state=[state=\"%u\",state_mask=\"%"PRIu32"\",table_id=\"%u\",idle_to=\"%u\",hard_to=\"%u\",idle_rb=\"%u\",hard_rb=\"%u\"]}", a->state, a->state_mask, a->table_id,a->idle_timeout,a->hard_timeout,a->idle_rollback,a->hard_rollback);
+            sprintf(string, "{set_state=[state=\"%u\",state_mask=\"%"PRIu32"\",table_id=\"%u\",idle_to=\"%u\",hard_to=\"%u\",idle_rb=\"%u\",hard_rb=\"%u\",bit=\"%u\"]}", a->state, a->state_mask, a->table_id,a->idle_timeout,a->hard_timeout,a->idle_rollback,a->hard_rollback,a->bit);
             return string;
         }
         case (OFPAT_EXP_SET_GLOBAL_STATE):
@@ -1887,8 +1891,18 @@ ofl_err state_table_set_extractor(struct state_table *table, struct key_extracto
                 return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
             }
         }
-        dest = &table->write_key;
-        OFL_LOG_DBG(LOG_MODULE, "Update-scope set");
+        // Sellect the right write key
+        if(ke->bit == 0) {
+            // Update the normal key extractor
+            dest = &table->write_key;
+            OFL_LOG_DBG(LOG_MODULE, "Update-scope set");
+        }
+        else {
+            // Update the "bit" key extractor
+            dest = &table->bit_write_key; 
+            OFL_LOG_DBG(LOG_MODULE, "Bit Update-scope set");
+        }
+
         }
     else{
         if (table->write_key.field_count!=0){
@@ -1939,8 +1953,20 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
         hard_rollback = act->hard_rollback;
         idle_timeout = act->idle_timeout;
         hard_timeout = act->hard_timeout;
+       
+        // Extract the key regarding to set bit value in the set-state message
+        struct key_extractor* key_extractor_ptr;
+        if(act->bit == 0){
+            // Get the normal extract key
+            key_extractor_ptr = &table->write_key;
+        }
+        else{
+            // Get the new extract key
+            key_extractor_ptr = &table->bit_write_key;
+        }
 
-        if(!__extract_key(key, &table->write_key, pkt)){
+        //Extract the key
+        if(!__extract_key(key, key_extractor_ptr, pkt)){
             OFL_LOG_DBG(LOG_MODULE, "lookup key fields not found in the packet's header");
             return res;
         }
@@ -2470,6 +2496,9 @@ ofl_structs_state_entry_print(FILE *stream, uint32_t field, uint8_t *key, uint8_
         case OFPXMT_OFB_TCP_DST:
             fprintf(stream, "tcp_dst=\"%d\"", *((uint16_t*) key));
             break;
+        case OFPXMT_OFB_TCP_FLAGS:
+            fprintf(stream,"tcp_flags=\"%d\"", *((uint16_t*) key));
+            break;
         case OFPXMT_OFB_UDP_SRC:
             fprintf(stream, "udp_src=\"%d\"", *((uint16_t*) key));
             break;
@@ -2612,6 +2641,9 @@ ofl_structs_state_entry_print_default(FILE *stream, uint32_t field)
             break;
         case OFPXMT_OFB_TCP_DST:
             fprintf(stream, "tcp_dst=\"*\"");
+            break;
+        case OFPXMT_OFB_TCP_FLAGS:
+            fprintf(stream,"tcp_flags=\"*\"");
             break;
         case OFPXMT_OFB_UDP_SRC:
             fprintf(stream, "udp_src=\"*\"");

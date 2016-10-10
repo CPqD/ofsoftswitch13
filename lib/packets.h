@@ -113,6 +113,7 @@ static inline bool eth_addr_is_reserved(const uint8_t ea[ETH_ADDR_LEN])
 #define ETH_TYPE_IP            0x0800
 #define ETH_TYPE_IPV6          0x86dd
 #define ETH_TYPE_ARP           0x0806
+#define ETH_TYPE_TRILL         0x22f3
 #define ETH_TYPE_VLAN          0x8100
 #define ETH_TYPE_SVLAN         0x9200
 #define ETH_TYPE_VLAN_QinQ     0x9100
