@@ -14,6 +14,8 @@ The BEBA Switch is an OpenFlow 1.3 switch extended with support for:
 * Stateful packet forwarding based on the [OpenState API][openstate]
 * Packet generation based on the [InSP API][insp]
 
+Such extensions to OpenFlow 1.3 are implemented using the *OpenFlow Experimenter* framework. The API to control them is defined in [oflib-exp/ofl-exp-beba.h](oflib-exp/ofl-exp-beba.h).
+
 Moreover, BEBA targets software accelleration. We improve the CPqD softswitch troughput while retaining the simplicity of the original CPqD code base.
 
 # Getting Started
