@@ -47,6 +47,8 @@
 #include "dp_capabilities.h"
 #include "oflib-exp/ofl-exp-beba.h"
 
+#include "../config.h"
+
 
 int packet_parse(struct packet const *pkt, struct ofl_match *, struct protocols_std *proto);
 
