@@ -1,36 +1,69 @@
-# BEBA Software Switch
+# OpenFlow 1.3 Software Switch
 
-[![Build Status](https://travis-ci.org/beba-eu/beba-switch.svg?branch=master)](https://travis-ci.org/beba-eu/beba-switch)
+This is an [OpenFlow 1.3][ofp13] compatible user-space software switch implementation. The code is based on the [Ericsson TrafficLab 1.1 softswitch
+implementation][ericssonsw11], with changes in the forwarding plane to support
+OpenFlow 1.3. 
 
-This is an implementation of the BEBA Software Switch based on the [CPqD OpenFlow 1.3 softswitch][ofss13].
+**Important notice:**  Despite the fact the switch is still popular for adventurers trying to implement own changes to OpenFlow, support  now is on a best-effort base. Currently, there are lots of complaints about performance degradation, broken features and installation problems. Although not confirmed, most of the problems seem to be due to most recent linux versions. As the main contributor of the switch, I would like to keep the project alive and fix all the recurrent issues. However, life moves and new projects come, resulting in no time to work on it. I am still happy to help anyone who comes asking for advice on how to make changes in the code, but I cannot guarantee quick and active replies.  
+ *-Eder*
 
-[BEBA is a European H2020 project][beba] on SDN data plane programmability. Our goal is to devise a data plane abstraction and prototype implementations for future-proof network devices capable to be repurposed with middlebox-type functions well beyond static packet forwarding, with a focus on stateful processing and packet generation.
-
-A controller for this switch can be found at https://github.com/beba-eu/beba-ctrl
-
-# Features in a nutshell
-
-The BEBA Switch is an OpenFlow 1.3 switch extended with support for:
-* Stateful packet forwarding based on the [OpenState API][openstate]
-* Packet generation based on the [InSP API][insp]
-
-Such extensions to OpenFlow 1.3 are implemented using the *OpenFlow Experimenter* framework. The API to control them is defined in [oflib-exp/ofl-exp-beba.h](oflib-exp/ofl-exp-beba.h).
-
-Moreover, BEBA targets software accelleration. We improve the CPqD softswitch troughput while retaining the simplicity of the original CPqD code base.
-
-# Getting Started
-
-Similarly to the CPqD softswitch, the following components are available in this package:
+The following components are available in this package:
 * `ofdatapath`: the switch implementation
 * `ofprotocol`: secure channel for connecting the switch to the controller
 * `oflib`: a library for converting to/from 1.3 wire format
 * `dpctl`: a tool for configuring the switch from the console
 
-For more information on how to use these components please refer to the [original CPqD's documentation][ofss13]
+# Getting Started
+
+These instructions have been tested on Ubuntu 12.04. Other distributions or versions may need different steps. 
+
+For Ubuntu 14.04, please check @castroflavio solution:
+[How to compile on Ubuntu 14.04][compileubuntu14]
+
+## Before building
+The switch makes use of the NetBee library to parse packets, so we need to install it first.
+
+1. Install the following packages:
+
+    ```
+    $ sudo apt-get install cmake libpcap-dev libxerces-c2-dev libpcre3-dev flex bison pkg-config autoconf libtool libboost-dev
+    ```
+
+2. Download the most recent Netbee version, and unpack the source code from:http://www.nbee.org/download/nbeesrc-jan-10-2013.php
+
+3. Create the build system
+
+    ```
+    $ cd nbeesrc/src
+    $ cmake .
+    ```
+
+4. Compile
+
+    ```
+    $ make
+    ```
+
+5. Add the shared libraries built in `/nbeesrc/bin/` to your `/usr/local/lib` directory
+
+    ```
+    $ sudo cp ../bin/libn*.so /usr/local/lib
+    ```
+
+6. Run `ldconfig`
+
+    ```
+    $ sudo ldconfig
+    ```
+
+7. Put the contens of folder `nbeesrc/include` in the `/usr/include`
+
+    ```
+    $ sudo cp -R ../include/* /usr/include/
+    ```
 
 ## Building
-
-Run the following commands in the `beba-switch` directory to build and install everything:
+Run the following commands in the `ofsoftswitch13` directory to build and install everything:
 
     $ ./boot.sh
     $ ./configure
@@ -38,20 +71,95 @@ Run the following commands in the `beba-switch` directory to build and install e
     $ sudo make install
 
 ## Running
+1. Start the datapath:
 
-Please refer to the [original CPqD's softswitch README][ofss13-readme]
+    ```
+    $ sudo udatapath/ofdatapath --datapath-id=<dpid> --interfaces=<if-list> ptcp:<port>
+    ```
+
+    This will start the datapath, with the given datapath ID, using the interaces listed. It will open a passive TCP connection on the given port. For a complete list of options, use the `--help` argument.
+
+2. Start the secure channel, which will connect the datapath to the controller:
+
+    ```
+    $ secchan/ofprotocol tcp:<switch-host>:<switch-port> tcp:<ctrl-host>:<ctrl-port>
+    ```
+
+    This will open TCP connections to both the switch and the controller, relaying OpenFlow protocol messages between them. For a complete list of options, use the `--help` argument.
+
+## Configuring
+You can send requests to the switch using the `dpctl` utility.
+
+* Check the flow statistics for table 0.
+
+    ```
+    $ utilities/dpctl tcp:<switch-host>:<switch-port> stats-flow table=0
+    ```
+
+* Install a flow to match IPv6 packets with extension headers hop by hop and destination and coming from port 1.
+
+    ```
+    $ utilities/dpctl tcp:<switch-host>:<switch-port> flow-mod table=0,cmd=add in_port=1,eth_type=0x86dd,ext_hdr=hop+dest apply:output=2
+    ```
+
+* Add a meter:
+
+    ```
+    $ utilities/dpctl tcp:<switch-host>:<switch-port> meter-mod cmd=add,meter=1 drop:rate=50
+    ```
+
+* Send flow to meter table
+
+    ```
+    $ utilities/dpctl tcp:<switch-host>:<switch-port> flow-mod table=0,cmd=add in_port=1 meter:1
+    ```
+
+For a complete list of commands and arguments, use the `--help` argument.
+
+The `dpctl` utility has some limitations at the moment:
+* No support for OXM masks
+* No support for multipart messages
+* Some set_field action fields are not present
+
 
 # Contribute
 Please submit your bug reports, fixes and suggestions as pull requests on
 GitHub, or by contacting us directly.
 
 # License
-BEBA Software Switch is released under the BSD license (BSD-like for
+OpenFlow 1.3 Software Switch is released under the BSD license (BSD-like for
 code from the original Stanford switch).
 
-[beba]: http://www.beba-project.eu/
-[openstate]: http://openstate-sdn.org/pub/openstate-ccr.pdf
-[insp]: http://conferences.sigcomm.org/sosr/2016/papers/sosr_paper42.pdf
-[ofss13]: http://cpqd.github.io/ofsoftswitch13/
-[ofss13-readme]: https://github.com/CPqD/ofsoftswitch13/blob/master/README.md
+# Acknowledgments
+
+This project was supported by Ericsson Innovation Center in Brazil.
+Formerly maintained by CPqD in technical collaboration with Ericsson Research.
+
+**Contributions:**
+
+Zoltán Lajos Kis, ofsoftswitch 1.1 implementation and guidance for OpenFlow spec related subjects.
+
+Jean Tourrilhes, lots of critical memory bug fixes on table features.
+
+Khai Nguyen Dinh and Thanh Le Dinh, contributions on meter features.
+
+Rich Lane, added the right compiler linker.
+
+yu-iwata, fixed flow deletion without matchin out_port.
+
+Yuval Adler, bug fixes related to matching on vlan and ethertype.
+
+Hiroyasu OHYAMA, correct URL of NetBee Library.
+
+... 
+
+*"Your name here" -- please, let us*
+*know if we forgot to add your name to the list of contributors!*
+
+# Contact
+E-mail: Eder Leao Fernandes (ederleaofernandes at gmail . com)
+
+[ofp13]: https://www.opennetworking.org/images/stories/downloads/specification/openflow-spec-v1.3.0.pdf
+[ericssonsw11]: https://github.com/TrafficLab/of11softswitch
 [compileubuntu14]: http://tocai.dia.uniroma3.it/compunet-wiki/index.php/Installing_and_setting_up_OpenFlow_tools
+
