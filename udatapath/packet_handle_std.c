@@ -330,6 +330,8 @@ int packet_parse(struct packet const *pkt, struct ofl_match *m, struct protocols
             ofl_structs_match_put16(m, OXM_OF_TCP_DST,
                                                 ntohs(proto->tcp->tcp_dst));
 
+            uint16_t maskedFlags = ntohs(proto->tcp->tcp_ctl) & 0x1ff;
+            ofl_structs_match_put16(m, OXM_OF_TCP_FLAGS, maskedFlags);
             return 0;
         }
         else if (next_proto == IP_TYPE_UDP) {
