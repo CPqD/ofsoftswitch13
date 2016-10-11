@@ -1,5 +1,7 @@
 # BEBA Software Switch
 
+[![Build Status](https://travis-ci.org/beba-eu/beba-switch.svg?branch=master)](https://travis-ci.org/beba-eu/beba-switch)
+
 This is an implementation of the BEBA Software Switch based on the [CPqD OpenFlow 1.3 softswitch][ofss13].
 
 [BEBA is a European H2020 project][beba] on SDN data plane programmability. Our goal is to devise a data plane abstraction and prototype implementations for future-proof network devices capable to be repurposed with middlebox-type functions well beyond static packet forwarding, with a focus on stateful processing and packet generation.
