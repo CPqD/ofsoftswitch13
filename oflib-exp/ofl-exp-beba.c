@@ -1726,21 +1726,6 @@ state_entry_apply_hard_timeout(struct state_entry *entry, uint64_t ts)
     return false;
 }
 
-// TODO: remove unused function.
-/* void
-state_table_timeout(struct state_table *table)
-{
-    struct state_entry *entry;
-
-    HMAP_FOR_EACH(entry, struct state_entry, hard_node, &table->hard_entries){
-        state_entry_apply_hard_timeout(entry);
-    }
-
-    HMAP_FOR_EACH(entry, struct state_entry, idle_node, &table->idle_entries){
-        state_entry_apply_idle_timeout(entry);
-    }
-} */
-
 /*having the read_key, look for the state vaule inside the state_table */
 struct state_entry * state_table_lookup(struct state_table* table, struct packet *pkt)
 {

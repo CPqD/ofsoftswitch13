@@ -254,9 +254,6 @@ state_table_create(void);
 void
 state_table_destroy(struct state_table *);
 
-uint8_t
-state_table_is_stateful(struct state_table *);
-
 bool state_table_is_enabled(struct state_table *table);
 
 struct state_entry *
@@ -279,9 +276,6 @@ state_table_set_extractor(struct state_table *, struct key_extractor *, int);
 
 ofl_err
 state_table_del_state(struct state_table *, uint8_t *, uint32_t);
-
-void
-state_table_timeout(struct state_table *table);
 
 /*experimenter message functions*/
 
