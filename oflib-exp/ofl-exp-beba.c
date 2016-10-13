@@ -1888,7 +1888,7 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
                            struct ofl_exp_set_flow_state *msg, struct ofl_exp_action_set_state *act,
                            struct ofl_exp_msg_notify_state_change *ntf_message)
 {
-    uint8_t key[MAX_STATE_KEY_LEN];
+    uint8_t key[MAX_STATE_KEY_LEN] = {0};
     uint32_t key_len = 0;
     struct state_entry *e;
     uint32_t state, state_mask,
