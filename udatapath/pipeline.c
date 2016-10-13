@@ -166,6 +166,8 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt)
 	if (state_table_is_stateful(table->state_table) && state_table_is_configured(table->state_table)) {
 		state_entry = state_table_lookup(table->state_table, pkt);
 		if(state_entry!=NULL){
+            // FIXME (carmelo): shouldn't be enough to pass the state value in the match_exp_put32?
+            // Instead of calling write_state?
 			ofl_structs_match_exp_put32(&pkt->handle_std.match, OXM_EXP_STATE, 0xBEBABEBA, 0x00000000);
 			state_table_write_state(state_entry, pkt);
 		}

@@ -195,12 +195,11 @@ struct key_extractor {
     uint8_t                     bit;
     uint32_t                    field_count;
     uint32_t                    fields[MAX_EXTRACTION_FIELD_COUNT];
+    uint32_t                    key_len;
 };
 
 struct state_entry {
     struct hmap_node            hmap_node;
-    struct hmap_node            hard_node;
-    struct hmap_node            idle_node;
     uint8_t             key[MAX_STATE_KEY_LEN];
     uint32_t                state;
     struct ofl_exp_state_stats   *stats;
@@ -211,13 +210,10 @@ struct state_entry {
 };
 
 struct state_table {
-    struct key_extractor        read_key;
-    struct key_extractor        write_key;
-    struct key_extractor        bit_write_key;
+    struct key_extractor        lookup_key_extractor;
+    struct key_extractor        update_key_extractor;
+    struct key_extractor        bit_update_key_extractor;
     struct hmap                 state_entries;
-    struct hmap                 hard_entries;
-    struct hmap                 idle_entries;
-    // FIXME (carmelo): do we need a different default state entry per table?
     struct state_entry          default_state_entry;
     uint8_t stateful;
 };
