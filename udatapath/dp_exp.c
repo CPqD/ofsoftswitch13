@@ -68,8 +68,7 @@ dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
             case(OFPAT_EXP_SET_STATE):
             {
                 struct ofl_exp_action_set_state *wns = (struct ofl_exp_action_set_state *)action;
-                if (state_table_is_stateful(pkt->dp->pipeline->tables[wns->table_id]->state_table)
-                    && state_table_is_configured(pkt->dp->pipeline->tables[wns->table_id]->state_table))
+                if (state_table_is_enabled(pkt->dp->pipeline->tables[wns->table_id]->state_table))
                 {
                     struct state_table *st = pkt->dp->pipeline->tables[wns->table_id]->state_table;
                     VLOG_DBG_RL(LOG_MODULE, &rl, "executing action NEXT STATE at stage %u", wns->table_id);
@@ -104,7 +103,7 @@ dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
             case(OFPAT_EXP_INC_STATE):
             {
                 struct ofl_exp_action_inc_state *wns = (struct ofl_exp_action_inc_state *)action;
-                if (state_table_is_stateful(pkt->dp->pipeline->tables[wns->table_id]->state_table) && state_table_is_configured(pkt->dp->pipeline->tables[wns->table_id]->state_table))
+                if (state_table_is_enabled(pkt->dp->pipeline->tables[wns->table_id]->state_table))
                 {
                     struct state_table *table = pkt->dp->pipeline->tables[wns->table_id]->state_table;
                     state_table_inc_state(table, pkt);

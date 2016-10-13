@@ -14,6 +14,7 @@
 #define MAX_STATE_KEY_LEN 48
 
 #define STATE_DEFAULT 0
+#define STATE_NULL UINT32_MAX
 /**************************************************************************/
 /*                        experimenter messages ofl_exp                   */
 /**************************************************************************/
@@ -215,6 +216,7 @@ struct state_table {
     struct key_extractor        bit_update_key_extractor;
     struct hmap                 state_entries;
     struct state_entry          default_state_entry;
+    struct state_entry          null_state_entry;
     uint8_t stateful;
 };
 
@@ -255,13 +257,13 @@ state_table_destroy(struct state_table *);
 uint8_t
 state_table_is_stateful(struct state_table *);
 
-bool state_table_is_configured(struct state_table *table);
+bool state_table_is_enabled(struct state_table *table);
 
 struct state_entry *
 state_table_lookup(struct state_table*, struct packet *);
 
 void
-state_table_write_state(struct state_entry *, struct packet *);
+state_table_write_state_header(struct state_entry *, struct ofl_match_tlv *);
 
 /*
  * State Sync: One extra argument (i.e., ntf_message) is passed at the end of this function.
@@ -436,28 +438,28 @@ ofl_exp_beba_error_to_string(struct ofl_msg_exp_error const *msg);
 void
 ofl_exp_stats_type_print(FILE *stream, uint32_t type);
 
-void
+struct ofl_match_tlv *
 ofl_structs_match_exp_put8(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint8_t value);
 
-void
+struct ofl_match_tlv *
 ofl_structs_match_exp_put8m(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint8_t value, uint8_t mask);
 
-void
+struct ofl_match_tlv *
 ofl_structs_match_exp_put16(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint16_t value);
 
-void
+struct ofl_match_tlv *
 ofl_structs_match_exp_put16m(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint16_t value, uint16_t mask);
 
-void
+struct ofl_match_tlv *
 ofl_structs_match_exp_put32(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint32_t value);
 
-void
+struct ofl_match_tlv *
 ofl_structs_match_exp_put32m(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint32_t value, uint32_t mask);
 
-void
+struct ofl_match_tlv *
 ofl_structs_match_exp_put64(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint64_t value);
 
-void
+struct ofl_match_tlv *
 ofl_structs_match_exp_put64m(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint64_t value, uint64_t mask);
 
 /*************************************************************************/

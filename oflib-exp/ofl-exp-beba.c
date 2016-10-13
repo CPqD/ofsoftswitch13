@@ -1636,24 +1636,19 @@ struct state_table * state_table_create(void)
 
     table->state_entries = (struct hmap) HMAP_INITIALIZER(&table->state_entries);
 
-    /* default state entry */
     table->default_state_entry.state = STATE_DEFAULT;
+    table->null_state_entry.state = STATE_NULL;
 
     table->stateful = 0;
 
     return table;
 }
 
-uint8_t state_table_is_stateful(struct state_table *table)
+bool state_table_is_enabled(struct state_table *table)
 {
-    return table->stateful;
-}
-
-bool state_table_is_configured(struct state_table *table)
-{
-    if (table->lookup_key_extractor.field_count!=0 && table->update_key_extractor.field_count!=0)
-        return 1;
-    return 0;
+    return table->stateful
+           && table->lookup_key_extractor.field_count != 0
+           && table->update_key_extractor.field_count != 0;
 }
 
 static void
@@ -1756,9 +1751,12 @@ struct state_entry * state_table_lookup(struct state_table* table, struct packet
 
     if(!__extract_key(key, &table->lookup_key_extractor, pkt))
     {
-        OFL_LOG_DBG(LOG_MODULE, "lookup key fields not found in the packet's header -> NULL");
-        return NULL;
+        OFL_LOG_DBG(LOG_MODULE, "lookup key fields not found in the packet's header -> STATE_NULL");
+        return &table->null_state_entry;
     }
+
+    // TODO (carmelo): store extracted key and reuse if update-scope == lookup-scope, i.e. avoid re-extracting.
+    // E.g. store in state_table->last_extracted key.
 
     HMAP_FOR_EACH_WITH_HASH(e, struct state_entry,
         hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries){
@@ -1781,17 +1779,11 @@ struct state_entry * state_table_lookup(struct state_table* table, struct packet
     return &table->default_state_entry;
 }
 
-/* having the state value  */
-void state_table_write_state(struct state_entry *entry, struct packet *pkt)
-{
-    struct  ofl_match_tlv *f;
-
-    HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
-        hmap_node, hash_int(OXM_EXP_STATE,0), &pkt->handle_std.match.match_fields){
-                uint32_t *state = (uint32_t*) (f->value + EXP_ID_LEN);
-                *state = entry->state;
-    }
+void state_table_write_state_header(struct state_entry *entry, struct ofl_match_tlv *f) {
+    uint32_t *state = (uint32_t *) (f->value + EXP_ID_LEN);
+    *state = entry->state;
 }
+
 ofl_err state_table_del_state(struct state_table *table, uint8_t *key, uint32_t len) {
     struct state_entry *e;
     uint8_t found = 0;
@@ -2067,7 +2059,7 @@ handle_state_mod(struct pipeline *pl, struct ofl_exp_msg_state_mod *msg,
         case OFPSC_EXP_SET_U_EXTRACTOR:{
             struct ofl_exp_set_extractor *p = (struct ofl_exp_set_extractor *) msg->payload;
             struct state_table *st = pl->tables[p->table_id]->state_table;
-            if (state_table_is_stateful(st)){
+            if (st->stateful){
                 int update = 0;
                 if (msg->command == OFPSC_EXP_SET_U_EXTRACTOR)
                     update = 1;
@@ -2084,7 +2076,7 @@ handle_state_mod(struct pipeline *pl, struct ofl_exp_msg_state_mod *msg,
             struct state_table *st = pl->tables[p->table_id]->state_table;
             // State Sync: Now state_table_set_state function contains this extra parameter related to the
             // state notification.
-            if (state_table_is_stateful(st) && state_table_is_configured(st)){
+            if (state_table_is_enabled(st)){
                 return state_table_set_state(st, NULL, p, NULL, ntf_message);
             }
             else{
@@ -2096,7 +2088,7 @@ handle_state_mod(struct pipeline *pl, struct ofl_exp_msg_state_mod *msg,
         case OFPSC_EXP_DEL_FLOW_STATE:{
             struct ofl_exp_del_flow_state *p = (struct ofl_exp_del_flow_state *) msg->payload;
             struct state_table *st = pl->tables[p->table_id]->state_table;
-            if (state_table_is_stateful(st) && state_table_is_configured(st)){
+            if (state_table_is_enabled(st)){
                 return state_table_del_state(st, p->key, p->key_len);
             }
             else{
@@ -2152,11 +2144,11 @@ handle_stats_request_state(struct pipeline *pl, struct ofl_exp_msg_multipart_req
     if (msg->table_id == 0xff) {
         size_t i;
         for (i=0; i<PIPELINE_TABLES; i++) {
-            if (state_table_is_stateful(pl->tables[i]->state_table) && state_table_is_configured(pl->tables[i]->state_table))
+            if (state_table_is_enabled(pl->tables[i]->state_table))
                 state_table_stats(pl->tables[i]->state_table, msg, &stats, &stats_size, &stats_num, i, msg->header.type == OFPMP_EXP_STATE_STATS_AND_DELETE);
         }
     } else {
-        if (state_table_is_stateful(pl->tables[msg->table_id]->state_table) && state_table_is_configured(pl->tables[msg->table_id]->state_table))
+        if (state_table_is_enabled(pl->tables[msg->table_id]->state_table))
             state_table_stats(pl->tables[msg->table_id]->state_table, msg, &stats, &stats_size, &stats_num, msg->table_id, msg->header.type == OFPMP_EXP_STATE_STATS_AND_DELETE);
     }
     *reply = (struct ofl_exp_msg_multipart_reply_state)
@@ -2774,41 +2766,44 @@ ofl_exp_stats_type_print(FILE *stream, uint32_t type)
 
 /*Functions used by experimenter match fields*/
 
-void
+struct ofl_match_tlv *
 ofl_structs_match_exp_put8(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint8_t value)
 {
-   struct ofl_match_tlv *m = ofl_alloc_match_tlv(match, sizeof(value) + EXP_ID_LEN);
-   m->header = header;
-   memcpy(m->value, &experimenter_id, EXP_ID_LEN);
-   memcpy(m->value + EXP_ID_LEN, &value, sizeof(value));
-   hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
-   match->header.length += EXP_ID_LEN + sizeof(value) + 4;
+    struct ofl_match_tlv *m = ofl_alloc_match_tlv(match, sizeof(value) + EXP_ID_LEN);
+    m->header = header;
+    memcpy(m->value, &experimenter_id, EXP_ID_LEN);
+    memcpy(m->value + EXP_ID_LEN, &value, sizeof(value));
+    hmap_insert(&match->match_fields, &m->hmap_node, hash_int(header, 0));
+    match->header.length += EXP_ID_LEN + sizeof(value) + 4;
+    return m;
 }
 
-void
+struct ofl_match_tlv *
 ofl_structs_match_exp_put8m(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint8_t value, uint8_t mask)
 {
-	struct ofl_match_tlv *m = ofl_alloc_match_tlv(match, sizeof(value)+sizeof(mask) + EXP_ID_LEN);
+    struct ofl_match_tlv *m = ofl_alloc_match_tlv(match, sizeof(value) + sizeof(mask) + EXP_ID_LEN);
     m->header = header;
     memcpy(m->value, &experimenter_id, EXP_ID_LEN);
     memcpy(m->value + EXP_ID_LEN, &value, sizeof(value));
     memcpy(m->value + EXP_ID_LEN + sizeof(value), &mask, sizeof(mask));
-    hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
+    hmap_insert(&match->match_fields, &m->hmap_node, hash_int(header, 0));
     match->header.length += EXP_ID_LEN + sizeof(value) + sizeof(mask) + 4;
+    return m;
 }
 
-void
+struct ofl_match_tlv *
 ofl_structs_match_exp_put16(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint16_t value)
 {
-   struct ofl_match_tlv *m = ofl_alloc_match_tlv(match, sizeof(value) + EXP_ID_LEN);
-   m->header = header;
-   memcpy(m->value, &experimenter_id, EXP_ID_LEN);
-   memcpy(m->value + EXP_ID_LEN, &value, sizeof(value));
-   hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
-   match->header.length += EXP_ID_LEN + sizeof(value) + 4;
+    struct ofl_match_tlv *m = ofl_alloc_match_tlv(match, sizeof(value) + EXP_ID_LEN);
+    m->header = header;
+    memcpy(m->value, &experimenter_id, EXP_ID_LEN);
+    memcpy(m->value + EXP_ID_LEN, &value, sizeof(value));
+    hmap_insert(&match->match_fields, &m->hmap_node, hash_int(header, 0));
+    match->header.length += EXP_ID_LEN + sizeof(value) + 4;
+    return m;
 }
 
-void
+struct ofl_match_tlv *
 ofl_structs_match_exp_put16m(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint16_t value, uint16_t mask)
 {
 	struct ofl_match_tlv *m = ofl_alloc_match_tlv(match, sizeof(value)+sizeof(mask) + EXP_ID_LEN);
@@ -2818,52 +2813,58 @@ ofl_structs_match_exp_put16m(struct ofl_match *match, uint32_t header, uint32_t 
     memcpy(m->value + EXP_ID_LEN + sizeof(value), &mask, sizeof(mask));
     hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
     match->header.length += EXP_ID_LEN + sizeof(value) + sizeof(mask) + 4;
+    return m;
 }
 
-void
+// TODO: functions like ofl_structs_match_exp_put32 are not related to BEBA, move somewhere else.
+struct ofl_match_tlv *
 ofl_structs_match_exp_put32(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint32_t value)
 {
-   struct ofl_match_tlv *m = ofl_alloc_match_tlv(match, sizeof(value) + EXP_ID_LEN);
-   m->header = header;
-   memcpy(m->value, &experimenter_id, EXP_ID_LEN);
-   memcpy(m->value + EXP_ID_LEN, &value, sizeof(value));
-   hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
-   match->header.length += EXP_ID_LEN + sizeof(value) + 4;
+    struct ofl_match_tlv *m = ofl_alloc_match_tlv(match, sizeof(value) + EXP_ID_LEN);
+    m->header = header;
+    memcpy(m->value, &experimenter_id, EXP_ID_LEN);
+    memcpy(m->value + EXP_ID_LEN, &value, sizeof(value));
+    hmap_insert(&match->match_fields, &m->hmap_node, hash_int(header, 0));
+    match->header.length += EXP_ID_LEN + sizeof(value) + 4;
+    return m;
 }
 
-void
+struct ofl_match_tlv *
 ofl_structs_match_exp_put32m(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint32_t value, uint32_t mask)
 {
-	struct ofl_match_tlv *m = ofl_alloc_match_tlv(match, sizeof(value)+sizeof(mask) + EXP_ID_LEN);
+    struct ofl_match_tlv *m = ofl_alloc_match_tlv(match, sizeof(value) + sizeof(mask) + EXP_ID_LEN);
     m->header = header;
     memcpy(m->value, &experimenter_id, EXP_ID_LEN);
     memcpy(m->value + EXP_ID_LEN, &value, sizeof(value));
     memcpy(m->value + EXP_ID_LEN + sizeof(value), &mask, sizeof(mask));
-    hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
+    hmap_insert(&match->match_fields, &m->hmap_node, hash_int(header, 0));
     match->header.length += EXP_ID_LEN + sizeof(value) + sizeof(mask) + 4;
+    return m;
 }
 
-void
+struct ofl_match_tlv *
 ofl_structs_match_exp_put64(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint64_t value)
 {
-   struct ofl_match_tlv *m = ofl_alloc_match_tlv(match, sizeof(value) + EXP_ID_LEN);
-   m->header = header;
-   memcpy(m->value, &experimenter_id, EXP_ID_LEN);
-   memcpy(m->value + EXP_ID_LEN, &value, sizeof(value));
-   hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
-   match->header.length += EXP_ID_LEN + sizeof(value) + 4;
+    struct ofl_match_tlv *m = ofl_alloc_match_tlv(match, sizeof(value) + EXP_ID_LEN);
+    m->header = header;
+    memcpy(m->value, &experimenter_id, EXP_ID_LEN);
+    memcpy(m->value + EXP_ID_LEN, &value, sizeof(value));
+    hmap_insert(&match->match_fields, &m->hmap_node, hash_int(header, 0));
+    match->header.length += EXP_ID_LEN + sizeof(value) + 4;
+    return m;
 }
 
-void
+struct ofl_match_tlv *
 ofl_structs_match_exp_put64m(struct ofl_match *match, uint32_t header, uint32_t experimenter_id, uint64_t value, uint64_t mask)
 {
-	struct ofl_match_tlv *m = ofl_alloc_match_tlv(match, sizeof(value)+sizeof(mask) + EXP_ID_LEN);
+    struct ofl_match_tlv *m = ofl_alloc_match_tlv(match, sizeof(value) + sizeof(mask) + EXP_ID_LEN);
     m->header = header;
     memcpy(m->value, &experimenter_id, EXP_ID_LEN);
     memcpy(m->value + EXP_ID_LEN, &value, sizeof(value));
     memcpy(m->value + EXP_ID_LEN + sizeof(value), &mask, sizeof(mask));
-    hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
+    hmap_insert(&match->match_fields, &m->hmap_node, hash_int(header, 0));
     match->header.length += EXP_ID_LEN + sizeof(value) + sizeof(mask) + 4;
+    return m;
 }
 
 /*Functions used by experimenter errors*/
