@@ -1700,102 +1700,55 @@ int __extract_key(uint8_t *buf, struct key_extractor *extractor, struct packet *
 }
 
 static bool
-state_entry_idle_timeout(struct state_table *table, struct state_entry *entry)
+state_entry_apply_idle_timeout(struct state_entry *entry, uint64_t ts)
 {
-    bool timeout;
-    struct timeval tv;
-    gettimeofday(&tv,NULL);
-
-    //TODO Davide: remove commented condition
-    timeout = /*(entry->stats->idle_timeout != 0) &&*/(1000000 * tv.tv_sec + tv.tv_usec > entry->last_used + entry->stats->idle_timeout);
-
-    //TODO Davide: state timeouts
-    /*if (timeout) {
-        hmap_remove_and_shrink(&table->idle_entries, &entry->idle_node);
-        if(entry->stats->hard_timeout > 0)
-            hmap_remove_and_shrink(&table->hard_entries, &entry->hard_node);
-
-
-        if(entry->stats->idle_rollback == STATE_DEFAULT){
-            hmap_remove_and_shrink(&table->state_entries, &entry->hmap_node);
+    if (entry->stats->idle_timeout != 0) {
+        if (ts > entry->last_used + entry->stats->idle_timeout) {
+            // TODO: if state is DEFAULT, how expensive is to free state table memory here?
             entry->state = entry->stats->idle_rollback;
-        }
-        else{
-            entry->state = entry->stats->idle_rollback;
-            entry->created = 1000000 * tv.tv_sec + tv.tv_usec;
+            entry->created = ts;
             entry->stats->idle_timeout = 0;
             entry->stats->hard_timeout = 0;
             entry->stats->idle_rollback = 0;
             entry->stats->hard_rollback = 0;
+            return true;
         }
-    }*/
-
-    if (timeout){
-        entry->state = entry->stats->idle_rollback;
-        entry->created = 1000000 * tv.tv_sec + tv.tv_usec;
-        entry->stats->idle_timeout = 0;
-        entry->stats->hard_timeout = 0;
-        entry->stats->idle_rollback = 0;
-        entry->stats->hard_rollback = 0;
     }
-    return timeout;
+    return false;
 }
 
 static bool
-state_entry_hard_timeout(struct state_table *table, struct state_entry *entry)
+state_entry_apply_hard_timeout(struct state_entry *entry, uint64_t ts)
 {
-    bool timeout;
-    struct timeval tv;
-    gettimeofday(&tv,NULL);
-
-    //TODO Davide: remove commented condition
-    timeout = /*(entry->remove_at != 0) && */(1000000 * tv.tv_sec + tv.tv_usec > entry->remove_at);
-
-    //TODO Davide: state timeouts
-    /*if (timeout) {
-        hmap_remove_and_shrink(&table->hard_entries, &entry->hard_node);
-        if(entry->stats->idle_timeout > 0)
-            hmap_remove_and_shrink(&table->idle_entries, &entry->idle_node);
-
-        if(entry->stats->hard_rollback == STATE_DEFAULT){
-            hmap_remove_and_shrink(&table->state_entries, &entry->hmap_node);
+    if (entry->stats->hard_timeout != 0) {
+        if (ts > entry->remove_at) {
+            // TODO: if state is DEFAULT, how expensive is to free state table memory here?
             entry->state = entry->stats->hard_rollback;
-        }
-        else{
-            entry->state = entry->stats->hard_rollback;
-            entry->created = 1000000 * tv.tv_sec + tv.tv_usec;
+            entry->created = ts;
             entry->stats->idle_timeout = 0;
             entry->stats->hard_timeout = 0;
             entry->stats->idle_rollback = 0;
             entry->stats->hard_rollback = 0;
-
+            return true;
         }
-    }*/
-    if (timeout) {
-        entry->state = entry->stats->hard_rollback;
-        entry->created = 1000000 * tv.tv_sec + tv.tv_usec;
-        entry->stats->idle_timeout = 0;
-        entry->stats->hard_timeout = 0;
-        entry->stats->idle_rollback = 0;
-        entry->stats->hard_rollback = 0;
     }
-
-    return timeout;
+    return false;
 }
 
-void
+// TODO: remove unused function.
+/* void
 state_table_timeout(struct state_table *table)
 {
     struct state_entry *entry;
 
     HMAP_FOR_EACH(entry, struct state_entry, hard_node, &table->hard_entries){
-        state_entry_hard_timeout(table, entry);
+        state_entry_apply_hard_timeout(entry);
     }
 
     HMAP_FOR_EACH(entry, struct state_entry, idle_node, &table->idle_entries){
-        state_entry_idle_timeout(table, entry);
+        state_entry_apply_idle_timeout(entry);
     }
-}
+} */
 
 /*having the read_key, look for the state vaule inside the state_table */
 struct state_entry * state_table_lookup(struct state_table* table, struct packet *pkt)
@@ -1803,6 +1756,7 @@ struct state_entry * state_table_lookup(struct state_table* table, struct packet
     struct state_entry * e = NULL;
     uint8_t key[MAX_STATE_KEY_LEN] = {0};
     struct timeval tv;
+    uint64_t now;
 
     if(!__extract_key(key, &table->read_key, pkt))
     {
@@ -1813,34 +1767,24 @@ struct state_entry * state_table_lookup(struct state_table* table, struct packet
     HMAP_FOR_EACH_WITH_HASH(e, struct state_entry,
         hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries){
             if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
-                OFL_LOG_DBG(LOG_MODULE, "found corresponding state %u",e->state);
+                OFL_LOG_DBG(LOG_MODULE, "state entry FOUND: %u",e->state);
 
-                //check if the hard_timeout of matched state entry has expired
-                if ((e->stats->hard_timeout>0) && state_entry_hard_timeout(table,e)) {
-                    if (e->state==STATE_DEFAULT)
-                        e = NULL;
-                    break;
-                }
-                //check if the idle_timeout of matched state entry has expired
-                if ((e->stats->idle_timeout>0) && state_entry_idle_timeout(table,e)) {
-                    if (e->state==STATE_DEFAULT)
-                        e = NULL;
-                    break;
-                }
                 gettimeofday(&tv,NULL);
-                e->last_used = 1000000 * tv.tv_sec + tv.tv_usec;
-                break;
+                now = 1000000 * tv.tv_sec + tv.tv_usec;
+
+                state_entry_apply_hard_timeout(e, now);
+                state_entry_apply_idle_timeout(e, now);
+
+                e->last_used = now;
+
+                return e;
             }
     }
 
-    if (e == NULL)
-    {
-        OFL_LOG_DBG(LOG_MODULE, "not found the corresponding state value");
-        return &table->default_state_entry;
-    }
-    else
-        return e;
+    OFL_LOG_DBG(LOG_MODULE, "state entry NOT FOUND, returning DEFAULT");
+    return &table->default_state_entry;
 }
+
 /* having the state value  */
 void state_table_write_state(struct state_entry *entry, struct packet *pkt)
 {
@@ -1940,37 +1884,35 @@ ofl_err state_table_set_extractor(struct state_table *table, struct key_extracto
     return 0;
 }
 
-/* State Sync:  */
 ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
                            struct ofl_exp_set_flow_state *msg, struct ofl_exp_action_set_state *act,
                            struct ofl_exp_msg_notify_state_change *ntf_message)
 {
-    uint8_t key[MAX_STATE_KEY_LEN] = {0};
+    uint8_t key[MAX_STATE_KEY_LEN];
+    uint32_t key_len = 0;
     struct state_entry *e;
-    uint32_t state = 0, state_mask = 0;
-    uint32_t idle_rollback = 0, hard_rollback = 0;
-    uint32_t idle_timeout = 0, hard_timeout = 0;
-    uint32_t old_state = 0,new_state = 0;
+    uint32_t state, state_mask,
+            idle_rollback, hard_rollback,
+            idle_timeout, hard_timeout,
+            old_state, new_state;
     uint64_t now;
     struct timeval tv;
     ofl_err res = 0;
     bool entry_found = 0;
+    bool entry_created = 0;
 
     int i;
-    uint32_t key_len=0; //update-scope key extractor length
-    struct key_extractor *extractor=&table->write_key;
-    //TODO Davide: compute it once at extractor configuration time
-    for (i=0; i<extractor->field_count; i++)
-    {
-        uint32_t type = (int)extractor->fields[i];
+    struct key_extractor *extractor = &table->write_key;
+    // TODO Davide: key_len could be computed at extractor configuration time.
+    for (i = 0; i < extractor->field_count; i++) {
+        uint32_t type = (int) extractor->fields[i];
         key_len = key_len + OXM_LENGTH(type);
     }
 
-    if (pkt)
-    {
-        struct key_extractor* key_extractor_ptr;
-
+    if (pkt) {
         //SET_STATE action
+        struct key_extractor *key_extractor_ptr;
+
         state = act->state;
         state_mask = act->state_mask;
         idle_rollback = act->idle_rollback;
@@ -1978,140 +1920,115 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
         idle_timeout = act->idle_timeout;
         hard_timeout = act->hard_timeout;
 
-        // Extract the key regarding to set bit value in the set-state message
-        if(act->bit == 0){
-            // Get the normal extract key
-            key_extractor_ptr = &table->write_key;
-        }
-        else{
-            // Get the new extract key
-            key_extractor_ptr = &table->bit_write_key;
-        }
+        // Bi-flow handling.
+        // FIXME: rename 'bit' to something more meaningful.
+        key_extractor_ptr = (act->bit == 0) ? &table->write_key : &table->bit_write_key;
 
         //Extract the key
-        //TODO Davide: we could verify if update-socper=lookup-scope and extract it just once at lookup_state time and store it
-        //TODO Davide: key_len has been already computed, we could add it to parameters list
-        if(!__extract_key(key, key_extractor_ptr, pkt)){
+        //TODO Davide: if update-scope == lookup-scope, use key already extracted
+        //TODO Davide: key_len has been already computed before, we could add it to parameters list
+        if (!__extract_key(key, key_extractor_ptr, pkt)) {
             OFL_LOG_DBG(LOG_MODULE, "update key fields not found in the packet's header");
             return res;
         }
-    }
 
-    else if (msg){
-        //SET_STATE message
+    } else {
+        //SET_STATE message - should we check if msg != null?
         state = msg->state;
         state_mask = msg->state_mask;
         idle_rollback = msg->idle_rollback;
         hard_rollback = msg->hard_rollback;
         idle_timeout = msg->idle_timeout;
         hard_timeout = msg->hard_timeout;
-        if(key_len == msg->key_len)
-        {
-            memcpy(key, msg->key, msg->key_len);
-        }
-        else
-        {
+
+        if (key_len != msg->key_len) {
             OFL_LOG_WARN(LOG_MODULE, "key extractor length != received key length");
             return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
         }
+
+        memcpy(key, msg->key, msg->key_len);
     }
 
-    //TODO Davide: if update-socper=lookup-scope we could even store the 'e' pointer to avoid the HMAP_FOR_EACH_WITH_HASH
-    HMAP_FOR_EACH_WITH_HASH(e, struct state_entry,
-        hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries){
+    // Look if entry already exists in hash map.
+    // TODO Davide: if update-scope == lookup-scope, we could store a ptr to 'e' to avoid browsing again the hash map.
+    HMAP_FOR_EACH_WITH_HASH(e, struct state_entry, hmap_node,
+                            hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries) {
 
-            if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
-                entry_found = 1;
-                OFL_LOG_DBG(LOG_MODULE, "state value %u updated in hash map", state);
-                new_state = (e->state & ~(state_mask)) | (state & state_mask);
-                old_state = e->state;
-
-                //TODO Davide: a state transition to STATE_DEFAULT with no rollbacks, should trigger a state entry deletion, but
-                //deleting a state entry requires three HMAP_FOR_EACH_WITH_HASH. We should implement an async aging mechanism!
-                /*if !(hard_timeout==0 && idle_timeout==0 && new_state == STATE_DEFAULT){
-                    // Remove entry
-                    //state_table_del_state(table, key, key_len);
-                }
-                else {
-                    // Actual state transition.
-                    e->state = new_state;
-
-                    gettimeofday(&tv,NULL);
-                    now = 1000000 * tv.tv_sec + tv.tv_usec;
-
-                    e->created = now;
-                }*/
-
-                // Actual state transition.
-                e->state = new_state;
-
-                gettimeofday(&tv,NULL);
-                now = 1000000 * tv.tv_sec + tv.tv_usec;
-
-                e->created = now;
-
-                break;
-            }
+        if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)) {
+            OFL_LOG_DBG(LOG_MODULE, "state entry FOUND is hash map");
+            entry_found = 1;
+            new_state = (e->state & ~(state_mask)) | (state & state_mask);
+            old_state = e->state;
+            break;
+            // TODO Davide: implement state table flushing, i.e. free entries with state DEFAULT and no rollbacks
+            // It should be implemented as a separate async process.
+        }
     }
 
-    if (!entry_found){
-        gettimeofday(&tv,NULL);
-        now = 1000000 * tv.tv_sec + tv.tv_usec;
-        e = xmalloc(sizeof(struct state_entry));
-        e->created = now;
-        e->stats = xmalloc(sizeof(struct ofl_exp_state_stats));
-        memcpy(e->key, key, MAX_STATE_KEY_LEN);
-        e->state = state & state_mask;
+    if (!entry_found) {
+        // Key not found in hash map.
+        new_state = state & state_mask;
         old_state = STATE_DEFAULT;
-        new_state = e->state;
-    }
 
-    e->stats->idle_timeout = 0;
-    e->stats->hard_timeout = 0;
-    e->stats->idle_rollback = 0;
-    e->stats->hard_rollback = 0;
-
-    if (!entry_found
-        && (e->state != STATE_DEFAULT
-            || ((hard_timeout>0 && hard_rollback!=STATE_DEFAULT) || (idle_timeout>0 && idle_rollback!=STATE_DEFAULT))))
+        // Allocate memory only if new state is not DEFAULT or there's a timeout that will transition it to other value.
+        if (new_state != STATE_DEFAULT
+            || (hard_timeout > 0 && hard_rollback != STATE_DEFAULT)
+            || (idle_timeout > 0 && idle_rollback != STATE_DEFAULT))
         {
-            OFL_LOG_DBG(LOG_MODULE, "state value is %u inserted to hash map", e->state);
+            entry_created = 1;
+            e = xmalloc(sizeof(struct state_entry));
+            e->stats = xmalloc(sizeof(struct ofl_exp_state_stats));
+            memcpy(e->key, key, MAX_STATE_KEY_LEN);
             hmap_insert(&table->state_entries, &e->hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
-    }
-    //TODO Davide: else free(e->stats),free(e)
-
-    // Configuring a timeout with rollback state=state makes no sense
-    if (hard_timeout>0 && hard_rollback!=new_state){
-        OFL_LOG_DBG(LOG_MODULE, "configuring hard_timeout = %u", hard_timeout);
-        e->remove_at = now + hard_timeout;
-        e->stats->hard_timeout = hard_timeout;
-        e->stats->hard_rollback = hard_rollback;
-        //if (!entry_found) hmap_insert(&table->hard_entries, &e->hard_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
-    }
-    if (idle_timeout>0 && idle_rollback!=new_state){
-        OFL_LOG_DBG(LOG_MODULE, "configuring idle_timeout = %u", idle_timeout);
-        e->stats->idle_timeout = idle_timeout;
-        e->stats->idle_rollback = idle_rollback;
-        e->last_used = now;
-        //hmap_remove(&table->idle_entries, &e->idle_node);
-        //hmap_insert(&table->idle_entries, &e->idle_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
+            OFL_LOG_DBG(LOG_MODULE, "state entry CREATED is hash map");
+        }
     }
 
-    //TODO Davide: ifedf
-    new_state = e->state;
-    *ntf_message = (struct ofl_exp_msg_notify_state_change)
-                   {{{{.type = OFPT_EXPERIMENTER},
+    if (entry_found || entry_created) {
+
+        OFL_LOG_DBG(LOG_MODULE, "executing state transition to %u", new_state);
+
+        e->state = new_state;
+
+        // FIXME: renaming created to last_updated would be more appropriate.
+        gettimeofday(&tv, NULL);
+        now = 1000000 * tv.tv_sec + tv.tv_usec;
+        e->created = now;
+
+        // Update timeouts, only if rollback state != current state
+        if (hard_timeout > 0 && hard_rollback != new_state) {
+            OFL_LOG_DBG(LOG_MODULE, "configuring hard_timeout = %u", hard_timeout);
+            e->remove_at = now + hard_timeout;
+            e->stats->hard_timeout = hard_timeout;
+            e->stats->hard_rollback = hard_rollback;
+        } else {
+            e->stats->hard_timeout = 0;
+            e->stats->hard_rollback = 0;
+        }
+
+        if (idle_timeout > 0 && idle_rollback != new_state) {
+            OFL_LOG_DBG(LOG_MODULE, "configuring idle_timeout = %u", idle_timeout);
+            e->stats->idle_timeout = idle_timeout;
+            e->stats->idle_rollback = idle_rollback;
+            e->last_used = now;
+        } else {
+            e->stats->idle_timeout = 0;
+            e->stats->idle_rollback = 0;
+        }
+    }
+
+    //FIXME Davide: enable state notifications with ifdef condition.
+    /* *ntf_message = (struct ofl_exp_msg_notify_state_change)
+            {{{{.type = OFPT_EXPERIMENTER},
                       .experimenter_id = BEBA_VENDOR_ID},
-                      .type = OFPT_EXP_STATE_CHANGED},
-                      .table_id = extractor->table_id,
-                      .old_state = old_state,
-                      .new_state = new_state,
-                      .state_mask = state_mask,
-                      .key_len = key_len,
-                      .key = {}};
-    memcpy(ntf_message->key, key, key_len);
-
-    //TODO Davide: call free() when we delete state entries!!!
+                     .type = OFPT_EXP_STATE_CHANGED},
+                    .table_id = extractor->table_id,
+                    .old_state = old_state,
+                    .new_state = new_state,
+                    .state_mask = state_mask,
+                    .key_len = key_len,
+                    .key = {}};
+    memcpy(ntf_message->key, key, key_len); */
 
     return res;
 }
@@ -2303,6 +2220,7 @@ state_table_stats(struct state_table *table, struct ofl_exp_msg_multipart_reques
     uint32_t key_len = 0; //update-scope key extractor length
     uint32_t fields[MAX_EXTRACTION_FIELD_COUNT] = {0};
     struct timeval tv;
+    uint64_t now;
     struct key_extractor *extractor=&table->read_key;
 
     struct ofl_match const * a = (struct ofl_match const *)msg->match;
@@ -2364,22 +2282,21 @@ state_table_stats(struct state_table *table, struct ofl_exp_msg_multipart_reques
 
         if(found && ((msg->get_from_state && msg->state == entry->state) || (!msg->get_from_state)))
         {
-            gettimeofday(&tv,NULL);
             (*stats)[(*stats_num)] = malloc(sizeof(struct ofl_exp_state_stats));
-            //TODO Davide: check
-            if ((entry->stats->hard_timeout>0) && state_entry_hard_timeout(table,entry)) {
-                //do_nothing
-            } else if ((entry->stats->idle_timeout>0) && state_entry_idle_timeout(table,entry)) {
-                //do_nothing
-            }
-            (*stats)[(*stats_num)]->entry.state = entry->state;
 
+            gettimeofday(&tv,NULL);
+            now = 1000000 * tv.tv_sec + tv.tv_usec;
+            // TODO Davide: check
+            state_entry_apply_hard_timeout(entry, now);
+            state_entry_apply_idle_timeout(entry, now);
+
+            (*stats)[(*stats_num)]->entry.state = entry->state;
             (*stats)[(*stats_num)]->idle_timeout = entry->stats->idle_timeout;
             (*stats)[(*stats_num)]->hard_timeout = entry->stats->hard_timeout;
             (*stats)[(*stats_num)]->idle_rollback = entry->stats->idle_rollback;
             (*stats)[(*stats_num)]->hard_rollback = entry->stats->hard_rollback;
-            (*stats)[(*stats_num)]->duration_sec  =  (1000000 * tv.tv_sec + tv.tv_usec - entry->created) / 1000000;
-            (*stats)[(*stats_num)]->duration_nsec = ((1000000 * tv.tv_sec + tv.tv_usec - entry->created) % 1000000)*1000;
+            (*stats)[(*stats_num)]->duration_sec = (now - entry->created) / 1000000;
+            (*stats)[(*stats_num)]->duration_nsec = ((now - entry->created) % 1000000) * 1000;
             for (i=0;i<extractor->field_count;i++)
                 (*stats)[(*stats_num)]->fields[i]=fields[i];
             (*stats)[(*stats_num)]->table_id = table_id;

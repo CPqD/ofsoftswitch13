@@ -217,6 +217,7 @@ struct state_table {
     struct hmap                 state_entries;
     struct hmap                 hard_entries;
     struct hmap                 idle_entries;
+    // FIXME (carmelo): do we need a different default state entry per table?
     struct state_entry          default_state_entry;
     uint8_t stateful;
 };

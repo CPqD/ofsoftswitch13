@@ -68,7 +68,8 @@ dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
             case(OFPAT_EXP_SET_STATE):
             {
                 struct ofl_exp_action_set_state *wns = (struct ofl_exp_action_set_state *)action;
-                if (state_table_is_stateful(pkt->dp->pipeline->tables[wns->table_id]->state_table) && state_table_is_configured(pkt->dp->pipeline->tables[wns->table_id]->state_table))
+                if (state_table_is_stateful(pkt->dp->pipeline->tables[wns->table_id]->state_table)
+                    && state_table_is_configured(pkt->dp->pipeline->tables[wns->table_id]->state_table))
                 {
                     struct state_table *st = pkt->dp->pipeline->tables[wns->table_id]->state_table;
                     VLOG_DBG_RL(LOG_MODULE, &rl, "executing action NEXT STATE at stage %u", wns->table_id);
@@ -76,17 +77,18 @@ dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
                     // State Sync: Get the new state, encoded in ntf_message, and pack a message to be sent via dp_send_message.
                     // This invocation occurs when a state transition happens due to a dynamic event (e.g., a newly received packet).
                     state_table_set_state(st, pkt, NULL, wns, &ntf_message);
-                    //TODO disable with an IFDEF
-                    if (ntf_message.old_state != ntf_message.new_state) {
+                    // FIXME: Sending this notification synchronously, potentially for each packet, is too expensive.
+                    // Enable it with ifdef condition.
+                    /* if (ntf_message.old_state != ntf_message.new_state) {
                         int err = dp_send_message(pkt->dp, (struct ofl_msg_header *)&ntf_message, NULL);
                         if (err) {
                             VLOG_WARN_RL(LOG_MODULE, &rl, "ERROR sending state change notification %s:%i", __FILE__, __LINE__);
                         }
-                    }
+                    } */
                 }
                 else
                 {
-                    VLOG_WARN_RL(LOG_MODULE, &rl, "ERROR NEXT STATE at stage %u: stage not stateful", wns->table_id);
+                    VLOG_WARN_RL(LOG_MODULE, &rl, "ERROR: SET STATE at stage %u which is not stateful", wns->table_id);
                 }
                 break;
             }
