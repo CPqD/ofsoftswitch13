@@ -1706,10 +1706,11 @@ state_entry_idle_timeout(struct state_table *table, struct state_entry *entry)
     struct timeval tv;
     gettimeofday(&tv,NULL);
 
-    timeout = (entry->stats->idle_timeout != 0) &&
-              (1000000 * tv.tv_sec + tv.tv_usec > entry->last_used + entry->stats->idle_timeout);
+    //TODO Davide: remove commented condition
+    timeout = /*(entry->stats->idle_timeout != 0) &&*/(1000000 * tv.tv_sec + tv.tv_usec > entry->last_used + entry->stats->idle_timeout);
 
-    if (timeout) {
+    //TODO Davide: state timeouts
+    /*if (timeout) {
         hmap_remove_and_shrink(&table->idle_entries, &entry->idle_node);
         if(entry->stats->hard_timeout > 0)
             hmap_remove_and_shrink(&table->hard_entries, &entry->hard_node);
@@ -1727,6 +1728,15 @@ state_entry_idle_timeout(struct state_table *table, struct state_entry *entry)
             entry->stats->idle_rollback = 0;
             entry->stats->hard_rollback = 0;
         }
+    }*/
+
+    if (timeout){
+        entry->state = entry->stats->idle_rollback;
+        entry->created = 1000000 * tv.tv_sec + tv.tv_usec;
+        entry->stats->idle_timeout = 0;
+        entry->stats->hard_timeout = 0;
+        entry->stats->idle_rollback = 0;
+        entry->stats->hard_rollback = 0;
     }
     return timeout;
 }
@@ -1738,9 +1748,11 @@ state_entry_hard_timeout(struct state_table *table, struct state_entry *entry)
     struct timeval tv;
     gettimeofday(&tv,NULL);
 
-    timeout = (entry->remove_at != 0) && (1000000 * tv.tv_sec + tv.tv_usec > entry->remove_at);
+    //TODO Davide: remove commented condition
+    timeout = /*(entry->remove_at != 0) && */(1000000 * tv.tv_sec + tv.tv_usec > entry->remove_at);
 
-    if (timeout) {
+    //TODO Davide: state timeouts
+    /*if (timeout) {
         hmap_remove_and_shrink(&table->hard_entries, &entry->hard_node);
         if(entry->stats->idle_timeout > 0)
             hmap_remove_and_shrink(&table->idle_entries, &entry->idle_node);
@@ -1758,7 +1770,16 @@ state_entry_hard_timeout(struct state_table *table, struct state_entry *entry)
             entry->stats->hard_rollback = 0;
 
         }
+    }*/
+    if (timeout) {
+        entry->state = entry->stats->hard_rollback;
+        entry->created = 1000000 * tv.tv_sec + tv.tv_usec;
+        entry->stats->idle_timeout = 0;
+        entry->stats->hard_timeout = 0;
+        entry->stats->idle_rollback = 0;
+        entry->stats->hard_rollback = 0;
     }
+
     return timeout;
 }
 
@@ -1767,8 +1788,6 @@ state_table_timeout(struct state_table *table)
 {
     struct state_entry *entry;
 
-    /* NOTE: hard timeout entries are ordered by the time they should be removed at,
-     * so if one is not removed, the rest will not be either. */
     HMAP_FOR_EACH(entry, struct state_entry, hard_node, &table->hard_entries){
         state_entry_hard_timeout(table, entry);
     }
@@ -1830,7 +1849,7 @@ void state_table_write_state(struct state_entry *entry, struct packet *pkt)
     HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
         hmap_node, hash_int(OXM_EXP_STATE,0), &pkt->handle_std.match.match_fields){
                 uint32_t *state = (uint32_t*) (f->value + EXP_ID_LEN);
-                *state = (*state & 0x00000000) | (entry->state);
+                *state = entry->state;
     }
 }
 ofl_err state_table_del_state(struct state_table *table, uint8_t *key, uint32_t len) {
@@ -1877,6 +1896,7 @@ ofl_err state_table_del_state(struct state_table *table, uint8_t *key, uint32_t 
                 break;
             }
     }
+    //TODO Davide: free(e)
     return 0;
 }
 
@@ -1934,10 +1954,12 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
     uint64_t now;
     struct timeval tv;
     ofl_err res = 0;
+    bool entry_found = 0;
 
     int i;
     uint32_t key_len=0; //update-scope key extractor length
     struct key_extractor *extractor=&table->write_key;
+    //TODO Davide: compute it once at extractor configuration time
     for (i=0; i<extractor->field_count; i++)
     {
         uint32_t type = (int)extractor->fields[i];
@@ -1967,8 +1989,10 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
         }
 
         //Extract the key
+        //TODO Davide: we could verify if update-socper=lookup-scope and extract it just once at lookup_state time and store it
+        //TODO Davide: key_len has been already computed, we could add it to parameters list
         if(!__extract_key(key, key_extractor_ptr, pkt)){
-            OFL_LOG_DBG(LOG_MODULE, "lookup key fields not found in the packet's header");
+            OFL_LOG_DBG(LOG_MODULE, "update key fields not found in the packet's header");
             return res;
         }
     }
@@ -1992,105 +2016,88 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
         }
     }
 
+    //TODO Davide: if update-socper=lookup-scope we could even store the 'e' pointer to avoid the HMAP_FOR_EACH_WITH_HASH
     HMAP_FOR_EACH_WITH_HASH(e, struct state_entry,
         hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries){
+
             if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
-                OFL_LOG_DBG(LOG_MODULE, "state value is %u updated to hash map", state);
-                if ((((e->state & ~(state_mask)) | (state & state_mask)) == STATE_DEFAULT) && hard_timeout==0 && idle_timeout==0){
-                    // Keep the old state before moving to the next state.
-                    old_state = e->state;
+                entry_found = 1;
+                OFL_LOG_DBG(LOG_MODULE, "state value %u updated in hash map", state);
+                new_state = (e->state & ~(state_mask)) | (state & state_mask);
+                old_state = e->state;
 
-                    // Keep the new state, which is the default in the case of state deletion.
-                    new_state = STATE_DEFAULT;
-
-                    // Enforce the new, default state
-                    state_table_del_state(table, key, key_len);
+                //TODO Davide: a state transition to STATE_DEFAULT with no rollbacks, should trigger a state entry deletion, but
+                //deleting a state entry requires three HMAP_FOR_EACH_WITH_HASH. We should implement an async aging mechanism!
+                /*if !(hard_timeout==0 && idle_timeout==0 && new_state == STATE_DEFAULT){
+                    // Remove entry
+                    //state_table_del_state(table, key, key_len);
                 }
                 else {
-                    // Keep the old state before moving to the next state.
-                    old_state = e->state;
-
                     // Actual state transition.
-                    e->state = (e->state & ~(state_mask)) | (state & state_mask);
-
-                    // Keep the new state
-                    new_state = e->state;
+                    e->state = new_state;
 
                     gettimeofday(&tv,NULL);
                     now = 1000000 * tv.tv_sec + tv.tv_usec;
 
                     e->created = now;
+                }*/
 
-                    if (e->stats->idle_timeout)
-                        hmap_remove_and_shrink(&table->idle_entries, &e->idle_node);
-                    if (e->stats->hard_timeout)
-                        hmap_remove_and_shrink(&table->hard_entries, &e->hard_node);
+                // Actual state transition.
+                e->state = new_state;
 
-                    e->stats->idle_timeout = 0;
-                    e->stats->hard_timeout = 0;
-                    e->stats->idle_rollback = 0;
-                    e->stats->hard_rollback = 0;
+                gettimeofday(&tv,NULL);
+                now = 1000000 * tv.tv_sec + tv.tv_usec;
 
-                    if (hard_timeout>0 && hard_rollback!=((e->state & ~(state_mask)) | (state & state_mask))) {
-                        e->stats->hard_timeout = hard_timeout;
-                        e->stats->hard_rollback = hard_rollback;
-                        e->remove_at = now + hard_timeout;
-                        hmap_insert(&table->hard_entries, &e->hard_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
-                    }
-                    if (idle_timeout>0 && idle_rollback!=((e->state & ~(state_mask)) | (state & state_mask))) {
-                        e->stats->idle_timeout = idle_timeout;
-                        e->stats->idle_rollback = idle_rollback;
-                        e->last_used = now;
-                        hmap_insert(&table->idle_entries, &e->idle_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
-                    }
-                }
+                e->created = now;
 
-                /* State Sync: Notify the controller about state transition by sending the old and new state of the particular update key. */
-                *ntf_message = (struct ofl_exp_msg_notify_state_change)
-                               {{{{.type = OFPT_EXPERIMENTER},
-                                  .experimenter_id = BEBA_VENDOR_ID},
-                                  .type = OFPT_EXP_STATE_CHANGED},
-                                  .table_id = extractor->table_id,
-                                  .old_state = old_state,
-                                  .new_state = new_state,
-                                  .state_mask = state_mask,
-                                  .key_len = key_len,
-                                  .key = {}};
-
-                memcpy(ntf_message->key, key, key_len);
-
-                return res;
+                break;
             }
     }
 
-    gettimeofday(&tv,NULL);
-    now = 1000000 * tv.tv_sec + tv.tv_usec;
-    e = xmalloc(sizeof(struct state_entry));
-    e->created = now;
-    e->stats = xmalloc(sizeof(struct ofl_exp_state_stats));
+    if (!entry_found){
+        gettimeofday(&tv,NULL);
+        now = 1000000 * tv.tv_sec + tv.tv_usec;
+        e = xmalloc(sizeof(struct state_entry));
+        e->created = now;
+        e->stats = xmalloc(sizeof(struct ofl_exp_state_stats));
+        memcpy(e->key, key, MAX_STATE_KEY_LEN);
+        e->state = state & state_mask;
+        old_state = STATE_DEFAULT;
+        new_state = e->state;
+    }
+
     e->stats->idle_timeout = 0;
     e->stats->hard_timeout = 0;
     e->stats->idle_rollback = 0;
     e->stats->hard_rollback = 0;
-    memcpy(e->key, key, MAX_STATE_KEY_LEN);
-    e->state = state & state_mask;
-    old_state = STATE_DEFAULT;
 
-    // A new state entry with state!=DEF is always installed.
-    if ((state & state_mask) != STATE_DEFAULT)
-    {
-        OFL_LOG_DBG(LOG_MODULE, "state value is %u inserted to hash map", e->state);
-        hmap_insert(&table->state_entries, &e->hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
-    }
-    else
-    {
-        // Otherwise a new state entry with state=DEF will be installed only if at least one timeout is set with rollback!=DEF
-        if ((hard_timeout>0 && hard_rollback!=STATE_DEFAULT) || (idle_timeout>0 && idle_rollback!=STATE_DEFAULT))
+    if (!entry_found
+        && (e->state != STATE_DEFAULT
+            || ((hard_timeout>0 && hard_rollback!=STATE_DEFAULT) || (idle_timeout>0 && idle_rollback!=STATE_DEFAULT))))
+        {
+            OFL_LOG_DBG(LOG_MODULE, "state value is %u inserted to hash map", e->state);
             hmap_insert(&table->state_entries, &e->hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
     }
+    //TODO Davide: else free(e->stats),free(e)
 
-    // This is the case, when a fresh state is created in the state table.
-    // Old state was the default state, new state is just set and the controller needs to know it as well.
+    // Configuring a timeout with rollback state=state makes no sense
+    if (hard_timeout>0 && hard_rollback!=new_state){
+        OFL_LOG_DBG(LOG_MODULE, "configuring hard_timeout = %u", hard_timeout);
+        e->remove_at = now + hard_timeout;
+        e->stats->hard_timeout = hard_timeout;
+        e->stats->hard_rollback = hard_rollback;
+        //if (!entry_found) hmap_insert(&table->hard_entries, &e->hard_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
+    }
+    if (idle_timeout>0 && idle_rollback!=new_state){
+        OFL_LOG_DBG(LOG_MODULE, "configuring idle_timeout = %u", idle_timeout);
+        e->stats->idle_timeout = idle_timeout;
+        e->stats->idle_rollback = idle_rollback;
+        e->last_used = now;
+        //hmap_remove(&table->idle_entries, &e->idle_node);
+        //hmap_insert(&table->idle_entries, &e->idle_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
+    }
+
+    //TODO Davide: ifedf
     new_state = e->state;
     *ntf_message = (struct ofl_exp_msg_notify_state_change)
                    {{{{.type = OFPT_EXPERIMENTER},
@@ -2104,21 +2111,8 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
                       .key = {}};
     memcpy(ntf_message->key, key, key_len);
 
-    // Configuring a timeout with rollback state=state makes no sense
-    if (hard_timeout>0 && hard_rollback!=(state & state_mask)){
-        // FIXME!?!?!
-        // e->remove_at = hard_timeout>0 == 0 ? 0 : now + hard_timeout;
-        e->remove_at = hard_timeout == 0 ? 0 : now + hard_timeout;
-        e->stats->hard_timeout = hard_timeout;
-        e->stats->hard_rollback = hard_rollback;
-        hmap_insert(&table->hard_entries, &e->hard_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
-    }
-    if (idle_timeout>0 && idle_rollback!=(state & state_mask)){
-        e->stats->idle_timeout = idle_timeout;
-        e->stats->idle_rollback = idle_rollback;
-        e->last_used = now;
-        hmap_insert(&table->idle_entries, &e->idle_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
-    }
+    //TODO Davide: call free() when we delete state entries!!!
+
     return res;
 }
 
@@ -2372,6 +2366,14 @@ state_table_stats(struct state_table *table, struct ofl_exp_msg_multipart_reques
         {
             gettimeofday(&tv,NULL);
             (*stats)[(*stats_num)] = malloc(sizeof(struct ofl_exp_state_stats));
+            //TODO Davide: check
+            if ((entry->stats->hard_timeout>0) && state_entry_hard_timeout(table,entry)) {
+                //do_nothing
+            } else if ((entry->stats->idle_timeout>0) && state_entry_idle_timeout(table,entry)) {
+                //do_nothing
+            }
+            (*stats)[(*stats_num)]->entry.state = entry->state;
+
             (*stats)[(*stats_num)]->idle_timeout = entry->stats->idle_timeout;
             (*stats)[(*stats_num)]->hard_timeout = entry->stats->hard_timeout;
             (*stats)[(*stats_num)]->idle_rollback = entry->stats->idle_rollback;
@@ -2385,7 +2387,6 @@ state_table_stats(struct state_table *table, struct ofl_exp_msg_multipart_reques
             (*stats)[(*stats_num)]->entry.key_len = key_len;
             for (i=0;i<key_len;i++)
                 (*stats)[(*stats_num)]->entry.key[i]=entry->key[i];
-            (*stats)[(*stats_num)]->entry.state = entry->state;
             (*stats_num)++;
 
             if (delete_entries){

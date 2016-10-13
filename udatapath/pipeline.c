@@ -155,7 +155,8 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt)
         next_table    = NULL;
 
         //removes eventual old 'state' virtual header field
-
+        //TODO Davide: precompute hash_int(OXM_EXP_STATE,0)?
+        //TODO Davide: change match_field hmap struct?
         HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
                     hmap_node, hash_int(OXM_EXP_STATE,0), &pkt->handle_std.match.match_fields){
                         hmap_remove_and_shrink(&pkt->handle_std.match.match_fields,&f->hmap_node);
@@ -172,7 +173,7 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt)
 
         //set 'flags' virtual header field value
 
-
+        //TODO Davide: see above
         HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
             hmap_node, hash_int(OXM_EXP_GLOBAL_STATE,0), &pkt->handle_std.match.match_fields){
                     uint32_t *flags = (uint32_t*) (f->value + EXP_ID_LEN);
@@ -655,8 +656,9 @@ pipeline_timeout(struct pipeline *pl) {
 
     for (i = 0; i < PIPELINE_TABLES; i++) {
         flow_table_timeout(pl->tables[i]);
-        if (state_table_is_stateful(pl->tables[i]->state_table) && state_table_is_configured(pl->tables[i]->state_table))
-            state_table_timeout(pl->tables[i]->state_table);
+        //TODO Davide: state timeouts have been disabled
+        /*if (state_table_is_stateful(pl->tables[i]->state_table) && state_table_is_configured(pl->tables[i]->state_table))
+            state_table_timeout(pl->tables[i]->state_table);*/
     }
 }
 
