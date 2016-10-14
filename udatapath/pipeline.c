@@ -158,7 +158,6 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt)
         /* BEBA EXTENSION BEGIN */
 
         if (state_table_is_enabled(table->state_table)) {
-            struct ofl_match_tlv *f;
             struct state_entry *state_entry;
             state_entry = state_table_lookup(table->state_table, pkt);
 
@@ -171,6 +170,7 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt)
                 state_table_write_state_header(state_entry, state_hdr);
             }
 
+            //TODO save global state header field ptr
             if (!gstate_set) {
                 // Append global states to packet headers.
                 HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv, hmap_node,
@@ -194,6 +194,7 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt)
             free(m);
         }
 
+        entry = flow_table_lookup(table, pkt, pkt->dp->exp);
 
         if (entry != NULL) {
             if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
