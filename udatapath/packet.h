@@ -33,6 +33,7 @@
 #ifndef PACKET_H
 #define PACKET_H 1
 
+#include <sys/time.h>
 #include <stdbool.h>
 #include "action_set.h"
 #include "packet_handle_std.h"
@@ -56,8 +57,9 @@ struct packet {
     uint32_t            out_group;			/* OFPG_ANY = no out group */
     uint32_t            out_port;			/* OFPP_ANY = no out port */
     uint32_t            out_queue;
-    uint32_t            buffer_id;			/* if packet is stored in buffer, buffer_id;
-											   otherwise 0xffffffff */
+    uint32_t            buffer_id;			/* if packet is stored in buffer, buffer_id; otherwise 0xffffffff */
+
+    struct timeval	ts;
 
     uint16_t            out_port_max_len;	/* max length to send, if out_port is OFPP_CONTROLLER */
     uint8_t             table_id;			/* table in which is processed */

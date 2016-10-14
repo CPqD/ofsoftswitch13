@@ -34,6 +34,7 @@
 #ifndef NETDEV_H
 #define NETDEV_H 1
 
+#include <sys/time.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -107,7 +108,7 @@ int netdev_nodev_get_flags(const char *netdev_name, enum netdev_flags *);
 
 int netdev_open(const char *name, int ethertype, struct netdev **);
 void netdev_close(struct netdev *);
-int netdev_recv(struct netdev *, struct ofpbuf *, size_t);
+int netdev_recv(struct netdev *, struct ofpbuf *, struct timeval *tv, size_t);
 void netdev_recv_wait(struct netdev *);
 int netdev_drain(struct netdev *);
 int netdev_send(struct netdev *, const struct ofpbuf *, uint16_t class_id);

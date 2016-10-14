@@ -1144,7 +1144,7 @@ netdev_recv_linux(struct netdev *netdev, struct ofpbuf *buffer, size_t max_mtu)
 }
 
 int
-netdev_recv(struct netdev *netdev, struct ofpbuf *buffer, size_t max_mtu)
+netdev_recv(struct netdev *netdev, struct ofpbuf *buffer, struct timeval *tv, size_t max_mtu)
 {
 #if defined(HAVE_LIBPCAP) && defined(BEBA_USE_LIBPCAP)
 	const u_char *pkt;
@@ -1159,6 +1159,9 @@ netdev_recv(struct netdev *netdev, struct ofpbuf *buffer, size_t max_mtu)
 		pkt = pcap_next(netdev->pcap, (struct pcap_pkthdr *)&hdr);
 		if (pkt)
 		{
+			tv->tv_sec  = hdr.ts.tv_sec;
+			tv->tv_usec = hdr.ts.tv_usec;
+
 #if BEBA_USE_LIBPCAP_ZEROCOPY
 			if (buffer->base)
 				memcpy(ofpbuf_tail(buffer), pkt, MIN(ofpbuf_tailroom(buffer), hdr.caplen));
@@ -1180,6 +1183,8 @@ netdev_recv(struct netdev *netdev, struct ofpbuf *buffer, size_t max_mtu)
 	if (!buffer->base)
 		ofpbuf_reinit(buffer, VLAN_ETH_HEADER_LEN + 1500 + 128 + 2);
 #endif
+
+	gettimeofday(tv, NULL);
 
 	return netdev_recv_linux(netdev, buffer, max_mtu);
 }

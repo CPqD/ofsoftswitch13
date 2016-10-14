@@ -41,6 +41,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
 #include "csum.h"
@@ -925,13 +926,14 @@ do_receive_msg(struct dhclient *cli, struct dhcp_msg *msg)
 
     ofpbuf_init(&b, netdev_get_mtu(cli->netdev) + VLAN_ETH_HEADER_LEN);
     for (; cli->received < 50; cli->received++) {
+	struct timeval ts;
         const struct ip_header *ip;
         const struct dhcp_header *dhcp;
         // struct flow flow;
         int error;
 
         ofpbuf_clear(&b);
-        error = netdev_recv(cli->netdev, &b, 0);
+        error = netdev_recv(cli->netdev, &b, &ts, 0);
         if (error) {
             goto drained;
         }
