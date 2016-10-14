@@ -1731,7 +1731,6 @@ struct state_entry * state_table_lookup(struct state_table* table, struct packet
 {
     struct state_entry * e = NULL;
     uint8_t key[MAX_STATE_KEY_LEN] = {0};
-    struct timeval tv;
     uint64_t now;
 
     if(!__extract_key(key, &table->lookup_key_extractor, pkt))
@@ -1748,8 +1747,7 @@ struct state_entry * state_table_lookup(struct state_table* table, struct packet
             if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
                 OFL_LOG_DBG(LOG_MODULE, "state entry FOUND: %u",e->state);
 
-                gettimeofday(&tv,NULL);
-                now = 1000000 * tv.tv_sec + tv.tv_usec;
+                now = 1000000 * pkt->ts.tv_sec + pkt->ts.tv_usec;
 
                 state_entry_apply_hard_timeout(e, now);
                 state_entry_apply_idle_timeout(e, now);
@@ -1860,7 +1858,6 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
             idle_timeout, hard_timeout,
             old_state, new_state;
     uint64_t now;
-    struct timeval tv;
     ofl_err res = 0;
     bool entry_found = 0;
     bool entry_created = 0;
@@ -1869,6 +1866,7 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
         //SET_STATE action
         struct key_extractor *key_extractor_ptr;
 
+        now = 1000000 * pkt->ts.tv_sec + pkt->ts.tv_usec;
         state = act->state;
         state_mask = act->state_mask;
         idle_rollback = act->idle_rollback;
@@ -1890,6 +1888,10 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
 
     } else {
         //SET_STATE message - should we check if msg != null?
+        struct timeval tv;
+
+        gettimeofday(&tv,NULL);
+        now = 1000000 * pkt->ts.tv_sec + pkt->ts.tv_usec;
         state = msg->state;
         state_mask = msg->state_mask;
         idle_rollback = msg->idle_rollback;
@@ -1947,8 +1949,6 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
         e->state = new_state;
 
         // FIXME: renaming created to last_updated would be more appropriate.
-        gettimeofday(&tv, NULL);
-        now = 1000000 * tv.tv_sec + tv.tv_usec;
         e->created = now;
 
         // Update timeouts, only if rollback state != current state
@@ -1993,7 +1993,6 @@ ofl_err state_table_inc_state(struct state_table *table, struct packet *pkt){
 
     uint8_t key[MAX_STATE_KEY_LEN] = {0};
     struct state_entry *e;
-    struct timeval tv;
     uint64_t now;
     ofl_err res = 0;
 
@@ -2011,8 +2010,7 @@ ofl_err state_table_inc_state(struct state_table *table, struct packet *pkt){
         }
     }
 
-    gettimeofday(&tv,NULL);
-    now = 1000000 * tv.tv_sec + tv.tv_usec;
+    now = 1000000 * pkt->ts.tv_sec + pkt->ts.tv_usec;
     e = xmalloc(sizeof(struct state_entry));
     e->created = now;
     e->stats = xmalloc(sizeof(struct ofl_exp_state_stats));
@@ -2167,7 +2165,8 @@ state_table_stats(struct state_table *table, struct ofl_exp_msg_multipart_reques
     size_t  i;
     uint32_t fields[MAX_EXTRACTION_FIELD_COUNT] = {0};
     struct timeval tv;
-    uint64_t now;
+    gettimeofday(&tv,NULL);
+    uint64_t now = 1000000 * tv.tv_sec + tv.tv_usec;
     struct key_extractor *extractor=&table->lookup_key_extractor;
     uint32_t key_len = extractor->key_len;
 
@@ -2231,9 +2230,6 @@ state_table_stats(struct state_table *table, struct ofl_exp_msg_multipart_reques
         {
             (*stats)[(*stats_num)] = malloc(sizeof(struct ofl_exp_state_stats));
 
-            gettimeofday(&tv,NULL);
-            now = 1000000 * tv.tv_sec + tv.tv_usec;
-            // TODO Davide: check
             state_entry_apply_hard_timeout(entry, now);
             state_entry_apply_idle_timeout(entry, now);
 
