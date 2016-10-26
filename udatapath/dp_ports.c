@@ -37,6 +37,7 @@
  * Author: Zoltán Lajos Kis <zoltan.lajos.kis@ericsson.com>
  */
 
+#include <sys/time.h>
 #include <arpa/inet.h>
 #include <assert.h>
 #include <errno.h>
@@ -213,7 +214,7 @@ dp_hw_drv_init(struct datapath *dp)
 
 /* Runs a datapath packet through the pipeline, if the port is not set to down. */
 static void
-process_buffer(struct datapath *dp, struct sw_port *p, struct ofpbuf *buffer)
+process_buffer(struct datapath *dp, struct sw_port *p, struct ofpbuf *buffer, struct timeval *tv)
 {
     struct packet pkt;
 
@@ -223,6 +224,8 @@ process_buffer(struct datapath *dp, struct sw_port *p, struct ofpbuf *buffer)
     }
 
     packet_emplace(&pkt, dp, p->stats->port_no, buffer, false);
+    pkt.ts = *tv;
+
     pipeline_process_packet(dp->pipeline, &pkt);
 }
 
@@ -232,9 +235,11 @@ dp_ports_run(struct datapath *dp, int nrun) {
 
     // static, so an unused buffer can be reused at the dp_ports_run call
     static struct ofpbuf buffer;
+
     static int max_mtu = 1500;
 
     struct sw_port *p, *pn;
+    struct timeval tv;
 
 #if defined(OF_HW_PLAT) && !defined(USE_NETDEV)
     { /* Process packets received from callback thread */
@@ -305,12 +310,12 @@ dp_ports_run(struct datapath *dp, int nrun) {
 	    ofpbuf_emplace(&buffer, VLAN_ETH_HEADER_LEN + max_mtu, headroom);
 #endif
 
-	    error = netdev_recv(p->netdev, &buffer, VLAN_ETH_HEADER_LEN + max_mtu);
+	    error = netdev_recv(p->netdev, &buffer, &tv, VLAN_ETH_HEADER_LEN + max_mtu);
 	    if (!error) {
 	        p->stats->rx_packets++;
 	        p->stats->rx_bytes += buffer.size;
 	        // process_buffer takes ownership of ofpbuf buffer
-	        process_buffer(dp, p, &buffer);
+	        process_buffer(dp, p, &buffer, &tv);
 	    }
 	    else {
 		ofpbuf_delete(&buffer);

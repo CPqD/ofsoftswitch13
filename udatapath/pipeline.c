@@ -124,6 +124,8 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt)
 {
     struct flow_table *table, *next_table;
     struct ofl_match_tlv *f;
+    struct ofl_match_tlv *state_hdr = NULL;
+    bool gstate_set = false;
 
     if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
         char *pkt_str = packet_to_string(pkt);
@@ -146,50 +148,56 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt)
     next_table = pl->tables[0];
     while (next_table != NULL) {
         struct flow_entry *entry;
-	struct state_entry *state_entry;
 
         VLOG_DBG_RL(LOG_MODULE, &rl, "trying table %u.", next_table->stats->table_id);
 
         pkt->table_id = next_table->stats->table_id;
-        table         = next_table;
-        next_table    = NULL;
+        table = next_table;
+        next_table = NULL;
 
-        //removes eventual old 'state' virtual header field
+        /* BEBA EXTENSION BEGIN */
 
-        HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
-                    hmap_node, hash_int(OXM_EXP_STATE,0), &pkt->handle_std.match.match_fields){
-                        hmap_remove_and_shrink(&pkt->handle_std.match.match_fields,&f->hmap_node);
+        if (state_table_is_enabled(table->state_table)) {
+            struct state_entry *state_entry;
+            state_entry = state_table_lookup(table->state_table, pkt);
+
+            if (state_hdr == NULL) {
+                // Allocate state to packet headers (experimenter).
+                state_hdr = ofl_structs_match_exp_put32(&pkt->handle_std.match, OXM_EXP_STATE, 0xBEBABEBA,
+                                                        state_entry->state);
+            } else {
+                // Rewrite existing header.
+                state_table_write_state_header(state_entry, state_hdr);
+            }
+
+            //TODO save global state header field ptr
+            if (!gstate_set) {
+                // Append global states to packet headers.
+                HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv, hmap_node,
+                                        hash_int(OXM_EXP_GLOBAL_STATE, 0), &pkt->handle_std.match.match_fields) {
+                    uint32_t *flags = (uint32_t *) (f->value + EXP_ID_LEN);
+                    *flags = (*flags & 0x00000000) | (pkt->dp->global_state);
+                    gstate_set = true;
+                }
+            }
+        } else {
+            // FIXME: avoid matching on state on non-stateful stages.
+            // hint: don't touch the packet, avoid installing flowmods that match on state.
         }
 
+        /* BEBA EXTENSION END */
 
-	if (state_table_is_stateful(table->state_table) && state_table_is_configured(table->state_table)) {
-		state_entry = state_table_lookup(table->state_table, pkt);
-		if(state_entry!=NULL){
-			ofl_structs_match_exp_put32(&pkt->handle_std.match, OXM_EXP_STATE, 0xBEBABEBA, 0x00000000);
-			state_table_write_state(state_entry, pkt);
-		}
-	 }
-
-        //set 'flags' virtual header field value
-
-
-        HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
-            hmap_node, hash_int(OXM_EXP_GLOBAL_STATE,0), &pkt->handle_std.match.match_fields){
-                    uint32_t *flags = (uint32_t*) (f->value + EXP_ID_LEN);
-                    *flags = (*flags & 0x00000000 ) | (pkt->dp->global_state);
+        if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
+            char *m = ofl_structs_match_to_string((struct ofl_match_header *) &(pkt->handle_std.match), pkt->dp->exp);
+            VLOG_DBG_RL(LOG_MODULE, &rl, "searching table entry in table %d for packet match: %s.",
+                        table->stats->table_id, m);
+            free(m);
         }
 
-	if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
-		char *m = ofl_structs_match_to_string((struct ofl_match_header*)&(pkt->handle_std.match), pkt->dp->exp);
-		VLOG_DBG_RL(LOG_MODULE, &rl, "searching table entry in table %d for packet match: %s.", table->stats->table_id,m);
-		free(m);
-	}
-
-	entry = flow_table_lookup(table, pkt, pkt->dp->exp);
-
+        entry = flow_table_lookup(table, pkt, pkt->dp->exp);
 
         if (entry != NULL) {
-	        if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
+            if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
                 char *m = ofl_structs_flow_stats_to_string(entry->stats, pkt->dp->exp);
                 VLOG_DBG_RL(LOG_MODULE, &rl, "found matching entry: %s.", m);
                 free(m);
@@ -202,18 +210,18 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt)
                 return;
 
             if (next_table == NULL) {
-               /* Cookie field is set 0xffffffffffffffff
-                because we cannot associate it to any
-                particular flow */
+                /* Cookie field is set 0xffffffffffffffff
+                 because we cannot associate it to any
+                 particular flow */
                 action_set_execute(&pkt->action_set, pkt, 0xffffffffffffffff);
                 return;
             }
 
         } else {
-		/* OpenFlow 1.3 default behavior on a table miss */
-		VLOG_DBG_RL(LOG_MODULE, &rl, "No matching entry found. Dropping packet.");
-		packet_destroy(pkt);
-		return;
+            /* OpenFlow 1.3 default behavior on a table miss */
+            VLOG_DBG_RL(LOG_MODULE, &rl, "No matching entry found. Dropping packet.");
+            packet_destroy(pkt);
+            return;
         }
     }
 
@@ -655,8 +663,6 @@ pipeline_timeout(struct pipeline *pl) {
 
     for (i = 0; i < PIPELINE_TABLES; i++) {
         flow_table_timeout(pl->tables[i]);
-        if (state_table_is_stateful(pl->tables[i]->state_table) && state_table_is_configured(pl->tables[i]->state_table))
-            state_table_timeout(pl->tables[i]->state_table);
     }
 }
 
