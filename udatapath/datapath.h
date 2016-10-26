@@ -92,6 +92,7 @@ struct datapath
     struct pvconn **listeners_aux;
     size_t n_listeners_aux;
     time_t last_timeout;
+    time_t next_state_table_flush;
 
     struct dp_buffers *buffers;
 

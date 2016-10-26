@@ -1695,7 +1695,6 @@ state_entry_apply_idle_timeout(struct state_entry *entry, uint64_t ts)
 {
     if (entry->stats->idle_timeout != 0) {
         if (ts > entry->last_used + entry->stats->idle_timeout) {
-            // TODO: if state is DEFAULT, how expensive is to free state table memory here?
             entry->state = entry->stats->idle_rollback;
             entry->created = ts;
             entry->stats->idle_timeout = 0;
@@ -1713,7 +1712,6 @@ state_entry_apply_hard_timeout(struct state_entry *entry, uint64_t ts)
 {
     if (entry->stats->hard_timeout != 0) {
         if (ts > entry->remove_at) {
-            // TODO: if state is DEFAULT, how expensive is to free state table memory here?
             entry->state = entry->stats->hard_rollback;
             entry->created = ts;
             entry->stats->idle_timeout = 0;
@@ -1724,6 +1722,20 @@ state_entry_apply_hard_timeout(struct state_entry *entry, uint64_t ts)
         }
     }
     return false;
+}
+
+void
+state_table_flush(struct state_table *table)
+{
+    struct state_entry *entry;
+
+    HMAP_FOR_EACH(entry, struct state_entry, hmap_node, &table->state_entries){
+        if (entry->state == STATE_DEFAULT && entry->stats->hard_timeout == 0 && entry->stats->idle_timeout == 0){
+            hmap_remove(&table->state_entries, &entry->hmap_node);
+            free(entry->stats);
+            free(entry);
+        }
+    }
 }
 
 /*having the read_key, look for the state vaule inside the state_table */

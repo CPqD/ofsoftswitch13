@@ -666,6 +666,17 @@ pipeline_timeout(struct pipeline *pl) {
     }
 }
 
+void
+pipeline_flush_state_tables(struct pipeline *pl) {
+    int i;
+
+    for (i = 0; i < PIPELINE_TABLES; i++) {
+        if (state_table_is_enabled(pl->tables[i]->state_table)) {
+            state_table_flush(pl->tables[i]->state_table);
+        }
+    }
+}
+
 
 /* Executes the instructions associated with a flow entry */
 static void

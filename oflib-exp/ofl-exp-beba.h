@@ -262,6 +262,9 @@ state_table_lookup(struct state_table*, struct packet *);
 void
 state_table_write_state_header(struct state_entry *, struct ofl_match_tlv *);
 
+void
+state_table_flush(struct state_table *table);
+
 /*
  * State Sync: One extra argument (i.e., ntf_message) is passed at the end of this function.
  */
