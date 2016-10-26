@@ -183,6 +183,7 @@ dp_new(void)
     dp->generation_id = -1;
 
     dp->last_timeout = time_now();
+    dp->next_state_table_flush = time_now() + BEBA_STATE_FLUSH_INTERVAL;
     list_init(&dp->remotes);
     dp->listeners = NULL;
     dp->n_listeners = 0;
@@ -244,6 +245,11 @@ dp_run(struct datapath *dp, int nrun) {
         dp->last_timeout = now;
         meter_table_add_tokens(dp->meters);
         pipeline_timeout(dp->pipeline);
+    }
+
+    if (now == dp->next_state_table_flush){
+        dp->next_state_table_flush = now + BEBA_STATE_FLUSH_INTERVAL;
+        pipeline_flush_state_tables(dp->pipeline);
     }
 
     poll_set_timer_wait(100);
