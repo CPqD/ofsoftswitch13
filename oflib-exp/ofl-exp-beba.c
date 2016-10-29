@@ -1639,6 +1639,10 @@ struct state_table * state_table_create(void)
     table->default_state_entry.state = STATE_DEFAULT;
     table->null_state_entry.state = STATE_NULL;
 
+    table->last_lookup_state_entry = NULL;
+    table->update_scope_is_eq_lookup_scope = false;
+    table->bit_update_scope_is_eq_lookup_scope = false;
+
     table->stateful = 0;
 
     return table;
@@ -1668,7 +1672,8 @@ void state_table_destroy(struct state_table *table)
 /* having the key extractor field goes to look for these key inside the packet and map to corresponding value and copy the value into buf. */
 int __extract_key(uint8_t *buf, struct key_extractor *extractor, struct packet *pkt)
 {
-    int i, extracted_key_len=0, expected_key_len=0;
+    int i;
+    uint32_t extracted_key_len=0;
     struct ofl_match_tlv *f;
 
     for (i=0; i<extractor->field_count; i++) {
@@ -1677,17 +1682,13 @@ int __extract_key(uint8_t *buf, struct key_extractor *extractor, struct packet *
             hmap_node, hash_int(type, 0), &pkt->handle_std.match.match_fields){
                 if (type == f->header) {
                     memcpy(&buf[extracted_key_len], f->value, OXM_LENGTH(f->header));
-                    extracted_key_len = extracted_key_len + OXM_LENGTH(f->header);//keeps only 8 last bits of oxm_header that contains oxm_length(in which length of oxm_payload)
+                    extracted_key_len += OXM_LENGTH(f->header);
                     break;
                 }
         }
-        expected_key_len = expected_key_len + OXM_LENGTH(type);
     }
     /* check if the full key has been extracted: if key is extracted partially or not at all, we cannot access the state table */
-    if (extracted_key_len==expected_key_len)
-        return 1;
-    else
-        return 0;
+    return extracted_key_len == extractor->key_len;
 }
 
 static bool
@@ -1738,7 +1739,7 @@ state_table_flush(struct state_table *table)
     }
 }
 
-/*having the read_key, look for the state vaule inside the state_table */
+/*having the read_key, look for the state value inside the state_table */
 struct state_entry * state_table_lookup(struct state_table* table, struct packet *pkt)
 {
     struct state_entry * e = NULL;
@@ -1750,9 +1751,6 @@ struct state_entry * state_table_lookup(struct state_table* table, struct packet
         OFL_LOG_DBG(LOG_MODULE, "lookup key fields not found in the packet's header -> STATE_NULL");
         return &table->null_state_entry;
     }
-
-    // TODO (carmelo): store extracted key and reuse if update-scope == lookup-scope, i.e. avoid re-extracting.
-    // E.g. store in state_table->last_extracted key.
 
     HMAP_FOR_EACH_WITH_HASH(e, struct state_entry,
         hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries){
@@ -1766,9 +1764,14 @@ struct state_entry * state_table_lookup(struct state_table* table, struct packet
 
                 e->last_used = now;
 
+                // cache the last state entry to avoid re-extracting it if two scopes are the same
+                table->last_lookup_state_entry = e;
+
                 return e;
             }
     }
+
+    table->last_lookup_state_entry = NULL;
 
     OFL_LOG_DBG(LOG_MODULE, "state entry NOT FOUND, returning DEFAULT");
     return &table->default_state_entry;
@@ -1807,6 +1810,24 @@ ofl_err state_table_del_state(struct state_table *table, uint8_t *key, uint32_t 
 }
 
 
+// If lookup-scope has already been configured, resulting keys must have the same length
+bool extractors_are_equal(struct key_extractor *ke1, struct key_extractor *ke2)
+{
+    int i;
+
+    if (ke1->key_len != ke2->key_len){
+        return false;
+    }
+
+    for (i = 0; i < ke1->field_count; i++) {
+        if (OXM_TYPE((int) ke1->fields[i]) != OXM_TYPE((int) ke2->fields[i])){
+            return false;
+        }
+    }
+
+    return true;
+}
+
 ofl_err state_table_set_extractor(struct state_table *table, struct key_extractor *ke, int update)
 {
     struct key_extractor *dest;
@@ -1824,6 +1845,8 @@ ofl_err state_table_set_extractor(struct state_table *table, struct key_extracto
 
     if (update) {
         // Setting the update scope.
+
+        // Ensure conformity with the length of a previously configured scope
         if (table->lookup_key_extractor.key_len != 0
             && table->lookup_key_extractor.key_len != key_len) {
             OFL_LOG_WARN(LOG_MODULE, "Update-scope should provide same length keys of lookup-scope: %d vs %d\n",
@@ -1831,7 +1854,21 @@ ofl_err state_table_set_extractor(struct state_table *table, struct key_extracto
             return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
         }
 
-        // Sellect the right write key
+        if (ke->bit == 0 && table->bit_update_key_extractor.key_len != 0
+            && table->bit_update_key_extractor.key_len != key_len) {
+            OFL_LOG_WARN(LOG_MODULE, "Update-scope should provide same length keys of bit-update-scope: %d vs %d\n",
+                         key_len, table->bit_update_key_extractor.key_len);
+            return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
+        }
+
+        if (ke->bit == 1 && table->update_key_extractor.key_len != 0
+            && table->update_key_extractor.key_len != key_len) {
+            OFL_LOG_WARN(LOG_MODULE, "Bit-update-scope should provide same length keys of update-scope: %d vs %d\n",
+                         key_len, table->update_key_extractor.key_len);
+            return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
+        }
+
+        // Select the right write key
         if (ke->bit == 0) {
             // Update the normal key extractor
             dest = &table->update_key_extractor;
@@ -1843,12 +1880,22 @@ ofl_err state_table_set_extractor(struct state_table *table, struct key_extracto
         }
     } else {
         // Setting the lookup scope.
+
+        // Ensure conformity with the length of a previously configured scope
         if (table->update_key_extractor.key_len != 0
             && table->update_key_extractor.key_len != key_len) {
             OFL_LOG_WARN(LOG_MODULE, "Lookup-scope should provide same length keys of update-scope: %d vs %d\n",
                          key_len, table->update_key_extractor.key_len);
             return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
         }
+
+        if (table->bit_update_key_extractor.key_len != 0
+            && table->bit_update_key_extractor.key_len != key_len) {
+            OFL_LOG_WARN(LOG_MODULE, "Lookup-scope should provide same length keys of bit-update-scope: %d vs %d\n",
+                         key_len, table->bit_update_key_extractor.key_len);
+            return ofl_error(OFPET_EXPERIMENTER, OFPEC_BAD_EXP_LEN);
+        }
+
         dest = &table->lookup_key_extractor;
         OFL_LOG_DBG(LOG_MODULE, "Lookup-scope set");
     }
@@ -1856,6 +1903,15 @@ ofl_err state_table_set_extractor(struct state_table *table, struct key_extracto
     dest->field_count = ke->field_count;
     dest->key_len = key_len;
     memcpy(dest->fields, ke->fields, sizeof(uint32_t) * ke->field_count);
+
+    if (extractors_are_equal(&table->lookup_key_extractor,&table->update_key_extractor)){
+        table->update_scope_is_eq_lookup_scope = true;
+    }
+
+    if (extractors_are_equal(&table->lookup_key_extractor,&table->bit_update_key_extractor)){
+        table->bit_update_scope_is_eq_lookup_scope = true;
+    }
+
     return 0;
 }
 
@@ -1890,12 +1946,13 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
         // FIXME: rename 'bit' to something more meaningful.
         key_extractor_ptr = (act->bit == 0) ? &table->update_key_extractor : &table->bit_update_key_extractor;
 
-        //Extract the key
-        //TODO Davide: if update-scope == lookup-scope, use key already extracted
-        //TODO Davide: key_len has been already computed before, we could add it to parameters list
-        if (!__extract_key(key, key_extractor_ptr, pkt)) {
-            OFL_LOG_DBG(LOG_MODULE, "update key fields not found in the packet's header");
-            return res;
+        //Extract the key (we avoid to re-extract it if bit-update/update-scope == lookup-scope and the cached entry is not the default)
+        if (!((act->bit == 0 && table->update_scope_is_eq_lookup_scope && table->last_lookup_state_entry != NULL)
+              || (act->bit == 1 && table->bit_update_scope_is_eq_lookup_scope && table->last_lookup_state_entry != NULL))) {
+            if (!__extract_key(key, key_extractor_ptr, pkt)) {
+                OFL_LOG_DBG(LOG_MODULE, "update key fields not found in the packet's header");
+                return res;
+            }
         }
 
     } else {
@@ -1903,7 +1960,7 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
         struct timeval tv;
 
         gettimeofday(&tv,NULL);
-        now = 1000000 * pkt->ts.tv_sec + pkt->ts.tv_usec;
+        now = 1000000 * tv.tv_sec + tv.tv_usec;
         state = msg->state;
         state_mask = msg->state_mask;
         idle_rollback = msg->idle_rollback;
@@ -1919,19 +1976,35 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
         memcpy(key, msg->key, msg->key_len);
     }
 
-    // Look if entry already exists in hash map.
-    // TODO Davide: if update-scope == lookup-scope, we could store a ptr to 'e' to avoid browsing again the hash map.
-    HMAP_FOR_EACH_WITH_HASH(e, struct state_entry, hmap_node,
-                            hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries)
-    {
-        if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)) {
-            OFL_LOG_DBG(LOG_MODULE, "state entry FOUND is hash map");
-            entry_found = 1;
-            new_state = (e->state & ~(state_mask)) | (state & state_mask);
-            old_state = e->state;
-            break;
-            // TODO Davide: implement state table flushing, i.e. free entries with state DEFAULT and no rollbacks
-            // It should be implemented as a separate async process.
+    /*
+    Look if state entry already exists in hash map.
+    We avoid browsing again the hash map if bit-update/update-scope == lookup-scope, but only if
+    a. we are not going to insert a new state entry (otherwise the cached state entry would be the DEFAULT one!)
+    b. we are not executing a transition by a ctrl msg (there's no state lookup phase so there's no cached state entry)
+    */
+    if (pkt && act->bit == 0 && table->update_scope_is_eq_lookup_scope && table->last_lookup_state_entry != NULL) {
+        e = table->last_lookup_state_entry;
+        OFL_LOG_DBG(LOG_MODULE, "cached state entry FOUND in hash map");
+        entry_found = 1;
+        new_state = (e->state & ~(state_mask)) | (state & state_mask);
+        old_state = e->state;
+    } else if (pkt && act->bit == 1 && table->bit_update_scope_is_eq_lookup_scope && table->last_lookup_state_entry != NULL) {
+        e = table->last_lookup_state_entry;
+        OFL_LOG_DBG(LOG_MODULE, "cached state entry FOUND in hash map");
+        entry_found = 1;
+        new_state = (e->state & ~(state_mask)) | (state & state_mask);
+        old_state = e->state;
+    } else {
+        HMAP_FOR_EACH_WITH_HASH(e, struct state_entry, hmap_node,
+                                hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries)
+        {
+            if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)) {
+                OFL_LOG_DBG(LOG_MODULE, "state entry FOUND in hash map");
+                entry_found = 1;
+                new_state = (e->state & ~(state_mask)) | (state & state_mask);
+                old_state = e->state;
+                break;
+            }
         }
     }
 
@@ -2008,17 +2081,26 @@ ofl_err state_table_inc_state(struct state_table *table, struct packet *pkt){
     uint64_t now;
     ofl_err res = 0;
 
-    if(!__extract_key(key, &table->update_key_extractor, pkt)){
-       OFL_LOG_DBG(LOG_MODULE, "lookup key fields not found in the packet's header");
-       return res;
+    //Extract the key (we avoid to re-extract it if update-scope == lookup-scope)
+    if (!(table->update_scope_is_eq_lookup_scope && table->last_lookup_state_entry != NULL)) {
+        if (!__extract_key(key, &table->update_key_extractor, pkt)) {
+            OFL_LOG_DBG(LOG_MODULE, "lookup key fields not found in the packet's header");
+            return res;
+        }
     }
 
-    HMAP_FOR_EACH_WITH_HASH(e, struct state_entry, hmap_node,
-                            hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries)
-    {
-        if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)) {
-            e->state += (uint32_t) 1;
-            return 0;
+    if (table->update_scope_is_eq_lookup_scope && table->last_lookup_state_entry != NULL) {
+        e = table->last_lookup_state_entry;
+        e->state += (uint32_t) 1;
+        return 0;
+    } else {
+        HMAP_FOR_EACH_WITH_HASH(e, struct state_entry, hmap_node,
+                                hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries)
+        {
+            if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)) {
+                e->state += (uint32_t) 1;
+                return 0;
+            }
         }
     }
 
