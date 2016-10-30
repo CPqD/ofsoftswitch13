@@ -1927,8 +1927,9 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
     ofl_err res = 0;
     bool entry_found = 0;
     bool entry_created = 0;
-    bool entry_to_update_is_cached = act && act->bit == 0 && table->update_scope_is_eq_lookup_scope && table->last_lookup_state_entry != NULL;
-    bool entry_to_bit_update_is_cached = act && act->bit == 1 && table->bit_update_scope_is_eq_lookup_scope && table->last_lookup_state_entry != NULL;
+    bool entry_to_update_is_cached = act && table->last_lookup_state_entry != NULL &&
+            ((act->bit == 0 && table->update_scope_is_eq_lookup_scope) ||
+                    (act->bit == 1 && table->bit_update_scope_is_eq_lookup_scope));
 
     if (act) {
         //SET_STATE action
@@ -1947,7 +1948,7 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
         key_extractor_ptr = (act->bit == 0) ? &table->update_key_extractor : &table->bit_update_key_extractor;
 
         //Extract the key (we avoid to re-extract it if bit-update/update-scope == lookup-scope and the cached entry is not the default)
-        if (!(entry_to_update_is_cached || entry_to_bit_update_is_cached)) {
+        if (!entry_to_update_is_cached) {
             if (!__extract_key(key, key_extractor_ptr, pkt)) {
                 OFL_LOG_DBG(LOG_MODULE, "update key fields not found in the packet's header");
                 return res;
@@ -1985,10 +1986,6 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
         e = table->last_lookup_state_entry;
         OFL_LOG_DBG(LOG_MODULE, "cached state entry FOUND in hash map");
         entry_found = 1;
-    } else if (entry_to_bit_update_is_cached) {
-        e = table->last_lookup_state_entry;
-        OFL_LOG_DBG(LOG_MODULE, "cached state entry FOUND in hash map");
-        entry_found = 1;
     } else {
         HMAP_FOR_EACH_WITH_HASH(e, struct state_entry, hmap_node,
                                 hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries)
@@ -2004,9 +2001,7 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
     if (entry_found) {
         new_state = (e->state & ~(state_mask)) | (state & state_mask);
         old_state = e->state;
-    }
-
-    if (!entry_found) {
+    } else {
         // Key not found in hash map.
         new_state = state & state_mask;
         old_state = STATE_DEFAULT;
@@ -2083,16 +2078,10 @@ ofl_err state_table_inc_state(struct state_table *table, struct packet *pkt){
     //Extract the key (we avoid to re-extract it if update-scope == lookup-scope)
     if (!entry_to_update_is_cached) {
         if (!__extract_key(key, &table->update_key_extractor, pkt)) {
-            OFL_LOG_DBG(LOG_MODULE, "lookup key fields not found in the packet's header");
+            OFL_LOG_DBG(LOG_MODULE, "update key fields not found in the packet's header");
             return res;
         }
-    }
 
-    if (entry_to_update_is_cached) {
-        e = table->last_lookup_state_entry;
-        e->state += (uint32_t) 1;
-        return 0;
-    } else {
         HMAP_FOR_EACH_WITH_HASH(e, struct state_entry, hmap_node,
                                 hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries)
         {
@@ -2101,6 +2090,10 @@ ofl_err state_table_inc_state(struct state_table *table, struct packet *pkt){
                 return 0;
             }
         }
+    } else {
+        e = table->last_lookup_state_entry;
+        e->state += (uint32_t) 1;
+        return 0;
     }
 
     now = 1000000 * pkt->ts.tv_sec + pkt->ts.tv_usec;
