@@ -217,6 +217,9 @@ struct state_table {
     struct hmap                 state_entries;
     struct state_entry          default_state_entry;
     struct state_entry          null_state_entry;
+    struct state_entry *        last_lookup_state_entry;
+    bool                        update_scope_is_eq_lookup_scope;
+    bool                        bit_update_scope_is_eq_lookup_scope;
     uint8_t stateful;
 };
 
@@ -261,6 +264,9 @@ state_table_lookup(struct state_table*, struct packet *);
 
 void
 state_table_write_state_header(struct state_entry *, struct ofl_match_tlv *);
+
+bool
+extractors_are_equal(struct key_extractor *ke1, struct key_extractor *ke2);
 
 void
 state_table_flush(struct state_table *table);
