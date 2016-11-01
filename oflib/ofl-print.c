@@ -78,6 +78,8 @@ void masked_value_print(char *string,char *global_state, char *global_state_mask
         }
         string[32]='\0';
     }
+    free(global_state);
+    free(global_state_mask);
 }
 
 
