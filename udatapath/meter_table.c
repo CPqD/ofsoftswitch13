@@ -75,7 +75,7 @@ meter_table_destroy(struct meter_table *table) {
     HMAP_FOR_EACH_SAFE(entry, next, struct meter_entry, node, &table->meter_entries) {
         meter_entry_destroy(entry);
     }
-    ///////////////////////////free features
+    free(table->features);
     free(table);
 }
 

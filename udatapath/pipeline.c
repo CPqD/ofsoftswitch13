@@ -656,6 +656,12 @@ pipeline_destroy(struct pipeline *pl) {
     free(pl);
 }
 
+void
+pipeline_destroy_dp(struct datapath *dp) {
+    /*pipeline_destroy(dp->pipeline);
+    pkttmp_table_destroy(dp->pkttmps);
+    dp_destroy(dp);*/
+}
 
 void
 pipeline_timeout(struct pipeline *pl) {

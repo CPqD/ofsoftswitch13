@@ -408,9 +408,13 @@ flow_table_create(struct datapath *dp, uint8_t table_id) {
 void
 flow_table_destroy(struct flow_table *table) {
     struct flow_entry *entry, *next;
+    int i;
 
     LIST_FOR_EACH_SAFE (entry, next, struct flow_entry, match_node, &table->match_entries) {
         flow_entry_destroy(entry);
+    }
+    for (i=0;i<table->features->properties_num;i++){
+        free(table->features->properties[i]);
     }
     free(table->features);
     free(table->stats);

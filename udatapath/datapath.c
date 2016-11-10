@@ -223,6 +223,20 @@ dp_new(void)
     return dp;
 }
 
+void
+dp_destroy(struct datapath * dp) {
+    free(dp->mfr_desc);
+    free(dp->hw_desc);
+    free(dp->sw_desc);
+    free(dp->dp_desc);
+    free(dp->serial_num);
+
+    //dp->buffers = dp_buffers_create(dp);
+    pipeline_destroy(dp->pipeline);
+    group_table_destroy(dp->groups);
+    meter_table_destroy(dp->meters);
+    pkttmp_table_destroy(dp->pkttmps);
+}
 
 void
 dp_add_pvconn(struct datapath *dp, struct pvconn *pvconn, struct pvconn *pvconn_aux) {

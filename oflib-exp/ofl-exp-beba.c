@@ -420,6 +420,7 @@ ofl_exp_beba_msg_unpack(struct ofp_header const *oh, size_t *len, struct ofl_msg
             error = ofl_structs_match_unpack(&(sm->match), ((uint8_t *)oh)+sizeof(struct ofp_exp_msg_flow_ntf)-4, len, &(dm->match), 0, exp);
 
             if (error) {
+                free(dm->match);
                 free(dm);
                 return error;
             }
@@ -483,6 +484,7 @@ ofl_exp_beba_msg_free(struct ofl_msg_experimenter *msg)
         {
             struct ofl_exp_msg_notify_flow_change * msg = (struct ofl_exp_msg_notify_flow_change *) exp;
             OFL_LOG_DBG(LOG_MODULE, "Free Beba FLOW_NOTIFICATION Experimenter message. bebaexp{type=\"%u\", table_id=\"%u\"}", exp->type, msg->table_id);
+            free(msg->match);
             if (msg->instruction_num>0 && msg->instructions!=NULL){
                 free(msg->instructions);
             }
@@ -525,11 +527,16 @@ ofl_exp_beba_msg_to_string(struct ofl_msg_experimenter const *msg, struct ofl_ex
         case (OFPT_EXP_FLOW_NOTIFICATION):{
             struct ofl_exp_msg_notify_flow_change * msg = (struct ofl_exp_msg_notify_flow_change *) exp_msg;
             int i;
+            char *s;
 
-            OFL_LOG_DBG(LOG_MODULE, "Flow modification confirmed, flow table: \"%u\" , match fields \"%s\" ", msg->table_id, ofl_structs_match_to_string(msg->match, exp));
+            s = ofl_structs_match_to_string(msg->match, exp);
+            OFL_LOG_DBG(LOG_MODULE, "Flow modification confirmed, flow table: \"%u\" , match fields \"%s\" ", msg->table_id, s);
+            free(s);
             OFL_LOG_DBG(LOG_MODULE, "Instructions : ");
             for(i=0; i<msg->instruction_num; i++){
-                OFL_LOG_DBG(LOG_MODULE, "  \"%s\"  ", ofl_instruction_type_to_string(msg->instructions[i]));
+                s = ofl_instruction_type_to_string(msg->instructions[i]);
+                OFL_LOG_DBG(LOG_MODULE, "  \"%s\"  ", s);
+                free(s);
             }
             break;
         }
@@ -1666,6 +1673,13 @@ state_table_configure_stateful(struct state_table *table, uint8_t stateful)
 
 void state_table_destroy(struct state_table *table)
 {
+    struct state_entry *entry;
+
+    HMAP_FOR_EACH(entry, struct state_entry, hmap_node, &table->state_entries){
+        hmap_remove(&table->state_entries, &entry->hmap_node);
+        free(entry->stats);
+        free(entry);
+    }
     hmap_destroy(&table->state_entries);
     free(table);
 }
