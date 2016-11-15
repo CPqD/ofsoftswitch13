@@ -2384,6 +2384,8 @@ state_table_stats(struct state_table *table, struct ofl_exp_msg_multipart_reques
         (*stats)[(*stats_num)]->hard_timeout = 0;
         (*stats)[(*stats_num)]->idle_rollback = 0;
         (*stats)[(*stats_num)]->hard_rollback = 0;
+
+        (*stats_num)++;
     }
 }
 
