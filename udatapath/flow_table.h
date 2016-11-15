@@ -88,6 +88,10 @@ flow_table_create(struct datapath *dp, uint8_t table_id);
 void
 flow_table_destroy(struct flow_table *table);
 
+/* Destroys flow table properties */
+void 
+flow_table_destroy_property(struct ofl_table_feature_prop_header **prop, enum ofp_table_feature_prop_type type);
+
 /* Collects statistics of the flow entries of the table. */
 void
 flow_table_stats(struct flow_table *table, struct ofl_msg_multipart_request_flow *msg,

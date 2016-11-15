@@ -232,6 +232,8 @@ dp_destroy(struct datapath * dp) {
     free(dp->serial_num);
 
     //dp->buffers = dp_buffers_create(dp);
+    //TODO free buffers
+    
     pipeline_destroy(dp->pipeline);
     group_table_destroy(dp->groups);
     meter_table_destroy(dp->meters);

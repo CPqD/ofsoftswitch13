@@ -110,8 +110,6 @@ pipeline_flush_state_tables(struct pipeline *pl);
 void
 pipeline_destroy(struct pipeline *pl);
 
-void
-pipeline_destroy_dp(struct datapath *dp);
 
 void
 send_flow_notification(struct datapath *dp, struct ofl_msg_flow_mod *msg,const struct sender *sender);
