@@ -416,13 +416,14 @@ flow_table_destroy(struct flow_table *table) {
       
     j = 0;
     for(type = OFPTFPT_INSTRUCTIONS; type <= OFPTFPT_APPLY_SETFIELD_MISS; type++){ 
-        flow_table_destroy_property(&table->features->properties[j], type);
+        flow_table_destroy_property(table->features->properties[j], type);
         if(type == OFPTFPT_MATCH|| type == OFPTFPT_WILDCARDS){
             type++;
         }
         j++;
     }
 
+    free(table->features->name);
     free(table->features);
     free(table->stats);
     state_table_destroy(table->state_table);
@@ -471,61 +472,30 @@ flow_table_aggregate_stats(struct flow_table *table, struct ofl_msg_multipart_re
 }
 
 void 
-flow_table_destroy_property(struct ofl_table_feature_prop_header **prop, enum ofp_table_feature_prop_type type){
-    //TODO!!!
-    /*int i;
+flow_table_destroy_property(struct ofl_table_feature_prop_header *prop, enum ofp_table_feature_prop_type type){
     switch(type){
         case OFPTFPT_INSTRUCTIONS:
         case OFPTFPT_INSTRUCTIONS_MISS:{
-            struct ofl_table_feature_prop_instructions *inst_capabilities;
-            inst_capabilities = (struct ofl_table_feature_prop_instructions *) prop;
-
-
-            for (i=0;i<;i++){
-                free(inst_capabilities->instruction_ids);
-            }
-
-            struct ofl_table_feature_prop_instructions *inst_capabilities;
-            inst_capabilities = xmalloc(sizeof(struct ofl_table_feature_prop_instructions));
-            inst_capabilities->header.type = type;
-            inst_capabilities->instruction_ids = xmalloc(sizeof(instructions));
-        if (PIPELINE_TABLES > 1) {
-              inst_capabilities->ids_num = N_INSTRUCTIONS;
-              memcpy(inst_capabilities->instruction_ids, instructions, sizeof(instructions));
-        } else {
-              inst_capabilities->ids_num = N_INSTRUCTIONS - 1;
-              memcpy(inst_capabilities->instruction_ids, instructions_nogoto, sizeof(instructions_nogoto));
-        }
-            inst_capabilities->header.length = ofl_structs_table_features_properties_ofp_len(&inst_capabilities->header, NULL);            
-            (*prop) =  (struct ofl_table_feature_prop_header*) inst_capabilities;
+            struct ofl_table_feature_prop_instructions *inst_capabilities = (struct ofl_table_feature_prop_instructions *) prop;
+            int i;
+            free(inst_capabilities->instruction_ids);
+            free(inst_capabilities);
             break;        
         }
         case OFPTFPT_NEXT_TABLES:
         case OFPTFPT_NEXT_TABLES_MISS:{
-             struct ofl_table_feature_prop_next_tables *tbl_reachable;
-             int i;
-             tbl_reachable = xmalloc(sizeof(struct ofl_table_feature_prop_next_tables));
-             tbl_reachable->header.type = type;
-             tbl_reachable->table_num = PIPELINE_TABLES ;
-             tbl_reachable->next_table_ids = xmalloc(sizeof(uint8_t) * tbl_reachable->table_num);
-             for(i=0; i < tbl_reachable->table_num; i++)
-                tbl_reachable->next_table_ids[i] = i;
-             tbl_reachable->header.length = ofl_structs_table_features_properties_ofp_len(&tbl_reachable->header, NULL); 
-             *prop = (struct ofl_table_feature_prop_header*) tbl_reachable;
+             struct ofl_table_feature_prop_next_tables *tbl_reachable = (struct ofl_table_feature_prop_next_tables*) prop;
+             free(tbl_reachable->next_table_ids);
+             free(tbl_reachable);
              break;
         }
         case OFPTFPT_APPLY_ACTIONS:
         case OFPTFPT_APPLY_ACTIONS_MISS:
         case OFPTFPT_WRITE_ACTIONS:
         case OFPTFPT_WRITE_ACTIONS_MISS:{
-             struct ofl_table_feature_prop_actions *act_capabilities;
-             act_capabilities = xmalloc(sizeof(struct ofl_table_feature_prop_actions));
-             act_capabilities->header.type =  type;
-             act_capabilities->actions_num= N_ACTIONS;
-             act_capabilities->action_ids = xmalloc(sizeof(actions));
-             memcpy(act_capabilities->action_ids, actions, sizeof(actions));
-             act_capabilities->header.length = ofl_structs_table_features_properties_ofp_len(&act_capabilities->header, NULL);                         
-             *prop =  (struct ofl_table_feature_prop_header*) act_capabilities; 
+             struct ofl_table_feature_prop_actions *act_capabilities = (struct ofl_table_feature_prop_actions *) prop;
+             free(act_capabilities->action_ids);
+             free(act_capabilities);
              break;
         }
         case OFPTFPT_MATCH:
@@ -533,31 +503,21 @@ flow_table_destroy_property(struct ofl_table_feature_prop_header **prop, enum of
         case OFPTFPT_APPLY_SETFIELD_MISS:
         case OFPTFPT_WRITE_SETFIELD:
         case OFPTFPT_WRITE_SETFIELD_MISS:{
-            struct ofl_table_feature_prop_oxm *oxm_capabilities; 
-            oxm_capabilities = xmalloc(sizeof(struct ofl_table_feature_prop_oxm));
-            oxm_capabilities->header.type = type;
-            oxm_capabilities->oxm_num = NUM_OXM_IDS;
-            oxm_capabilities->oxm_ids = xmalloc(sizeof(oxm_ids));
-            memcpy(oxm_capabilities->oxm_ids, oxm_ids, sizeof(oxm_ids));
-            oxm_capabilities->header.length = ofl_structs_table_features_properties_ofp_len(&oxm_capabilities->header, NULL);             
-            *prop =  (struct ofl_table_feature_prop_header*) oxm_capabilities;
+            struct ofl_table_feature_prop_oxm *oxm_capabilities = (struct ofl_table_feature_prop_oxm *) prop;
+            free(oxm_capabilities->oxm_ids);
+            free(oxm_capabilities);
             break;
-        }  
+        } 
         case OFPTFPT_WILDCARDS:{
-            struct ofl_table_feature_prop_oxm *oxm_capabilities;
-            oxm_capabilities = xmalloc(sizeof(struct ofl_table_feature_prop_oxm)); 
-            oxm_capabilities->header.type = type;
-            oxm_capabilities->oxm_num = NUM_WILD_IDS;
-            oxm_capabilities->oxm_ids = xmalloc(sizeof(wildcarded));
-            memcpy(oxm_capabilities->oxm_ids, wildcarded, sizeof(wildcarded));
-            oxm_capabilities->header.length = ofl_structs_table_features_properties_ofp_len(&oxm_capabilities->header, NULL);                         
-            *prop =  (struct ofl_table_feature_prop_header*) oxm_capabilities;
+            struct ofl_table_feature_prop_oxm *oxm_capabilities = (struct ofl_table_feature_prop_oxm *) prop;
+            free(oxm_capabilities->oxm_ids);
+            free(oxm_capabilities);
             break;
         }        
         case OFPTFPT_EXPERIMENTER:
         case OFPTFPT_EXPERIMENTER_MISS:{
             break;        
-        }        
-    }*/
+        }
+    }
     return;
 }

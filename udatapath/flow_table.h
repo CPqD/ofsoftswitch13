@@ -90,7 +90,7 @@ flow_table_destroy(struct flow_table *table);
 
 /* Destroys flow table properties */
 void 
-flow_table_destroy_property(struct ofl_table_feature_prop_header **prop, enum ofp_table_feature_prop_type type);
+flow_table_destroy_property(struct ofl_table_feature_prop_header *prop, enum ofp_table_feature_prop_type type);
 
 /* Collects statistics of the flow entries of the table. */
 void
