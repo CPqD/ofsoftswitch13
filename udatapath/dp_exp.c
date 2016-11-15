@@ -284,6 +284,7 @@ dp_exp_message(struct datapath *dp, struct ofl_msg_experimenter *msg, const stru
                     // If you want to notify the controller for this case, use `dp_send_message(dp, (struct ofl_msg_header *)&ntf_message, NULL);`
                     // after the handle_state_mod call.
                     res = handle_state_mod(dp->pipeline, (struct ofl_exp_msg_state_mod *)msg, sender, &ntf_message);
+                    ofl_exp_beba_msg_free((struct ofl_msg_experimenter *) msg);
 
                     return res;
                 }

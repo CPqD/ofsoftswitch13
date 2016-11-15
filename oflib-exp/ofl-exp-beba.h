@@ -281,6 +281,9 @@ ofl_err
 state_table_inc_state(struct state_table *, struct packet *);
 
 ofl_err
+state_table_configure_stateful(struct state_table *table, uint8_t stateful);
+
+ofl_err
 state_table_set_extractor(struct state_table *, struct key_extractor *, int);
 
 ofl_err

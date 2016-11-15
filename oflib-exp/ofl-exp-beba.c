@@ -1682,13 +1682,14 @@ bool state_table_is_enabled(struct state_table *table)
            && table->update_key_extractor.field_count != 0;
 }
 
-static void
-state_table_configure_stateful(struct state_table *table, uint8_t stateful)
+ofl_err state_table_configure_stateful(struct state_table *table, uint8_t stateful)
 {
     if (stateful!=0)
         table->stateful = 1;
     else
         table->stateful = 0;
+
+    return 0;
 }
 
 void state_table_destroy(struct state_table *table)
@@ -2165,7 +2166,7 @@ handle_state_mod(struct pipeline *pl, struct ofl_exp_msg_state_mod *msg,
         case OFPSC_STATEFUL_TABLE_CONFIG:{
             struct ofl_exp_stateful_table_config *p = (struct ofl_exp_stateful_table_config *) msg->payload;
             struct state_table *st = pl->tables[p->table_id]->state_table;
-            state_table_configure_stateful(st, p->stateful);
+            return state_table_configure_stateful(st, p->stateful);
             break;}
 
         case OFPSC_EXP_SET_L_EXTRACTOR:
@@ -2224,7 +2225,6 @@ handle_state_mod(struct pipeline *pl, struct ofl_exp_msg_state_mod *msg,
         default:
             return ofl_error(OFPET_EXPERIMENTER, OFPEC_EXP_STATE_MOD_FAILED);
     }
-    ofl_msg_free((struct ofl_msg_header *)msg, pl->dp->exp);
     return 0;
 }
 
