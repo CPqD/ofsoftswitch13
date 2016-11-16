@@ -225,19 +225,50 @@ dp_new(void)
 
 void
 dp_destroy(struct datapath * dp) {
+    struct remote *r;
+    struct sw_port *p;
+    int i;
+
     free(dp->mfr_desc);
     free(dp->hw_desc);
     free(dp->sw_desc);
     free(dp->dp_desc);
     free(dp->serial_num);
 
-    //dp->buffers = dp_buffers_create(dp);
-    //TODO free buffers
-    
+    //TODO free dp->buffers
+
+    for (i = 0; i < dp->n_listeners; i++) {
+        struct pvconn *pvconn = dp->listeners[i];
+        free(pvconn);
+    }
+    dp->n_listeners = 0;
+    free(dp->listeners);
+
+    for (i = 0; i < dp->n_listeners_aux; i++) {
+        struct pvconn *pvconn = dp->listeners_aux[i];
+        free(pvconn);
+    }
+    dp->n_listeners_aux = 0;
+    free(dp->listeners_aux);
+
+    //TODO free remotes
+    /*LIST_FOR_EACH (r, struct remote, node, &dp->remotes) {
+        remote_destroy(r);
+    }*/
+
+    //TODO free remotes
+    /*LIST_FOR_EACH (p, struct sw_port, node, &dp->port_list) {
+        if (IS_HW_PORT(p)) {
+            continue;
+        }
+        netdev_close(p->netdev);
+    }*/
+
     pipeline_destroy(dp->pipeline);
     group_table_destroy(dp->groups);
     meter_table_destroy(dp->meters);
     pkttmp_table_destroy(dp->pkttmps);
+    free(dp);
 }
 
 void
