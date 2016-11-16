@@ -74,6 +74,8 @@
 #define THIS_MODULE VLM_udatapath
 #include "vlog.h"
 
+extern struct datapath *dp_ref;
+
 int udatapath_cmd(int argc, char *argv[]);
 
 static void parse_options(struct datapath *dp, int argc, char *argv[]);
@@ -120,6 +122,7 @@ udatapath_cmd(int argc, char *argv[])
     vlog_init();
 
     dp = dp_new();
+    dp_ref = dp;
 
     parse_options(dp, argc, argv);
     signal(SIGPIPE, SIG_IGN);

@@ -114,6 +114,7 @@ struct ofl_exp_state_stats {
     uint8_t                         table_id;      /* ID of table flow came from. */
     uint32_t                        duration_sec;  /* Time state entry has been alive in secs. */
     uint32_t                        duration_nsec; /* Time state entry has been alive in nsecs beyond duration_sec. */
+    //TODO Davide: we could avoid storing field_count and fields[] within each state entry (the controller already knows the lookup-scope!) 
     uint32_t                        field_count;    /*number of extractor fields*/
     uint32_t                        fields[OFPSC_MAX_FIELD_COUNT]; /*extractor fields*/
     uint32_t                        hard_rollback;
@@ -279,6 +280,9 @@ state_table_set_state(struct state_table *, struct packet *, struct ofl_exp_set_
 
 ofl_err
 state_table_inc_state(struct state_table *, struct packet *);
+
+ofl_err
+state_table_configure_stateful(struct state_table *table, uint8_t stateful);
 
 ofl_err
 state_table_set_extractor(struct state_table *, struct key_extractor *, int);

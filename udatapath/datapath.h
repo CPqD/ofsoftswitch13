@@ -165,6 +165,10 @@ struct remote {
 struct datapath *
 dp_new(void);
 
+/* Destroy a datapath */
+void
+dp_destroy(struct datapath *);
+
 void
 dp_add_pvconn(struct datapath *dp, struct pvconn *pvconn, struct pvconn *pvconn_aux);
 
