@@ -1652,15 +1652,8 @@ struct state_table * state_table_create(void)
 
     table->default_state_entry.state = STATE_DEFAULT;
     table->default_state_entry.stats = xmalloc(sizeof(struct ofl_exp_state_stats));
+    memset(table->default_state_entry.stats, 0, sizeof(struct ofl_exp_state_stats));
     // table_id,field_count and fields will be set during lookup-scope configuration
-    table->default_state_entry.stats->duration_sec = 0;
-    table->default_state_entry.stats->duration_nsec = 0;
-    table->default_state_entry.stats->idle_timeout = 0;
-    table->default_state_entry.stats->hard_timeout = 0;
-    table->default_state_entry.stats->idle_rollback = 0;
-    table->default_state_entry.stats->hard_rollback = 0;
-    table->default_state_entry.stats->entry.key_len = 0;
-    memset(table->default_state_entry.stats->entry.key, 0, MAX_STATE_KEY_LEN);
     table->default_state_entry.stats->entry.state = STATE_DEFAULT;
 
     table->null_state_entry.state = STATE_NULL;
@@ -2054,12 +2047,7 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
             entry_created = 1;
             e = xmalloc(sizeof(struct state_entry));
             e->stats = xmalloc(sizeof(struct ofl_exp_state_stats));
-
-            e->stats->field_count = table->lookup_key_extractor.field_count;
-            memcpy(e->stats->fields, table->lookup_key_extractor.fields, MAX_EXTRACTION_FIELD_COUNT);
-            e->stats->entry.key_len = table->lookup_key_extractor.key_len;
             memcpy(e->key, key, MAX_STATE_KEY_LEN);
-            memcpy(e->stats->entry.key, key, MAX_STATE_KEY_LEN);
             hmap_insert(&table->state_entries, &e->hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
             OFL_LOG_DBG(LOG_MODULE, "state entry CREATED is hash map");
         }
@@ -2298,7 +2286,6 @@ state_table_stats(struct state_table *table, struct ofl_exp_msg_multipart_reques
     gettimeofday(&tv,NULL);
     uint64_t now = 1000000 * tv.tv_sec + tv.tv_usec;
     struct key_extractor *extractor=&table->lookup_key_extractor;
-    uint32_t key_len = extractor->key_len;
 
     struct ofl_match const * a = (struct ofl_match const *)msg->match;
     struct ofl_match_tlv *state_key_match;
@@ -2362,16 +2349,18 @@ state_table_stats(struct state_table *table, struct ofl_exp_msg_multipart_reques
             }
             
             (*stats)[(*stats_num)] = entry->stats;
-            // Following informations might have been changed by a timeout
-            (*stats)[(*stats_num)]->entry.state = entry->state; 
+            (*stats)[(*stats_num)]->table_id = table_id;
+            (*stats)[(*stats_num)]->duration_sec = (now - entry->created) / 1000000;
+            (*stats)[(*stats_num)]->duration_nsec = ((now - entry->created) % 1000000) * 1000;
+            (*stats)[(*stats_num)]->field_count = extractor->field_count;
+            memcpy((*stats)[(*stats_num)]->fields, extractor->fields, MAX_EXTRACTION_FIELD_COUNT);
             (*stats)[(*stats_num)]->idle_timeout = entry->stats->idle_timeout;
             (*stats)[(*stats_num)]->hard_timeout = entry->stats->hard_timeout;
             (*stats)[(*stats_num)]->idle_rollback = entry->stats->idle_rollback;
             (*stats)[(*stats_num)]->hard_rollback = entry->stats->hard_rollback;
-
-            (*stats)[(*stats_num)]->table_id = table_id;
-            (*stats)[(*stats_num)]->duration_sec = (now - entry->created) / 1000000;
-            (*stats)[(*stats_num)]->duration_nsec = ((now - entry->created) % 1000000) * 1000;
+            (*stats)[(*stats_num)]->entry.state = entry->state;
+            memcpy((*stats)[(*stats_num)]->entry.key, entry->key, MAX_STATE_KEY_LEN);
+            (*stats)[(*stats_num)]->entry.key_len = extractor->key_len;
             
             (*stats_num)++;
 

@@ -114,6 +114,7 @@ struct ofl_exp_state_stats {
     uint8_t                         table_id;      /* ID of table flow came from. */
     uint32_t                        duration_sec;  /* Time state entry has been alive in secs. */
     uint32_t                        duration_nsec; /* Time state entry has been alive in nsecs beyond duration_sec. */
+    //TODO Davide: we could avoid storing field_count and fields[] within each state entry (the controller already knows the lookup-scope!) 
     uint32_t                        field_count;    /*number of extractor fields*/
     uint32_t                        fields[OFPSC_MAX_FIELD_COUNT]; /*extractor fields*/
     uint32_t                        hard_rollback;

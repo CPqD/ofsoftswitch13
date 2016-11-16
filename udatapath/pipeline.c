@@ -656,6 +656,7 @@ pipeline_destroy(struct pipeline *pl) {
     free(pl);
 }
 
+
 void
 pipeline_timeout(struct pipeline *pl) {
     int i;
