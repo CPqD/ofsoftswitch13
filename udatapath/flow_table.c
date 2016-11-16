@@ -423,6 +423,7 @@ flow_table_destroy(struct flow_table *table) {
         j++;
     }
 
+    free(table->features->properties);
     free(table->features->name);
     free(table->features);
     free(table->stats);
