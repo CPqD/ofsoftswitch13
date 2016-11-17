@@ -275,7 +275,7 @@ dp_exp_message(struct datapath *dp, struct ofl_msg_experimenter *msg, const stru
         case (BEBA_VENDOR_ID): {
             struct ofl_exp_beba_msg_header *exp = (struct ofl_exp_beba_msg_header *)msg;
             struct ofl_exp_msg_notify_state_change ntf_message;
-            int res;
+            int error;
 
             switch(exp->type) {
                 case (OFPT_EXP_STATE_MOD): {
@@ -283,10 +283,12 @@ dp_exp_message(struct datapath *dp, struct ofl_msg_experimenter *msg, const stru
                     // Since the controller already knows the new state to be set, there is no point to generate a notification.
                     // If you want to notify the controller for this case, use `dp_send_message(dp, (struct ofl_msg_header *)&ntf_message, NULL);`
                     // after the handle_state_mod call.
-                    res = handle_state_mod(dp->pipeline, (struct ofl_exp_msg_state_mod *)msg, sender, &ntf_message);
-                    ofl_exp_beba_msg_free((struct ofl_msg_experimenter *) msg);
+                    error = handle_state_mod(dp->pipeline, (struct ofl_exp_msg_state_mod *)msg, sender, &ntf_message);
+                    if (!error) {
+                        ofl_exp_beba_msg_free((struct ofl_msg_experimenter *) msg);
+                    }
 
-                    return res;
+                    return error;
                 }
                 case (OFPT_EXP_PKTTMP_MOD): {
                     return handle_pkttmp_mod(dp->pipeline, (struct ofl_exp_msg_pkttmp_mod *)msg, sender);

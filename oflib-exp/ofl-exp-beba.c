@@ -2204,10 +2204,12 @@ handle_state_mod(struct pipeline *pl, struct ofl_exp_msg_state_mod *msg,
             struct ofl_exp_set_global_state *p = (struct ofl_exp_set_global_state *) msg->payload;
             global_state = (global_state & ~(p->global_state_mask)) | (p->global_state & p->global_state_mask);
             pl->dp->global_state = global_state;
+            return 0;
             break;}
 
         case OFPSC_EXP_RESET_GLOBAL_STATE:{
             pl->dp->global_state = OFP_GLOBAL_STATE_DEFAULT;
+            return 0;
             break;}
 
         default:
