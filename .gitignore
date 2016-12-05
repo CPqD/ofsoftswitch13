@@ -131,3 +131,6 @@ utilities/ofp-read.o
 cscope.files
 .*.swp
 .tags
+.idea/
+CMakeLists.txt
+cmake-build-debug/
