@@ -35,6 +35,7 @@
 #include "oflib/ofl-structs.h"
 #include "pipeline.h"
 #include "timeval.h"
+#include "oflib-exp/ofl-exp-beba.h"
 
 
 #define FLOW_TABLE_MAX_ENTRIES 4096
@@ -57,6 +58,7 @@ struct flow_table {
                                                 ordered by their timeout times. */
     struct list               idle_entries;   /* unordered list of entries with
                                                 idle timeout. */
+    struct state_table	      *state_table;
 };
 
 extern uint32_t oxm_ids[];
@@ -68,11 +70,11 @@ extern struct ofl_instruction_header instructions[];
 extern struct ofl_action_header actions[];
 /* Handles a flow mod message. */
 ofl_err
-flow_table_flow_mod(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool *match_kept, bool *insts_kept);
+flow_table_flow_mod(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool *match_kept, bool *insts_kept, struct ofl_exp *exp);
 
 /* Finds the flow entry with the highest priority, which matches the packet. */
 struct flow_entry *
-flow_table_lookup(struct flow_table *table, struct packet *pkt);
+flow_table_lookup(struct flow_table *table, struct packet *pkt, struct ofl_exp *exp);
 
 /* Orders the flow table to check the timeout its flows. */
 void
@@ -86,10 +88,14 @@ flow_table_create(struct datapath *dp, uint8_t table_id);
 void
 flow_table_destroy(struct flow_table *table);
 
+/* Destroys flow table properties */
+void 
+flow_table_destroy_property(struct ofl_table_feature_prop_header *prop, enum ofp_table_feature_prop_type type);
+
 /* Collects statistics of the flow entries of the table. */
 void
 flow_table_stats(struct flow_table *table, struct ofl_msg_multipart_request_flow *msg,
-                 struct ofl_flow_stats ***stats, size_t *stats_size, size_t *stats_num);
+                 struct ofl_flow_stats ***stats, size_t *stats_size, size_t *stats_num, struct ofl_exp *exp);
 
 /* Collects aggregate statistics of the flow entries of the table. */
 void

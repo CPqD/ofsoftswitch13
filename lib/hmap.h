@@ -37,6 +37,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include "util.h"
+#include "compiler.h"
 
 /* A hash map node, to be embedded inside the data structure being mapped. */
 struct hmap_node {
@@ -53,13 +54,13 @@ static inline size_t hmap_node_hash(const struct hmap_node *node)
 /* A hash map. */
 struct hmap {
     struct hmap_node **buckets;
-    struct hmap_node *one;
+    struct hmap_node *cache[BEBA_HMAP_INIT_SIZE];
     size_t mask;
     size_t n;
 };
 
 /* Initializer for an empty hash map. */
-#define HMAP_INITIALIZER(HMAP) { &(HMAP)->one, NULL, 0, 0 }
+#define HMAP_INITIALIZER(HMAP) { (HMAP)->cache, {NULL}, BEBA_HMAP_INIT_SIZE-1, 0 }
 
 #define HMAP_NODE_NULL ((struct hmap_node *) 1)
 #define HMAP_NODE_NULL_INITIALIZER { 0, HMAP_NODE_NULL }
@@ -176,7 +177,7 @@ hmap_next_with_hash__(const struct hmap_node *node, size_t hash)
     while (node != NULL && node->hash != hash) {
         node = node->next;
     }
-    return (struct hmap_node *) node;
+    return CONST_CAST(struct hmap_node *, node);
 }
 
 /* Returns the first node in 'hmap' with the given 'hash', or a null pointer if
@@ -210,6 +211,7 @@ hmap_next__(const struct hmap *hmap, size_t start)
         if (node) {
             return node;
         }
+        __builtin_prefetch(&hmap->buckets[i+1], 0, 1);
     }
     return NULL;
 }

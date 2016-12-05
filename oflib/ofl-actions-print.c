@@ -1,5 +1,5 @@
 /* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary
- * Copyright (c) 2012, CPqD, Brazil 
+ * Copyright (c) 2012, CPqD, Brazil
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,8 @@
 
 
 char *
-ofl_action_to_string(struct ofl_action_header *act, struct ofl_exp *exp) {
+ofl_action_to_string(struct ofl_action_header const *act, struct ofl_exp const *exp)
+{
     char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
@@ -63,7 +64,8 @@ ofl_action_to_string(struct ofl_action_header *act, struct ofl_exp *exp) {
 }
 
 void
-ofl_action_print(FILE *stream, struct ofl_action_header *act, struct ofl_exp *exp) {
+ofl_action_print(FILE *stream, struct ofl_action_header const *act, struct ofl_exp const *exp)
+{
 
     ofl_action_type_print(stream, act->type);
 
@@ -108,7 +110,7 @@ ofl_action_print(FILE *stream, struct ofl_action_header *act, struct ofl_exp *ex
             fprintf(stream, "{eth=\"0x%04"PRIx16"\"}", a->ethertype);
             break;
         }
-        case OFPAT_POP_VLAN: 
+        case OFPAT_POP_VLAN:
         case OFPAT_POP_PBB: {
             break;
         }

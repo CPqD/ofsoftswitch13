@@ -73,12 +73,52 @@ static struct ofl_exp_msg ofl_exp_msg =
          .free      = ofl_exp_msg_free,
          .to_string = ofl_exp_msg_to_string};
 
+static struct ofl_exp_act ofl_exp_act =
+        {.pack      = ofl_exp_act_pack,
+         .unpack    = ofl_exp_act_unpack,
+         .free      = ofl_exp_act_free,
+         .ofp_len   = ofl_exp_act_ofp_len,
+         .to_string = ofl_exp_act_to_string};
+
+static struct ofl_exp_stats ofl_exp_stats =
+        {.req_pack      = ofl_exp_stats_req_pack,
+         .req_unpack    = ofl_exp_stats_req_unpack,
+         .req_free      = ofl_exp_stats_req_free,
+         .req_to_string = ofl_exp_stats_req_to_string,
+         .reply_pack    = ofl_exp_stats_reply_pack,
+         .reply_unpack  = ofl_exp_stats_reply_unpack,
+         .reply_free    = ofl_exp_stats_reply_free,
+         .reply_to_string = ofl_exp_stats_reply_to_string};
+
+static struct ofl_exp_field ofl_exp_field =
+        {.unpack     = ofl_exp_field_unpack, 
+         .pack       = ofl_exp_field_pack,
+         .match      = ofl_exp_field_match,
+         .compare    = ofl_exp_field_compare,
+         .match_std  = ofl_exp_field_match_std,
+         .overlap_a  = ofl_exp_field_overlap_a,
+         .overlap_b  = ofl_exp_field_overlap_b};
+
+static struct ofl_exp_inst ofl_exp_instruction =
+        {.pack      = ofl_exp_inst_pack,
+         .unpack    = ofl_exp_inst_unpack,
+         .free      = ofl_exp_inst_free,
+         .ofp_len   = ofl_exp_inst_ofp_len,
+         .to_string = ofl_exp_inst_to_string};
+
+static struct ofl_exp_err ofl_exp_err =
+        {.pack       = ofl_exp_err_pack,
+         .free       = ofl_exp_err_free,
+         .to_string  = ofl_exp_err_to_string};
+
 static struct ofl_exp ofl_exp =
-        {.act   = NULL,
-         .inst  = NULL,
+        {.act   = &ofl_exp_act,
+         .inst  = &ofl_exp_instruction,
          .match = NULL,
-         .stats = NULL,
-         .msg   = &ofl_exp_msg};
+         .stats = &ofl_exp_stats,
+         .msg   = &ofl_exp_msg,
+         .field = &ofl_exp_field,
+         .err   = &ofl_exp_err };
 
 static struct vconn_class *vconn_classes[] = {
     &tcp_vconn_class,

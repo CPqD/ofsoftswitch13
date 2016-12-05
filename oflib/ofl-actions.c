@@ -1,4 +1,4 @@
-/* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary 
+/* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary
  * Copyright (c) 2012, CPqD, Brazil
  * All rights reserved.
  *
@@ -40,7 +40,8 @@
 OFL_LOG_INIT(LOG_MODULE)
 
 void
-ofl_actions_free(struct ofl_action_header *act, struct ofl_exp *exp) {
+ofl_actions_free(struct ofl_action_header *act, struct ofl_exp const *exp)
+{
     switch (act->type) {
         case OFPAT_SET_FIELD:{
             struct ofl_action_set_field *a = (struct ofl_action_set_field*) act;
@@ -48,7 +49,7 @@ ofl_actions_free(struct ofl_action_header *act, struct ofl_exp *exp) {
             free(a->field);
             free(a);
             return;
-            break;        
+            break;
         }
         case OFPAT_OUTPUT:
         case OFPAT_COPY_TTL_OUT:
@@ -82,11 +83,12 @@ ofl_actions_free(struct ofl_action_header *act, struct ofl_exp *exp) {
 }
 
 ofl_err
-ofl_utils_count_ofp_actions(void *data, size_t data_len, size_t *count) {
+ofl_utils_count_ofp_actions(void const *data, size_t data_len, size_t *count)
+{
     struct ofp_action_header *act;
-    uint8_t *d;
+    uint8_t const *d;
 
-    d = (uint8_t *)data;
+    d = (uint8_t const *)data;
     *count = 0;
 
     /* this is needed so that buckets are handled correctly */

@@ -74,13 +74,14 @@ stp_local_packet_cb(struct relay *r, void *stp_)
     struct flow flow;
 
     oh = msg->data;
-    /*if (oh->type == OFPT_FEATURES_REPLY*/
-        /*&& msg->size >= offsetof(struct ofp_switch_features, ports)) {*/
-    	/* TODO Zoltan: Temporarily removed when moving to Openflow 1.1 */
-        /* struct ofp_switch_features *osf = msg->data; */
-       /* osf->capabilities |= htonl(OFPC_STP); * */
-       /* return false; */
-    /*}*/
+
+    /*if (oh->type == OFPT_FEATURES_REPLY
+        && msg->size >= offsetof(struct ofp_switch_features, ports)) {
+    	TODO Zoltan: Temporarily removed when moving to Openflow 1.1
+        struct ofp_switch_features *osf = msg->data;
+        osf->capabilities |= htonl(OFPC_STP); *
+        return false;
+    }*/
 
     if (!get_ofp_packet_eth_header(r, &opi, &eth)
         || !eth_addr_equals(eth->eth_dst, stp_eth_addr)) {
@@ -88,12 +89,12 @@ stp_local_packet_cb(struct relay *r, void *stp_)
     }
     port_no = 0;
     /*TODO: Removed to port to OpenFlow 1.2 */
-   // port_no = ntohs(opi->in_port);
-    //if (port_no >= STP_MAX_PORTS) {
+    // port_no = ntohs(opi->in_port);
+    // if (port_no >= STP_MAX_PORTS) {
     //    /* STP only supports 255 ports. */
-     //   return false;
-   // }
-	/* TODO Zoltan: Temporarily removed when moving to Openflow 1.1 */
+    //   return false;
+    // }
+    /* TODO Zoltan: Temporarily removed when moving to Openflow 1.1 */
     /*
     if (port_watcher_get_config(stp->pw, port_no) & OFPPC_NO_STP) {
         / * We're not doing STP on this port. * /
@@ -186,7 +187,7 @@ stp_periodic_cb(void *stp_)
             if (!stp_forward_in_state(s_state)) {
                 p_config = OFPPC_NO_FLOOD;
             }
-            port_watcher_set_flags(stp->pw, port_no, 
+            port_watcher_set_flags(stp->pw, port_no,
                                    p_config, OFPPC_NO_FLOOD,
                                    p_state, OFPPS_STP_MASK);
         } else {
@@ -199,7 +200,7 @@ stp_periodic_cb(void *stp_)
 static void
 stp_wait_cb(void *stp_ UNUSED)
 {
-    poll_timer_wait(1000);
+    poll_set_timer_wait(1000);
 }
 
 static void

@@ -37,7 +37,7 @@
  * servicing whatever events it needs to.  Then, when it runs out of immediate
  * tasks, it calls each subordinate module's "wait" function, which in turn
  * calls one (or more) of the functions poll_fd_wait(), poll_immediate_wake(),
- * and poll_timer_wait() to register to be awakened when the appropriate event
+ * and poll_set_timer_wait() to register to be awakened when the appropriate event
  * occurs.  Then the main loop calls poll_block(), which blocks until one of
  * the registered events happens.
  *
@@ -55,7 +55,7 @@ struct poll_waiter;
 
 /* Schedule events to wake up the following poll_block(). */
 struct poll_waiter *poll_fd_wait(int fd, short int events);
-void poll_timer_wait(int msec);
+void poll_set_timer_wait(int msec);
 void poll_immediate_wake(void);
 
 /* Wait until an event occurs. */

@@ -35,7 +35,7 @@
 #include "tag.h"
 #include <limits.h>
 #include "random.h"
-#include "type-props.h"
+#include "type-traits.h"
 #include "util.h"
 
 #define N_TAG_BITS (CHAR_BIT * sizeof(tag_type))
@@ -89,7 +89,7 @@ tag_set_add(struct tag_set *set, tag_type tag)
          * whereas four 1-bits match 4 * 3 / 2 = 6 unique tags. */
         tag_type *t = &set->tags[set->n++ % TAG_SET_SIZE];
         *t |= tag;
-        if (*t == TYPE_MAXIMUM(tag_type)) {
+        if (*t == TYPE_LIMITS_MAX(tag_type)) {
             set->tags[0] = *t;
         }
 

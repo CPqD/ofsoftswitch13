@@ -471,16 +471,17 @@ enum oxm_ofb_match_fields {
     OFPXMT_OFB_IPV6_DST       = 27, /* IPv6 destination address. */
     OFPXMT_OFB_IPV6_FLABEL    = 28, /* IPv6 Flow Label */
     OFPXMT_OFB_ICMPV6_TYPE    = 29, /* ICMPv6 type. */
-    OFPXMT_OFB_ICMPV6_CODE    = 30, /* ICMPv6 code. */
-    OFPXMT_OFB_IPV6_ND_TARGET = 31, /* Target address for ND. */
-    OFPXMT_OFB_IPV6_ND_SLL    = 32, /* Source link-layer for ND. */
-    OFPXMT_OFB_IPV6_ND_TLL    = 33, /* Target link-layer for ND. */
-    OFPXMT_OFB_MPLS_LABEL     = 34, /* MPLS label. */
-    OFPXMT_OFB_MPLS_TC        = 35, /* MPLS TC. */
-    OFPXMT_OFB_MPLS_BOS       = 36, /* MPLS BoS bit. */
-    OFPXMT_OFB_PBB_ISID       = 37, /* PBB I-SID. */
-    OFPXMT_OFB_TUNNEL_ID      = 38, /* Logical Port Metadata. */
-    OFPXMT_OFB_IPV6_EXTHDR    = 39, /* IPv6 Extension Header pseudo-field */
+	OFPXMT_OFB_ICMPV6_CODE    = 30, /* ICMPv6 code. */
+	OFPXMT_OFB_IPV6_ND_TARGET = 31, /* Target address for ND. */
+	OFPXMT_OFB_IPV6_ND_SLL    = 32, /* Source link-layer for ND. */
+	OFPXMT_OFB_IPV6_ND_TLL    = 33, /* Target link-layer for ND. */
+	OFPXMT_OFB_MPLS_LABEL     = 34, /* MPLS label. */
+	OFPXMT_OFB_MPLS_TC        = 35, /* MPLS TC. */
+	OFPXMT_OFB_MPLS_BOS       = 36, /* MPLS BoS bit. */
+	OFPXMT_OFB_PBB_ISID       = 37, /* PBB I-SID. */
+	OFPXMT_OFB_TUNNEL_ID      = 38, /* Logical Port Metadata. */
+	OFPXMT_OFB_IPV6_EXTHDR    = 39, /* IPv6 Extension Header pseudo-field */
+	OFPXMT_OFB_TCP_FLAGS      = 40  /* TCP Flags */
 };
 
 #define OFPXMT_OFB_ALL    ((UINT64_C(1) << 40) - 1)
@@ -896,6 +897,16 @@ enum ofp_vlan_id {
  * Masking: Maskable. */
 #define OXM_OF_IPV6_EXTHDR   OXM_HEADER  (0x8000, OFPXMT_OFB_IPV6_EXTHDR, 2)
 #define OXM_OF_IPV6_EXTHDR_W OXM_HEADER_W(0x8000, OFPXMT_OFB_IPV6_EXTHDR, 2)
+
+/*TCP flags - possible to wildcard all bits*/
+#define OXM_OF_TCP_FLAGS        OXM_HEADER(0x8000,40,2)
+#define OXM_OF_TCP_FLAGS_W      OXM_HEADER_W(0x8000,40,2)
+
+#define EXP_ID_LEN 4
+#define OXM_EXP_GLOBAL_STATE OXM_HEADER     (0xFFFF, 0, 8)
+#define OXM_EXP_GLOBAL_STATE_W OXM_HEADER_W (0xFFFF, 0, 6)  /* (experimenter_id + global_state + mask)/2 */
+#define OXM_EXP_STATE OXM_HEADER     (0xFFFF, 1, 8)
+#define OXM_EXP_STATE_W OXM_HEADER_W (0xFFFF, 1, 6)
 
 /* Bit definitions for IPv6 Extension Header pseudo-field. */
 enum ofp_ipv6exthdr_flags {      

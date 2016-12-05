@@ -80,19 +80,16 @@ struct ofl_action_pop_mpls {
 
 struct ofl_action_set_queue {
     struct ofl_action_header   header; /* OFPAT_SET_QUEUE. */
-
     uint32_t   queue_id;
 };
 
 struct ofl_action_group {
     struct ofl_action_header   header; /* OFPAT_GROUP. */
-
     uint32_t   group_id;  /* Group identifier. */
 };
 
 struct ofl_action_set_nw_ttl {
     struct ofl_action_header   header; /* OFPAT_SET_NW_TTL. */
-
     uint8_t   nw_ttl;
 };
 
@@ -103,7 +100,6 @@ struct ofl_action_set_field {
 
 struct ofl_action_experimenter {
     struct ofl_action_header   header; /* OFPAT_EXPERIMENTER. */
-
     uint32_t  experimenter_id; /* Experimenter ID */
 };
 
@@ -117,21 +113,23 @@ struct ofl_action_experimenter {
  * In case of an experimenter action, it uses the passed in experimenter
  * callback. */
 size_t
-ofl_actions_pack(struct ofl_action_header *src, struct ofp_action_header *dst, uint8_t* data, struct ofl_exp *exp);
+ofl_actions_pack(struct ofl_action_header const *src, struct ofp_action_header *dst, uint8_t* data,
+		 struct ofl_exp const *exp);
 
 
 /* Given a list of action in OpenFlow wire format, these function returns
  * the count of those actions in the passed in byte array. The functions
  * return an ofl_err in case of an error, or 0 on succes. */
 ofl_err
-ofl_utils_count_ofp_actions(void *data, size_t data_len, size_t *count);
+ofl_utils_count_ofp_actions(void const *data, size_t data_len, size_t *count);
 
 
 /* Unpacks the wire format action in src to a new memory location and returns a
  * pointer to the location in dst. Returns 0 on success. In case of an
  * experimenter action, it uses the passed in experimenter callback. */
 ofl_err
-ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action_header **dst, struct ofl_exp *exp);
+ofl_actions_unpack(struct ofp_action_header const *src, size_t *len,
+		   struct ofl_action_header **dst, struct ofl_exp const *exp);
 
 
 
@@ -142,7 +140,7 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
 /* Calling this function frees the passed in action structure. In case of an
  * experimenter action, it uses the passed in experimenter callback. */
 void
-ofl_actions_free(struct ofl_action_header *act, struct ofl_exp *exp);
+ofl_actions_free(struct ofl_action_header *act, struct ofl_exp const *exp);
 
 
 
@@ -154,13 +152,14 @@ ofl_actions_free(struct ofl_action_header *act, struct ofl_exp *exp);
  * converting the passed in action. In case of an experimenter action, it uses
  * the passed in experimenter callback. */
 size_t
-ofl_actions_ofp_total_len(struct ofl_action_header **actions, size_t actions_num, struct ofl_exp *exp);
+ofl_actions_ofp_total_len(struct ofl_action_header const **actions, size_t actions_num, struct ofl_exp const *exp);
+
 
 /* Returns the length of the resulting OpenFlow action structures from
  * converting the passed in list of actions. In case of an experimenter action,
  * it uses the passed in experimenter callback. */
 size_t
-ofl_actions_ofp_len(struct ofl_action_header *action, struct ofl_exp *exp);
+ofl_actions_ofp_len(struct ofl_action_header const *action, struct ofl_exp const *exp);
 
 
 
@@ -171,14 +170,13 @@ ofl_actions_ofp_len(struct ofl_action_header *action, struct ofl_exp *exp);
 /* Converts the passed in action to a string format. In case of an experimenter
  * action, it uses the passed in experimenter callback. */
 char *
-ofl_action_to_string(struct ofl_action_header *act, struct ofl_exp *exp);
+ofl_action_to_string(struct ofl_action_header const *act, struct ofl_exp const *exp);
 
 /* Converts the passed in action to a string format and adds it to the dynamic
  * string. In case of an experimenter action, it uses the passed in
  * experimenter callback. */
 void
-ofl_action_print(FILE *stream, struct ofl_action_header *act, struct ofl_exp *exp);
-
+ofl_action_print(FILE *stream, struct ofl_action_header const *act, struct ofl_exp const *exp);
 
 
 #endif /* OFL_ACTIONS */

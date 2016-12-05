@@ -1,3 +1,4 @@
 VLOG_MODULE(ofl_exp)
 VLOG_MODULE(ofl_exp_of)
 VLOG_MODULE(ofl_exp_nx)
+VLOG_MODULE(ofl_exp_os)

@@ -47,12 +47,6 @@ static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(60, 60);
 
 struct action_set_entry;
 
-struct action_set {
-    struct list     actions;   /* the list of actions in the action set,
-+                                   stored in the order of precedence as defined
-+                                   by the specification. */
-    struct ofl_exp *exp;       /* experimenter callbacks */
-};
 
 struct action_set_entry {
     struct list                node;
@@ -88,7 +82,8 @@ action_set_order(struct ofl_action_header *act) {
         case (OFPAT_SET_NW_TTL):     return 60;
         case (OFPAT_DEC_NW_TTL):     return 50;
         case (OFPAT_OUTPUT):         return 90;
-        case (OFPAT_EXPERIMENTER):   return 75;
+        //case (OFPAT_EXPERIMENTER):   return 75;
+        case (OFPAT_EXPERIMENTER):   return 55;
         default:                     return 79;
     }
 }
@@ -104,9 +99,17 @@ action_set_create(struct ofl_exp *exp) {
     return set;
 }
 
+
+void
+action_set_init(struct action_set *set, struct ofl_exp *exp) {
+    list_init(&set->actions);
+    set->exp = exp;
+}
+
 void action_set_destroy(struct action_set *set) {
     action_set_clear_actions(set);
-    free(set);
+    // FLAT
+    // free(set);
 }
 
 static struct action_set_entry *
@@ -150,14 +153,14 @@ action_set_write_action(struct action_set *set,
     LIST_FOR_EACH(entry, struct action_set_entry, node, &set->actions) {
         if (entry->action->type == new_entry->action->type) {
             if(entry->action->type == OFPAT_SET_FIELD){
-                struct ofl_action_set_field *new_act = 
+                struct ofl_action_set_field *new_act =
                         (struct ofl_action_set_field*) new_entry->action;
-                struct ofl_action_set_field *act = 
+                struct ofl_action_set_field *act =
                             (struct ofl_action_set_field *) entry->action;
                 if(act->field->header != new_act->field->header){
                     continue;
-                }     
-            } 
+                }
+            }
             /* replace same type of action */
             list_replace(&new_entry->node, &entry->node);
             /* NOTE: action in entry must not be freed, as it is owned by the
@@ -188,7 +191,7 @@ action_set_write_actions(struct action_set *set,
     for (i=0; i<actions_num; i++) {
         action_set_write_action(set, actions[i]);
     }
-    VLOG_DBG_RL(LOG_MODULE, &rl, "%s", action_set_to_string(set));
+    VLOG_DBG_RL(LOG_MODULE, &rl, "action: %s", action_set_to_string(set));
 }
 
 void
@@ -215,7 +218,7 @@ action_set_execute(struct action_set *set, struct packet *pkt, uint64_t cookie) 
 
     /* Clear the action set in any case. Group processing depend on
      * a clean action-set. Jean II */
-    action_set_clear_actions(pkt->action_set);
+    action_set_clear_actions(&pkt->action_set);
 
         /* According to the spec. if there was a group action, the output
          * port action should be ignored */

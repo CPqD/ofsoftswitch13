@@ -52,8 +52,11 @@
 #include "group_table.h"
 #include "meter_table.h"
 #include "oflib/ofl.h"
+#include "oflib/ofl-print.h"
+#include "oflib/ofl-log.h"
 #include "oflib-exp/ofl-exp.h"
 #include "oflib-exp/ofl-exp-nicira.h"
+#include "oflib-exp/ofl-exp-beba.h"
 #include "oflib/ofl-messages.h"
 #include "oflib/ofl-log.h"
 #include "openflow/openflow.h"
@@ -65,7 +68,6 @@
 #include "rconn.h"
 #include "stp.h"
 #include "vconn.h"
-
 #define LOG_MODULE VLM_dp
 
 static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(60, 60);
@@ -95,12 +97,57 @@ static struct ofl_exp_msg dp_exp_msg =
          .free      = ofl_exp_msg_free,
          .to_string = ofl_exp_msg_to_string};
 
+/* Callbacks for processing experimenter actions in OFLib.*/
+static struct ofl_exp_act dp_exp_act =
+        {.pack      = ofl_exp_act_pack,
+         .unpack    = ofl_exp_act_unpack,
+         .free      = ofl_exp_act_free,
+         .ofp_len   = ofl_exp_act_ofp_len,
+         .to_string = ofl_exp_act_to_string};
+
+/* Callbacks for processing experimenter stats in OFLib.*/
+static struct ofl_exp_stats dp_exp_statistics =
+        {.req_pack      = ofl_exp_stats_req_pack,
+         .req_unpack    = ofl_exp_stats_req_unpack,
+         .req_free      = ofl_exp_stats_req_free,
+         .req_to_string = ofl_exp_stats_req_to_string,
+         .reply_pack    = ofl_exp_stats_reply_pack,
+         .reply_unpack  = ofl_exp_stats_reply_unpack,
+         .reply_free    = ofl_exp_stats_reply_free,
+         .reply_to_string = ofl_exp_stats_reply_to_string};
+
+/* Callbacks for processing experimenter match fields in OFLib.*/
+static struct ofl_exp_field dp_exp_field =
+        {.unpack     = ofl_exp_field_unpack,
+         .pack       = ofl_exp_field_pack,
+         .match      = ofl_exp_field_match,
+         .compare    = ofl_exp_field_compare,
+         .match_std  = ofl_exp_field_match_std,
+         .overlap_a  = ofl_exp_field_overlap_a,
+         .overlap_b  = ofl_exp_field_overlap_b};
+
+/* Callbacks for processing experimenter instructions in OFLib.*/
+static struct ofl_exp_inst dp_exp_instruction =
+		{.pack      = ofl_exp_inst_pack,
+         .unpack    = ofl_exp_inst_unpack,
+         .free      = ofl_exp_inst_free,
+         .ofp_len   = ofl_exp_inst_ofp_len,
+         .to_string = ofl_exp_inst_to_string};
+
+/* Callbacks for processing experimenter errors in OFLib. */
+static struct ofl_exp_err dp_exp_err =
+        {.pack      = ofl_exp_err_pack,
+         .free      = ofl_exp_err_free,
+         .to_string = ofl_exp_err_to_string};
+
 static struct ofl_exp dp_exp =
-        {.act   = NULL,
-         .inst  = NULL,
+        {.act   = &dp_exp_act,
+         .inst  = &dp_exp_instruction,
          .match = NULL,
-         .stats = NULL,
-         .msg   = &dp_exp_msg};
+         .stats = &dp_exp_statistics,
+         .msg   = &dp_exp_msg,
+         .field = &dp_exp_field,
+         .err   = &dp_exp_err};
 
 /* Generates and returns a random datapath id. */
 static uint64_t
@@ -112,7 +159,8 @@ gen_datapath_id(void) {
 
 
 struct datapath *
-dp_new(void) {
+dp_new(void)
+{
     struct datapath *dp;
     dp = xmalloc(sizeof(struct datapath));
 
@@ -130,9 +178,12 @@ dp_new(void) {
 
     dp->id = gen_datapath_id();
 
+    dp->global_state = 0;
+
     dp->generation_id = -1;
 
     dp->last_timeout = time_now();
+    dp->next_state_table_flush = time_now() + BEBA_STATE_FLUSH_INTERVAL;
     list_init(&dp->remotes);
     dp->listeners = NULL;
     dp->n_listeners = 0;
@@ -146,6 +197,7 @@ dp_new(void) {
     dp->pipeline = pipeline_create(dp);
     dp->groups = group_table_create(dp);
     dp->meters = meter_table_create(dp);
+    dp->pkttmps = pkttmp_table_create(dp);
 
     list_init(&dp->port_list);
     dp->ports_num = 0;
@@ -173,6 +225,53 @@ dp_new(void) {
     return dp;
 }
 
+void
+dp_destroy(struct datapath * dp) {
+    struct remote *r;
+    struct sw_port *p;
+    int i;
+
+    free(dp->mfr_desc);
+    free(dp->hw_desc);
+    free(dp->sw_desc);
+    free(dp->dp_desc);
+    free(dp->serial_num);
+
+    //TODO free dp->buffers
+
+    for (i = 0; i < dp->n_listeners; i++) {
+        struct pvconn *pvconn = dp->listeners[i];
+        free(pvconn);
+    }
+    dp->n_listeners = 0;
+    free(dp->listeners);
+
+    for (i = 0; i < dp->n_listeners_aux; i++) {
+        struct pvconn *pvconn = dp->listeners_aux[i];
+        free(pvconn);
+    }
+    dp->n_listeners_aux = 0;
+    free(dp->listeners_aux);
+
+    //TODO free remotes
+    /*LIST_FOR_EACH (r, struct remote, node, &dp->remotes) {
+        remote_destroy(r);
+    }*/
+
+    //TODO free remotes
+    /*LIST_FOR_EACH (p, struct sw_port, node, &dp->port_list) {
+        if (IS_HW_PORT(p)) {
+            continue;
+        }
+        netdev_close(p->netdev);
+    }*/
+
+    pipeline_destroy(dp->pipeline);
+    group_table_destroy(dp->groups);
+    meter_table_destroy(dp->meters);
+    pkttmp_table_destroy(dp->pkttmps);
+    free(dp);
+}
 
 void
 dp_add_pvconn(struct datapath *dp, struct pvconn *pvconn, struct pvconn *pvconn_aux) {
@@ -186,7 +285,7 @@ dp_add_pvconn(struct datapath *dp, struct pvconn *pvconn, struct pvconn *pvconn_
 }
 
 void
-dp_run(struct datapath *dp) {
+dp_run(struct datapath *dp, int nrun) {
     time_t now = time_now();
     struct remote *r, *rn;
     size_t i;
@@ -197,39 +296,47 @@ dp_run(struct datapath *dp) {
         pipeline_timeout(dp->pipeline);
     }
 
-    poll_timer_wait(100);
-    dp_ports_run(dp);
-
-    /* Talk to remotes. */
-    LIST_FOR_EACH_SAFE (r, rn, struct remote, node, &dp->remotes) {
-        remote_run(dp, r);
+    if (now == dp->next_state_table_flush) {
+        dp->next_state_table_flush = now + BEBA_STATE_FLUSH_INTERVAL;
+        pipeline_flush_state_tables(dp->pipeline);
     }
 
-    for (i = 0; i < dp->n_listeners; ) {
-        struct pvconn *pvconn = dp->listeners[i];
-        struct vconn *new_vconn;
+    poll_set_timer_wait(100);
+    dp_ports_run(dp, nrun);
 
-        int retval = pvconn_accept(pvconn, OFP_VERSION, &new_vconn);
-        if (!retval) {
-            struct rconn * rconn_aux = NULL;
-            if (dp->n_listeners_aux && dp->listeners_aux[i] != NULL) {
-                struct pvconn *pvconn_aux = dp->listeners_aux[i];
-                struct vconn *new_vconn_aux;
-                int retval_aux = pvconn_accept(pvconn_aux, OFP_VERSION, &new_vconn_aux);
-                if (!retval_aux)
-                    rconn_aux = rconn_new_from_vconn("passive_aux", new_vconn_aux);
-            }
-            remote_create(dp, rconn_new_from_vconn("passive", new_vconn), rconn_aux);
+    DP_RELAX_WITH(nrun)
+    {
+        /* Talk to remotes. */
+        LIST_FOR_EACH_SAFE (r, rn, struct remote, node, &dp->remotes) {
+            remote_run(dp, r);
         }
-        else if (retval != EAGAIN) {
-            VLOG_WARN_RL(LOG_MODULE, &rl, "accept failed (%s)", strerror(retval));
-            dp->listeners[i] = dp->listeners[--dp->n_listeners];
-            if (dp->n_listeners_aux) {
-                dp->listeners_aux[i] = dp->listeners_aux[--dp->n_listeners_aux];
-            }
-            continue;
-        }
-        i++;
+
+	    for (i = 0; i < dp->n_listeners; ) {
+		struct pvconn *pvconn = dp->listeners[i];
+		struct vconn *new_vconn;
+
+		int retval = pvconn_accept(pvconn, OFP_VERSION, &new_vconn);
+		if (!retval) {
+		    struct rconn * rconn_aux = NULL;
+		    if (dp->n_listeners_aux && dp->listeners_aux[i] != NULL) {
+			struct pvconn *pvconn_aux = dp->listeners_aux[i];
+			struct vconn *new_vconn_aux;
+			int retval_aux = pvconn_accept(pvconn_aux, OFP_VERSION, &new_vconn_aux);
+			if (!retval_aux)
+			    rconn_aux = rconn_new_from_vconn("passive_aux", new_vconn_aux);
+		    }
+		    remote_create(dp, rconn_new_from_vconn("passive", new_vconn), rconn_aux);
+		}
+		else if (retval != EAGAIN) {
+		    VLOG_WARN_RL(LOG_MODULE, &rl, "accept failed (%s)", strerror(retval));
+		    dp->listeners[i] = dp->listeners[--dp->n_listeners];
+		    if (dp->n_listeners_aux) {
+			dp->listeners_aux[i] = dp->listeners_aux[--dp->n_listeners_aux];
+		    }
+		    continue;
+		}
+		i++;
+	    }
     }
 }
 
@@ -254,7 +361,7 @@ remote_rconn_run(struct datapath *dp, struct remote *r, uint8_t conn_id) {
     struct rconn *rconn = NULL;
     ofl_err error;
     size_t i;
-    rconn = NULL;
+
     if (conn_id == MAIN_CONNECTION)
         rconn = r->rconn;
     else if (conn_id == PTIN_CONNECTION)
@@ -271,28 +378,41 @@ remote_rconn_run(struct datapath *dp, struct remote *r, uint8_t conn_id) {
             if (buffer == NULL) {
                 break;
             } else {
-                struct ofl_msg_header *msg;
-
+                struct ofl_msg_header *msg = NULL;
                 struct sender sender = {.remote = r, .conn_id = conn_id};
 
                 error = ofl_msg_unpack(buffer->data, buffer->size, &msg, &(sender.xid), dp->exp);
 
                 if (!error) {
                     error = handle_control_msg(dp, msg, &sender);
-
-                    if (error) {
-                        ofl_msg_free(msg, dp->exp);
-                    }
                 }
 
                 if (error) {
-                    struct ofl_msg_error err =
-                            {{.type = OFPT_ERROR},
-                             .type = ofl_error_type(error),
-                             .code = ofl_error_code(error),
-                             .data_length = buffer->size,
-                             .data        = buffer->data};
-                    dp_send_message(dp, (struct ofl_msg_header *)&err, &sender);
+                    /* [*] The highest bit of 'error' is always set to one, but on-the-wire we
+                    need full compliance to OF specification: the 'type' of an experimenter
+                    error message must be 0xffff instead of 0x7ffff. */
+                    if ((ofl_error_type(error) | 0x8000) == OFPET_EXPERIMENTER){
+                        struct ofl_msg_exp_error err =
+                               {{.type = OFPT_ERROR},
+                                .type = ofl_error_type(error) | 0x8000, // [*]
+                                .exp_type = ofl_error_code(error),
+                                .experimenter = get_experimenter_id(msg),
+                                .data_length = buffer->size,
+                                .data        = buffer->data};
+                        dp_send_message(dp, (struct ofl_msg_header *)&err, &sender);
+                    }
+                    else{
+                        struct ofl_msg_error err =
+                               {{.type = OFPT_ERROR},
+                                .type = ofl_error_type(error),
+                                .code = ofl_error_code(error),
+                                .data_length = buffer->size,
+                                .data        = buffer->data};
+                        dp_send_message(dp, (struct ofl_msg_header *)&err, &sender);
+                    }
+                    if (msg != NULL){
+                        ofl_msg_free(msg, dp->exp);
+                    }
                 }
 
                 ofpbuf_delete(buffer);
@@ -370,7 +490,7 @@ remote_create(struct datapath *dp, struct rconn *rconn, struct rconn *rconn_aux)
 
 
 void
-dp_wait(struct datapath *dp)
+dp_wait(struct datapath *dp, int nrun)
 {
     struct sw_port *p;
     struct remote *r;
@@ -382,11 +502,15 @@ dp_wait(struct datapath *dp)
         }
         netdev_recv_wait(p->netdev);
     }
-    LIST_FOR_EACH (r, struct remote, node, &dp->remotes) {
-        remote_wait(r);
-    }
-    for (i = 0; i < dp->n_listeners; i++) {
-        pvconn_wait(dp->listeners[i]);
+
+    DP_RELAX_WITH(nrun)
+    {
+	    LIST_FOR_EACH (r, struct remote, node, &dp->remotes) {
+		remote_wait(r);
+	    }
+	    for (i = 0; i < dp->n_listeners; i++) {
+		pvconn_wait(dp->listeners[i]);
+	    }
     }
 }
 
@@ -584,7 +708,8 @@ dp_send_message(struct datapath *dp, struct ofl_msg_header *msg,
 
 ofl_err
 dp_handle_set_desc(struct datapath *dp, struct ofl_exp_openflow_msg_set_dp_desc *msg,
-                                            const struct sender *sender UNUSED) {
+                                            const struct sender *sender UNUSED)
+{
     dp_set_dp_desc(dp, msg->dp_desc);
     ofl_msg_free((struct ofl_msg_header *)msg, dp->exp);
     return 0;
@@ -593,7 +718,7 @@ dp_handle_set_desc(struct datapath *dp, struct ofl_exp_openflow_msg_set_dp_desc 
 static ofl_err
 dp_check_generation_id(struct datapath *dp, uint64_t new_gen_id){
 
-    if(dp->generation_id >= 0  && ((int64_t)(new_gen_id - dp->generation_id) < 0) ){        
+    if(dp->generation_id >= 0  && ((int64_t)(new_gen_id - dp->generation_id) < 0) ){
         return ofl_error(OFPET_ROLE_REQUEST_FAILED, OFPRRFC_STALE);
     }
     else dp->generation_id = new_gen_id;
@@ -603,9 +728,10 @@ dp_check_generation_id(struct datapath *dp, uint64_t new_gen_id){
 
 ofl_err
 dp_handle_role_request(struct datapath *dp, struct ofl_msg_role_request *msg,
-                                            const struct sender *sender) {
+                                            const struct sender *sender)
+{
     uint32_t role = msg->role;
-    uint64_t generation_id = msg->generation_id; 
+    uint64_t generation_id = msg->generation_id;
     switch (msg->role) {
         case OFPCR_ROLE_NOCHANGE:{
             role = sender->remote->role;
@@ -646,7 +772,7 @@ dp_handle_role_request(struct datapath *dp, struct ofl_msg_role_request *msg,
             return ofl_error(OFPET_ROLE_REQUEST_FAILED, OFPRRFC_BAD_ROLE);
         }
     }
-    
+
     {
     struct ofl_msg_role_request reply =
         {{.type = OFPT_ROLE_REPLY},

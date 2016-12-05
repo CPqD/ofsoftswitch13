@@ -433,7 +433,7 @@ port_watcher_wait_cb(void *pw_)
     struct port_watcher *pw = pw_;
     if (!pw->got_feature_reply && rconn_is_connected(pw->local_rconn)) {
         if (pw->last_feature_request != TIME_MIN) {
-            poll_timer_wait(pw->last_feature_request + 5 - time_now());
+            poll_set_timer_wait(pw->last_feature_request + 5 - time_now());
         } else {
             poll_immediate_wake();
         }

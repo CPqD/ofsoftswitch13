@@ -51,9 +51,22 @@ OFL_LOG_INIT(LOG_MODULE)
  ****************************************************************************/
 
 static int
-ofl_msg_pack_error(struct ofl_msg_error *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_error(struct ofl_msg_error const *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp const *exp)
+{
+    int error = 0;
+    switch (msg->type) {
+        case (OFPET_EXPERIMENTER): {
+            struct ofl_msg_exp_error *exp_err = (struct ofl_msg_exp_error *) msg;
+            if (exp == NULL || exp->err == NULL || exp->err->pack == NULL) {
+                OFL_LOG_WARN(LOG_MODULE, "Trying to pack experimenter err message, but no callback was given.");
+                error = -1;
+            } else {
+                error = exp->err->pack(exp_err, buf, buf_len);
+            }
+            break;
+        }
+        default: {
     struct ofp_error_msg *err;
-
     *buf_len = sizeof(struct ofp_error_msg) + msg->data_length;
     *buf     = (uint8_t *)malloc(*buf_len);
 
@@ -61,11 +74,15 @@ ofl_msg_pack_error(struct ofl_msg_error *msg, uint8_t **buf, size_t *buf_len) {
     err->type = htons(msg->type);
     err->code = htons(msg->code);
     memcpy(err->data, msg->data, msg->data_length);
-    return 0;
+            break;
+        }
+    }
+    return error;
 }
 
 static int
-ofl_msg_pack_echo(struct ofl_msg_echo *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_echo(struct ofl_msg_echo *msg, uint8_t **buf, size_t *buf_len)
+{
     uint8_t *data;
 
     *buf_len = sizeof(struct ofp_header) + msg->data_length;
@@ -79,7 +96,8 @@ ofl_msg_pack_echo(struct ofl_msg_echo *msg, uint8_t **buf, size_t *buf_len) {
 }
 
 static int
-ofl_msg_pack_role_request(struct ofl_msg_role_request *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_role_request(struct ofl_msg_role_request *msg, uint8_t **buf, size_t *buf_len)
+{
         struct ofp_role_request *req;
 
         *buf_len = sizeof(struct ofp_role_request);
@@ -94,7 +112,8 @@ ofl_msg_pack_role_request(struct ofl_msg_role_request *msg, uint8_t **buf, size_
 }
 
 static int
-ofl_msg_pack_features_reply(struct ofl_msg_features_reply *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_features_reply(struct ofl_msg_features_reply *msg, uint8_t **buf, size_t *buf_len)
+{
     struct ofp_switch_features *features;
 
     *buf_len = sizeof(struct ofp_switch_features);
@@ -113,7 +132,8 @@ ofl_msg_pack_features_reply(struct ofl_msg_features_reply *msg, uint8_t **buf, s
 }
 
 static int
-ofl_msg_pack_get_config_reply(struct ofl_msg_get_config_reply *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_get_config_reply(struct ofl_msg_get_config_reply *msg, uint8_t **buf, size_t *buf_len)
+{
     struct ofp_switch_config *config;
 
     *buf_len = sizeof(struct ofp_switch_config);
@@ -127,7 +147,8 @@ ofl_msg_pack_get_config_reply(struct ofl_msg_get_config_reply *msg, uint8_t **bu
 }
 
 static int
-ofl_msg_pack_set_config(struct ofl_msg_set_config *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_set_config(struct ofl_msg_set_config *msg, uint8_t **buf, size_t *buf_len)
+{
     struct ofp_switch_config *config;
 
     *buf_len = sizeof(struct ofp_switch_config);
@@ -141,7 +162,8 @@ ofl_msg_pack_set_config(struct ofl_msg_set_config *msg, uint8_t **buf, size_t *b
 }
 
 static int
-ofl_msg_pack_packet_in(struct ofl_msg_packet_in *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_packet_in(struct ofl_msg_packet_in const *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp const *exp)
+{
     struct ofp_packet_in *packet_in;
     uint8_t *ptr;
 
@@ -155,7 +177,7 @@ ofl_msg_pack_packet_in(struct ofl_msg_packet_in *msg, uint8_t **buf, size_t *buf
     packet_in->cookie      = hton64(msg->cookie);
 
     ptr = (*buf) + (sizeof(struct ofp_packet_in) - 4);
-    ofl_structs_match_pack(msg->match,&(packet_in->match),ptr, NULL);
+    ofl_structs_match_pack(msg->match,&(packet_in->match),ptr, exp);
     ptr = (*buf) + ROUND_UP((sizeof(struct ofp_packet_in)-4) + msg->match->length,8);
     /*padding bytes*/
 
@@ -169,7 +191,8 @@ ofl_msg_pack_packet_in(struct ofl_msg_packet_in *msg, uint8_t **buf, size_t *buf
 }
 
 static int
-ofl_msg_pack_flow_removed(struct ofl_msg_flow_removed *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
+ofl_msg_pack_flow_removed(struct ofl_msg_flow_removed const *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp const *exp)
+{
     struct ofp_flow_removed *ofr;
 
     uint8_t *ptr;
@@ -195,7 +218,8 @@ ofl_msg_pack_flow_removed(struct ofl_msg_flow_removed *msg, uint8_t **buf, size_
 }
 
 static int
-ofl_msg_pack_port_status(struct ofl_msg_port_status *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_port_status(struct ofl_msg_port_status *msg, uint8_t **buf, size_t *buf_len)
+{
     struct ofp_port_status *status;
 
     *buf_len = sizeof(struct ofp_port_status);
@@ -211,13 +235,14 @@ ofl_msg_pack_port_status(struct ofl_msg_port_status *msg, uint8_t **buf, size_t 
 }
 
 static int
-ofl_msg_pack_packet_out(struct ofl_msg_packet_out *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
+ofl_msg_pack_packet_out(struct ofl_msg_packet_out const *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp const *exp)
+{
     struct ofp_packet_out *packet_out;
     size_t act_len;
     uint8_t *ptr;
     int i;
 
-    act_len = ofl_actions_ofp_total_len(msg->actions, msg->actions_num, exp);
+    act_len = ofl_actions_ofp_total_len((struct ofl_action_header const **)msg->actions, msg->actions_num, exp);
 
     *buf_len = sizeof(struct ofp_packet_out) + act_len + msg->data_length;
     *buf     = (uint8_t *)malloc(*buf_len);
@@ -242,14 +267,15 @@ ofl_msg_pack_packet_out(struct ofl_msg_packet_out *msg, uint8_t **buf, size_t *b
 }
 
 static int
-ofl_msg_pack_flow_mod(struct ofl_msg_flow_mod *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
+ofl_msg_pack_flow_mod(struct ofl_msg_flow_mod const *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp const *exp)
+{
     struct ofp_flow_mod *flow_mod;
     uint8_t *ptr;
 
     int i;
 
     *buf_len = ROUND_UP(sizeof(struct ofp_flow_mod)- 4 + msg->match->length,8) +
-                ofl_structs_instructions_ofp_total_len(msg->instructions, msg->instructions_num, exp);
+                ofl_structs_instructions_ofp_total_len((struct ofl_instruction_header const **)msg->instructions, msg->instructions_num, exp);
 
     *buf     = (uint8_t *)malloc(*buf_len);
     flow_mod = (struct ofp_flow_mod *)(*buf);
@@ -277,12 +303,13 @@ ofl_msg_pack_flow_mod(struct ofl_msg_flow_mod *msg, uint8_t **buf, size_t *buf_l
 }
 
 static int
-ofl_msg_pack_group_mod(struct ofl_msg_group_mod *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
+ofl_msg_pack_group_mod(struct ofl_msg_group_mod const *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp const *exp)
+{
     struct ofp_group_mod *group_mod;
     uint8_t *ptr;
     int i;
 
-    *buf_len = sizeof(struct ofp_group_mod) + ofl_structs_buckets_ofp_total_len(msg->buckets, msg->buckets_num, exp);;
+    *buf_len = sizeof(struct ofp_group_mod) + ofl_structs_buckets_ofp_total_len((struct ofl_bucket const **)msg->buckets, msg->buckets_num, exp);;
     *buf     = (uint8_t *)malloc(*buf_len);
 
     group_mod = (struct ofp_group_mod *)(*buf);
@@ -301,7 +328,8 @@ ofl_msg_pack_group_mod(struct ofl_msg_group_mod *msg, uint8_t **buf, size_t *buf
 }
 
 static int
-ofl_msg_pack_port_mod(struct ofl_msg_port_mod *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_port_mod(struct ofl_msg_port_mod const *msg, uint8_t **buf, size_t *buf_len)
+{
     struct ofp_port_mod *port_mod;
 
     *buf_len = sizeof(struct ofp_port_mod);
@@ -321,7 +349,8 @@ ofl_msg_pack_port_mod(struct ofl_msg_port_mod *msg, uint8_t **buf, size_t *buf_l
 }
 
 static int
-ofl_msg_pack_table_mod(struct ofl_msg_table_mod *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_table_mod(struct ofl_msg_table_mod const *msg, uint8_t **buf, size_t *buf_len)
+{
     struct ofp_table_mod *table_mod;
 
     *buf_len = sizeof(struct ofp_table_mod);
@@ -336,12 +365,13 @@ ofl_msg_pack_table_mod(struct ofl_msg_table_mod *msg, uint8_t **buf, size_t *buf
 }
 
 static int
-ofl_msg_pack_meter_mod(struct ofl_msg_meter_mod *msg, uint8_t ** buf, size_t *buf_len){
+ofl_msg_pack_meter_mod(struct ofl_msg_meter_mod const *msg, uint8_t ** buf, size_t *buf_len)
+{
     struct ofp_meter_mod *meter_mod;
     uint8_t *ptr;
     int i;
 
-    *buf_len =  sizeof(struct ofp_meter_mod) + ofl_structs_meter_bands_ofp_total_len(msg->bands, msg->meter_bands_num);
+    *buf_len =  sizeof(struct ofp_meter_mod) + ofl_structs_meter_bands_ofp_total_len((struct ofl_meter_band_header const **)msg->bands, msg->meter_bands_num);
     *buf = malloc(*buf_len);
 
     meter_mod = (struct ofp_meter_mod*) (*buf);
@@ -357,7 +387,8 @@ ofl_msg_pack_meter_mod(struct ofl_msg_meter_mod *msg, uint8_t ** buf, size_t *bu
 }
 
 static int
-ofl_msg_pack_async_config(struct ofl_msg_async_config *msg, uint8_t **buf, size_t *buf_len){
+ofl_msg_pack_async_config(struct ofl_msg_async_config const *msg, uint8_t **buf, size_t *buf_len)
+{
     struct ofp_async_config *ac;
     int i;
     *buf_len = sizeof(struct ofp_async_config);
@@ -373,7 +404,8 @@ ofl_msg_pack_async_config(struct ofl_msg_async_config *msg, uint8_t **buf, size_
 }
 
 static int
-ofl_msg_pack_multipart_request_flow(struct ofl_msg_multipart_request_flow *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
+ofl_msg_pack_multipart_request_flow(struct ofl_msg_multipart_request_flow const *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp const *exp)
+{
 
     struct ofp_multipart_request *req;
     struct ofp_flow_stats_request *stats;
@@ -399,7 +431,8 @@ ofl_msg_pack_multipart_request_flow(struct ofl_msg_multipart_request_flow *msg, 
 }
 
 static int
-ofl_msg_pack_multipart_request_port(struct ofl_msg_multipart_request_port *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_multipart_request_port(struct ofl_msg_multipart_request_port const *msg, uint8_t **buf, size_t *buf_len)
+{
     struct ofp_multipart_request *req;
     struct ofp_port_stats_request *stats;
 
@@ -415,7 +448,8 @@ ofl_msg_pack_multipart_request_port(struct ofl_msg_multipart_request_port *msg, 
 }
 
 static int
-ofl_msg_pack_multipart_request_queue(struct ofl_msg_multipart_request_queue *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_multipart_request_queue(struct ofl_msg_multipart_request_queue const *msg, uint8_t **buf, size_t *buf_len)
+{
     struct ofp_multipart_request *req;
     struct ofp_queue_stats_request *stats;
 
@@ -431,7 +465,8 @@ ofl_msg_pack_multipart_request_queue(struct ofl_msg_multipart_request_queue *msg
 }
 
 static int
-ofl_msg_pack_multipart_request_group(struct ofl_msg_multipart_request_group *msg UNUSED, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_multipart_request_group(struct ofl_msg_multipart_request_group const *msg UNUSED, uint8_t **buf, size_t *buf_len)
+{
     struct ofp_multipart_request *req;
     struct ofp_group_stats_request *stats;
 
@@ -447,12 +482,13 @@ ofl_msg_pack_multipart_request_group(struct ofl_msg_multipart_request_group *msg
 }
 
 static int
-ofl_msg_pack_multipart_request_table_features(struct ofl_msg_multipart_request_table_features *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
+ofl_msg_pack_multipart_request_table_features(struct ofl_msg_multipart_request_table_features const*msg, uint8_t **buf, size_t *buf_len, struct ofl_exp const *exp)
+{
     struct ofp_multipart_request *req;
     size_t i, features_len;
     uint8_t *data;
 
-    features_len = ofl_structs_table_features_ofp_total_len(msg->table_features, msg->tables_num, exp);
+    features_len = ofl_structs_table_features_ofp_total_len((struct ofl_table_features const **)msg->table_features, msg->tables_num, exp);
     *buf_len = sizeof(struct ofp_multipart_request) + features_len;
     *buf = (uint8_t*) malloc(*buf_len);
 
@@ -468,7 +504,8 @@ ofl_msg_pack_multipart_request_table_features(struct ofl_msg_multipart_request_t
 }
 
 static int
-ofl_msg_pack_meter_multipart_request(struct ofl_msg_multipart_meter_request *msg, uint8_t **buf, size_t *buf_len){
+ofl_msg_pack_meter_multipart_request(struct ofl_msg_multipart_meter_request const *msg, uint8_t **buf, size_t *buf_len)
+{
 
     struct ofp_multipart_request *req;
     struct ofp_meter_multipart_request *stats;
@@ -485,7 +522,8 @@ ofl_msg_pack_meter_multipart_request(struct ofl_msg_multipart_meter_request *msg
 }
 
 static int
-ofl_msg_pack_multipart_request_empty(struct ofl_msg_multipart_request_header *msg UNUSED, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_multipart_request_empty(struct ofl_msg_multipart_request_header const *msg UNUSED, uint8_t **buf, size_t *buf_len)
+{
 
     *buf_len = sizeof(struct ofp_multipart_request);
     *buf     = (uint8_t *)malloc(*buf_len);
@@ -495,10 +533,10 @@ ofl_msg_pack_multipart_request_empty(struct ofl_msg_multipart_request_header *ms
 
 
 static int
-ofl_msg_pack_multipart_request(struct ofl_msg_multipart_request_header *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
+ofl_msg_pack_multipart_request(struct ofl_msg_multipart_request_header const *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp const *exp)
+{
     struct ofp_multipart_request *req;
     int error = 0;
-
     switch (msg->type) {
     case OFPMP_DESC: {
         error = ofl_msg_pack_multipart_request_empty(msg, buf, buf_len);
@@ -555,7 +593,7 @@ ofl_msg_pack_multipart_request(struct ofl_msg_multipart_request_header *msg, uin
             OFL_LOG_WARN(LOG_MODULE, "Trying to pack experimenter stat req, but no callback was given.");
             error = -1;
         } else {
-            error = exp->stats->req_pack(msg, buf, buf_len);
+            error = exp->stats->req_pack(msg, buf, buf_len, exp);
         }
         break;
     }
@@ -580,7 +618,8 @@ ofl_msg_pack_multipart_request(struct ofl_msg_multipart_request_header *msg, uin
 
 
 static int
-ofl_msg_pack_multipart_reply_desc(struct ofl_msg_reply_desc *msg UNUSED, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_multipart_reply_desc(struct ofl_msg_reply_desc const *msg UNUSED, uint8_t **buf, size_t *buf_len)
+{
     struct ofp_multipart_reply *req;
     struct ofp_desc *stats;
 
@@ -604,12 +643,13 @@ ofl_msg_pack_multipart_reply_desc(struct ofl_msg_reply_desc *msg UNUSED, uint8_t
 }
 
 static int
-ofl_msg_pack_multipart_reply_flow(struct ofl_msg_multipart_reply_flow *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
+ofl_msg_pack_multipart_reply_flow(struct ofl_msg_multipart_reply_flow const *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp const *exp)
+{
     struct ofp_multipart_reply *resp;
     size_t i;
     uint8_t * data;
 
-    *buf_len = sizeof(struct ofp_multipart_reply) + ofl_structs_flow_stats_ofp_total_len(msg->stats, msg->stats_num, exp);
+    *buf_len = sizeof(struct ofp_multipart_reply) + ofl_structs_flow_stats_ofp_total_len((struct ofl_flow_stats const **)msg->stats, msg->stats_num, exp);
     *buf     = (uint8_t *)malloc(*buf_len);
     resp = (struct ofp_multipart_reply *)(*buf);
     data = (uint8_t*) resp->body;
@@ -620,7 +660,8 @@ ofl_msg_pack_multipart_reply_flow(struct ofl_msg_multipart_reply_flow *msg, uint
 }
 
 static int
-ofl_msg_pack_multipart_reply_aggregate(struct ofl_msg_multipart_reply_aggregate *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_multipart_reply_aggregate(struct ofl_msg_multipart_reply_aggregate const *msg, uint8_t **buf, size_t *buf_len)
+{
     struct ofp_multipart_reply *resp;
     struct ofp_aggregate_stats_reply *stats;
 
@@ -638,7 +679,8 @@ ofl_msg_pack_multipart_reply_aggregate(struct ofl_msg_multipart_reply_aggregate 
 }
 
 static int
-ofl_msg_pack_multipart_reply_table(struct ofl_msg_multipart_reply_table *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_multipart_reply_table(struct ofl_msg_multipart_reply_table const *msg, uint8_t **buf, size_t *buf_len)
+{
     struct ofp_multipart_reply *resp;
     size_t i;
     uint8_t *data;
@@ -656,7 +698,8 @@ ofl_msg_pack_multipart_reply_table(struct ofl_msg_multipart_reply_table *msg, ui
 }
 
 static int
-ofl_msg_pack_multipart_reply_port(struct ofl_msg_multipart_reply_port *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_multipart_reply_port(struct ofl_msg_multipart_reply_port const *msg, uint8_t **buf, size_t *buf_len)
+{
     struct ofp_multipart_reply *resp;
     size_t i;
     uint8_t *data;
@@ -675,7 +718,8 @@ ofl_msg_pack_multipart_reply_port(struct ofl_msg_multipart_reply_port *msg, uint
 
 
 static int
-ofl_msg_pack_multipart_reply_queue(struct ofl_msg_multipart_reply_queue *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_multipart_reply_queue(struct ofl_msg_multipart_reply_queue const *msg, uint8_t **buf, size_t *buf_len)
+{
     struct ofp_multipart_reply *resp;
     size_t i;
     uint8_t *data;
@@ -693,12 +737,13 @@ ofl_msg_pack_multipart_reply_queue(struct ofl_msg_multipart_reply_queue *msg, ui
 }
 
 static int
-ofl_msg_pack_multipart_reply_group(struct ofl_msg_multipart_reply_group *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_multipart_reply_group(struct ofl_msg_multipart_reply_group const *msg, uint8_t **buf, size_t *buf_len)
+{
     struct ofp_multipart_reply *resp;
     size_t i;
     uint8_t *data;
 
-    *buf_len = sizeof(struct ofp_multipart_reply) + ofl_structs_group_stats_ofp_total_len(msg->stats, msg->stats_num);
+    *buf_len = sizeof(struct ofp_multipart_reply) + ofl_structs_group_stats_ofp_total_len((struct ofl_group_stats const **)msg->stats, msg->stats_num);
     *buf     = (uint8_t *)malloc(*buf_len);
 
     resp = (struct ofp_multipart_reply *)(*buf);
@@ -711,12 +756,13 @@ ofl_msg_pack_multipart_reply_group(struct ofl_msg_multipart_reply_group *msg, ui
 }
 
 static int
-ofl_msg_pack_multipart_reply_group_desc(struct ofl_msg_multipart_reply_group_desc *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
+ofl_msg_pack_multipart_reply_group_desc(struct ofl_msg_multipart_reply_group_desc const *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp const *exp)
+{
     struct ofp_multipart_reply *resp;
     uint8_t *data;
     size_t i;
 
-    *buf_len = sizeof(struct ofp_multipart_reply) + ofl_structs_group_desc_stats_ofp_total_len(msg->stats, msg->stats_num, exp);
+    *buf_len = sizeof(struct ofp_multipart_reply) + ofl_structs_group_desc_stats_ofp_total_len((struct ofl_group_desc_stats const **)msg->stats, msg->stats_num, exp);
     *buf     = (uint8_t *)malloc(*buf_len);
 
     resp = (struct ofp_multipart_reply *)(*buf);
@@ -730,7 +776,8 @@ ofl_msg_pack_multipart_reply_group_desc(struct ofl_msg_multipart_reply_group_des
 }
 
 static int
-ofl_msg_pack_multipart_reply_group_features(struct ofl_msg_multipart_reply_group_features *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_multipart_reply_group_features(struct ofl_msg_multipart_reply_group_features const *msg, uint8_t **buf, size_t *buf_len)
+{
    struct ofp_multipart_reply *resp;
     struct ofp_group_features *stats;
     int i;
@@ -750,12 +797,13 @@ ofl_msg_pack_multipart_reply_group_features(struct ofl_msg_multipart_reply_group
 }
 
 static int
-ofl_msg_pack_multipart_reply_table_features(struct ofl_msg_multipart_reply_table_features *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
+ofl_msg_pack_multipart_reply_table_features(struct ofl_msg_multipart_reply_table_features const *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp const *exp)
+{
     struct ofp_multipart_reply *resp;
     size_t i, features_len;
     uint8_t *data;
 
-    features_len = ofl_structs_table_features_ofp_total_len(msg->table_features, msg->tables_num, exp);
+    features_len = ofl_structs_table_features_ofp_total_len((struct ofl_table_features const **)msg->table_features, msg->tables_num, exp);
     *buf_len = sizeof(struct ofp_multipart_reply) + features_len;
     *buf = (uint8_t*) malloc(*buf_len);
 
@@ -770,12 +818,13 @@ ofl_msg_pack_multipart_reply_table_features(struct ofl_msg_multipart_reply_table
 }
 
 static int
-ofl_msg_pack_multipart_reply_meter_stats(struct ofl_msg_multipart_reply_meter *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_multipart_reply_meter_stats(struct ofl_msg_multipart_reply_meter const *msg, uint8_t **buf, size_t *buf_len)
+{
     struct ofp_multipart_reply *resp;
     size_t i;
     uint8_t *data;
 
-    *buf_len = sizeof(struct ofp_multipart_reply) + ofl_structs_meter_stats_ofp_total_len(msg->stats, msg->stats_num);
+    *buf_len = sizeof(struct ofp_multipart_reply) + ofl_structs_meter_stats_ofp_total_len((struct ofl_meter_stats const **)msg->stats, msg->stats_num);
     *buf     = (uint8_t *)malloc(*buf_len);
 
     resp = (struct ofp_multipart_reply *)(*buf);
@@ -788,12 +837,13 @@ ofl_msg_pack_multipart_reply_meter_stats(struct ofl_msg_multipart_reply_meter *m
 }
 
 static int
-ofl_msg_pack_multipart_reply_meter_conf(struct ofl_msg_multipart_reply_meter_conf *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_multipart_reply_meter_conf(struct ofl_msg_multipart_reply_meter_conf const *msg, uint8_t **buf, size_t *buf_len)
+{
     struct ofp_multipart_reply *resp;
     size_t i;
     uint8_t *data;
 
-    *buf_len = sizeof(struct ofp_multipart_reply) + ofl_structs_meter_conf_ofp_total_len(msg->stats, msg->stats_num);
+    *buf_len = sizeof(struct ofp_multipart_reply) + ofl_structs_meter_conf_ofp_total_len((struct ofl_meter_config const **)msg->stats, msg->stats_num);
     *buf     = (uint8_t *)malloc(*buf_len);
 
     resp = (struct ofp_multipart_reply *)(*buf);
@@ -808,7 +858,8 @@ ofl_msg_pack_multipart_reply_meter_conf(struct ofl_msg_multipart_reply_meter_con
 
 
 static int
-ofl_msg_pack_multipart_reply_port_status_desc(struct ofl_msg_multipart_reply_port_desc *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_multipart_reply_port_status_desc(struct ofl_msg_multipart_reply_port_desc const *msg, uint8_t **buf, size_t *buf_len)
+{
     struct ofp_multipart_reply * resp;
 	uint8_t *data;
 	size_t i;
@@ -826,7 +877,8 @@ ofl_msg_pack_multipart_reply_port_status_desc(struct ofl_msg_multipart_reply_por
 }
 
 static int
-ofl_msg_pack_multipart_reply_meter_features(struct ofl_msg_multipart_reply_meter_features *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_multipart_reply_meter_features(struct ofl_msg_multipart_reply_meter_features const *msg, uint8_t **buf, size_t *buf_len)
+{
     struct ofp_multipart_reply *resp;
     struct ofp_meter_features *feat;
 
@@ -845,65 +897,65 @@ ofl_msg_pack_multipart_reply_meter_features(struct ofl_msg_multipart_reply_meter
 
 
 static int
-ofl_msg_pack_multipart_reply(struct ofl_msg_multipart_reply_header *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
+ofl_msg_pack_multipart_reply(struct ofl_msg_multipart_reply_header const *msg, uint8_t **buf, size_t *buf_len, struct ofl_exp const *exp)
+{
     struct ofp_multipart_reply *resp;
     int error;
-
     switch (msg->type) {
         case OFPMP_DESC: {
-            error = ofl_msg_pack_multipart_reply_desc((struct ofl_msg_reply_desc *)msg, buf, buf_len);
+            error = ofl_msg_pack_multipart_reply_desc((struct ofl_msg_reply_desc const *)msg, buf, buf_len);
             break;
         }
         case OFPMP_FLOW: {
-            error = ofl_msg_pack_multipart_reply_flow((struct ofl_msg_multipart_reply_flow *)msg, buf, buf_len, exp);
+            error = ofl_msg_pack_multipart_reply_flow((struct ofl_msg_multipart_reply_flow const *)msg, buf, buf_len, exp);
             break;
         }
         case OFPMP_AGGREGATE: {
-            error = ofl_msg_pack_multipart_reply_aggregate((struct ofl_msg_multipart_reply_aggregate *)msg, buf, buf_len);
+            error = ofl_msg_pack_multipart_reply_aggregate((struct ofl_msg_multipart_reply_aggregate const *)msg, buf, buf_len);
             break;
         }
         case OFPMP_TABLE: {
-            error = ofl_msg_pack_multipart_reply_table((struct ofl_msg_multipart_reply_table *)msg, buf, buf_len);
+            error = ofl_msg_pack_multipart_reply_table((struct ofl_msg_multipart_reply_table const *)msg, buf, buf_len);
             break;
         }
         case OFPMP_TABLE_FEATURES: {
-            error = ofl_msg_pack_multipart_reply_table_features((struct ofl_msg_multipart_reply_table_features*)msg, buf, buf_len, exp);
+            error = ofl_msg_pack_multipart_reply_table_features((struct ofl_msg_multipart_reply_table_features const *)msg, buf, buf_len, exp);
             break;
         }
         case OFPMP_PORT_STATS: {
-            error = ofl_msg_pack_multipart_reply_port((struct ofl_msg_multipart_reply_port *)msg, buf, buf_len);
+            error = ofl_msg_pack_multipart_reply_port((struct ofl_msg_multipart_reply_port const *)msg, buf, buf_len);
             break;
         }
         case OFPMP_QUEUE: {
-            error = ofl_msg_pack_multipart_reply_queue((struct ofl_msg_multipart_reply_queue *)msg, buf, buf_len);
+            error = ofl_msg_pack_multipart_reply_queue((struct ofl_msg_multipart_reply_queue const *)msg, buf, buf_len);
             break;
         }
         case OFPMP_GROUP: {
-            error = ofl_msg_pack_multipart_reply_group((struct ofl_msg_multipart_reply_group *)msg, buf, buf_len);
+            error = ofl_msg_pack_multipart_reply_group((struct ofl_msg_multipart_reply_group const *)msg, buf, buf_len);
             break;
         }
         case OFPMP_GROUP_DESC: {
-            error = ofl_msg_pack_multipart_reply_group_desc((struct ofl_msg_multipart_reply_group_desc *)msg, buf, buf_len, exp);
+            error = ofl_msg_pack_multipart_reply_group_desc((struct ofl_msg_multipart_reply_group_desc const *)msg, buf, buf_len, exp);
             break;
         }
         case OFPMP_GROUP_FEATURES:{
-            error = ofl_msg_pack_multipart_reply_group_features((struct ofl_msg_multipart_reply_group_features *) msg, buf, buf_len);
+            error = ofl_msg_pack_multipart_reply_group_features((struct ofl_msg_multipart_reply_group_features const *) msg, buf, buf_len);
             break;
         }
         case OFPMP_METER:{
-            error = ofl_msg_pack_multipart_reply_meter_stats((struct ofl_msg_multipart_reply_meter*)msg, buf, buf_len);
+            error = ofl_msg_pack_multipart_reply_meter_stats((struct ofl_msg_multipart_reply_meter const *)msg, buf, buf_len);
             break;
         }
         case OFPMP_METER_CONFIG:{
-            error = ofl_msg_pack_multipart_reply_meter_conf((struct ofl_msg_multipart_reply_meter_conf*)msg, buf, buf_len);
+            error = ofl_msg_pack_multipart_reply_meter_conf((struct ofl_msg_multipart_reply_meter_conf const *)msg, buf, buf_len);
             break;
         }
         case OFPMP_METER_FEATURES:{
-            error =  ofl_msg_pack_multipart_reply_meter_features((struct ofl_msg_multipart_reply_meter_features*)msg, buf, buf_len);
+            error =  ofl_msg_pack_multipart_reply_meter_features((struct ofl_msg_multipart_reply_meter_features const *)msg, buf, buf_len);
             break;
         }
 		case OFPMP_PORT_DESC:{
-			error = ofl_msg_pack_multipart_reply_port_status_desc((struct ofl_msg_multipart_reply_port_desc*)msg, buf, buf_len);
+			error = ofl_msg_pack_multipart_reply_port_status_desc((struct ofl_msg_multipart_reply_port_desc const *)msg, buf, buf_len);
 			break;
 		}
         case OFPMP_EXPERIMENTER: {
@@ -911,7 +963,7 @@ ofl_msg_pack_multipart_reply(struct ofl_msg_multipart_reply_header *msg, uint8_t
                 OFL_LOG_WARN(LOG_MODULE, "Trying to pack experimenter stat resp, but no callback was given.");
                 error = -1;
             } else {
-                error = exp->stats->reply_pack(msg, buf, buf_len);
+                error = exp->stats->reply_pack(msg, buf, buf_len, exp);
             }
             break;
         }
@@ -933,7 +985,8 @@ ofl_msg_pack_multipart_reply(struct ofl_msg_multipart_reply_header *msg, uint8_t
 }
 
 static int
-ofl_msg_pack_queue_get_config_request(struct ofl_msg_queue_get_config_request *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_queue_get_config_request(struct ofl_msg_queue_get_config_request const *msg, uint8_t **buf, size_t *buf_len)
+{
     struct ofp_queue_get_config_request *req;
 
     *buf_len = sizeof(struct ofp_queue_get_config_request);
@@ -947,12 +1000,13 @@ ofl_msg_pack_queue_get_config_request(struct ofl_msg_queue_get_config_request *m
 }
 
 static int
-ofl_msg_pack_queue_get_config_reply(struct ofl_msg_queue_get_config_reply *msg, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_queue_get_config_reply(struct ofl_msg_queue_get_config_reply const *msg, uint8_t **buf, size_t *buf_len)
+{
     struct ofp_queue_get_config_reply *resp;
     uint8_t *data;
     size_t i;
 
-    *buf_len = sizeof(struct ofp_queue_get_config_reply) + ofl_structs_packet_queue_ofp_total_len(msg->queues, msg->queues_num);
+    *buf_len = sizeof(struct ofp_queue_get_config_reply) + ofl_structs_packet_queue_ofp_total_len((struct ofl_packet_queue const **)msg->queues, msg->queues_num);
     *buf     = (uint8_t *)malloc(*buf_len);
 
     resp = (struct ofp_queue_get_config_reply *)(*buf);
@@ -969,7 +1023,8 @@ ofl_msg_pack_queue_get_config_reply(struct ofl_msg_queue_get_config_reply *msg, 
 }
 
 static int
-ofl_msg_pack_empty(struct ofl_msg_header *msg UNUSED, uint8_t **buf, size_t *buf_len) {
+ofl_msg_pack_empty(struct ofl_msg_header const *msg UNUSED, uint8_t **buf, size_t *buf_len)
+{
 
     *buf_len = sizeof(struct ofp_header);
     *buf     = (uint8_t *)malloc(*buf_len);
@@ -978,7 +1033,8 @@ ofl_msg_pack_empty(struct ofl_msg_header *msg UNUSED, uint8_t **buf, size_t *buf
 
 
 int
-ofl_msg_pack(struct ofl_msg_header *msg, uint32_t xid, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp) {
+ofl_msg_pack(struct ofl_msg_header const *msg, uint32_t xid, uint8_t **buf, size_t *buf_len, struct ofl_exp const *exp)
+{
     struct ofp_header *oh;
     int error = 0;
     switch (msg->type) {
@@ -988,7 +1044,7 @@ ofl_msg_pack(struct ofl_msg_header *msg, uint32_t xid, uint8_t **buf, size_t *bu
             break;
         }
         case OFPT_ERROR: {
-            error = ofl_msg_pack_error((struct ofl_msg_error *)msg, buf, buf_len);
+            error = ofl_msg_pack_error((struct ofl_msg_error const *)msg, buf, buf_len, exp);
             break;
         }
         case OFPT_ECHO_REQUEST:
@@ -1001,7 +1057,7 @@ ofl_msg_pack(struct ofl_msg_header *msg, uint32_t xid, uint8_t **buf, size_t *bu
                 OFL_LOG_WARN(LOG_MODULE, "Trying to pack experimenter msg, but no callback was given.");
                 error = -1;
             } else {
-                error = exp->msg->pack((struct ofl_msg_experimenter *)msg, buf, buf_len);
+                error = exp->msg->pack((struct ofl_msg_experimenter *)msg, buf, buf_len, exp);
             }
             break;
         }
@@ -1029,7 +1085,7 @@ ofl_msg_pack(struct ofl_msg_header *msg, uint32_t xid, uint8_t **buf, size_t *bu
 
         /* Asynchronous messages. */
         case OFPT_PACKET_IN: {
-            error = ofl_msg_pack_packet_in((struct ofl_msg_packet_in *)msg, buf, buf_len);
+            error = ofl_msg_pack_packet_in((struct ofl_msg_packet_in *)msg, buf, buf_len, exp);
             break;
         }
         case OFPT_FLOW_REMOVED: {

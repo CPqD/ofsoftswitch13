@@ -38,8 +38,6 @@ AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE
 
-AC_PROG_CXX
-
 AC_PROG_CC
 AM_PROG_CC_C_O
 AC_PROG_CPP
@@ -58,22 +56,46 @@ OFP_CHECK_HWTABLES
 OFP_CHECK_HWLIBS
 AC_SYS_LARGEFILE
 
-AC_CHECK_LIB(nbee,nbGetLastError)
-
 AC_CHECK_FUNCS([strsignal])
 
 AC_ARG_VAR(KARCH, [Kernel Architecture String])
 AC_SUBST(KARCH)
+
+# Add skiptrill argument to configure script
+AC_MSG_CHECKING(--enable-skiptrill argument)
+AC_ARG_ENABLE(skiptrill,
+    [  --enable-skiptrill         Enable skipping of TRILL protocol.],
+    [enable_skiptrill=$enableval],
+    [enable_skiptrill="no"])
+AC_MSG_RESULT($enable_skiptrill)
+if test "$enable_skiptrill" = "yes"; then
+  AC_DEFINE(SKIP_TRILL, [], [Skip TRILL protocol])
+fi
+
+# BEBA options
+
+AC_DEFINE(BEBA_USE_LIBPCAP,         1,   [BEBA pcap packet I/O acceleration])
+AC_DEFINE(BEBA_USE_LIBPCAP_ZEROCOPY,1,   [BEBA zero-copy using pcap buffers])
+AC_DEFINE(BEBA_WORK_BUDGET,         128, [BEBA work budget for batch I/O acceleration])
+AC_DEFINE(BEBA_CTRL_PLANE_RELAX,    12,  [BEBA control-plane relax factor (power of 2)])
+AC_DEFINE(BEBA_MATCH_POOL_SIZE,     16,  [BEBA size of pool for small TLV node])
+AC_DEFINE(BEBA_MATCH_VALUE_SIZE,    16,  [BEBA size of TLV value])
+AC_DEFINE(BEBA_HMAP_INIT_SIZE,      8,   [BEBA size of init hmap])
+AC_DEFINE(BEBA_STATE_FLUSH_INTERVAL,60,  [BEBA state table flush interval (in seconds)])
+
+
 #OFP_CHECK_LINUX(l26, 2.6, KBLD26, KSRC26, L26_ENABLED)
 
 OFP_CHECK_DPKG_BUILDPACKAGE
 
 OFP_ENABLE_OPTION([-Wall])
+OFP_ENABLE_OPTION([-Wextra])
+OFP_ENABLE_OPTION([-Wno-free-nonheap-object])
 OFP_ENABLE_OPTION([-Wno-sign-compare])
 OFP_ENABLE_OPTION([-Wpointer-arith])
 OFP_ENABLE_OPTION([-Wdeclaration-after-statement])
 OFP_ENABLE_OPTION([-Wformat-security])
-OFP_ENABLE_OPTION([-Wswitch-enum])
+#OFP_ENABLE_OPTION([-Wswitch-enum])
 OFP_ENABLE_OPTION([-Wunused-parameter])
 OFP_ENABLE_OPTION([-Wstrict-aliasing])
 OFP_ENABLE_OPTION([-Wbad-function-cast])
@@ -93,5 +115,8 @@ AC_CONFIG_FILES([Makefile
 #datapath/linux-2.6/Makefile
 #datapath/linux-2.6/Makefile.main
 #])
+
+AC_CHECK_LIB([pcap],[pcap_create])
+AC_CHECK_HEADERS([linux/pf_q.h])
 
 AC_OUTPUT

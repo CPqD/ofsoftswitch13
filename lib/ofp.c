@@ -183,8 +183,7 @@ update_instruction_length(struct ofpbuf *buffer, size_t oia_offset)
 }
 
 struct ofpbuf *
-make_flow_mod(uint8_t command, uint8_t table_id,
-	      const struct flow *flow UNUSED, size_t actions_len)
+make_flow_mod(uint8_t command, uint8_t table_id, const struct flow * flow, size_t actions_len)
 {
     struct ofp_flow_mod *ofm;
     size_t size = sizeof *ofm + actions_len;
@@ -194,7 +193,9 @@ make_flow_mod(uint8_t command, uint8_t table_id,
     ofm->header.type = OFPT_FLOW_MOD;
     ofm->header.length = htons(size);
     ofm->cookie = 0;
-    /*TODO fill match
+
+    /* TODO fill match
+
     ofm->match.in_port = flow->in_port;
     memcpy(ofm->match.dl_src, flow->dl_src, sizeof ofm->match.dl_src);
     memcpy(ofm->match.dl_dst, flow->dl_dst, sizeof ofm->match.dl_dst);
@@ -207,6 +208,7 @@ make_flow_mod(uint8_t command, uint8_t table_id,
     ofm->match.nw_tos = flow->nw_tos;
     ofm->match.tp_src = flow->tp_src;
     ofm->match.tp_dst = flow->tp_dst; */
+
     ofm->command = command;
     ofm->table_id = table_id;
 
@@ -527,7 +529,7 @@ check_ofp_packet_out(const struct ofp_header *oh, struct ofpbuf *data,
         return error;
     }
 
-    data->data = (void *) &opo->actions[n_actions];
+    data->data = CONST_CAST(void *, &opo->actions[n_actions]);
     data->size = extra - actions_len;
     *n_actionsp = n_actions;
     return 0;
@@ -618,7 +620,7 @@ check_output_port(uint32_t port, int max_ports, bool table_allowed)
         if (table_allowed) {
             return 0;
         } else {
-        	return ofp_mkerr(OFPET_BAD_ACTION, OFPBAC_BAD_OUT_PORT);
+		return ofp_mkerr(OFPET_BAD_ACTION, OFPBAC_BAD_OUT_PORT);
         }
 
     default:
@@ -645,7 +647,7 @@ check_setqueue_action(const union ofp_action *a, unsigned int len)
     }
     /*TODO check if this functions is relevant and finish or
       remove it accordingly */
-    /*oaq = (const struct ofp_action_set_queue *) a;*/
+    /* oaq = (const struct ofp_action_set_queue *) a;*/
     return 0;
 }
 

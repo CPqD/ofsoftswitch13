@@ -28,6 +28,11 @@
  *
  */
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
+
+
 #include <stdbool.h>
 #include "flow_entry.h"
 #include "group_entry.h"
@@ -44,7 +49,7 @@
 
 static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(60, 60);
 
-
+static bool first_rand=1;
 
 struct group_table;
 struct datapath;
@@ -78,12 +83,12 @@ select_from_select_group(struct group_entry *entry);
 static size_t
 select_from_ff_group(struct group_entry *entry);
 
-
 struct group_entry *
-group_entry_create(struct datapath *dp, struct group_table *table, struct ofl_msg_group_mod *mod) {
+group_entry_create(struct datapath *dp, struct group_table *table, struct ofl_msg_group_mod *mod)
+{
     struct group_entry *entry;
     size_t i;
-    
+
     entry = xmalloc(sizeof(struct group_entry));
     entry->dp          = dp;
     entry->table       = table;
@@ -156,7 +161,7 @@ execute_all(struct group_entry *entry, struct packet *pkt) {
             free(b);
         }
 
-        action_set_write_actions(p->action_set, bucket->actions_num, bucket->actions);
+        action_set_write_actions(&p->action_set, bucket->actions_num, bucket->actions);
 
         entry->stats->byte_count += p->buffer->size;
         entry->stats->packet_count++;
@@ -166,7 +171,7 @@ execute_all(struct group_entry *entry, struct packet *pkt) {
         /* Cookie field is set 0xffffffffffffffff
            because we cannot associate to any
            particular flow */
-        action_set_execute(p->action_set, p, 0xffffffffffffffff);
+        action_set_execute(&p->action_set, p, 0xffffffffffffffff);
         /* Clone will be destroyed above. Jean II */
     }
     packet_destroy(pkt);
@@ -186,7 +191,7 @@ execute_select(struct group_entry *entry, struct packet *pkt) {
             free(b);
         }
 
-        action_set_write_actions(pkt->action_set, bucket->actions_num, bucket->actions);
+        action_set_write_actions(&pkt->action_set, bucket->actions_num, bucket->actions);
 
         entry->stats->byte_count += pkt->buffer->size;
         entry->stats->packet_count++;
@@ -195,7 +200,7 @@ execute_select(struct group_entry *entry, struct packet *pkt) {
         /* Cookie field is set 0xffffffffffffffff
            because we cannot associate to any
            particular flow */
-        action_set_execute(pkt->action_set, pkt, 0xffffffffffffffff);
+        action_set_execute(&pkt->action_set, pkt, 0xffffffffffffffff);
     } else {
         VLOG_DBG_RL(LOG_MODULE, &rl, "No bucket in group.");
         packet_destroy(pkt);
@@ -215,7 +220,7 @@ execute_indirect(struct group_entry *entry, struct packet *pkt) {
             free(b);
         }
 
-        action_set_write_actions(pkt->action_set, bucket->actions_num, bucket->actions);
+        action_set_write_actions(&pkt->action_set, bucket->actions_num, bucket->actions);
 
         entry->stats->byte_count += pkt->buffer->size;
         entry->stats->packet_count++;
@@ -224,7 +229,7 @@ execute_indirect(struct group_entry *entry, struct packet *pkt) {
         /* Cookie field is set 0xffffffffffffffff
            because we cannot associate to any
            particular flow */
-        action_set_execute(pkt->action_set, pkt, 0xffffffffffffffff);
+        action_set_execute(&pkt->action_set, pkt, 0xffffffffffffffff);
     } else {
         VLOG_DBG_RL(LOG_MODULE, &rl, "No bucket in group.");
         packet_destroy(pkt);
@@ -245,7 +250,7 @@ execute_ff(struct group_entry *entry, struct packet *pkt) {
             free(b);
         }
 
-        action_set_write_actions(pkt->action_set, bucket->actions_num, bucket->actions);
+        action_set_write_actions(&pkt->action_set, bucket->actions_num, bucket->actions);
 
         entry->stats->byte_count += pkt->buffer->size;
         entry->stats->packet_count++;
@@ -254,7 +259,7 @@ execute_ff(struct group_entry *entry, struct packet *pkt) {
         /* Cookie field is set 0xffffffffffffffff
            because we cannot associate to any
            particular flow */
-        action_set_execute(pkt->action_set, pkt, 0xffffffffffffffff);
+        action_set_execute(&pkt->action_set, pkt, 0xffffffffffffffff);
     } else {
         VLOG_DBG_RL(LOG_MODULE, &rl, "No bucket in group.");
         packet_destroy(pkt);
@@ -404,7 +409,7 @@ init_select_group(struct group_entry *entry, struct ofl_msg_group_mod *mod) {
 }
 
 /* Selects a bucket from a select group, based on the w.r.r. algorithm. */
-static size_t
+/*static size_t
 select_from_select_group(struct group_entry *entry) {
     struct group_entry_wrr_data *data;
     size_t guard;
@@ -434,7 +439,22 @@ select_from_select_group(struct group_entry *entry) {
     }
     VLOG_WARN_RL(LOG_MODULE, &rl, "Could not select from select group.");
     return -1;
+}*/
+
+/* Selects a bucket from a random group. */
+static size_t
+select_from_select_group(struct group_entry *entry) {
+    if (entry->desc->buckets_num == 0) {
+          return -1;
+    }
+    if (first_rand==1){
+        uint64_t datapath_id=entry->dp->id;
+        srand(time(NULL)+datapath_id);
+        first_rand=0;
+    }
+    return rand() % entry->desc->buckets_num;  /* random int between 0 and buckets_num-1 */
 }
+
 
 /* Selects the first live bucket from the failfast group. */
 static size_t

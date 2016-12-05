@@ -1,5 +1,5 @@
 /* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary
- * Copyright (c) 2012, CPqD, Brazil 
+ * Copyright (c) 2012, CPqD, Brazil
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -72,9 +72,6 @@
 
 #define IP_ECN_MASK 0x03
 #define IP_DSCP_MASK 0xfc
-
-
-
 
 
 #endif /* OFL_PACKETS_H */

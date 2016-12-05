@@ -49,7 +49,10 @@ OFL_LOG_INIT(LOG_MODULE)
 
 
 ofl_err
-ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action_header **dst, struct ofl_exp *exp) {
+ofl_actions_unpack(struct ofp_action_header const *src, size_t *len, struct ofl_action_header **dst, struct ofl_exp const *exp)
+{
+
+    ofl_err error = 0;
 
     if (*len < sizeof(struct ofp_action_header)) {
         OFL_LOG_WARN(LOG_MODULE, "Received action is too short (%zu).", *len);
@@ -71,9 +74,13 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             struct ofp_action_output *sa;
             struct ofl_action_output *da;
 
+            da = (struct ofl_action_output *)malloc(sizeof(struct ofl_action_output));
+            *dst = (struct ofl_action_header *)da;
+
             if (*len < sizeof(struct ofp_action_output)) {
                 OFL_LOG_WARN(LOG_MODULE, "Received OUTPUT action has invalid length (%zu).", *len);
-                return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+                error = ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+                break;
             }
 
             sa = (struct ofp_action_output *)src;
@@ -86,15 +93,14 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
                     OFL_LOG_WARN(LOG_MODULE, "Received OUTPUT action has invalid port (%s).", ps);
                     free(ps);
                 }
-                return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_OUT_PORT);
+                error = ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_OUT_PORT);
+                break;
             }
 
-            da = (struct ofl_action_output *)malloc(sizeof(struct ofl_action_output));
             da->port = ntohl(sa->port);
             da->max_len = ntohs(sa->max_len);
 
             *len -= sizeof(struct ofp_action_output);
-            *dst = (struct ofl_action_header *)da;
             break;
         }
         case OFPAT_COPY_TTL_OUT: {
@@ -115,18 +121,20 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             struct ofp_action_mpls_ttl *sa;
             struct ofl_action_mpls_ttl *da;
 
+            da = (struct ofl_action_mpls_ttl *)malloc(sizeof(struct ofl_action_mpls_ttl));
+            *dst = (struct ofl_action_header *)da;
+
             if (*len < sizeof(struct ofp_action_mpls_ttl)) {
                 OFL_LOG_WARN(LOG_MODULE, "Received SET_MPLS_TTL action has invalid length (%zu).", *len);
-                return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+                error = ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+                break;
             }
 
             sa = (struct ofp_action_mpls_ttl *)src;
 
-            da = (struct ofl_action_mpls_ttl *)malloc(sizeof(struct ofl_action_mpls_ttl));
             da->mpls_ttl = sa->mpls_ttl;
 
             *len -= sizeof(struct ofp_action_mpls_ttl);
-            *dst = (struct ofl_action_header *)da;
             break;
         }
 
@@ -143,9 +151,13 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             struct ofp_action_push *sa;
             struct ofl_action_push *da;
 
+            da = (struct ofl_action_push *)malloc(sizeof(struct ofl_action_push));
+            *dst = (struct ofl_action_header *)da;
+
             if (*len < sizeof(struct ofp_action_push)) {
                 OFL_LOG_WARN(LOG_MODULE, "Received PUSH_VLAN/MPLS/PBB action has invalid length (%zu).", *len);
-                return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+                error = ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+                break;
             }
 
             sa = (struct ofp_action_push *)src;
@@ -162,11 +174,10 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
                 return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_ARGUMENT);
             }
 
-            da = (struct ofl_action_push *)malloc(sizeof(struct ofl_action_push));
+            
             da->ethertype = ntohs(sa->ethertype);
 
             *len -= sizeof(struct ofp_action_push);
-            *dst = (struct ofl_action_header *)da;
             break;
         }
 
@@ -182,18 +193,20 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             struct ofp_action_pop_mpls *sa;
             struct ofl_action_pop_mpls *da;
 
+            da = (struct ofl_action_pop_mpls *)malloc(sizeof(struct ofl_action_pop_mpls));
+            *dst = (struct ofl_action_header *)da;
+
             if (*len < sizeof(struct ofp_action_pop_mpls)) {
                 OFL_LOG_WARN(LOG_MODULE, "Received POP_MPLS action has invalid length (%zu).", *len);
-                return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+                error = ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+                break;
             }
 
             sa = (struct ofp_action_pop_mpls *)src;
 
-            da = (struct ofl_action_pop_mpls *)malloc(sizeof(struct ofl_action_pop_mpls));
             da->ethertype = ntohs(sa->ethertype);
 
             *len -= sizeof(struct ofp_action_pop_mpls);
-            *dst = (struct ofl_action_header *)da;
             break;
         }
 
@@ -201,18 +214,20 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             struct ofp_action_set_queue *sa;
             struct ofl_action_set_queue *da;
 
+            da = (struct ofl_action_set_queue *)malloc(sizeof(struct ofl_action_set_queue));
+            *dst = (struct ofl_action_header *)da;
+
             if (*len < sizeof(struct ofp_action_set_queue)) {
                 OFL_LOG_WARN(LOG_MODULE, "Received SET_QUEUE action has invalid length (%zu).", *len);
-                return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+                error = ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+                break;
             }
 
             sa = (struct ofp_action_set_queue *)src;
 
-            da = (struct ofl_action_set_queue *)malloc(sizeof(struct ofl_action_set_queue));
             da->queue_id = ntohl(sa->queue_id);
 
             *len -= sizeof(struct ofp_action_set_queue);
-            *dst = (struct ofl_action_header *)da;
             break;
         }
 
@@ -220,9 +235,13 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             struct ofp_action_group *sa;
             struct ofl_action_group *da;
 
+            da = (struct ofl_action_group *)malloc(sizeof(struct ofl_action_group));
+            *dst = (struct ofl_action_header *)da;
+
             if (*len < sizeof(struct ofp_action_group)) {
                 OFL_LOG_WARN(LOG_MODULE, "Received GROUP action has invalid length (%zu).", *len);
-                return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+                error = ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+                break;
             }
 
             sa = (struct ofp_action_group *)src;
@@ -233,14 +252,13 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
                     OFL_LOG_WARN(LOG_MODULE, "Received GROUP action has invalid group id (%s).", gs);
                     free(gs);
                 }
-                return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_OUT_GROUP);
+                error = ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_OUT_GROUP);
+                break;
             }
 
-            da = (struct ofl_action_group *)malloc(sizeof(struct ofl_action_group));
             da->group_id = ntohl(sa->group_id);
 
             *len -= sizeof(struct ofp_action_group);
-            *dst = (struct ofl_action_header *)da;
             break;
         }
 
@@ -248,18 +266,20 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             struct ofp_action_nw_ttl *sa;
             struct ofl_action_set_nw_ttl *da;
 
+            da = (struct ofl_action_set_nw_ttl *)malloc(sizeof(struct ofl_action_set_nw_ttl));
+            *dst = (struct ofl_action_header *)da;
+
             if (*len < sizeof(struct ofp_action_nw_ttl)) {
                 OFL_LOG_WARN(LOG_MODULE, "Received SET_NW_TTL action has invalid length (%zu).", *len);
-                return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+                error = ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+                break;
             }
 
             sa = (struct ofp_action_nw_ttl *)src;
 
-            da = (struct ofl_action_set_nw_ttl *)malloc(sizeof(struct ofl_action_set_nw_ttl));
             da->nw_ttl = sa->nw_ttl;
 
             *len -= sizeof(struct ofp_action_nw_ttl);
-            *dst = (struct ofl_action_header *)da;
             break;
         }
 
@@ -278,17 +298,22 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             sa = (struct ofp_action_set_field*) src;
             da = (struct ofl_action_set_field *)malloc(sizeof(struct ofl_action_set_field));
             da->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
+            *dst = (struct ofl_action_header *)da;
             
             memcpy(&da->field->header,sa->field,4);
             da->field->header = ntohl(da->field->header);
             value = (uint8_t *) src + sizeof (struct ofp_action_set_field);
             da->field->value = malloc(OXM_LENGTH(da->field->header));
+
             /*TODO: need to check if other fields are valid */
             if(da->field->header == OXM_OF_IN_PORT || da->field->header == OXM_OF_IN_PHY_PORT
                                     || da->field->header == OXM_OF_METADATA
-                                    || da->field->header == OXM_OF_IPV6_EXTHDR){
-
-                return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_SET_TYPE);
+                                    || da->field->header == OXM_OF_IPV6_EXTHDR
+									|| da->field->header == OXM_EXP_GLOBAL_STATE
+                                    || da->field->header == OXM_EXP_STATE){
+				
+                error = ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_SET_TYPE);
+                break;
             }
             switch(OXM_LENGTH(da->field->header)){
                 case 1:
@@ -318,35 +343,32 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
                 }                
             }
      	    *len -= ROUND_UP(ntohs(src->len),8);
-     	    *dst = (struct ofl_action_header *)da;
             break;
 	}
 
         case OFPAT_EXPERIMENTER: {
-            ofl_err error;
-
             if (*len < sizeof(struct ofp_action_experimenter_header)) {
                 OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER action has invalid length (%zu).", *len);
-                return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+                error = ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_LEN);
+                break;
             }
 
             if (exp == NULL || exp->act == NULL || exp->act->unpack == NULL) {
                 OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER action, but no callback is given.");
-                return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_EXPERIMENTER);
+                error = ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_EXPERIMENTER);
+                break;
             }
             error = exp->act->unpack(src, len, dst);
-            if (error) {
-                return error;
-            }
             break;
         }
 
         default: {
             OFL_LOG_WARN(LOG_MODULE, "Received unknown action type (%u).", ntohs(src->type));
-            return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_TYPE);
+            error = ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_TYPE);
+            break;
         }
     }
     (*dst)->type = (enum ofp_action_type)ntohs(src->type);
 
-    return 0;
+    return error;
 }
