@@ -29,7 +29,7 @@ enum ofp_exp_instructions {
 };
 
 struct ofp_beba_instruction_experimenter_header {
-    struct ofp_instruction_experimenter_header header;   /*  OpenFlow's standard experimenter action header*/
+    struct ofp_instruction_experimenter header;   /*  OpenFlow's standard experimenter instruction header*/
     uint32_t instr_type;   /* type in header is OFPIT_EXPERIMENTER, instr_type is one of ofp_exp_instructions */
     uint8_t pad[4];
 };
@@ -265,7 +265,7 @@ OFP_ASSERT(sizeof(struct ofp_exp_state_entry) == 56);
 
 /* Body for ofp_multipart_request of type OFPMP_EXP_STATE_STATS. */
 struct ofp_exp_state_stats_request {
-    struct ofp_experimenter_stats_header header;
+    struct ofp_experimenter_multipart_header header;
     uint8_t                 table_id;       /* ID of table to read (from ofp_table_stats),
                                OFPTT_ALL for all tables. */
     uint8_t                 get_from_state;
@@ -277,7 +277,7 @@ OFP_ASSERT(sizeof(struct ofp_exp_state_stats_request) == 24);
 
 /* Body of reply to OFPMP_EXP_STATE_STATS request. */
 struct ofp_exp_state_stats_reply{
-    struct ofp_experimenter_stats_header header;
+    struct ofp_experimenter_multipart_header header;
     struct ofp_exp_state_stats *stats;
 };
 
@@ -305,13 +305,13 @@ OFP_ASSERT(sizeof(struct ofp_exp_state_stats) == 112);
 
 /* Body for ofp_multipart_request of type OFPMP_EXP_GLOBAL_STATE_STATS. */
 struct ofp_exp_global_state_stats_request {
-    struct ofp_experimenter_stats_header header;
+    struct ofp_experimenter_multipart_header header;
 };
 OFP_ASSERT(sizeof(struct ofp_exp_global_state_stats_request) == 8);
 
 /* Body of reply to OFPMP_EXP_GLOBAL_STATE_STATS request. */
 struct ofp_exp_global_state_stats {
-    struct ofp_experimenter_stats_header header;
+    struct ofp_experimenter_multipart_header header;
     uint8_t pad[4];
     uint32_t global_state;
 };

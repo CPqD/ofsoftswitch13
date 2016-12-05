@@ -1278,7 +1278,7 @@ ofl_msg_unpack_multipart_reply_group_desc(struct ofp_multipart_reply *os, size_t
 static ofl_err
 ofl_msg_unpack_multipart_reply_group_features(struct ofp_multipart_reply *os, size_t *len, struct ofl_msg_header **msg)
 {
-    struct ofp_group_features_stats *sm;
+    struct ofp_group_features *sm;
     struct ofl_msg_multipart_reply_group_features *dm;
     int i;
     if (*len < sizeof(struct ofp_group_features)) {

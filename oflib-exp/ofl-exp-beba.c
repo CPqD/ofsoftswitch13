@@ -829,14 +829,14 @@ ofl_exp_beba_stats_req_pack(struct ofl_msg_multipart_request_experimenter const 
             struct ofl_exp_msg_multipart_request_state *msg = (struct ofl_exp_msg_multipart_request_state *)e;
             struct ofp_multipart_request *req;
             struct ofp_exp_state_stats_request *stats;
-            struct ofp_experimenter_stats_header *exp_header;
+            struct ofp_experimenter_multipart_header *exp_header;
             uint8_t *ptr;
             *buf_len = sizeof(struct ofp_multipart_request) + sizeof(struct ofp_exp_state_stats_request) + msg->match->length;
             *buf     = (uint8_t *)malloc(*buf_len);
 
             req = (struct ofp_multipart_request *)(*buf);
             stats = (struct ofp_exp_state_stats_request *)req->body;
-            exp_header = (struct ofp_experimenter_stats_header *)stats;
+            exp_header = (struct ofp_experimenter_multipart_header *)stats;
             exp_header -> experimenter = htonl(BEBA_VENDOR_ID);
             exp_header -> exp_type = htonl(OFPMP_EXP_STATE_STATS);
             if (e->type == OFPMP_EXP_STATE_STATS)
@@ -856,13 +856,13 @@ ofl_exp_beba_stats_req_pack(struct ofl_msg_multipart_request_experimenter const 
         {
             struct ofp_multipart_request *req;
             struct ofp_exp_global_state_stats_request *stats;
-            struct ofp_experimenter_stats_header *exp_header;
+            struct ofp_experimenter_multipart_header *exp_header;
             *buf_len = sizeof(struct ofp_multipart_request) + sizeof(struct ofp_exp_global_state_stats_request);
             *buf     = (uint8_t *)malloc(*buf_len);
 
             req = (struct ofp_multipart_request *)(*buf);
             stats = (struct ofp_exp_global_state_stats_request *)req->body;
-            exp_header = (struct ofp_experimenter_stats_header *)stats;
+            exp_header = (struct ofp_experimenter_multipart_header *)stats;
             exp_header -> experimenter = htonl(BEBA_VENDOR_ID);
             exp_header -> exp_type = htonl(OFPMP_EXP_GLOBAL_STATE_STATS);
 
@@ -884,16 +884,16 @@ ofl_exp_beba_stats_reply_pack(struct ofl_msg_multipart_reply_experimenter const 
         case (OFPMP_EXP_STATE_STATS):
         {
             struct ofl_exp_msg_multipart_reply_state *msg = (struct ofl_exp_msg_multipart_reply_state *)e;
-            struct ofp_experimenter_stats_header *ext_header;
+            struct ofp_experimenter_multipart_header *ext_header;
             struct ofp_multipart_reply *resp;
             size_t i;
             uint8_t * data;
 
-            *buf_len = sizeof(struct ofp_multipart_reply) + sizeof(struct ofp_experimenter_stats_header) + ofl_structs_state_stats_ofp_total_len(msg->stats, msg->stats_num, exp);
+            *buf_len = sizeof(struct ofp_multipart_reply) + sizeof(struct ofp_experimenter_multipart_header) + ofl_structs_state_stats_ofp_total_len(msg->stats, msg->stats_num, exp);
             *buf     = (uint8_t *)malloc(*buf_len);
             resp = (struct ofp_multipart_reply *)(*buf);
             data = (uint8_t*) resp->body;
-            ext_header = (struct ofp_experimenter_stats_header*) data;
+            ext_header = (struct ofp_experimenter_multipart_header*) data;
             ext_header->experimenter = htonl(BEBA_VENDOR_ID);
             ext_header->exp_type = htonl(OFPMP_EXP_STATE_STATS);
             if (e->type == OFPMP_EXP_STATE_STATS)
@@ -901,7 +901,7 @@ ofl_exp_beba_stats_reply_pack(struct ofl_msg_multipart_reply_experimenter const 
             else if (e->type == OFPMP_EXP_STATE_STATS_AND_DELETE)
                 ext_header->exp_type = htonl(OFPMP_EXP_STATE_STATS_AND_DELETE);
 
-            data += sizeof(struct ofp_experimenter_stats_header);
+            data += sizeof(struct ofp_experimenter_multipart_header);
             for (i=0; i<msg->stats_num; i++) {
                 data += ofl_structs_state_stats_pack(msg->stats[i], data, exp);
             }
@@ -912,14 +912,14 @@ ofl_exp_beba_stats_reply_pack(struct ofl_msg_multipart_reply_experimenter const 
             struct ofl_exp_msg_multipart_reply_global_state *msg = (struct ofl_exp_msg_multipart_reply_global_state *)e;
             struct ofp_multipart_reply *resp;
             struct ofp_exp_global_state_stats *stats;
-            struct ofp_experimenter_stats_header * exp_header;
+            struct ofp_experimenter_multipart_header * exp_header;
 
             *buf_len = sizeof(struct ofp_multipart_reply) + sizeof(struct ofp_exp_global_state_stats);
             *buf     = (uint8_t *)malloc(*buf_len);
 
             resp = (struct ofp_multipart_reply *)(*buf);
             stats = (struct ofp_exp_global_state_stats *)resp->body;
-            exp_header = (struct ofp_experimenter_stats_header *)stats;
+            exp_header = (struct ofp_experimenter_multipart_header *)stats;
 
             exp_header -> experimenter = htonl(BEBA_VENDOR_ID);
             exp_header -> exp_type = htonl(OFPMP_EXP_GLOBAL_STATE_STATS);
@@ -935,7 +935,7 @@ ofl_exp_beba_stats_reply_pack(struct ofl_msg_multipart_reply_experimenter const 
 ofl_err
 ofl_exp_beba_stats_req_unpack(struct ofp_multipart_request const *os, uint8_t const *buf, size_t *len, struct ofl_msg_multipart_request_header **msg, struct ofl_exp const *exp)
 {
-    struct ofp_experimenter_stats_header *ext = (struct ofp_experimenter_stats_header *)os->body;
+    struct ofp_experimenter_multipart_header *ext = (struct ofp_experimenter_multipart_header *)os->body;
     switch (ntohl(ext->exp_type)){
         case (OFPMP_EXP_STATE_STATS_AND_DELETE):
         case (OFPMP_EXP_STATE_STATS):
@@ -995,7 +995,7 @@ ofl_exp_beba_stats_req_unpack(struct ofp_multipart_request const *os, uint8_t co
 ofl_err
 ofl_exp_beba_stats_reply_unpack(struct ofp_multipart_reply const *os, uint8_t const *buf, size_t *len, struct ofl_msg_multipart_reply_header **msg, struct ofl_exp const *exp)
 {
-    struct ofp_experimenter_stats_header *ext = (struct ofp_experimenter_stats_header *)os->body;
+    struct ofp_experimenter_multipart_header *ext = (struct ofp_experimenter_multipart_header *)os->body;
     switch (ntohl(ext->exp_type)){
         case (OFPMP_EXP_STATE_STATS_AND_DELETE):
         case (OFPMP_EXP_STATE_STATS):
@@ -1007,11 +1007,11 @@ ofl_exp_beba_stats_reply_unpack(struct ofp_multipart_reply const *os, uint8_t co
             uint8_t const *ptr;
 
             // ofp_multipart_reply was already checked and subtracted in unpack_multipart_reply
-            stat = (struct ofp_exp_state_stats *) (os->body + sizeof(struct ofp_experimenter_stats_header));
+            stat = (struct ofp_exp_state_stats *) (os->body + sizeof(struct ofp_experimenter_multipart_header));
             dm = (struct ofl_exp_msg_multipart_reply_state *)malloc(sizeof(struct ofl_exp_msg_multipart_reply_state));
             dm->header.type = ntohl(ext->exp_type);
             dm->header.header.experimenter_id = ntohl(ext->experimenter);
-            *len -= (sizeof(struct ofp_experimenter_stats_header));
+            *len -= (sizeof(struct ofp_experimenter_multipart_header));
             error = ofl_utils_count_ofp_state_stats(stat, *len, &dm->stats_num);
             if (error) {
                 free(dm);
@@ -1020,7 +1020,7 @@ ofl_exp_beba_stats_reply_unpack(struct ofp_multipart_reply const *os, uint8_t co
             dm->stats = (struct ofl_exp_state_stats **)malloc(dm->stats_num * sizeof(struct ofl_exp_state_stats *));
 
             ini_len = *len;
-            ptr = buf + sizeof(struct ofp_multipart_reply) + sizeof(struct ofp_experimenter_stats_header);
+            ptr = buf + sizeof(struct ofp_multipart_reply) + sizeof(struct ofp_experimenter_multipart_header);
             for (i = 0; i < dm->stats_num; i++) {
                 error = ofl_structs_state_stats_unpack(stat, ptr, len, &(dm->stats[i]), exp);
                 ptr += ini_len - *len;
@@ -1481,17 +1481,17 @@ ofl_exp_beba_inst_unpack (struct ofp_instruction const *src, size_t *len, struct
     struct ofl_instruction_header *inst = NULL;
     size_t ilen;
     ofl_err error = 0;
-    struct ofp_instruction_experimenter_header *exp;
+    struct ofp_instruction_experimenter *exp;
     struct ofp_beba_instruction_experimenter_header *beba_exp;
 
     OFL_LOG_DBG(LOG_MODULE, "ofl_exp_beba_inst_unpack");
 
-    if (*len < sizeof(struct ofp_instruction_experimenter_header)) {
+    if (*len < sizeof(struct ofp_instruction_experimenter)) {
         OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER instruction has invalid length (%zu).", *len);
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
 
-    exp = (struct ofp_instruction_experimenter_header *) src;
+    exp = (struct ofp_instruction_experimenter *) src;
 
     if (*len < ntohs(exp->len)) {
         OFL_LOG_WARN(LOG_MODULE, "Received instruction has invalid length (set to %u, but only %zu received).", ntohs(exp->len), *len);

@@ -130,13 +130,7 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt)
     }
 
     if (!packet_handle_std_is_ttl_valid(&pkt->handle_std)) {
-        if ((pl->dp->config.flags & OFPC_INVALID_TTL_TO_CONTROLLER) != 0) {
-            VLOG_DBG_RL(LOG_MODULE, &rl, "Packet has invalid TTL, sending to controller.");
-
-            send_packet_to_controller(pl, pkt, 0/*table_id*/, OFPR_INVALID_TTL);
-        } else {
-            VLOG_DBG_RL(LOG_MODULE, &rl, "Packet has invalid TTL, dropping.");
-        }
+        send_packet_to_controller(pl, pkt, 0/*table_id*/, OFPR_INVALID_TTL);
         packet_destroy(pkt);
         return;
     }

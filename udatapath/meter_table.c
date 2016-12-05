@@ -279,7 +279,6 @@ meter_table_handle_stats_request_meter_conf(struct meter_table *table,
 {
     struct ofl_msg_multipart_reply_meter_conf reply;
     struct meter_entry *entry;
-    struct ofl_msg_multipart_reply_meter_conf reply;
     if (msg->meter_id == OFPM_ALL) {
         entry = NULL;
     } else {

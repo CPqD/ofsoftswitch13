@@ -279,10 +279,10 @@ ofl_err
 ofl_exp_stats_req_unpack (struct ofp_multipart_request const *os, uint8_t const *buf, size_t *len,
               struct ofl_msg_multipart_request_header **msg, struct ofl_exp const *exp)
 {
-    struct ofp_experimenter_stats_header *ext  = (struct ofp_experimenter_stats_header *)os->body;
+    struct ofp_experimenter_multipart_header *ext  = (struct ofp_experimenter_multipart_header *)os->body;
 
-    if (*len < sizeof(struct ofp_experimenter_stats_header)) {
-        OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER message is shorter than ofp_experimenter_stats_header.");
+    if (*len < sizeof(struct ofp_experimenter_multipart_header)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER message is shorter than ofp_experimenter_multipart_header.");
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
 
@@ -301,10 +301,10 @@ ofl_err
 ofl_exp_stats_reply_unpack (struct ofp_multipart_reply const *os, uint8_t const *buf, size_t *len,
                 struct ofl_msg_multipart_reply_header **msg, struct ofl_exp const *exp)
 {
-    struct ofp_experimenter_stats_header *ext = (struct ofp_experimenter_stats_header *)os->body;
+    struct ofp_experimenter_multipart_header *ext = (struct ofp_experimenter_multipart_header *)os->body;
 
-    if (*len < sizeof(struct ofp_experimenter_stats_header)) {
-        OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER message is shorter than ofp_experimenter_stats_header.");
+    if (*len < sizeof(struct ofp_experimenter_multipart_header)) {
+        OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER message is shorter than ofp_experimenter_multipart_header.");
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
 
@@ -492,15 +492,15 @@ ofl_exp_inst_pack (struct ofl_instruction_header const *src, struct ofp_instruct
 
 ofl_err
 ofl_exp_inst_unpack (struct ofp_instruction const *src, size_t *len, struct ofl_instruction_header **dst) {
-    struct ofp_instruction_experimenter_header *exp;
+    struct ofp_instruction_experimenter *exp;
 
-    if (*len < sizeof(struct ofp_instruction_experimenter_header)) {
+    if (*len < sizeof(struct ofp_instruction_experimenter)) {
         OFL_LOG_WARN(LOG_MODULE, "Received EXPERIMENTER instruction is shorter than ofp_experimenter_header.");
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
     }
 
 
-    exp = (struct ofp_instruction_experimenter_header *)src;
+    exp = (struct ofp_instruction_experimenter *)src;
 
     switch(ntohl(exp->experimenter)){
         case (BEBA_VENDOR_ID): {

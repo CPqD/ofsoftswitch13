@@ -695,7 +695,6 @@ dp_ports_handle_port_mod(struct datapath *dp, struct ofl_msg_port_mod *msg, cons
 {
     struct ofl_msg_port_status rep_msg;
     struct sw_port *p;
-    struct ofl_msg_port_status rep_msg;
 
     if(sender->remote->role == OFPCR_ROLE_SLAVE)
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_IS_SLAVE);
