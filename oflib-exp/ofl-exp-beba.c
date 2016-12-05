@@ -1948,14 +1948,14 @@ ofl_err state_table_set_extractor(struct state_table *table, struct key_extracto
 
 ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
                            struct ofl_exp_set_flow_state *msg, struct ofl_exp_action_set_state *act,
-                           struct ofl_exp_msg_notify_state_change *ntf_message)
+                           struct ofl_exp_msg_notify_state_change *ntf_message UNUSED)
 {
     uint8_t key[MAX_STATE_KEY_LEN] = {0};
     struct state_entry *e;
     uint32_t state, state_mask,
             idle_rollback, hard_rollback,
             idle_timeout, hard_timeout,
-            old_state, new_state;
+            new_state; // old_state; (used with state sync)
     uint64_t now;
     ofl_err res = 0;
     bool entry_found = 0;
@@ -2033,11 +2033,11 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
 
     if (entry_found) {
         new_state = (e->state & ~(state_mask)) | (state & state_mask);
-        old_state = e->state;
+        // old_state = e->state;
     } else {
         // Key not found in hash map.
         new_state = state & state_mask;
-        old_state = STATE_DEFAULT;
+        // old_state = STATE_DEFAULT;
 
         // Allocate memory only if new state is not DEFAULT or there's a timeout that will transition it to other value.
         if (new_state != STATE_DEFAULT
@@ -2285,19 +2285,16 @@ state_table_stats(struct state_table *table, struct ofl_exp_msg_multipart_reques
     size_t  i;
     uint32_t fields[MAX_EXTRACTION_FIELD_COUNT] = {0};
     struct timeval tv;
-    gettimeofday(&tv,NULL);
-    uint64_t now = 1000000 * tv.tv_sec + tv.tv_usec;
+    uint64_t now;
     struct key_extractor *extractor=&table->lookup_key_extractor;
-
     struct ofl_match const * a = (struct ofl_match const *)msg->match;
     struct ofl_match_tlv *state_key_match;
-    uint8_t count = 0;
-    uint8_t found = 0;
-    uint8_t len = 0;
-    uint8_t aux = 0;
-
+    uint8_t count = 0, found = 0, len = 0, aux = 0;
     uint8_t offset[MAX_EXTRACTION_FIELD_COUNT] = {0};
     uint8_t length[MAX_EXTRACTION_FIELD_COUNT] = {0};
+
+    gettimeofday(&tv,NULL);
+    now = 1000000 * tv.tv_sec + tv.tv_usec;
 
 
     for (i=0; i<extractor->field_count; i++) {

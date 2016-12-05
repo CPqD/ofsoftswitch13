@@ -103,7 +103,7 @@ stack_low(void)
 #endif
 }
 
-static bool
+static bool UNUSED
 in_stack(void *p)
 {
     uintptr_t address = (uintptr_t) p;

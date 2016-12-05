@@ -42,11 +42,9 @@
 #include <unistd.h>
 #include "util.h"
 
-void __attribute__((weak)) dp_destroy(struct datapath * dp) {
-
+void __attribute__((weak)) dp_destroy(struct datapath * dp UNUSED) {
+    // TODO Davide: explain why we need this here?
 }
-
-struct datapath *dp_ref;
 
 /* Signals to catch. */
 static const int fatal_signals[] = { SIGTERM, SIGINT, SIGHUP, SIGALRM };

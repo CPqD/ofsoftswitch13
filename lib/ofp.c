@@ -183,7 +183,7 @@ update_instruction_length(struct ofpbuf *buffer, size_t oia_offset)
 }
 
 struct ofpbuf *
-make_flow_mod(uint8_t command, uint8_t table_id, const struct flow * flow, size_t actions_len)
+make_flow_mod(uint8_t command, uint8_t table_id, const struct flow * flow UNUSED, size_t actions_len)
 {
     struct ofp_flow_mod *ofm;
     size_t size = sizeof *ofm + actions_len;

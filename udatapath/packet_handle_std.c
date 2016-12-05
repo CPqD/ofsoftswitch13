@@ -56,7 +56,8 @@ int packet_parse(struct packet const *pkt, struct ofl_match *m, struct protocols
 {
 	size_t offset = 0;
 	uint16_t eth_type = 0x0000;
-        uint8_t next_proto = 0;
+    uint8_t next_proto = 0;
+    uint16_t maskedFlags;
 
 	/* Resets all protocol fields to NULL */
 
@@ -329,8 +330,7 @@ int packet_parse(struct packet const *pkt, struct ofl_match *m, struct protocols
                                                 ntohs(proto->tcp->tcp_src));
             ofl_structs_match_put16(m, OXM_OF_TCP_DST,
                                                 ntohs(proto->tcp->tcp_dst));
-
-            uint16_t maskedFlags = ntohs(proto->tcp->tcp_ctl) & 0x1ff;
+            maskedFlags = ntohs(proto->tcp->tcp_ctl) & 0x1ff;
             ofl_structs_match_put16(m, OXM_OF_TCP_FLAGS, maskedFlags);
             return 0;
         }

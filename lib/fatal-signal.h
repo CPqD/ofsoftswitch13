@@ -35,6 +35,11 @@
 #define FATAL_SIGNAL_H 1
 
 #include <stdbool.h>
+#include "compiler.h"
+
+struct datapath *dp_ref;
+
+void __attribute__((weak)) dp_destroy(struct datapath * dp UNUSED);
 
 /* Basic interface. */
 void fatal_signal_add_hook(void (*)(void *aux), void *aux, bool run_at_exit);

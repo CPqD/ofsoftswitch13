@@ -484,7 +484,8 @@ ofl_exp_inst_pack (struct ofl_instruction_header const *src, struct ofp_instruct
 			return ofl_exp_beba_inst_pack(src,dst);
 		}
 		default: {
-			return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+            OFL_LOG_WARN(LOG_MODULE, "Trying to pack instruction with unknown EXPERIMENTER ID (%u).", exp->experimenter_id);
+            return 0;
 		}
 
 	}
@@ -521,7 +522,8 @@ ofl_exp_inst_free (struct ofl_instruction_header *i) {
 			return ofl_exp_beba_inst_free(i);
 		}
 		default: {
-			return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+            OFL_LOG_WARN(LOG_MODULE, "Trying to free instruction with unknown EXPERIMENTER ID (%u).", exp->experimenter_id);
+            return 0;
 		}
 
 	}
@@ -535,7 +537,8 @@ ofl_exp_inst_ofp_len (struct ofl_instruction_header const *i) {
 			return ofl_exp_beba_inst_ofp_len(i);
 		}
 		default: {
-			return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+            OFL_LOG_WARN(LOG_MODULE, "Trying to evaluate len of instruction with unknown EXPERIMENTER ID (%u).", exp->experimenter_id);
+            return 0;
 		}
 
 	}
@@ -549,7 +552,8 @@ ofl_exp_inst_to_string (struct ofl_instruction_header const *i) {
             return ofl_exp_beba_inst_to_string(i);
         }
         default: {
-            return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+            OFL_LOG_WARN(LOG_MODULE, "Trying to convert to string instruction with unknown EXPERIMENTER ID (%u).", exp->experimenter_id);
+            return "";
         }
 
     }

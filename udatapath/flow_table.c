@@ -478,7 +478,6 @@ flow_table_destroy_property(struct ofl_table_feature_prop_header *prop, enum ofp
         case OFPTFPT_INSTRUCTIONS:
         case OFPTFPT_INSTRUCTIONS_MISS:{
             struct ofl_table_feature_prop_instructions *inst_capabilities = (struct ofl_table_feature_prop_instructions *) prop;
-            int i;
             free(inst_capabilities->instruction_ids);
             free(inst_capabilities);
             break;        

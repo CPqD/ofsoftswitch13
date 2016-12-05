@@ -161,18 +161,14 @@ in_band_local_packet_cb(struct relay *r, void *in_band_)
 
     get_ofp_packet_payload(opi, &payload);
     flow_extract(&payload, in_port, &flow);
-
-    // FIXME!!!
-    // OFPP_LOCAL is not 16bit integer!!!
-    //
-
     /* Deal with local stuff. */
-    // FIXME!!!!
-    if (in_port == OFPP_LOCAL) {
-        /* Sent by secure channel. */
+    // FIXME: the first condition is always false.
+    // OFPP_LOCAL is not uint16_t like in_port!
+    /* if (in_port == OFPP_LOCAL) {
+        // Sent by secure channel.
         out_port = mac_learning_lookup(in_band->ml, eth->eth_dst, 0);
-    } else if (eth_addr_equals(eth->eth_dst,
-                               netdev_get_etheraddr(in_band->of_device))) {
+    } else */
+    if (eth_addr_equals(eth->eth_dst, netdev_get_etheraddr(in_band->of_device))) {
         /* Sent to secure channel. */
         out_port = OFPP_LOCAL;
         in_band_learn_mac(in_band, in_port, eth->eth_src);
