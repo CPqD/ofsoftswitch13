@@ -81,6 +81,9 @@ static size_t
 select_from_select_group(struct group_entry *entry);
 
 static size_t
+select_from_select_group_random(struct group_entry *entry);
+
+static size_t
 select_from_ff_group(struct group_entry *entry);
 
 struct group_entry *
@@ -409,7 +412,7 @@ init_select_group(struct group_entry *entry, struct ofl_msg_group_mod *mod) {
 }
 
 /* Selects a bucket from a select group, based on the w.r.r. algorithm. */
-/*static size_t
+static size_t
 select_from_select_group(struct group_entry *entry) {
     struct group_entry_wrr_data *data;
     size_t guard;
@@ -439,11 +442,11 @@ select_from_select_group(struct group_entry *entry) {
     }
     VLOG_WARN_RL(LOG_MODULE, &rl, "Could not select from select group.");
     return -1;
-}*/
+}
 
-/* Selects a bucket from a random group. */
-static size_t
-select_from_select_group(struct group_entry *entry) {
+/* Selects a bucket from a select group, randomly. */
+static size_t UNUSED
+select_from_select_group_random(struct group_entry *entry) {
     if (entry->desc->buckets_num == 0) {
           return -1;
     }
