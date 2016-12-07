@@ -294,7 +294,7 @@ dp_run(struct datapath *dp, int nrun) {
         pipeline_timeout(dp->pipeline);
     }
 
-    if (now == dp->next_state_table_flush){
+    if (now >= dp->next_state_table_flush){
         dp->next_state_table_flush = now + BEBA_STATE_FLUSH_INTERVAL;
         pipeline_flush_state_tables(dp->pipeline);
     }
