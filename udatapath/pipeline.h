@@ -104,7 +104,7 @@ pipeline_timeout(struct pipeline *pl);
 
 /* Commands pipeline to check if any state entry in any state table is timed out. */
 void
-pipeline_flush_state_tables(struct pipeline *pl);
+pipeline_flush_state_tables(struct pipeline *pl, uint64_t now_us);
 
 /* Detroys the pipeline. */
 void

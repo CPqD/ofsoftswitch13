@@ -270,7 +270,7 @@ bool
 extractors_are_equal(struct key_extractor *ke1, struct key_extractor *ke2);
 
 void
-state_table_flush(struct state_table *table);
+state_table_flush(struct state_table *table, uint64_t now_us);
 
 /*
  * State Sync: One extra argument (i.e., ntf_message) is passed at the end of this function.

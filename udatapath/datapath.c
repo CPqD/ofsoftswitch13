@@ -296,7 +296,7 @@ dp_run(struct datapath *dp, int nrun) {
 
     if (now >= dp->next_state_table_flush){
         dp->next_state_table_flush = now + BEBA_STATE_FLUSH_INTERVAL;
-        pipeline_flush_state_tables(dp->pipeline);
+        pipeline_flush_state_tables(dp->pipeline, now*1000000);
     }
 
     poll_set_timer_wait(100);

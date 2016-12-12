@@ -1687,9 +1687,9 @@ ofl_err state_table_configure_stateful(struct state_table *table, uint8_t statef
 
 void state_table_destroy(struct state_table *table)
 {
-    struct state_entry *entry;
+    struct state_entry *entry, *next;
 
-    HMAP_FOR_EACH(entry, struct state_entry, hmap_node, &table->state_entries){
+    HMAP_FOR_EACH_SAFE(entry, next, struct state_entry, hmap_node, &table->state_entries){
         hmap_remove(&table->state_entries, &entry->hmap_node);
         free(entry->stats);
         free(entry);
@@ -1721,12 +1721,12 @@ int __extract_key(uint8_t *buf, struct key_extractor *extractor, struct packet *
 }
 
 static bool
-state_entry_apply_idle_timeout(struct state_entry *entry, uint64_t ts)
+state_entry_apply_idle_timeout(struct state_entry *entry, uint64_t now_us)
 {
     if (entry->stats->idle_timeout != 0) {
-        if (ts > entry->last_used + entry->stats->idle_timeout) {
+        if (now_us > entry->last_used + entry->stats->idle_timeout) {
             entry->state = entry->stats->idle_rollback;
-            entry->created = ts;
+            entry->created = now_us;
             entry->stats->idle_timeout = 0;
             entry->stats->hard_timeout = 0;
             entry->stats->idle_rollback = 0;
@@ -1738,12 +1738,12 @@ state_entry_apply_idle_timeout(struct state_entry *entry, uint64_t ts)
 }
 
 static bool
-state_entry_apply_hard_timeout(struct state_entry *entry, uint64_t ts)
+state_entry_apply_hard_timeout(struct state_entry *entry, uint64_t now_us)
 {
     if (entry->stats->hard_timeout != 0) {
-        if (ts > entry->remove_at) {
+        if (now_us > entry->remove_at) {
             entry->state = entry->stats->hard_rollback;
-            entry->created = ts;
+            entry->created = now_us;
             entry->stats->idle_timeout = 0;
             entry->stats->hard_timeout = 0;
             entry->stats->idle_rollback = 0;
@@ -1755,11 +1755,12 @@ state_entry_apply_hard_timeout(struct state_entry *entry, uint64_t ts)
 }
 
 void
-state_table_flush(struct state_table *table)
+state_table_flush(struct state_table *table, uint64_t now_us)
 {
-    struct state_entry *entry;
-
-    HMAP_FOR_EACH(entry, struct state_entry, hmap_node, &table->state_entries){
+    struct state_entry *entry, *next;
+    HMAP_FOR_EACH_SAFE(entry, next, struct state_entry, hmap_node, &table->state_entries){
+        state_entry_apply_hard_timeout(entry, now_us);
+        state_entry_apply_idle_timeout(entry, now_us);
         if (entry->state == STATE_DEFAULT && entry->stats->hard_timeout == 0 && entry->stats->idle_timeout == 0){
             hmap_remove(&table->state_entries, &entry->hmap_node);
             free(entry->stats);
@@ -1773,7 +1774,7 @@ struct state_entry * state_table_lookup(struct state_table* table, struct packet
 {
     struct state_entry * e = NULL;
     uint8_t key[MAX_STATE_KEY_LEN] = {0};
-    uint64_t now;
+    uint64_t now_us;
 
     if(!__extract_key(key, &table->lookup_key_extractor, pkt))
     {
@@ -1786,12 +1787,12 @@ struct state_entry * state_table_lookup(struct state_table* table, struct packet
             if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
                 OFL_LOG_DBG(LOG_MODULE, "state entry FOUND: %u",e->state);
 
-                now = 1000000 * pkt->ts.tv_sec + pkt->ts.tv_usec;
+                now_us = 1000000 * pkt->ts.tv_sec + pkt->ts.tv_usec;
 
-                state_entry_apply_hard_timeout(e, now);
-                state_entry_apply_idle_timeout(e, now);
+                state_entry_apply_hard_timeout(e, now_us);
+                state_entry_apply_idle_timeout(e, now_us);
 
-                e->last_used = now;
+                e->last_used = now_us;
 
                 // cache the last state entry to avoid re-extracting it if two scopes are the same
                 table->last_lookup_state_entry = e;
@@ -1825,6 +1826,8 @@ ofl_err state_table_del_state(struct state_table *table, uint8_t *key, uint32_t 
         hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0), &table->state_entries){
             if (!memcmp(key, e->key, MAX_STATE_KEY_LEN)){
                 hmap_remove_and_shrink(&table->state_entries, &e->hmap_node);
+                free(e->stats);
+                free(e);
                 found = 1;
                 break;
             }
@@ -1834,7 +1837,6 @@ ofl_err state_table_del_state(struct state_table *table, uint8_t *key, uint32_t 
         return ofl_error(OFPET_EXPERIMENTER, OFPEC_EXP_DEL_FLOW_STATE);
     }
 
-    //TODO Davide: free(e)
     return 0;
 }
 
@@ -1956,7 +1958,7 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
             idle_rollback, hard_rollback,
             idle_timeout, hard_timeout,
             old_state, new_state;
-    uint64_t now;
+    uint64_t now_us;
     ofl_err res = 0;
     bool entry_found = 0;
     bool entry_created = 0;
@@ -1968,7 +1970,7 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
         //SET_STATE action
         struct key_extractor *key_extractor_ptr;
 
-        now = 1000000 * pkt->ts.tv_sec + pkt->ts.tv_usec;
+        now_us = 1000000 * pkt->ts.tv_sec + pkt->ts.tv_usec;
         state = act->state;
         state_mask = act->state_mask;
         idle_rollback = act->idle_rollback;
@@ -1993,7 +1995,7 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
         struct timeval tv;
 
         gettimeofday(&tv,NULL);
-        now = 1000000 * tv.tv_sec + tv.tv_usec;
+        now_us = 1000000 * tv.tv_sec + tv.tv_usec;
         state = msg->state;
         state_mask = msg->state_mask;
         idle_rollback = msg->idle_rollback;
@@ -2060,12 +2062,12 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
         e->state = new_state;
 
         // FIXME: renaming created to last_updated would be more appropriate.
-        e->created = now;
+        e->created = now_us;
 
         // Update timeouts, only if rollback state != current state
         if (hard_timeout > 0 && hard_rollback != new_state) {
             OFL_LOG_DBG(LOG_MODULE, "configuring hard_timeout = %u", hard_timeout);
-            e->remove_at = now + hard_timeout;
+            e->remove_at = now_us + hard_timeout;
             e->stats->hard_timeout = hard_timeout;
             e->stats->hard_rollback = hard_rollback;
         } else {
@@ -2077,7 +2079,7 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
             OFL_LOG_DBG(LOG_MODULE, "configuring idle_timeout = %u", idle_timeout);
             e->stats->idle_timeout = idle_timeout;
             e->stats->idle_rollback = idle_rollback;
-            e->last_used = now;
+            e->last_used = now_us;
         } else {
             e->stats->idle_timeout = 0;
             e->stats->idle_rollback = 0;
@@ -2104,7 +2106,7 @@ ofl_err state_table_inc_state(struct state_table *table, struct packet *pkt){
 
     uint8_t key[MAX_STATE_KEY_LEN] = {0};
     struct state_entry *e;
-    uint64_t now;
+    uint64_t now_us;
     ofl_err res = 0;
     bool entry_to_update_is_cached = table->update_scope_is_eq_lookup_scope && table->last_lookup_state_entry != NULL;
 
@@ -2129,9 +2131,9 @@ ofl_err state_table_inc_state(struct state_table *table, struct packet *pkt){
         return 0;
     }
 
-    now = 1000000 * pkt->ts.tv_sec + pkt->ts.tv_usec;
+    now_us = 1000000 * pkt->ts.tv_sec + pkt->ts.tv_usec;
     e = xmalloc(sizeof(struct state_entry));
-    e->created = now;
+    e->created = now_us;
     e->stats = xmalloc(sizeof(struct ofl_exp_state_stats));
     e->stats->idle_timeout = 0;
     e->stats->hard_timeout = 0;
@@ -2281,12 +2283,12 @@ void
 state_table_stats(struct state_table *table, struct ofl_exp_msg_multipart_request_state *msg,
                  struct ofl_exp_state_stats ***stats, size_t *stats_size, size_t *stats_num, uint8_t table_id, bool delete_entries)
 {
-    struct state_entry *entry;
+    struct state_entry *entry, *next;
     size_t  i;
     uint32_t fields[MAX_EXTRACTION_FIELD_COUNT] = {0};
     struct timeval tv;
     gettimeofday(&tv,NULL);
-    uint64_t now = 1000000 * tv.tv_sec + tv.tv_usec;
+    uint64_t now_us = 1000000 * tv.tv_sec + tv.tv_usec;
     struct key_extractor *extractor=&table->lookup_key_extractor;
 
     struct ofl_match const * a = (struct ofl_match const *)msg->match;
@@ -2326,7 +2328,7 @@ state_table_stats(struct state_table *table, struct ofl_exp_msg_multipart_reques
     }
 
     //for each state entry
-    HMAP_FOR_EACH(entry, struct state_entry, hmap_node, &table->state_entries) {
+    HMAP_FOR_EACH_SAFE(entry, next, struct state_entry, hmap_node, &table->state_entries) {
         if(entry == NULL)
             break;
 
@@ -2340,8 +2342,8 @@ state_table_stats(struct state_table *table, struct ofl_exp_msg_multipart_reques
             aux+=1;
         }
 
-        state_entry_apply_hard_timeout(entry, now);
-        state_entry_apply_idle_timeout(entry, now);
+        state_entry_apply_hard_timeout(entry, now_us);
+        state_entry_apply_idle_timeout(entry, now_us);
 
         if(found && ((msg->get_from_state && msg->state == entry->state) || (!msg->get_from_state)))
         {
@@ -2352,8 +2354,8 @@ state_table_stats(struct state_table *table, struct ofl_exp_msg_multipart_reques
             
             (*stats)[(*stats_num)] = entry->stats;
             (*stats)[(*stats_num)]->table_id = table_id;
-            (*stats)[(*stats_num)]->duration_sec = (now - entry->created) / 1000000;
-            (*stats)[(*stats_num)]->duration_nsec = ((now - entry->created) % 1000000) * 1000;
+            (*stats)[(*stats_num)]->duration_sec = (now_us - entry->created) / 1000000;
+            (*stats)[(*stats_num)]->duration_nsec = ((now_us - entry->created) % 1000000) * 1000;
             (*stats)[(*stats_num)]->field_count = extractor->field_count;
             memcpy((*stats)[(*stats_num)]->fields, extractor->fields, MAX_EXTRACTION_FIELD_COUNT);
             (*stats)[(*stats_num)]->idle_timeout = entry->stats->idle_timeout;
@@ -2368,6 +2370,8 @@ state_table_stats(struct state_table *table, struct ofl_exp_msg_multipart_reques
 
             if (delete_entries){
                 hmap_remove_and_shrink(&table->state_entries, &entry->hmap_node);
+                free(entry->stats);
+                free(entry);
             }
         }
 
@@ -3060,11 +3064,11 @@ struct pkttmp_entry *
 pkttmp_entry_create(struct datapath *dp, struct pkttmp_table *table, struct ofl_exp_add_pkttmp *mod) {
     struct pkttmp_entry *e;
     //size_t i;
-    uint64_t now;
-    now = time_msec();
+    uint64_t now_ms;
+    now_ms = time_msec();
 
     e = xmalloc(sizeof(struct pkttmp_entry));
-    e->created = now;
+    e->created = now_ms;
     e->dp = dp;
     e->table = table;
     e->pkttmp_id = mod->pkttmp_id;
