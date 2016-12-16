@@ -411,7 +411,7 @@ ofl_msg_pack_multipart_request_flow(struct ofl_msg_multipart_request_flow const 
     struct ofp_flow_stats_request *stats;
     uint8_t *ptr;
 
-    *buf_len = sizeof(struct ofp_multipart_request) + sizeof(struct ofp_flow_stats_request) + msg->match->length;
+    *buf_len = ROUND_UP(sizeof(struct ofp_multipart_request) + sizeof(struct ofp_flow_stats_request)- 4 + msg->match->length,8);
     *buf     = (uint8_t *)malloc(*buf_len);
 
     req = (struct ofp_multipart_request *)(*buf);

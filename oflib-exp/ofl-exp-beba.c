@@ -831,7 +831,7 @@ ofl_exp_beba_stats_req_pack(struct ofl_msg_multipart_request_experimenter const 
             struct ofp_exp_state_stats_request *stats;
             struct ofp_experimenter_stats_header *exp_header;
             uint8_t *ptr;
-            *buf_len = sizeof(struct ofp_multipart_request) + sizeof(struct ofp_exp_state_stats_request) + msg->match->length;
+            *buf_len = ROUND_UP(sizeof(struct ofp_multipart_request) + sizeof(struct ofp_exp_state_stats_request) -4 + msg->match->length,8);
             *buf     = (uint8_t *)malloc(*buf_len);
 
             req = (struct ofp_multipart_request *)(*buf);
@@ -2357,7 +2357,7 @@ state_table_stats(struct state_table *table, struct ofl_exp_msg_multipart_reques
             (*stats)[(*stats_num)]->duration_sec = (now_us - entry->created) / 1000000;
             (*stats)[(*stats_num)]->duration_nsec = ((now_us - entry->created) % 1000000) * 1000;
             (*stats)[(*stats_num)]->field_count = extractor->field_count;
-            memcpy((*stats)[(*stats_num)]->fields, extractor->fields, MAX_EXTRACTION_FIELD_COUNT);
+            memcpy((*stats)[(*stats_num)]->fields, extractor->fields, sizeof(uint32_t) * extractor->field_count);
             (*stats)[(*stats_num)]->idle_timeout = entry->stats->idle_timeout;
             (*stats)[(*stats_num)]->hard_timeout = entry->stats->hard_timeout;
             (*stats)[(*stats_num)]->idle_rollback = entry->stats->idle_rollback;
@@ -2412,6 +2412,7 @@ ofl_structs_state_stats_pack(struct ofl_exp_state_stats const *src, uint8_t *dst
     size_t  i;
     total_len = ROUND_UP(sizeof(struct ofp_exp_state_stats),8);
     state_stats = (struct ofp_exp_state_stats*) dst;
+    memset(state_stats, 0, sizeof(struct ofp_exp_state_stats));
     state_stats->length = htons(total_len);
     state_stats->table_id = src->table_id;
     state_stats->duration_sec = htonl(src->duration_sec);
@@ -2423,8 +2424,7 @@ ofl_structs_state_stats_pack(struct ofl_exp_state_stats const *src, uint8_t *dst
     for (i=0;i<src->field_count;i++)
            state_stats->fields[i]=htonl(src->fields[i]);
     state_stats->entry.key_len = htonl(src->entry.key_len);
-    for (i=0;i<src->entry.key_len;i++)
-           state_stats->entry.key[i]=src->entry.key[i];
+    memcpy(state_stats->entry.key, src->entry.key, src->entry.key_len);
     state_stats->entry.state = htonl(src->entry.state);
     state_stats->idle_timeout = htonl(src->idle_timeout);
     state_stats->idle_rollback = htonl(src->idle_rollback);
