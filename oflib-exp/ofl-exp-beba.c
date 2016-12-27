@@ -1134,9 +1134,11 @@ ofl_exp_beba_stats_reply_to_string(struct ofl_msg_multipart_reply_experimenter c
         {
             struct ofl_exp_msg_multipart_reply_global_state *msg = (struct ofl_exp_msg_multipart_reply_global_state *)e;
 
+            char *bin_value = decimal_to_binary(msg->global_state);
             fprintf(stream, "{stat_exp_type=\"");
             ofl_exp_stats_type_print(stream, e->type);
-            fprintf(stream, "\", global_state=\"%s\"",decimal_to_binary(msg->global_state));
+            fprintf(stream, "\", global_state=\"%s\"", bin_value);
+            free(bin_value);
             break;
         }
     }
@@ -2048,7 +2050,9 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
         {
             entry_created = 1;
             e = xmalloc(sizeof(struct state_entry));
+            memset(e,0,sizeof(struct state_entry));
             e->stats = xmalloc(sizeof(struct ofl_exp_state_stats));
+            memset(e->stats,0,sizeof(struct ofl_exp_state_stats));
             memcpy(e->key, key, MAX_STATE_KEY_LEN);
             hmap_insert(&table->state_entries, &e->hmap_node, hash_bytes(key, MAX_STATE_KEY_LEN, 0));
             OFL_LOG_DBG(LOG_MODULE, "state entry CREATED is hash map");
@@ -2084,6 +2088,8 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
             e->stats->idle_timeout = 0;
             e->stats->idle_rollback = 0;
         }
+
+        // all the statistics except timeouts and rollbacks are updated on request
     }
 
     //FIXME Davide: enable state notifications with ifdef condition.
@@ -2351,26 +2357,25 @@ state_table_stats(struct state_table *table, struct ofl_exp_msg_multipart_reques
                 (*stats) = xrealloc(*stats, (sizeof(struct ofl_exp_state_stats *)) * (*stats_size) * 2);
                 *stats_size *= 2;
             }
-            
+
+            // entry->stats are referenced by the reply message, NOT copied
             (*stats)[(*stats_num)] = entry->stats;
             (*stats)[(*stats_num)]->table_id = table_id;
             (*stats)[(*stats_num)]->duration_sec = (now_us - entry->created) / 1000000;
             (*stats)[(*stats_num)]->duration_nsec = ((now_us - entry->created) % 1000000) * 1000;
             (*stats)[(*stats_num)]->field_count = extractor->field_count;
             memcpy((*stats)[(*stats_num)]->fields, extractor->fields, sizeof(uint32_t) * extractor->field_count);
-            (*stats)[(*stats_num)]->idle_timeout = entry->stats->idle_timeout;
-            (*stats)[(*stats_num)]->hard_timeout = entry->stats->hard_timeout;
-            (*stats)[(*stats_num)]->idle_rollback = entry->stats->idle_rollback;
-            (*stats)[(*stats_num)]->hard_rollback = entry->stats->hard_rollback;
+            // timeouts and rollbacks have been already set
             (*stats)[(*stats_num)]->entry.state = entry->state;
-            memcpy((*stats)[(*stats_num)]->entry.key, entry->key, MAX_STATE_KEY_LEN);
+            memcpy((*stats)[(*stats_num)]->entry.key, entry->key, extractor->key_len);
             (*stats)[(*stats_num)]->entry.key_len = extractor->key_len;
             
             (*stats_num)++;
 
             if (delete_entries){
+                // state_entries are removed from hmap but entry->stats are freed only after reply msg has been sent
+                // because the reply message contains references to entry->stats!
                 hmap_remove_and_shrink(&table->state_entries, &entry->hmap_node);
-                free(entry->stats);
                 free(entry);
             }
         }

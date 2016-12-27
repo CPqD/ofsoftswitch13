@@ -222,8 +222,15 @@ dp_exp_stats(struct datapath *dp UNUSED, struct ofl_msg_multipart_request_experi
                 case (OFPMP_EXP_STATE_STATS_AND_DELETE):
                 case (OFPMP_EXP_STATE_STATS): {
                     struct ofl_exp_msg_multipart_reply_state reply;
+                    size_t i;
                     err = handle_stats_request_state(dp->pipeline, (struct ofl_exp_msg_multipart_request_state *)msg, sender, &reply);
                     dp_send_message(dp, (struct ofl_msg_header *)&reply, sender);
+                    if (exp->type == OFPMP_EXP_STATE_STATS_AND_DELETE) {
+                        // stats_num - 1 because default state entry must not be freed
+                        for (i = 0; i < reply.stats_num - 1; i++) {
+                            free(reply.stats[i]);
+                        }
+                    }
                     free(reply.stats);
                     ofl_msg_free((struct ofl_msg_header *)msg, dp->exp);
                     return err;
