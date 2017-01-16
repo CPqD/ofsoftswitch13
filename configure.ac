@@ -82,6 +82,7 @@ AC_DEFINE(BEBA_MATCH_POOL_SIZE,     16,  [BEBA size of pool for small TLV node])
 AC_DEFINE(BEBA_MATCH_VALUE_SIZE,    16,  [BEBA size of TLV value])
 AC_DEFINE(BEBA_HMAP_INIT_SIZE,      8,   [BEBA size of init hmap])
 AC_DEFINE(BEBA_STATE_FLUSH_INTERVAL,60,  [BEBA state table flush interval (in seconds)])
+AC_DEFINE(BEBA_STATE_NOTIFICATIONS, 0,   [BEBA state notifications])
 
 
 #OFP_CHECK_LINUX(l26, 2.6, KBLD26, KSRC26, L26_ENABLED)
