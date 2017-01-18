@@ -62,6 +62,7 @@ dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
     {
         struct ofl_exp_beba_act_header *action;
         struct ofl_exp_msg_notify_state_change ntf_message;
+        
         action = (struct ofl_exp_beba_act_header *) act;
         switch(action->act_type){
 
@@ -77,6 +78,7 @@ dp_exp_action(struct packet *pkt, struct ofl_action_experimenter *act) {
                     // This invocation occurs when a state transition happens due to a dynamic event (e.g., a newly received packet).
                     state_table_set_state(st, pkt, NULL, wns, &ntf_message);
                     #if BEBA_STATE_NOTIFICATIONS != 0
+                    memset(&ntf_message, 0, sizeof(struct ofl_exp_msg_notify_state_change));
                     if (ntf_message.old_state != ntf_message.new_state) {
                         int err = dp_send_message(pkt->dp, (struct ofl_msg_header *)&ntf_message, NULL);
                         if (err) {

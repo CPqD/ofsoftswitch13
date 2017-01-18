@@ -2090,21 +2090,21 @@ ofl_err state_table_set_state(struct state_table *table, struct packet *pkt,
         }
 
         // all the statistics except timeouts and rollbacks are updated on request
-    }
 
-    #if BEBA_STATE_NOTIFICATIONS != 0
-    *ntf_message = (struct ofl_exp_msg_notify_state_change)
-            {{{{.type = OFPT_EXPERIMENTER},
-                      .experimenter_id = BEBA_VENDOR_ID},
-                     .type = OFPT_EXP_STATE_CHANGED},
-                    .table_id = e->stats->table_id,
-                    .old_state = old_state,
-                    .new_state = new_state,
-                    .state_mask = state_mask,
-                    .key_len = OFPSC_MAX_KEY_LEN,
-                    .key = {}};
-    memcpy(ntf_message->key, e->key, ntf_message->key_len);
-    #endif
+        #if BEBA_STATE_NOTIFICATIONS != 0
+        *ntf_message = (struct ofl_exp_msg_notify_state_change)
+                {{{{.type = OFPT_EXPERIMENTER},
+                        .experimenter_id = BEBA_VENDOR_ID},
+                        .type = OFPT_EXP_STATE_CHANGED},
+                        .table_id = e->stats->table_id,
+                        .old_state = old_state,
+                        .new_state = new_state,
+                        .state_mask = state_mask,
+                        .key_len = OFPSC_MAX_KEY_LEN,
+                        .key = {}};
+        memcpy(ntf_message->key, e->key, ntf_message->key_len);
+        #endif
+    }
 
     return res;
 }
