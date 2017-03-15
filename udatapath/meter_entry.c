@@ -318,17 +318,17 @@ meter_entry_del_flow_ref(struct meter_entry *entry, struct flow_entry *fe) {
 void
 refill_bucket(struct meter_entry *entry)
 {
-	size_t i;
+    long long int now = time_msec();
+    size_t i;
 
     for(i = 0; i < entry->config->meter_bands_num; i++) {
-    	long long int now = time_msec();
         uint32_t rate;
         uint32_t burst_size;
         uint64_t tokens;
+        long long int elapsed_msec = now - entry->stats->band_stats[i]->last_fill;
         rate = entry->config->bands[i]->rate * 1000;
         burst_size = entry->config->bands[i]->burst_size * 1000;
-        tokens =  (now - entry->stats->band_stats[i]->last_fill) *
-                rate  + entry->stats->band_stats[i]->tokens;
+        tokens = ((rate * elapsed_msec) / 1000) + entry->stats->band_stats[i]->tokens;
         entry->stats->band_stats[i]->last_fill = now;
         if (!(entry->config->flags & OFPMF_BURST)){
             if(entry->config->flags & OFPMF_KBPS && tokens >= 1){
