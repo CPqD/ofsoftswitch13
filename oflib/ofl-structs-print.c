@@ -398,9 +398,9 @@ ofl_structs_oxm_tlv_print(FILE *stream, struct ofl_match_tlv *f)
 			fprintf(stream, "mpls_bos=\"%d\"", *f->value & 0x1);
 			break;
 		case OFPXMT_OFB_METADATA:
-			fprintf(stream, "metadata=\"0x%"PRIu64"\"", *((uint64_t*) f->value));
+			fprintf(stream, "metadata=\"0x%"PRIx64"\"", *((uint64_t*) f->value));
 			if (OXM_HASMASK(f->header)) {
-				fprintf(stream, ", metadata_mask=\"0x%"PRIu64"\"", *((uint64_t*)(f->value+8)));
+				fprintf(stream, ", metadata_mask=\"0x%"PRIx64"\"", *((uint64_t*)(f->value+8)));
 			}
 			break;
 		case OFPXMT_OFB_PBB_ISID   :
@@ -410,9 +410,9 @@ ofl_structs_oxm_tlv_print(FILE *stream, struct ofl_match_tlv *f)
 			}
 			break;
 		case OFPXMT_OFB_TUNNEL_ID:
-			fprintf(stream, "tunnel_id=\"0x%"PRIu64"\"", *((uint64_t*) f->value));
+			fprintf(stream, "tunnel_id=\"0x%"PRIx64"\"", *((uint64_t*) f->value));
 			if (OXM_HASMASK(f->header)) {
-				fprintf(stream, ", tunnel_id_mask=\"0x%"PRIu64"\"", *((uint64_t*)(f->value+8)));
+				fprintf(stream, ", tunnel_id_mask=\"0x%"PRIx64"\"", *((uint64_t*)(f->value+8)));
 			}
 			break;
 		case OFPXMT_OFB_IPV6_EXTHDR:
@@ -856,7 +856,7 @@ ofl_structs_table_features_print(FILE *stream, struct ofl_table_features *s){
     fprintf(stream, "{table=\"");
     ofl_table_print(stream, s->table_id);  
     fprintf(stream, "\", name=\"%s\", "
-                          "metadata_match=\"%"PRIx64"\", metadata_write=\"%"PRIx64"\", config=\"%"PRIu32"\"," 
+                          "metadata_match=\"0x%"PRIx64"\", metadata_write=\"0x%"PRIx64"\", config=\"%"PRIu32"\"," 
                           "max_entries=\"%"PRIu32"\"",
                   s->name, s->metadata_match, s->metadata_write, s->config, s->max_entries);      
     for(i =0; i < s->properties_num; i++){
