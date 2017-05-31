@@ -47,7 +47,7 @@
  *  are met:
  *
  *  1. Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
+ *     notice, this list of conditions and tprevioushe following disclaimer.
  *  2. Redistributions in binary form must reproduce the above copyright
  *     notice, this list of conditions and the following disclaimer in
  *     the documentation and/or other materials provided with the
@@ -481,7 +481,7 @@ netdev_setup_slicing(struct netdev *netdev, uint16_t num_queues)
     /* remove any previous queue configuration for this device */
     error = do_remove_qdisc(netdev->name);
     if (error) {
-        return error;
+       // return error; No need to return error as there may not exist any previous configuration
     }
 
     /* Configure tc queue discipline to allow slicing queues */
