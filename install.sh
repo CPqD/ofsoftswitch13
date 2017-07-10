@@ -4,8 +4,9 @@
 # Tested on the LTS versions 14.04 and 16.04.
 # Feel free to contribute to additional systems
 
-UBUNTU_DEPS="cmake libpcap-dev libxerces-c3.1 libxerces-c-dev libpcre3 libpcre3-dev flex bison pkg-config autoconf libtool libboost-dev"
+UBUNTU_DEPS="g++ gcc cmake libc6-dev libpcap-dev libxerces-c3.1 libxerces-c-dev libpcre3 libpcre3-dev flex bison pkg-config autoconf libtool libboost-dev"
 
+BUILD_DIR="$(pwd -P)"
 install_deps()
 {
     if [ $(lsb_release -si) = "Ubuntu" ]; then
@@ -23,11 +24,11 @@ install_nbee()
     sudo cp bin/libn*.so /usr/local/lib
     sudo ldconfig
     sudo cp -R include/* /usr/include/
-    cd ..
 }
 
 switch()
 {
+    cd $BUILD_DIR
     ./boot.sh
     ./configure
     make
