@@ -32,14 +32,14 @@ The switch makes use of the NetBee library to parse packets, so we need to insta
 1. Install the following packages:
 
     ```
-    $ sudo apt-get install cmake libpcap-dev libxerces-c2-dev libpcre3-dev flex bison pkg-config autoconf libtool libboost-dev
+    $ sudo apt-get install cmake libpcap-dev install libxerces-c3.1 libxerces-c-dev libpcre3 libpcre3-dev flex bison pkg-config autoconf libtool libboost-dev
     ```
 
 2. Clone and build netbee
 
     ```
     $ git clone https://github.com/netgroup-polito/netbee.git
-    $ cd nbeesrc/src
+    $ cd netbee/src
     $ cmake .
     $ make
     ```
