@@ -27,8 +27,12 @@ install_nbee()
 }
 
 switch()
-{
-    cd $BUILD_DIR/ofsoftswitch13
+{   
+    if [ ${BUILD_DIR##*/} != "ofsoftswitch13" ]; then
+        cd $BUILD_DIR/ofsoftswitch13
+    else
+        cd $BUILD_DIR
+    fi
     ./boot.sh
     ./configure
     make
