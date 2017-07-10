@@ -21,10 +21,7 @@ The following components are available in this package:
 
 # Getting Started
 
-These instructions have been tested on Ubuntu 12.04. Other distributions or versions may need different steps. 
-
-For Ubuntu 14.04, please check @castroflavio solution:
-[How to compile on Ubuntu 14.04][compileubuntu14]
+These instructions have been tested on Ubuntu 16.04. Other distributions or versions may need different steps. 
 
 ## Before building
 The switch makes use of the NetBee library to parse packets, so we need to install it first.
