@@ -16,7 +16,9 @@ install_deps()
 
 install_nbee()
 {
-    git clone https://github.com/netgroup-polito/netbee.git
+    if [ ! -d "netbee" ]; then
+        git clone https://github.com/netgroup-polito/netbee.git
+    fi
     cd netbee/src
     cmake .
     make
