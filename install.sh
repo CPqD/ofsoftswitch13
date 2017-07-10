@@ -28,7 +28,7 @@ install_nbee()
 
 switch()
 {
-    cd $BUILD_DIR
+    cd $BUILD_DIR/ofsoftswitch13
     ./boot.sh
     ./configure
     make
