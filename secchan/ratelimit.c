@@ -83,7 +83,7 @@ drop_packet(struct rate_limiter *rl)
 
     longest = &rl->queues[0];
     n_longest = 1;
-    for (q = &rl->queues[0]; q < &rl->queues[OFPP_MAX]; q++) {
+    for (q = &rl->queues[0]; q < &rl->queues[65535]; q++) {
         if (longest->n < q->n) {
             longest = q;
             n_longest = 1;
