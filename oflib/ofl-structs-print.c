@@ -729,8 +729,8 @@ ofl_structs_meter_features_to_string(struct ofl_meter_features* s){
 void
 ofl_structs_meter_features_print(FILE *stream, struct ofl_meter_features* s){
     
-    fprintf(stream, "{max_meter=\"%"PRIu32"\", band_types=\"%"PRIx32"\","
-            "capabilities =\"%"PRIx32"\", max_bands = %u , max_color = %u",  
+    fprintf(stream, "{max_meter=\"%"PRIu32"\", band_types=\"0x%"PRIx32"\","
+            "capabilities =\"0x%"PRIx32"\", max_bands = %u , max_color = %u",  
                 s->max_meter, s->band_types, s->capabilities, s->max_bands, s->max_color);
     fprintf(stream, "}"); 
 
