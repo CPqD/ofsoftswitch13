@@ -116,7 +116,7 @@ backtrace_capture(struct backtrace *backtrace)
     size_t n;
 
     n = 0;
-    for (frame = __builtin_frame_address(1);
+    for (frame = __builtin_frame_address(0);
          frame != NULL && in_stack(frame) && frame[0] != NULL
              && n < BACKTRACE_MAX_FRAMES;
          frame = frame[0])

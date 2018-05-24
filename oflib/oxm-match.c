@@ -67,16 +67,6 @@
 
 static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(1, 5);
 
-/* Possible masks for TLV OXM_ETH_DST_W. */
-static const uint8_t eth_all_0s[ETH_ADDR_LEN]
-    = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-static const uint8_t eth_all_1s[ETH_ADDR_LEN]
-    = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-static const uint8_t eth_mcast_1[ETH_ADDR_LEN]
-    = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00};
-static const uint8_t eth_mcast_0[ETH_ADDR_LEN]
-    = {0xfe, 0xff, 0xff, 0xff, 0xff, 0xff};
-
 struct oxm_field all_fields[NUM_OXM_FIELDS] = {
 #define DEFINE_FIELD(HEADER, DL_TYPES, NW_PROTO, MASKABLE)     \
     { HMAP_NODE_NULL_INITIALIZER, OFI_OXM_##HEADER, OXM_##HEADER, \
