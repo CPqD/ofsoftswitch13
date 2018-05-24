@@ -389,7 +389,7 @@ ofl_structs_oxm_tlv_print(FILE *stream, struct ofl_match_tlv *f)
 			fprintf(stream, "icmpv6_code=\"%d\"", *f->value);
 			break;
 		case OFPXMT_OFB_MPLS_LABEL:
-			fprintf(stream, "mpls_label=\"%d\"",((uint32_t) *f->value) & 0x000fffff);
+			fprintf(stream, "mpls_label=\"%d\"",*((uint32_t*) f->value) & 0x000fffff);
 			break;
 		case OFPXMT_OFB_MPLS_TC:
 			fprintf(stream, "mpls_tc=\"%d\"", *f->value & 0x3);
