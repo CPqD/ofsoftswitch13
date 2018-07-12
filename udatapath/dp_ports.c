@@ -215,7 +215,7 @@ static void
 process_buffer(struct datapath *dp, struct sw_port *p, struct ofpbuf *buffer) {
     struct packet *pkt;
 
-    if (p->conf->config & ((OFPPC_NO_RECV | OFPPC_PORT_DOWN) != 0)) {
+    if ((p->conf->config & (OFPPC_NO_RECV | OFPPC_PORT_DOWN)) != 0) {
         ofpbuf_delete(buffer);
         return;
     }
