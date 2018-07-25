@@ -48,11 +48,11 @@
 
 
 #define ETH_ADDR_FMT                                                    \
-    "%02"PRIx8":%02"PRIx8":%02"PRIx8":%02"PRIx8":%02"PRIx8":%02"PRIx8
+    "%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8
 #define ETH_ADDR_ARGS(ea)                                   \
     (ea)[0], (ea)[1], (ea)[2], (ea)[3], (ea)[4], (ea)[5]
 
-#define IP_FMT "%"PRIu8".%"PRIu8".%"PRIu8".%"PRIu8
+#define IP_FMT "%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8
 
 char *
 ofl_structs_port_to_string(struct ofl_port *port) {

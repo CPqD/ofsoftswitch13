@@ -104,7 +104,7 @@ static inline bool eth_addr_is_reserved(const uint8_t ea[ETH_ADDR_LEN])
 }
 
 #define ETH_ADDR_FMT                                                    \
-    "%02"PRIx8":%02"PRIx8":%02"PRIx8":%02"PRIx8":%02"PRIx8":%02"PRIx8
+    "%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8 ":%02" PRIx8
 #define ETH_ADDR_ARGS(ea)                                   \
     (ea)[0], (ea)[1], (ea)[2], (ea)[3], (ea)[4], (ea)[5]
 
@@ -198,7 +198,7 @@ BUILD_ASSERT_DECL(VLAN_ETH_HEADER_LEN == sizeof(struct vlan_eth_header));
  * argument of a comma expression, but it makes sure that 'ip' is a pointer.
  * This is useful since a common mistake is to pass an integer instead of a
  * pointer to IP_ARGS. */
-#define IP_FMT "%"PRIu8".%"PRIu8".%"PRIu8".%"PRIu8
+#define IP_FMT "%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8
 #define IP_ARGS(ip)                             \
         ((void) (ip)[0], ((uint8_t *) ip)[0]),  \
         ((uint8_t *) ip)[1],                    \

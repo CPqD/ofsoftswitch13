@@ -53,7 +53,7 @@ extern "C" int nblink_initialize(void)
     int NetPDLDecoderFlags = nbDECODER_GENERATEPDML;
     int ShowNetworkNames = 0;
 
-    char* NetPDLFileName = (char*) NETPDLDIR"/"NETPDLFILE;
+    char* NetPDLFileName = (char*) NETPDLDIR "/" NETPDLFILE;
     struct stat netpdlstat;
 
     struct sigaction sa;
