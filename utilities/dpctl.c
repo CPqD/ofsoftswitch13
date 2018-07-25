@@ -1530,6 +1530,7 @@ parse_match(char *str, struct ofl_match_header **match) {
             else {
                  ofl_structs_match_put_eth(m,OXM_OF_IPV6_ND_SLL, eth_src);
             }
+            if (mask != NULL) free(mask);
             continue;
         }
         if (strncmp(token, MATCH_IPV6_ND_TLL KEY_VAL, strlen(MATCH_IPV6_ND_TLL KEY_VAL)) == 0) {
@@ -1541,6 +1542,7 @@ parse_match(char *str, struct ofl_match_header **match) {
             else {
                 ofl_structs_match_put_eth(m, OXM_OF_IPV6_ND_TLL,eth_dst);
             }
+            if (mask != NULL) free(mask);
             continue;
         }
 
@@ -1614,6 +1616,7 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
                 act->field->header = OXM_OF_ETH_SRC;
                 act->field->value = (uint8_t*) dl_src;
             }
+        if (mask != NULL) free(mask);
         return 0;
     }
     if (strncmp(token, MATCH_DL_DST KEY_VAL2, strlen(MATCH_DL_DST KEY_VAL2)) == 0) {
@@ -1626,6 +1629,7 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
                 act->field->header = OXM_OF_ETH_DST;
                 act->field->value = (uint8_t*) dl_dst;
             }
+        if (mask != NULL) free(mask);
         return 0;
     }
     if (strncmp(token, MATCH_DL_TYPE KEY_VAL2, strlen(MATCH_DL_TYPE KEY_VAL2)) == 0) {
@@ -1653,6 +1657,7 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
             act->field->header = OXM_OF_ARP_SHA;
             act->field->value = (uint8_t*) arp_sha;
         }
+        if (mask != NULL) free(mask);
         return 0;
     }
     if (strncmp(token, MATCH_ARP_THA KEY_VAL2, strlen(MATCH_ARP_THA KEY_VAL2)) == 0) {
@@ -1666,6 +1671,7 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
             act->field->header = OXM_OF_ARP_THA;
             act->field->value = (uint8_t*) arp_tha;
         }
+        if (mask != NULL) free(mask);
         return 0;
     }
     if (strncmp(token, MATCH_ARP_SPA KEY_VAL2, strlen(MATCH_ARP_SPA KEY_VAL2)) == 0) {
@@ -1679,6 +1685,7 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
             act->field->header = OXM_OF_ARP_SPA;
             act->field->value = (uint8_t*) arp_src;
         }
+        if (mask != NULL) free(mask);
         return 0;
     }
     if (strncmp(token, MATCH_ARP_TPA KEY_VAL2, strlen(MATCH_ARP_TPA KEY_VAL2)) == 0) {
@@ -1692,6 +1699,7 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
             act->field->header = OXM_OF_ARP_TPA;
             act->field->value = (uint8_t*) arp_target;
         }
+        if (mask != NULL) free(mask);
         return 0;
     }
     if (strncmp(token, MATCH_ARP_OP KEY_VAL2, strlen(MATCH_ARP_OP KEY_VAL2)) == 0) {
@@ -1802,6 +1810,7 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
             act->field->header = OXM_OF_IPV4_SRC;
             act->field->value =  (uint8_t*) nw_src;
         }
+        if (mask != NULL) free(mask);
         return 0;
     }
     if (strncmp(token, MATCH_NW_DST KEY_VAL2, strlen(MATCH_NW_DST KEY_VAL2)) == 0) {
@@ -1816,6 +1825,7 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
             act->field->header = OXM_OF_IPV4_DST;
             act->field->value =  (uint8_t*) nw_dst;
         }
+        if (mask != NULL) free(mask);
         return 0;
     }
     if (strncmp(token, MATCH_IP_ECN KEY_VAL2, strlen(MATCH_NW_DST KEY_VAL2)) == 0) {
@@ -2481,6 +2491,7 @@ parse_port_mod(char *str, struct ofl_msg_port_mod *msg) {
             if (parse_dl_addr(token + strlen(PORT_MOD_HW_ADDR KEY_VAL), msg->hw_addr, &mask)) {
                 ofp_fatal(0, "Error parsing port_mod hw_addr: %s.", token);
             }
+            if (mask != NULL) free(mask);
             continue;
         }
         if (strncmp(token, PORT_MOD_HW_CONFIG KEY_VAL, strlen(PORT_MOD_HW_CONFIG KEY_VAL)) == 0) {
