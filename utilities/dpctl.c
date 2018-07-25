@@ -188,6 +188,9 @@ static int
 parse32m(char *str, struct names32 *names, size_t names_num, uint32_t max, uint32_t *val, uint32_t **mask);
 
 static int
+parse64(char *str, uint64_t max, uint64_t *val);
+
+static int
 parse64m(char *str, uint64_t max, uint64_t *val, uint64_t **mask);
 
 static void
@@ -1915,8 +1918,8 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
     /* Tunnel ID */
     if (strncmp(token, MATCH_TUNNEL_ID KEY_VAL2, strlen(MATCH_TUNNEL_ID KEY_VAL2)) == 0) {
         uint64_t *tunn_id = malloc(sizeof(uint64_t));
-        if (sscanf(token, MATCH_TUNNEL_ID KEY_VAL2 "0x%"SCNx64"", (tunn_id)) != 1) {
-            ofp_fatal(0, "Error parsing %s: %s.", MATCH_TUNNEL_ID, token);
+        if (parse64(token + strlen(MATCH_TUNNEL_ID KEY_VAL2), 0xffffffffffffffffULL, tunn_id)) {
+            ofp_fatal(0, "Error parsing tunn_id: %s.", token);
         }
         else {
             act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
@@ -2797,6 +2800,22 @@ parse32m(char *str, struct names32 *names, size_t names_num, uint32_t max, uint3
         read = sscanf(saveptr, "%"SCNu32"", *mask);
     }
     if (read == 0) {
+        return -1;
+    }
+    return 0;
+}
+
+static int
+parse64(char *str, uint64_t max, uint64_t *val) {
+    int read;
+
+    /* Checks for value in hexadecimal. */
+    if (str[0] == '0' && str[1] == 'x') {
+        read = sscanf(str, "0x%"SCNx64"", val);
+    } else {
+        read = sscanf(str, "%"SCNu64"", val);
+    }   
+    if ((read == 0) || (max == 0) || (*val > max)) {
         return -1;
     }
     return 0;
