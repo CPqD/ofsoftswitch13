@@ -2639,7 +2639,7 @@ parse8(char *str, struct names8 *names, size_t names_num, uint8_t max, uint8_t *
 
     /* Checks for value in hexadecimal. */
     if (str[0] == '0' && str[1] == 'x') {
-        if ((max > 0) && (sscanf(str, "%"SCNx8"", val)) == 1 && (*val <= max)) {
+        if ((max > 0) && (sscanf(str, "0x%"SCNx8"", val)) == 1 && (*val <= max)) {
             return 0;
         }
     } else {
@@ -2663,7 +2663,7 @@ parse16(char *str, struct names16 *names, size_t names_num, uint16_t max, uint16
 
     /* Checks for value in hexadecimal. */
     if (str[0] == '0' && str[1] == 'x') {
-        if ((max > 0) && (sscanf(str, "%"SCNx16"", val)) == 1 && (*val <= max)) {
+        if ((max > 0) && (sscanf(str, "0x%"SCNx16"", val)) == 1 && (*val <= max)) {
             return 0;
         }
     } else {
@@ -2690,7 +2690,7 @@ parse16m(char *str, struct names16 *names, size_t names_num, uint16_t max, uint1
 
     /* Checks for value in hexadecimal. */
     if (str[0] == '0' && str[1] == 'x') {
-        read = sscanf(str, "%"SCNx16"", val);
+        read = sscanf(str, "0x%"SCNx16"", val);
     } else {
         read = sscanf(str, "%"SCNu16"", val);
     }   
@@ -2707,7 +2707,7 @@ parse16m(char *str, struct names16 *names, size_t names_num, uint16_t max, uint1
 
     /* Checks for mask in hexadecimal. */
     if (saveptr[0] == '0' && saveptr[1] == 'x') {
-        read = sscanf(saveptr, "%"SCNx16"", *mask);
+        read = sscanf(saveptr, "0x%"SCNx16"", *mask);
     } else {
         read = sscanf(saveptr, "%"SCNu16"", *mask);
     }
@@ -2731,7 +2731,7 @@ parse32(char *str, struct names32 *names, size_t names_num, uint32_t max, uint32
 
     /* Checks for value in hexadecimal. */
     if (str[0] == '0' && str[1] == 'x') {
-        if ((max > 0) && (sscanf(str, "%"SCNx32"", val)) == 1 && (*val <= max)) {
+        if ((max > 0) && (sscanf(str, "0x%"SCNx32"", val)) == 1 && (*val <= max)) {
             return 0;
         }
     } else {
@@ -2758,7 +2758,7 @@ parse32m(char *str, struct names32 *names, size_t names_num, uint32_t max, uint3
 
     /* Checks for value in hexadecimal. */
     if (str[0] == '0' && str[1] == 'x') {
-        read = sscanf(str, "%"SCNx32"", val);
+        read = sscanf(str, "0x%"SCNx32"", val);
     } else {
         read = sscanf(str, "%"SCNu32"", val);
     }   
@@ -2775,7 +2775,7 @@ parse32m(char *str, struct names32 *names, size_t names_num, uint32_t max, uint3
 
     /* Checks for mask in hexadecimal. */
     if (saveptr[0] == '0' && saveptr[1] == 'x') {
-        read = sscanf(saveptr, "%"SCNx32"", *mask);
+        read = sscanf(saveptr, "0x%"SCNx32"", *mask);
     } else {
         read = sscanf(saveptr, "%"SCNu32"", *mask);
     }
