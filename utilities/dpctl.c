@@ -2118,19 +2118,17 @@ parse_inst(char *str, struct ofl_instruction_header **inst) {
                     return;
                 }
                 case (OFPIT_WRITE_METADATA): {
-                    char *token, *saveptr = NULL;
+                    uint64_t *mask;
                     struct ofl_instruction_write_metadata *i = xmalloc(sizeof(struct ofl_instruction_write_metadata));
                     i->header.type = OFPIT_WRITE_METADATA;
-                    token = strtok_r(s, MASK_SEP, &saveptr);
-                    if (sscanf(token, "0x%"SCNx64"", &(i->metadata)) != 1) {
+                    if (parse64m(s, 0xffffffffffffffffULL, &(i->metadata), &mask)) {
                         ofp_fatal(0, "Error parsing metadata in write metadata instruction: %s.", s);
-                    }
-                    token = strtok_r(NULL, MASK_SEP, &saveptr);
-                    if (token == NULL) {
-                        i->metadata_mask = 0xffffffffffffffffULL;
                     } else {
-                        if (sscanf(token, "0x%"SCNx64"", &(i->metadata_mask)) != 1) {
-                            ofp_fatal(0, "Error parsing metadata_mask in write metadata instruction: %s.", s);
+                        if (mask == NULL) {
+                            i->metadata_mask = 0xffffffffffffffffULL;
+                        } else {
+                            i->metadata_mask = *mask;
+                            free (mask);
                         }
                     }
                     (*inst) = (struct ofl_instruction_header *)i;
