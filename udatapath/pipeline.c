@@ -631,7 +631,7 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
                     hmap_node, hash_int(OXM_OF_METADATA,0), &(*pkt)->handle_std->match.match_fields){
                     uint64_t *metadata = (uint64_t*) f->value;
                     *metadata = (*metadata & ~wi->metadata_mask) | (wi->metadata & wi->metadata_mask);
-                    VLOG_DBG_RL(LOG_MODULE, &rl, "Executing write metadata: %"PRIu64"", *metadata);
+                    VLOG_DBG_RL(LOG_MODULE, &rl, "Executing write metadata: 0x%"PRIx64"", *metadata);
                 }
                 break;
             }
