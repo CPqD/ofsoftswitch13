@@ -2619,8 +2619,15 @@ parse8(char *str, struct names8 *names, size_t names_num, uint8_t max, uint8_t *
         }
     }
 
-    if ((max > 0) && (sscanf(str, "%"SCNu8"", val)) == 1 && ((*val) <= max)) {
-        return 0;
+    /* Checks for value in hexadecimal. */
+    if (str[0] == '0' && str[1] == 'x') {
+        if ((max > 0) && (sscanf(str, "%"SCNx8"", val)) == 1 && (*val <= max)) {
+            return 0;
+        }
+    } else {
+        if ((max > 0) && (sscanf(str, "%"SCNu8"", val)) == 1 && (*val <= max)) {
+            return 0;
+        }
     }
     return -1;
 }
@@ -2636,16 +2643,15 @@ parse16(char *str, struct names16 *names, size_t names_num, uint16_t max, uint16
         }
     }
 
-    /* Checks if the passed value is hexadecimal. */
-    if( str[1] == 'x'){
-        if ((max > 0) && (sscanf(str, "%"SCNx16"", val))  == 1 && (*val <= max)) {
+    /* Checks for value in hexadecimal. */
+    if (str[0] == '0' && str[1] == 'x') {
+        if ((max > 0) && (sscanf(str, "%"SCNx16"", val)) == 1 && (*val <= max)) {
             return 0;
         }
-    }
-    else {
-         if ((max > 0) && (sscanf(str, "%"SCNu16"", val))  == 1 && (*val <= max)) {
+    } else {
+        if ((max > 0) && (sscanf(str, "%"SCNu16"", val)) == 1 && (*val <= max)) {
             return 0;
-         }
+        }
     }
     return -1;
 }
@@ -2689,8 +2695,15 @@ parse32(char *str, struct names32 *names, size_t names_num, uint32_t max, uint32
         }
     }
 
-    if ((max > 0) && (sscanf(str, "%"SCNu32"", val)) == 1 && ((*val) <= max)) {
-        return 0;
+    /* Checks for value in hexadecimal. */
+    if (str[0] == '0' && str[1] == 'x') {
+        if ((max > 0) && (sscanf(str, "%"SCNx32"", val)) == 1 && (*val <= max)) {
+            return 0;
+        }
+    } else {
+        if ((max > 0) && (sscanf(str, "%"SCNu32"", val)) == 1 && (*val <= max)) {
+            return 0;
+        }
     }
     return -1;
 }
