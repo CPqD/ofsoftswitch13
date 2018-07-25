@@ -1141,8 +1141,10 @@ parse_match(char *str, struct ofl_match_header **match) {
             else {
                 if (mask == NULL)
                     ofl_structs_match_put_eth(m,OXM_OF_ETH_SRC,eth_src);
-                else
+                else {
                     ofl_structs_match_put_eth_m(m,OXM_OF_ETH_SRC_W,eth_src,mask);
+                    free(mask);
+                }
             }
             continue;
         }
@@ -1155,8 +1157,10 @@ parse_match(char *str, struct ofl_match_header **match) {
             else {
                  if (mask == NULL)
                     ofl_structs_match_put_eth(m,OXM_OF_ETH_DST,eth_dst);
-                 else
+                 else {
                     ofl_structs_match_put_eth_m(m,OXM_OF_ETH_DST_W,eth_dst, mask);
+                    free(mask);
+                }
             }
             continue;
         }
@@ -1170,8 +1174,10 @@ parse_match(char *str, struct ofl_match_header **match) {
             else {
                 if (mask == NULL)
                     ofl_structs_match_put_eth(m, OXM_OF_ARP_SHA, arp_sha);
-                else
+                else {
                     ofl_structs_match_put_eth_m(m, OXM_OF_ARP_SHA_W, arp_sha, mask);
+                    free(mask);
+                }
             }
             continue;
         }
@@ -1184,8 +1190,10 @@ parse_match(char *str, struct ofl_match_header **match) {
             else {
                 if (mask == NULL)
                     ofl_structs_match_put_eth(m,OXM_OF_ARP_THA, arp_tha);
-                else
+                else {
                     ofl_structs_match_put_eth_m(m,OXM_OF_ARP_THA_W, arp_tha, mask);
+                    free(mask);
+                }
             }
             continue;
         }
@@ -1198,8 +1206,10 @@ parse_match(char *str, struct ofl_match_header **match) {
             else {
                 if (mask == NULL)
                     ofl_structs_match_put32(m, OXM_OF_ARP_SPA,arp_src);
-                else
+                else {
                     ofl_structs_match_put32m(m, OXM_OF_ARP_SPA_W, arp_src, *mask);
+                    free(mask);
+                }
             }
             continue;
         }
@@ -1212,8 +1222,10 @@ parse_match(char *str, struct ofl_match_header **match) {
             else {
                 if (mask == NULL)
                     ofl_structs_match_put32(m, OXM_OF_ARP_TPA, arp_target);
-                else
+                else {
                     ofl_structs_match_put32m(m, OXM_OF_ARP_TPA_W, arp_target, *mask);
+                    free(mask);
+                }
             }
             continue;
         }
@@ -1299,8 +1311,10 @@ parse_match(char *str, struct ofl_match_header **match) {
             else {
                 if (mask == NULL)
                     ofl_structs_match_put32(m, OXM_OF_IPV4_SRC,nw_src);
-                else
+                else {
                     ofl_structs_match_put32m(m, OXM_OF_IPV4_SRC_W, nw_src, *mask);
+                    free(mask);
+                }
             }
             continue;
         }
@@ -1313,8 +1327,10 @@ parse_match(char *str, struct ofl_match_header **match) {
             else {
                 if (mask == NULL)
                     ofl_structs_match_put32(m, OXM_OF_IPV4_DST,nw_dst);
-                else
+                else {
                     ofl_structs_match_put32m(m, OXM_OF_IPV4_DST_W,nw_dst, *mask);
+                    free(mask);
+                }
             }
             continue;
         }
@@ -1461,8 +1477,10 @@ parse_match(char *str, struct ofl_match_header **match) {
             else
               if(mask == NULL)
                 ofl_structs_match_put32(m, OXM_OF_IPV6_FLABEL, ipv6_label);
-              else
+              else {
                 ofl_structs_match_put32m(m, OXM_OF_IPV6_FLABEL_W, ipv6_label, *mask);
+                free (mask);
+              }
             continue;
         }
 
