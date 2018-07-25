@@ -179,7 +179,7 @@ static int
 parse16(char *str, struct names16 *names, size_t names_num, uint16_t max, uint16_t *val);
 
 static int
-parse16m(char *str, struct names16 *names, size_t names_num, uint16_t max, uint16_t *val, uint16_t *mask) UNUSED;
+parse16m(char *str, struct names16 *names, size_t names_num, uint16_t max, uint16_t *val, uint16_t **mask) UNUSED;
 
 static int
 parse32(char *str, struct names32 *names, size_t names_num, uint32_t max, uint32_t *val);
@@ -2657,28 +2657,44 @@ parse16(char *str, struct names16 *names, size_t names_num, uint16_t max, uint16
 }
 
 static int
-parse16m(char *str, struct names16 *names, size_t names_num, uint16_t max, uint16_t *val, uint16_t *mask){
+parse16m(char *str, struct names16 *names, size_t names_num, uint16_t max, uint16_t *val, uint16_t **mask){
 
     size_t i;
-    char *token, *saveptr = NULL;
+    int read;
+    char *saveptr = NULL;
 
     for (i=0; i<names_num; i++) {
         if (strcmp(str, names[i].name) == 0) {
             *val = names[i].code;
+            return 0;
         }
     }
 
-    if ((max > 0) && (*val <= max)) {
-        if (!sscanf(str, "%"SCNu16"", val))
-            return -1;
+    /* Checks for value in hexadecimal. */
+    if (str[0] == '0' && str[1] == 'x') {
+        read = sscanf(str, "%"SCNx16"", val);
+    } else {
+        read = sscanf(str, "%"SCNu16"", val);
+    }   
+    if ((read == 0) || (max == 0) || (*val > max)) {
+        return -1;
     }
 
-    token = strtok_r(str, MASK_SEP, &saveptr);
-    if(token == NULL)
-        mask = NULL;
-    else {
-        mask = (uint16_t*) malloc(sizeof(uint16_t));
-        sscanf(token, "%"SCNu16"", mask);
+    strtok_r(str, MASK_SEP, &saveptr);
+    if (strcmp (saveptr, "") == 0) {
+        *mask = NULL;
+        return 0;
+    }
+    *mask = (uint16_t*) malloc(sizeof(uint16_t));
+
+    /* Checks for mask in hexadecimal. */
+    if (saveptr[0] == '0' && saveptr[1] == 'x') {
+        read = sscanf(saveptr, "%"SCNx16"", *mask);
+    } else {
+        read = sscanf(saveptr, "%"SCNu16"", *mask);
+    }
+    if (read == 0) {
+        return -1;
     }
     return 0;
 
@@ -2712,26 +2728,41 @@ static int
 parse32m(char *str, struct names32 *names, size_t names_num, uint32_t max, uint32_t *val, uint32_t **mask){
 
     size_t i;
+    int read;
     char *saveptr = NULL;
 
     for (i=0; i<names_num; i++) {
         if (strcmp(str, names[i].name) == 0) {
             *val = names[i].code;
+            return 0;
         }
     }
 
-    if ((max > 0) && (*val <= max)) {
-        if (!sscanf(str, "%"SCNu32"", val))
-            return -1;
+    /* Checks for value in hexadecimal. */
+    if (str[0] == '0' && str[1] == 'x') {
+        read = sscanf(str, "%"SCNx32"", val);
+    } else {
+        read = sscanf(str, "%"SCNu32"", val);
+    }   
+    if ((read == 0) || (max == 0) || (*val > max)) {
+        return -1;
     }
 
     strtok_r(str, MASK_SEP, &saveptr);
-
-    if(saveptr == NULL)
+    if (strcmp (saveptr, "") == 0) {
         *mask = NULL;
-    else {
-        *mask = (uint32_t*) malloc(sizeof(uint32_t));
-        sscanf(saveptr, "%"SCNu32"", *mask);
+        return 0;
+    }
+    *mask = (uint32_t*) malloc(sizeof(uint32_t));
+
+    /* Checks for mask in hexadecimal. */
+    if (saveptr[0] == '0' && saveptr[1] == 'x') {
+        read = sscanf(saveptr, "%"SCNx32"", *mask);
+    } else {
+        read = sscanf(saveptr, "%"SCNu32"", *mask);
+    }
+    if (read == 0) {
+        return -1;
     }
     return 0;
 }
