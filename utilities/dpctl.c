@@ -179,13 +179,19 @@ static int
 parse16(char *str, struct names16 *names, size_t names_num, uint16_t max, uint16_t *val);
 
 static int
-parse16m(char *str, struct names16 *names, size_t names_num, uint16_t max, uint16_t *val, uint16_t *mask) UNUSED;
+parse16m(char *str, struct names16 *names, size_t names_num, uint16_t max, uint16_t *val, uint16_t **mask) UNUSED;
 
 static int
 parse32(char *str, struct names32 *names, size_t names_num, uint32_t max, uint32_t *val);
 
 static int
 parse32m(char *str, struct names32 *names, size_t names_num, uint32_t max, uint32_t *val, uint32_t **mask);
+
+static int
+parse64(char *str, uint64_t max, uint64_t *val);
+
+static int
+parse64m(char *str, uint64_t max, uint64_t *val, uint64_t **mask);
 
 static void
 set_table_features_match(struct vconn *vconn, int argc, char *argv[]);
@@ -1141,8 +1147,10 @@ parse_match(char *str, struct ofl_match_header **match) {
             else {
                 if (mask == NULL)
                     ofl_structs_match_put_eth(m,OXM_OF_ETH_SRC,eth_src);
-                else
+                else {
                     ofl_structs_match_put_eth_m(m,OXM_OF_ETH_SRC_W,eth_src,mask);
+                    free(mask);
+                }
             }
             continue;
         }
@@ -1155,8 +1163,10 @@ parse_match(char *str, struct ofl_match_header **match) {
             else {
                  if (mask == NULL)
                     ofl_structs_match_put_eth(m,OXM_OF_ETH_DST,eth_dst);
-                 else
+                 else {
                     ofl_structs_match_put_eth_m(m,OXM_OF_ETH_DST_W,eth_dst, mask);
+                    free(mask);
+                }
             }
             continue;
         }
@@ -1170,8 +1180,10 @@ parse_match(char *str, struct ofl_match_header **match) {
             else {
                 if (mask == NULL)
                     ofl_structs_match_put_eth(m, OXM_OF_ARP_SHA, arp_sha);
-                else
+                else {
                     ofl_structs_match_put_eth_m(m, OXM_OF_ARP_SHA_W, arp_sha, mask);
+                    free(mask);
+                }
             }
             continue;
         }
@@ -1184,8 +1196,10 @@ parse_match(char *str, struct ofl_match_header **match) {
             else {
                 if (mask == NULL)
                     ofl_structs_match_put_eth(m,OXM_OF_ARP_THA, arp_tha);
-                else
+                else {
                     ofl_structs_match_put_eth_m(m,OXM_OF_ARP_THA_W, arp_tha, mask);
+                    free(mask);
+                }
             }
             continue;
         }
@@ -1198,8 +1212,10 @@ parse_match(char *str, struct ofl_match_header **match) {
             else {
                 if (mask == NULL)
                     ofl_structs_match_put32(m, OXM_OF_ARP_SPA,arp_src);
-                else
+                else {
                     ofl_structs_match_put32m(m, OXM_OF_ARP_SPA_W, arp_src, *mask);
+                    free(mask);
+                }
             }
             continue;
         }
@@ -1212,8 +1228,10 @@ parse_match(char *str, struct ofl_match_header **match) {
             else {
                 if (mask == NULL)
                     ofl_structs_match_put32(m, OXM_OF_ARP_TPA, arp_target);
-                else
+                else {
                     ofl_structs_match_put32m(m, OXM_OF_ARP_TPA_W, arp_target, *mask);
+                    free(mask);
+                }
             }
             continue;
         }
@@ -1299,8 +1317,10 @@ parse_match(char *str, struct ofl_match_header **match) {
             else {
                 if (mask == NULL)
                     ofl_structs_match_put32(m, OXM_OF_IPV4_SRC,nw_src);
-                else
+                else {
                     ofl_structs_match_put32m(m, OXM_OF_IPV4_SRC_W, nw_src, *mask);
+                    free(mask);
+                }
             }
             continue;
         }
@@ -1313,8 +1333,10 @@ parse_match(char *str, struct ofl_match_header **match) {
             else {
                 if (mask == NULL)
                     ofl_structs_match_put32(m, OXM_OF_IPV4_DST,nw_dst);
-                else
+                else {
                     ofl_structs_match_put32m(m, OXM_OF_IPV4_DST_W,nw_dst, *mask);
+                    free(mask);
+                }
             }
             continue;
         }
@@ -1461,8 +1483,10 @@ parse_match(char *str, struct ofl_match_header **match) {
             else
               if(mask == NULL)
                 ofl_structs_match_put32(m, OXM_OF_IPV6_FLABEL, ipv6_label);
-              else
+              else {
                 ofl_structs_match_put32m(m, OXM_OF_IPV6_FLABEL_W, ipv6_label, *mask);
+                free (mask);
+              }
             continue;
         }
 
@@ -1506,6 +1530,7 @@ parse_match(char *str, struct ofl_match_header **match) {
             else {
                  ofl_structs_match_put_eth(m,OXM_OF_IPV6_ND_SLL, eth_src);
             }
+            if (mask != NULL) free(mask);
             continue;
         }
         if (strncmp(token, MATCH_IPV6_ND_TLL KEY_VAL, strlen(MATCH_IPV6_ND_TLL KEY_VAL)) == 0) {
@@ -1517,16 +1542,24 @@ parse_match(char *str, struct ofl_match_header **match) {
             else {
                 ofl_structs_match_put_eth(m, OXM_OF_IPV6_ND_TLL,eth_dst);
             }
+            if (mask != NULL) free(mask);
             continue;
         }
 
         /* Metadata */
         if (strncmp(token, MATCH_METADATA KEY_VAL, strlen(MATCH_METADATA KEY_VAL)) == 0) {
             uint64_t metadata;
-            if (sscanf(token, MATCH_METADATA KEY_VAL "0x%"SCNx64"", (&metadata)) != 1) {
-                ofp_fatal(0, "Error parsing %s: %s.", MATCH_METADATA, token);
+            uint64_t *mask;
+            if (parse64m(token + strlen(MATCH_METADATA KEY_VAL), 0xffffffffffffffffULL, &metadata, &mask)) {
+                ofp_fatal(0, "Error parsing meta: %s.", token);
             }
-            else ofl_structs_match_put64(m, OXM_OF_METADATA, metadata);
+            else 
+              if(mask == NULL)
+                ofl_structs_match_put64(m, OXM_OF_METADATA, metadata);
+              else {
+                ofl_structs_match_put64m(m, OXM_OF_METADATA_W, metadata, *mask);
+                free (mask);
+              }
             continue;
         }
         /*PBB ISID*/
@@ -1541,10 +1574,17 @@ parse_match(char *str, struct ofl_match_header **match) {
         /* Tunnel ID */
         if (strncmp(token, MATCH_TUNNEL_ID KEY_VAL, strlen(MATCH_TUNNEL_ID KEY_VAL)) == 0) {
             uint64_t tunn_id;
-            if (sscanf(token, MATCH_TUNNEL_ID KEY_VAL "0x%"SCNx64"", (&tunn_id)) != 1) {
-                ofp_fatal(0, "Error parsing %s: %s.", MATCH_TUNNEL_ID, token);
+            uint64_t *mask;
+            if (parse64m(token + strlen(MATCH_TUNNEL_ID KEY_VAL), 0xffffffffffffffffULL, &tunn_id, &mask)) {
+                ofp_fatal(0, "Error parsing tunn_id: %s.", token);
             }
-            else ofl_structs_match_put64(m, OXM_OF_TUNNEL_ID, tunn_id);
+            else 
+              if(mask == NULL)
+                ofl_structs_match_put64(m, OXM_OF_TUNNEL_ID, tunn_id);
+              else {
+                ofl_structs_match_put64m(m, OXM_OF_TUNNEL_ID_W, tunn_id, *mask);
+                free (mask);
+              }
             continue;
         }
         /*Extension Headers */
@@ -1576,6 +1616,7 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
                 act->field->header = OXM_OF_ETH_SRC;
                 act->field->value = (uint8_t*) dl_src;
             }
+        if (mask != NULL) free(mask);
         return 0;
     }
     if (strncmp(token, MATCH_DL_DST KEY_VAL2, strlen(MATCH_DL_DST KEY_VAL2)) == 0) {
@@ -1588,6 +1629,7 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
                 act->field->header = OXM_OF_ETH_DST;
                 act->field->value = (uint8_t*) dl_dst;
             }
+        if (mask != NULL) free(mask);
         return 0;
     }
     if (strncmp(token, MATCH_DL_TYPE KEY_VAL2, strlen(MATCH_DL_TYPE KEY_VAL2)) == 0) {
@@ -1615,6 +1657,7 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
             act->field->header = OXM_OF_ARP_SHA;
             act->field->value = (uint8_t*) arp_sha;
         }
+        if (mask != NULL) free(mask);
         return 0;
     }
     if (strncmp(token, MATCH_ARP_THA KEY_VAL2, strlen(MATCH_ARP_THA KEY_VAL2)) == 0) {
@@ -1628,6 +1671,7 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
             act->field->header = OXM_OF_ARP_THA;
             act->field->value = (uint8_t*) arp_tha;
         }
+        if (mask != NULL) free(mask);
         return 0;
     }
     if (strncmp(token, MATCH_ARP_SPA KEY_VAL2, strlen(MATCH_ARP_SPA KEY_VAL2)) == 0) {
@@ -1641,6 +1685,7 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
             act->field->header = OXM_OF_ARP_SPA;
             act->field->value = (uint8_t*) arp_src;
         }
+        if (mask != NULL) free(mask);
         return 0;
     }
     if (strncmp(token, MATCH_ARP_TPA KEY_VAL2, strlen(MATCH_ARP_TPA KEY_VAL2)) == 0) {
@@ -1654,6 +1699,7 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
             act->field->header = OXM_OF_ARP_TPA;
             act->field->value = (uint8_t*) arp_target;
         }
+        if (mask != NULL) free(mask);
         return 0;
     }
     if (strncmp(token, MATCH_ARP_OP KEY_VAL2, strlen(MATCH_ARP_OP KEY_VAL2)) == 0) {
@@ -1764,6 +1810,7 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
             act->field->header = OXM_OF_IPV4_SRC;
             act->field->value =  (uint8_t*) nw_src;
         }
+        if (mask != NULL) free(mask);
         return 0;
     }
     if (strncmp(token, MATCH_NW_DST KEY_VAL2, strlen(MATCH_NW_DST KEY_VAL2)) == 0) {
@@ -1778,6 +1825,7 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
             act->field->header = OXM_OF_IPV4_DST;
             act->field->value =  (uint8_t*) nw_dst;
         }
+        if (mask != NULL) free(mask);
         return 0;
     }
     if (strncmp(token, MATCH_IP_ECN KEY_VAL2, strlen(MATCH_NW_DST KEY_VAL2)) == 0) {
@@ -1902,8 +1950,8 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
     /* Tunnel ID */
     if (strncmp(token, MATCH_TUNNEL_ID KEY_VAL2, strlen(MATCH_TUNNEL_ID KEY_VAL2)) == 0) {
         uint64_t *tunn_id = malloc(sizeof(uint64_t));
-        if (sscanf(token, MATCH_TUNNEL_ID KEY_VAL2 "0x%"SCNx64"", (tunn_id)) != 1) {
-            ofp_fatal(0, "Error parsing %s: %s.", MATCH_TUNNEL_ID, token);
+        if (parse64(token + strlen(MATCH_TUNNEL_ID KEY_VAL2), 0xffffffffffffffffULL, tunn_id)) {
+            ofp_fatal(0, "Error parsing tunn_id: %s.", token);
         }
         else {
             act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
@@ -2092,19 +2140,17 @@ parse_inst(char *str, struct ofl_instruction_header **inst) {
                     return;
                 }
                 case (OFPIT_WRITE_METADATA): {
-                    char *token, *saveptr = NULL;
+                    uint64_t *mask;
                     struct ofl_instruction_write_metadata *i = xmalloc(sizeof(struct ofl_instruction_write_metadata));
                     i->header.type = OFPIT_WRITE_METADATA;
-                    token = strtok_r(s, KEY_SEP, &saveptr);
-                    if (sscanf(token, "0x%"SCNx64"", &(i->metadata)) != 1) {
+                    if (parse64m(s, 0xffffffffffffffffULL, &(i->metadata), &mask)) {
                         ofp_fatal(0, "Error parsing metadata in write metadata instruction: %s.", s);
-                    }
-                    token = strtok_r(NULL, KEY_SEP, &saveptr);
-                    if (token == NULL) {
-                        i->metadata_mask = 0xffffffffffffffffULL;
                     } else {
-                        if (sscanf(token, "0x%"SCNx64"", &(i->metadata_mask)) != 1) {
-                            ofp_fatal(0, "Error parsing metadata_mask in write metadata instruction: %s.", s);
+                        if (mask == NULL) {
+                            i->metadata_mask = 0xffffffffffffffffULL;
+                        } else {
+                            i->metadata_mask = *mask;
+                            free (mask);
                         }
                     }
                     (*inst) = (struct ofl_instruction_header *)i;
@@ -2465,6 +2511,7 @@ parse_port_mod(char *str, struct ofl_msg_port_mod *msg) {
             if (parse_dl_addr(token + strlen(PORT_MOD_HW_ADDR KEY_VAL), msg->hw_addr, &mask)) {
                 ofp_fatal(0, "Error parsing port_mod hw_addr: %s.", token);
             }
+            if (mask != NULL) free(mask);
             continue;
         }
         if (strncmp(token, PORT_MOD_HW_CONFIG KEY_VAL, strlen(PORT_MOD_HW_CONFIG KEY_VAL)) == 0) {
@@ -2641,8 +2688,15 @@ parse8(char *str, struct names8 *names, size_t names_num, uint8_t max, uint8_t *
         }
     }
 
-    if ((max > 0) && (sscanf(str, "%"SCNu8"", val)) == 1 && ((*val) <= max)) {
-        return 0;
+    /* Checks for value in hexadecimal. */
+    if (str[0] == '0' && str[1] == 'x') {
+        if ((max > 0) && (sscanf(str, "0x%"SCNx8"", val)) == 1 && (*val <= max)) {
+            return 0;
+        }
+    } else {
+        if ((max > 0) && (sscanf(str, "%"SCNu8"", val)) == 1 && (*val <= max)) {
+            return 0;
+        }
     }
     return -1;
 }
@@ -2658,43 +2712,58 @@ parse16(char *str, struct names16 *names, size_t names_num, uint16_t max, uint16
         }
     }
 
-    /* Checks if the passed value is hexadecimal. */
-    if( str[1] == 'x'){
-        if ((max > 0) && (sscanf(str, "%"SCNx16"", val))  == 1 && (*val <= max)) {
+    /* Checks for value in hexadecimal. */
+    if (str[0] == '0' && str[1] == 'x') {
+        if ((max > 0) && (sscanf(str, "0x%"SCNx16"", val)) == 1 && (*val <= max)) {
             return 0;
         }
-    }
-    else {
-         if ((max > 0) && (sscanf(str, "%"SCNu16"", val))  == 1 && (*val <= max)) {
+    } else {
+        if ((max > 0) && (sscanf(str, "%"SCNu16"", val)) == 1 && (*val <= max)) {
             return 0;
-         }
+        }
     }
     return -1;
 }
 
 static int
-parse16m(char *str, struct names16 *names, size_t names_num, uint16_t max, uint16_t *val, uint16_t *mask){
+parse16m(char *str, struct names16 *names, size_t names_num, uint16_t max, uint16_t *val, uint16_t **mask){
 
     size_t i;
-    char *token, *saveptr = NULL;
+    int read;
+    char *saveptr = NULL;
 
     for (i=0; i<names_num; i++) {
         if (strcmp(str, names[i].name) == 0) {
             *val = names[i].code;
+            return 0;
         }
     }
 
-    if ((max > 0) && (*val <= max)) {
-        if (!sscanf(str, "%"SCNu16"", val))
-            return -1;
+    /* Checks for value in hexadecimal. */
+    if (str[0] == '0' && str[1] == 'x') {
+        read = sscanf(str, "0x%"SCNx16"", val);
+    } else {
+        read = sscanf(str, "%"SCNu16"", val);
+    }   
+    if ((read == 0) || (max == 0) || (*val > max)) {
+        return -1;
     }
 
-    token = strtok_r(str, MASK_SEP, &saveptr);
-    if(token == NULL)
-        mask = NULL;
-    else {
-        mask = (uint16_t*) malloc(sizeof(uint16_t));
-        sscanf(token, "%"SCNu16"", mask);
+    strtok_r(str, MASK_SEP, &saveptr);
+    if (strcmp (saveptr, "") == 0) {
+        *mask = NULL;
+        return 0;
+    }
+    *mask = (uint16_t*) malloc(sizeof(uint16_t));
+
+    /* Checks for mask in hexadecimal. */
+    if (saveptr[0] == '0' && saveptr[1] == 'x') {
+        read = sscanf(saveptr, "0x%"SCNx16"", *mask);
+    } else {
+        read = sscanf(saveptr, "%"SCNu16"", *mask);
+    }
+    if (read == 0) {
+        return -1;
     }
     return 0;
 
@@ -2711,8 +2780,15 @@ parse32(char *str, struct names32 *names, size_t names_num, uint32_t max, uint32
         }
     }
 
-    if ((max > 0) && (sscanf(str, "%"SCNu32"", val)) == 1 && ((*val) <= max)) {
-        return 0;
+    /* Checks for value in hexadecimal. */
+    if (str[0] == '0' && str[1] == 'x') {
+        if ((max > 0) && (sscanf(str, "0x%"SCNx32"", val)) == 1 && (*val <= max)) {
+            return 0;
+        }
+    } else {
+        if ((max > 0) && (sscanf(str, "%"SCNu32"", val)) == 1 && (*val <= max)) {
+            return 0;
+        }
     }
     return -1;
 }
@@ -2721,26 +2797,91 @@ static int
 parse32m(char *str, struct names32 *names, size_t names_num, uint32_t max, uint32_t *val, uint32_t **mask){
 
     size_t i;
+    int read;
     char *saveptr = NULL;
 
     for (i=0; i<names_num; i++) {
         if (strcmp(str, names[i].name) == 0) {
             *val = names[i].code;
+            return 0;
         }
     }
 
-    if ((max > 0) && (*val <= max)) {
-        if (!sscanf(str, "%"SCNu32"", val))
-            return -1;
+    /* Checks for value in hexadecimal. */
+    if (str[0] == '0' && str[1] == 'x') {
+        read = sscanf(str, "0x%"SCNx32"", val);
+    } else {
+        read = sscanf(str, "%"SCNu32"", val);
+    }   
+    if ((read == 0) || (max == 0) || (*val > max)) {
+        return -1;
     }
 
     strtok_r(str, MASK_SEP, &saveptr);
-
-    if(saveptr == NULL)
+    if (strcmp (saveptr, "") == 0) {
         *mask = NULL;
-    else {
-        *mask = (uint32_t*) malloc(sizeof(uint32_t));
-        sscanf(saveptr, "%"SCNu32"", *mask);
+        return 0;
+    }
+    *mask = (uint32_t*) malloc(sizeof(uint32_t));
+
+    /* Checks for mask in hexadecimal. */
+    if (saveptr[0] == '0' && saveptr[1] == 'x') {
+        read = sscanf(saveptr, "0x%"SCNx32"", *mask);
+    } else {
+        read = sscanf(saveptr, "%"SCNu32"", *mask);
+    }
+    if (read == 0) {
+        return -1;
+    }
+    return 0;
+}
+
+static int
+parse64(char *str, uint64_t max, uint64_t *val) {
+    int read;
+
+    /* Checks for value in hexadecimal. */
+    if (str[0] == '0' && str[1] == 'x') {
+        read = sscanf(str, "0x%"SCNx64"", val);
+    } else {
+        read = sscanf(str, "%"SCNu64"", val);
+    }   
+    if ((read == 0) || (max == 0) || (*val > max)) {
+        return -1;
+    }
+    return 0;
+}
+
+static int
+parse64m(char *str, uint64_t max, uint64_t *val, uint64_t **mask) {
+    int read;
+    char *saveptr = NULL;
+
+    /* Checks for value in hexadecimal. */
+    if (str[0] == '0' && str[1] == 'x') {
+        read = sscanf(str, "0x%"SCNx64"", val);
+    } else {
+        read = sscanf(str, "%"SCNu64"", val);
+    }   
+    if ((read == 0) || (max == 0) || (*val > max)) {
+        return -1;
+    }
+
+    strtok_r(str, MASK_SEP, &saveptr);
+    if (strcmp (saveptr, "") == 0) {
+        *mask = NULL;
+        return 0;
+    }
+    *mask = (uint64_t*) malloc(sizeof(uint64_t));
+
+    /* Checks for mask in hexadecimal. */
+    if (saveptr[0] == '0' && saveptr[1] == 'x') {
+        read = sscanf(saveptr, "0x%"SCNx64"", *mask);
+    } else {
+        read = sscanf(saveptr, "%"SCNu64"", *mask);
+    }
+    if (read == 0) {
+        return -1;
     }
     return 0;
 }
