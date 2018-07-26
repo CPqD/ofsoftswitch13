@@ -1831,11 +1831,33 @@ parse_set_field(char *token, struct ofl_action_set_field *act) {
     if (strncmp(token, MATCH_TP_DST KEY_VAL2, strlen(MATCH_TP_DST KEY_VAL2)) == 0) {
         uint16_t* tp_dst = xmalloc(2);
         if (parse16(token + strlen(MATCH_TP_DST KEY_VAL2), NULL, 0, 0xffff, tp_dst)) {
-            ofp_fatal(0, "Error parsing tcp_src: %s.", token);
+            ofp_fatal(0, "Error parsing tcp_dst: %s.", token);
         }else{
             act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
             act->field->header = OXM_OF_TCP_DST;
             act->field->value = (uint8_t*) tp_dst;
+        }
+        return 0;
+    }
+    if (strncmp(token, MATCH_UDP_SRC KEY_VAL2, strlen(MATCH_UDP_SRC KEY_VAL2)) == 0) {
+        uint16_t* udp_src = xmalloc(2);
+        if (parse16(token+ strlen(MATCH_UDP_SRC KEY_VAL2), NULL, 0, 0xffff, udp_src)) {
+            ofp_fatal(0, "Error parsing udp_src: %s.", token);
+        }else{
+            act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
+            act->field->header = OXM_OF_UDP_SRC;
+            act->field->value = (uint8_t*) udp_src;
+        }
+        return 0;
+    }
+    if (strncmp(token, MATCH_UDP_DST KEY_VAL2, strlen(MATCH_UDP_DST KEY_VAL2)) == 0) {
+        uint16_t* udp_dst = xmalloc(2);
+        if (parse16(token+ strlen(MATCH_UDP_DST KEY_VAL2), NULL, 0, 0xffff, udp_dst)) {
+            ofp_fatal(0, "Error parsing udp_dst: %s.", token);
+        }else{
+            act->field = (struct ofl_match_tlv*) malloc(sizeof(struct ofl_match_tlv));
+            act->field->header = OXM_OF_UDP_DST;
+            act->field->value = (uint8_t*) udp_dst;
         }
         return 0;
     }
