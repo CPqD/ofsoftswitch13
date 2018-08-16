@@ -223,6 +223,7 @@ get_ipv6_address(const char *name, struct in6_addr *in6)
     fclose(file);
 }
 
+#define TC_QDISC_NO_CONFIG_ERR 512
 /* All queues in a port, lie beneath a qdisc */
 #define TC_QDISC 0x0001
 /* This is a root class. In order to efficiently share excess bandwidth
@@ -439,7 +440,8 @@ do_setup_qdisc(const char *netdev_name)
     error = system(command);
     if (error) {
         VLOG_WARN(LOG_MODULE, "Problem configuring qdisc for device %s",netdev_name);
-        return error;
+        fprintf(stderr, "Error is %d\n", error);
+	return error;
     }
     return 0;
 }
@@ -454,8 +456,8 @@ do_remove_qdisc(const char *netdev_name)
     int error;
     snprintf(command, sizeof(command), COMMAND_DEL_DEV_QDISC, netdev_name);
     error = system(command);
-    if (error) {
-        VLOG_WARN(LOG_MODULE, "Problem configuring qdisc for device %s",netdev_name);
+    if (error && error != TC_QDISC_NO_CONFIG_ERR) {
+        VLOG_WARN(LOG_MODULE, "Problem configuring qdisc for device %s ",netdev_name);
         return error;
     }
     /* There is no need for a device to already be configured. Therefore no
