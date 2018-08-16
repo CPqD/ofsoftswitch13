@@ -638,7 +638,7 @@ flow_mod(struct vconn *vconn, int argc, char *argv[]) {
                 it is an instruction or match.
                 If the match is empty, the argv is modified
                 causing errors to instructions parsing*/
-                char *cpy = malloc(strlen(argv[1]));
+                char *cpy = malloc(strlen(argv[1])+1);
                 memcpy(cpy, argv[1], strlen(argv[1])); 
                 parse_match(cpy, &(msg.match));
                 free(cpy);
