@@ -575,8 +575,6 @@ dp_send_message(struct datapath *dp, struct ofl_msg_header *msg,
     error = send_openflow_buffer(dp, ofpbuf, sender);
     if (error) {
         VLOG_WARN_RL(LOG_MODULE, &rl, "There was an error sending the message!");
-        /* TODO Zoltan: is delete needed? */
-        ofpbuf_delete(ofpbuf);
         return error;
     }
     return 0;
