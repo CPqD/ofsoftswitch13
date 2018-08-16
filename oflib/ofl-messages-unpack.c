@@ -1564,6 +1564,7 @@ ofl_msg_unpack_queue_get_config_reply(struct ofp_header *src, size_t *len, struc
     struct ofp_packet_queue *queue;
     ofl_err error;
     size_t i;
+    size_t len1=0,len2=0;
 
     if (*len < sizeof(struct ofp_queue_get_config_reply)) {
         OFL_LOG_WARN(LOG_MODULE, "Received GET_CONFIG_REPLY has invalid length (%zu).", *len);
@@ -1585,6 +1586,10 @@ ofl_msg_unpack_queue_get_config_reply(struct ofp_header *src, size_t *len, struc
 
     queue = sr->queues;
     for (i = 0; i < dr->queues_num; i++) {
+    	/* This is so that it can parse packet with more than 1 queue. 
+	*   Previously, dpctl was showing only 1 queue even if more than 1 queues are configured. */
+    	len1=*len-(sizeof(struct ofp_packet_queue)+sizeof(struct ofp_queue_prop_min_rate))*((int)dr->queues_num-1-i);
+	len2=*len-(sizeof(struct ofp_packet_queue)+sizeof(struct ofp_queue_prop_min_rate))*((int)dr->queues_num-1-i);
         error = ofl_structs_packet_queue_unpack(queue, len, &(dr->queues[i]));
         if (error) {
             OFL_UTILS_FREE_ARR_FUN(dr->queues, i,
@@ -1592,6 +1597,7 @@ ofl_msg_unpack_queue_get_config_reply(struct ofp_header *src, size_t *len, struc
             free (dr);
             return error;
         }
+	*len-=len2-len1; //This is so that it can parse packet with more than 1 queue. 
         queue = (struct ofp_packet_queue *)((uint8_t *)queue + ntohs(queue->len));
     }
 
