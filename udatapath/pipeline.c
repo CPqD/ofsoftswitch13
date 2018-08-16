@@ -109,7 +109,6 @@ send_packet_to_controller(struct pipeline *pl, struct packet *pkt, uint8_t table
         ports                                 */
     msg.match = (struct ofl_match_header*)m;
     dp_send_message(pl->dp, (struct ofl_msg_header *)&msg, NULL);
-    ofl_structs_free_match((struct ofl_match_header* ) m, NULL);
 }
 
 /* Pass the packet through the flow tables.
