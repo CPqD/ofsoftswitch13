@@ -342,13 +342,9 @@ vcs_recv_hello(struct vconn *vconn)
         struct ofp_header *oh = b->data;
 
         if (oh->type == OFPT_HELLO) {
-            if (b->size > sizeof *oh) {
-                struct ds msg = DS_EMPTY_INITIALIZER;
-                ds_put_format(&msg, "%s: extra-long hello:\n", vconn->name);
-                ds_put_hex_dump(&msg, b->data, b->size, 0, true);
-                VLOG_WARN_RL(LOG_MODULE, &rl, "%s", ds_cstr(&msg));
-                ds_destroy(&msg);
-            }
+	    /*TODO: handle OFPHET_VERSIONBITMAP */
+            /*if (b->size > sizeof *oh) {
+             }*/
 
             vconn->version = MIN(OFP_VERSION, oh->version);
             if (vconn->version < vconn->min_version) {
