@@ -763,7 +763,6 @@ ofl_structs_queue_prop_pack(struct ofl_queue_prop_header *src,
             dp->prop_header.len = htons(sizeof(struct ofp_queue_prop_min_rate));
             dp->rate            = htons(sp->rate);
             memset(dp->pad, 0x00, 6);
-
             return sizeof(struct ofp_queue_prop_min_rate);
         }
         case OFPQT_MAX_RATE:{
@@ -816,13 +815,10 @@ ofl_structs_packet_queue_pack(struct ofl_packet_queue *src, struct ofp_packet_qu
     total_len = sizeof(struct ofp_packet_queue) +
                 ofl_structs_queue_prop_ofp_total_len(src->properties,
                                                      src->properties_num);
-
     dst->len = htons(total_len);
-    memset(dst->pad, 0x00, 2);
+    memset(dst->pad, 0x00, 6);
     dst->queue_id = htonl(src->queue_id);
-
     data = (uint8_t *)dst + sizeof(struct ofp_packet_queue);
-
     for (i=0; i<src->properties_num; i++) {
         len = ofl_structs_queue_prop_pack(src->properties[i],
                                         (struct ofp_queue_prop_header *)data);

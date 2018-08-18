@@ -842,7 +842,7 @@ ofl_structs_packet_queue_unpack(struct ofp_packet_queue *src, size_t *len, struc
     struct ofp_queue_prop_header *prop;
     ofl_err error;
     size_t i;
-
+    size_t prop_len;
     if (*len < ntohs(src->len)) {
         OFL_LOG_WARN(LOG_MODULE, "Received packet queue has invalid length (%zu).", *len);
         return ofl_error(OFPET_BAD_ACTION, OFPBRC_BAD_LEN);
@@ -852,7 +852,8 @@ ofl_structs_packet_queue_unpack(struct ofp_packet_queue *src, size_t *len, struc
     q = (struct ofl_packet_queue *)malloc(sizeof(struct ofl_packet_queue));
     q->queue_id = ntohl(src->queue_id);
 
-    error = ofl_utils_count_ofp_queue_props((uint8_t *)src->properties, *len, &q->properties_num);
+    prop_len = ntohs(src->len) - sizeof(struct ofp_packet_queue);
+    error = ofl_utils_count_ofp_queue_props((uint8_t *)src->properties, prop_len, &q->properties_num);
     if (error) {
         free(q);
         return error;
@@ -864,7 +865,6 @@ ofl_structs_packet_queue_unpack(struct ofp_packet_queue *src, size_t *len, struc
         ofl_structs_queue_prop_unpack(prop, len, &(q->properties[i]));
         prop = (struct ofp_queue_prop_header *)((uint8_t *)prop + ntohs(prop->len));
     }
-
     *dst = q;
     return 0;
 }
