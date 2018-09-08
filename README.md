@@ -111,13 +111,7 @@ You can send requests to the switch using the `dpctl` utility.
     $ utilities/dpctl tcp:<switch-host>:<switch-port> flow-mod table=0,cmd=add in_port=1 meter:1
     ```
 
-For a complete list of commands and arguments, use the `--help` argument.
-
-The `dpctl` utility has some limitations at the moment:
-* No support for OXM masks
-* No support for multipart messages
-* Some set_field action fields are not present
-
+For a complete list of commands and arguments, use the `--help` argument. Also, check the wiki for [Flow Mod examples](https://github.com/CPqD/ofsoftswitch13/wiki/Dpctl-Flow-Mod-Cases)
 
 # Contribute
 Please submit your bug reports, fixes and suggestions as pull requests on
@@ -132,26 +126,7 @@ code from the original Stanford switch).
 This project was supported by Ericsson Innovation Center in Brazil.
 Formerly maintained by CPqD in technical collaboration with Ericsson Research.
 
-**Contributions:**
-
-Zoltán Lajos Kis, ofsoftswitch 1.1 implementation and guidance for OpenFlow spec related subjects.
-
-Jean Tourrilhes, lots of critical memory bug fixes on table features.
-
-Khai Nguyen Dinh and Thanh Le Dinh, contributions on meter features.
-
-Rich Lane, added the right compiler linker.
-
-yu-iwata, fixed flow deletion without matchin out_port.
-
-Yuval Adler, bug fixes related to matching on vlan and ethertype.
-
-Hiroyasu OHYAMA, correct URL of NetBee Library.
-
-... 
-
-*"Your name here" -- please, let us*
-*know if we forgot to add your name to the list of contributors!*
+[**List of Contributors**](https://github.com/CPqD/ofsoftswitch13/wiki/List-of-Contributors)
 
 # Contact
 E-mail: Eder Leao Fernandes (ederleaofernandes at gmail . com)
