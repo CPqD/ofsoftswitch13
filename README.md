@@ -1,23 +1,23 @@
-# OpenFlow 1.3 Software Switch
+# Basic OpenFlow Software Switch (BOFUSS)
 
-This is an [OpenFlow 1.3][ofp13] compatible user-space software switch implementation. The code is based on the [Ericsson TrafficLab 1.1 softswitch
-implementation][ericssonsw11], with changes in the forwarding plane to support
+This is an [OpenFlow 1.3][ofp13] compatible user-space software switch implementation. The code is based on the [Ericsson TrafficLab 1.1 softswitch implementation][ericssonsw11], with changes in the forwarding plane to support
 OpenFlow 1.3. 
+
+## [Before posting an issue, please read the FAQ first.](https://github.com/CPqD/ofsoftswitch13/wiki/Frequently-Asked-Questions)
 
 **UPDATE**: A new experimental branch with contributions from the [BEBA EU Project][beba-eu] is available with lots of performance improvements and OpenFlow extensions. If you want to try the code checkout to the BEBA-EU branch.
 
-    ```
-    $ git checkout remotes/origin/BEBA-EU
-    ```   
-
-**Important notice:**  Despite the fact the switch is still popular for adventurers trying to implement own changes to OpenFlow, support  now is on a best-effort base. Currently, there are lots of complaints about performance degradation, broken features and installation problems. Although not confirmed, most of the problems seem to be due to most recent linux versions. As the main contributor of the switch, I would like to keep the project alive and fix all the recurrent issues. However, life moves and new projects come, resulting in no time to work on it. I am still happy to help anyone who comes asking for advice on how to make changes in the code, but I cannot guarantee quick and active replies.  
- *-Eder*
+```bash
+$ git checkout remotes/origin/BEBA-EU
+```
 
 The following components are available in this package:
 * `ofdatapath`: the switch implementation
 * `ofprotocol`: secure channel for connecting the switch to the controller
 * `oflib`: a library for converting to/from 1.3 wire format
 * `dpctl`: a tool for configuring the switch from the console
+
+
 
 # Getting Started
 
