@@ -162,20 +162,16 @@ meter_table_modify(struct meter_table *table, struct ofl_msg_meter_mod *mod) {
     /* keep flow references from old meter entry */
     list_replace(&new_entry->flow_refs, &entry->flow_refs);
     list_init(&entry->flow_refs);
-    copy_stat_entries(&entry->stats, &new_entry->stats);
+
+    new_entry->stats->flow_count = entry->stats->flow_count;
+    new_entry->stats->packet_in_count = entry->stats->packet_in_count;
+    new_entry->stats->byte_in_count = entry->stats->byte_in_count;
+    new_entry->stats->duration_sec = entry->stats->duration_sec;
+    new_entry->stats->duration_nsec = entry->stats->duration_nsec;
 
     meter_entry_destroy(entry);
     ofl_msg_free_meter_mod(mod, false);
     return 0;
-}
-
-void
-copy_stat_entries(struct ofl_meter_stats *stats, struct ofl_meter_stats *new_stats){
-    new_entry->flow_count = entry->flow_count;
-    new_entry->packet_in_count = entry->packet_in_count;
-    new_entry->byte_in_count = entry->byte_in_count;
-    new_entry->duration_sec = entry->duration_sec;
-    new_entry->duration_nsec = entry->duration_nsec;
 }
 
 /* Handles meter_mod messages with DELETE command. */
