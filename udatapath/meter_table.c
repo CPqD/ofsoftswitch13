@@ -162,6 +162,7 @@ meter_table_modify(struct meter_table *table, struct ofl_msg_meter_mod *mod) {
     /* keep flow references from old meter entry */
     list_replace(&new_entry->flow_refs, &entry->flow_refs);
     list_init(&entry->flow_refs);
+    new_entry->stats->flow_count = entry->stats->flow_count;
 
     meter_entry_destroy(entry);
     ofl_msg_free_meter_mod(mod, false);
