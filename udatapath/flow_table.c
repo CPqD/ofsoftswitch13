@@ -270,7 +270,7 @@ flow_table_timeout(struct flow_table *table) {
 
 
 static void 
-flow_table_create_property(struct ofl_table_feature_prop_header **prop, enum ofp_table_feature_prop_type type){
+flow_table_create_property(struct ofl_table_feature_prop_header **prop, enum ofp_table_feature_prop_type type, uint8_t table_id){
 
     switch(type){
         case OFPTFPT_INSTRUCTIONS:
@@ -279,13 +279,13 @@ flow_table_create_property(struct ofl_table_feature_prop_header **prop, enum ofp
             inst_capabilities = xmalloc(sizeof(struct ofl_table_feature_prop_instructions));
             inst_capabilities->header.type = type;
             inst_capabilities->instruction_ids = xmalloc(sizeof(instructions));
-	    if (PIPELINE_TABLES > 1) {
-              inst_capabilities->ids_num = N_INSTRUCTIONS;
-              memcpy(inst_capabilities->instruction_ids, instructions, sizeof(instructions));
-	    } else {
-              inst_capabilities->ids_num = N_INSTRUCTIONS - 1;
-              memcpy(inst_capabilities->instruction_ids, instructions_nogoto, sizeof(instructions_nogoto));
-	    }
+    	    if (table_id < PIPELINE_TABLES - 1) {
+                inst_capabilities->ids_num = N_INSTRUCTIONS;
+                memcpy(inst_capabilities->instruction_ids, instructions, sizeof(instructions));
+    	    } else {
+                inst_capabilities->ids_num = N_INSTRUCTIONS - 1;
+                memcpy(inst_capabilities->instruction_ids, instructions_nogoto, sizeof(instructions_nogoto));
+    	    }
             inst_capabilities->header.length = ofl_structs_table_features_properties_ofp_len(&inst_capabilities->header, NULL);            
             (*prop) =  (struct ofl_table_feature_prop_header*) inst_capabilities;
             break;        
@@ -294,12 +294,15 @@ flow_table_create_property(struct ofl_table_feature_prop_header **prop, enum ofp
         case OFPTFPT_NEXT_TABLES_MISS:{
              struct ofl_table_feature_prop_next_tables *tbl_reachable;
              int i;
+             uint8_t next;
              tbl_reachable = xmalloc(sizeof(struct ofl_table_feature_prop_next_tables));
              tbl_reachable->header.type = type;
-             tbl_reachable->table_num = PIPELINE_TABLES ;
-             tbl_reachable->next_table_ids = xmalloc(sizeof(uint8_t) * tbl_reachable->table_num);
-             for(i=0; i < tbl_reachable->table_num; i++)
-                tbl_reachable->next_table_ids[i] = i;
+             tbl_reachable->table_num = PIPELINE_TABLES - 1 - table_id;
+             if (tbl_reachable->table_num > 0) {
+                tbl_reachable->next_table_ids = xmalloc(sizeof(uint8_t) * tbl_reachable->table_num);
+                for (i = 0, next = table_id + 1; i < tbl_reachable->table_num; i++, next++)
+                    tbl_reachable->next_table_ids[i] = next;
+             }
              tbl_reachable->header.length = ofl_structs_table_features_properties_ofp_len(&tbl_reachable->header, NULL); 
              *prop = (struct ofl_table_feature_prop_header*) tbl_reachable;
              break;
@@ -359,7 +362,7 @@ flow_table_features(struct ofl_table_features *features){
     j = 0;
     for(type = OFPTFPT_INSTRUCTIONS; type <= OFPTFPT_APPLY_SETFIELD_MISS; type++){ 
         //features->properties[j] = xmalloc(sizeof(struct ofl_table_feature_prop_header));
-        flow_table_create_property(&features->properties[j], type);
+        flow_table_create_property(&features->properties[j], type, features->table_id);
         if(type == OFPTFPT_MATCH|| type == OFPTFPT_WILDCARDS){
             type++;
         }
