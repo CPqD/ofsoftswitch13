@@ -346,7 +346,7 @@ ofl_actions_unpack(struct ofp_action_header *src, size_t *len, struct ofl_action
             return ofl_error(OFPET_BAD_ACTION, OFPBAC_BAD_TYPE);
         }
     }
-    (*dst)->type = (enum ofp_action_type)ntohs(src->type);
+    (*dst)->type = (enum ofp_action_type)((int)ntohs(src->type));
 
     return 0;
 }
