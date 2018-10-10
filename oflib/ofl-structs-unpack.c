@@ -157,7 +157,7 @@ ofl_structs_instructions_unpack(struct ofp_instruction *src, size_t *len, struct
             }
 
             inst = (struct ofl_instruction_header *)malloc(sizeof(struct ofl_instruction_header));
-            inst->type = (enum ofp_instruction_type)ntohs(src->type);
+            inst->type = (enum ofp_instruction_type)((int)ntohs(src->type));
 
             ilen -= sizeof(struct ofp_instruction_actions);
             break;
@@ -198,7 +198,7 @@ ofl_structs_instructions_unpack(struct ofp_instruction *src, size_t *len, struct
     }
 
     // must set type before check, so free works correctly
-    inst->type = (enum ofp_instruction_type)ntohs(src->type);
+    inst->type = (enum ofp_instruction_type)((int)ntohs(src->type));
 
     if (ilen != 0) {
         *len = *len - ntohs(src->len) + ilen;
@@ -346,7 +346,7 @@ ofl_structs_table_properties_unpack(struct ofp_table_feature_prop_header * src, 
 	}
 
     // must set type before check, so free works correctly
-    prop->type = (enum ofp_table_feature_prop_type) ntohs(src->type);
+    prop->type = (enum ofp_table_feature_prop_type)((int)ntohs(src->type));
     /* Make sure it can be reused for packing. Jean II */
     prop->length = ntohs(src->length);
 
@@ -831,7 +831,7 @@ ofl_structs_queue_prop_unpack(struct ofp_queue_prop_header *src, size_t *len, st
         }
     }
 
-    (*dst)->type = (enum ofp_queue_properties)ntohs(src->property);
+    (*dst)->type = (enum ofp_queue_properties)((int)ntohs(src->property));
     return 0;
 }
 

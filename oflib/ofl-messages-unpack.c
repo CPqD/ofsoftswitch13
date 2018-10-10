@@ -66,7 +66,7 @@ ofl_msg_unpack_error(struct ofp_header *src, size_t *len, struct ofl_msg_header 
 
     de = (struct ofl_msg_error *)malloc(sizeof(struct ofl_msg_error));
 
-    de->type = (enum ofp_error_type)ntohs(se->type);
+    de->type = (enum ofp_error_type)((int)ntohs(se->type));
     de->code = ntohs(se->code);
     de->data_length = *len;
     de->data = *len > 0 ? (uint8_t *)memcpy(malloc(*len), se->data, *len) : NULL;
@@ -539,7 +539,7 @@ ofl_msg_unpack_group_mod(struct ofp_header *src, size_t *len, struct ofl_msg_hea
 
     dm = (struct ofl_msg_group_mod *)malloc(sizeof(struct ofl_msg_group_mod));
 
-    dm->command = (enum ofp_group_mod_command)ntohs(sm->command);
+    dm->command = (enum ofp_group_mod_command)((int)ntohs(sm->command));
     dm->type = sm->type;
     dm->group_id = ntohl(sm->group_id);
 
@@ -983,7 +983,7 @@ ofl_msg_unpack_multipart_request(struct ofp_header *src,uint8_t *buf, size_t *le
     }
 
     ofls = (struct ofl_msg_multipart_request_header *)(*msg);
-    ofls->type = (enum ofp_multipart_types)ntohs(os->type);
+    ofls->type = (enum ofp_multipart_types)((int)ntohs(os->type));
     ofls->flags = ntohs(os->flags);
 
     return 0;
@@ -1523,7 +1523,7 @@ ofl_msg_unpack_multipart_reply(struct ofp_header *src, uint8_t *buf, size_t *len
     }
 
     ofls = (struct ofl_msg_multipart_reply_header *)(*msg);
-    ofls->type = (enum ofp_multipart_types)ntohs(os->type);
+    ofls->type = (enum ofp_multipart_types)((int)ntohs(os->type));
     ofls->flags = ntohs(os->flags);
 
     return 0;
