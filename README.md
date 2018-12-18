@@ -3,7 +3,9 @@
 This is an [OpenFlow 1.3][ofp13] compatible user-space software switch implementation. The code is based on the [Ericsson TrafficLab 1.1 softswitch implementation][ericssonsw11], with changes in the forwarding plane to support
 OpenFlow 1.3. 
 
-## [Before posting an issue, please read the FAQ first.](https://github.com/CPqD/ofsoftswitch13/wiki/Frequently-Asked-Questions)
+## [Please read the FAQ before posting an issue](https://github.com/CPqD/ofsoftswitch13/wiki/Frequently-Asked-Questions)
+
+Check the [Wiki](https://github.com/CPqD/ofsoftswitch13/wiki) for some resources that could possibly help you to modify the switch.  
 
 **UPDATE**: A new experimental branch with contributions from the [BEBA EU Project][beba-eu] is available with lots of performance improvements and OpenFlow extensions. If you want to try the code checkout to the BEBA-EU branch.
 
@@ -16,7 +18,6 @@ The following components are available in this package:
 * `ofprotocol`: secure channel for connecting the switch to the controller
 * `oflib`: a library for converting to/from 1.3 wire format
 * `dpctl`: a tool for configuring the switch from the console
-
 
 
 # Getting Started

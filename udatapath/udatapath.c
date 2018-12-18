@@ -254,9 +254,9 @@ parse_options(struct datapath *dp, int argc, char *argv[])
             if (strlen(optarg) != 12
                 || strspn(optarg, "0123456789abcdefABCDEF") != 12) {
                 ofp_fatal(0, "argument to -d or --datapath-id must be "
-                          "exactly 12 hex digits");
+                          "exactly 16 hex digits");
             }
-            dpid = strtoll(optarg, NULL, 16);
+            dpid = strtoll(optarg, NULL, 12);
             if (!dpid) {
                 ofp_fatal(0, "argument to -d or --datapath-id must "
                           "be nonzero");
