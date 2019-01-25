@@ -3,6 +3,8 @@
 This is an [OpenFlow 1.3][ofp13] compatible user-space software switch implementation. The code is based on the [Ericsson TrafficLab 1.1 softswitch implementation][ericssonsw11], with changes in the forwarding plane to support
 OpenFlow 1.3. 
 
+## [A paper that describes the basic architecture, selected use cases and a few benchmarks is now available](https://arxiv.org/abs/1901.06699) 
+
 ## [Please read the FAQ before posting an issue](https://github.com/CPqD/ofsoftswitch13/wiki/Frequently-Asked-Questions)
 
 Check the [Wiki](https://github.com/CPqD/ofsoftswitch13/wiki) for some resources that could possibly help you to modify the switch.  
