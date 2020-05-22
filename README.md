@@ -4,7 +4,19 @@ This is an [OpenFlow 1.3][ofp13] compatible user-space software switch implement
 OpenFlow 1.3. 
 
 ### [A paper that describes the basic architecture, selected use cases and a few benchmarks is available on Arxiv](https://arxiv.org/abs/1901.06699). 
-If you use the switch for academic purpuses, please consider refering to it.
+If you use the switch for academic purpuses, please consider the use of this citation.
+
+```
+@article{fernandes2020road,
+  title={The road to BOFUSS: The basic OpenFlow userspace software switch},
+  author={Fernandes, Eder Le{\~a}o and Rojas, Elisa and Alvarez-Horcajo, Joaquin and Kis, Zolt{\`a}n Lajos and Sanvito, Davide and Bonelli, Nicola and Cascone, Carmelo and Rothenberg, Christian Esteve},
+  journal={Journal of Network and Computer Applications},
+  pages={102685},
+  year={2020},
+  publisher={Elsevier}
+}
+
+```
 
 ## [Please read the FAQ before posting an issue](https://github.com/CPqD/ofsoftswitch13/wiki/Frequently-Asked-Questions)
 
