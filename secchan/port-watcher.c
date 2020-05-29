@@ -405,7 +405,7 @@ port_watcher_periodic_cb(void *pw_)
 
         new_opp = *opp;
         set_bit(htonl(OFPPC_PORT_DOWN), ~flags & NETDEV_UP, &new_opp.config);
-        set_bit(htonl(OFPPS_LINK_DOWN), ~flags & NETDEV_CARRIER,
+        set_bit(htonl(OFPPS_LINK_DOWN), ~flags & NETDEV_UP,
                 &new_opp.state);
         if (opp->config != new_opp.config || opp->state != new_opp.state) {
             struct ofp_port_status *ops;
