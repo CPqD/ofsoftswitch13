@@ -83,7 +83,7 @@ drop_packet(struct rate_limiter *rl)
 
     longest = &rl->queues[0];
     n_longest = 1;
-    for (q = &rl->queues[0]; q < &rl->queues[65535]; q++) {
+    for (q = &rl->queues[0]; q < (rl->queues + OFPP_MAX); q++) {
         if (longest->n < q->n) {
             longest = q;
             n_longest = 1;
@@ -230,7 +230,7 @@ rate_limit_wait_cb(void *rl_)
         } else {
             /* We have to wait for the bucket to re-fill.  We could calculate
              * the exact amount of time here for increased smoothness. */
-            poll_timer_wait(TIME_UPDATE_INTERVAL / 2);
+            poll_set_timer_wait(TIME_UPDATE_INTERVAL / 2);
         }
     }
 }

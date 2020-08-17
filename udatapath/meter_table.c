@@ -56,7 +56,7 @@ meter_table_create(struct datapath *dp) {
     table->dp = dp;
     table->entries_num = 0;
     hmap_init(&table->meter_entries);
- 
+
 	table->features = xmalloc(sizeof(struct ofl_meter_features));
 	table->features->max_meter = DEFAULT_MAX_METER;
 	table->features->max_bands = DEFAULT_MAX_BAND_PER_METER;
@@ -75,7 +75,7 @@ meter_table_destroy(struct meter_table *table) {
     HMAP_FOR_EACH_SAFE(entry, next, struct meter_entry, node, &table->meter_entries) {
         meter_entry_destroy(entry);
     }
-    ///////////////////////////free features
+    free(table->features);
     free(table);
 }
 
@@ -281,9 +281,10 @@ meter_table_handle_stats_request_meter(struct meter_table *table,
 ofl_err
 meter_table_handle_stats_request_meter_conf(struct meter_table *table,
                                   struct ofl_msg_multipart_meter_request *msg UNUSED,
-                                  const struct sender *sender) {
-    struct meter_entry *entry;
+                                  const struct sender *sender)
+{
     struct ofl_msg_multipart_reply_meter_conf reply;
+    struct meter_entry *entry;
     if (msg->meter_id == OFPM_ALL) {
         entry = NULL;
     } else {
@@ -294,13 +295,13 @@ meter_table_handle_stats_request_meter_conf(struct meter_table *table,
         }
     }
 
-    reply.header.header.type = OFPT_MULTIPART_REPLY;
-    reply.header.type = OFPMP_METER_CONFIG;
-    reply.header.flags =  0x0000;
-    reply.stats_num = table->entries_num;
-    reply.stats = xmalloc(sizeof(struct ofl_meter_config *) * 
-                (msg->meter_id == OFPM_ALL ? table->entries_num : 1));
-    
+    reply = (struct ofl_msg_multipart_reply_meter_conf) {
+            {{.type = OFPT_MULTIPART_REPLY}, .type = OFPMP_METER_CONFIG, .flags = 0x0000},
+            .stats_num = table->entries_num,
+            .stats     = xmalloc(
+                    sizeof(struct ofl_meter_config *) * (msg->meter_id == OFPM_ALL ? table->entries_num : 1))
+    };
+
     if (msg->meter_id == OFPM_ALL) {
         struct meter_entry *e;
         size_t i = 0;
@@ -325,20 +326,20 @@ ofl_err
 meter_table_handle_features_request(struct meter_table *table,
                                    struct ofl_msg_multipart_request_header *msg UNUSED,
                                   const struct sender *sender) {
- 
-    struct ofl_msg_multipart_reply_meter_features reply = 
+
+    struct ofl_msg_multipart_reply_meter_features reply =
                                          {{{.type = OFPT_MULTIPART_REPLY},
                                              .type = OFPMP_METER_FEATURES, .flags = 0x0000},
                                              .features = table->features
-                                         };   
+                                         };
     dp_send_message(table->dp, (struct ofl_msg_header *)&reply, sender);
 
     ofl_msg_free((struct ofl_msg_header *)msg, table->dp->exp);
-    return 0;                                                
-                                  
-}                                  
+    return 0;
 
-void 
+}
+
+void
 meter_table_add_tokens(struct meter_table *table){
 
     struct meter_entry *entry;

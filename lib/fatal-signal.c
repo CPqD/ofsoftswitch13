@@ -42,6 +42,10 @@
 #include <unistd.h>
 #include "util.h"
 
+void __attribute__((weak)) dp_destroy(struct datapath * dp UNUSED) {
+    // TODO Davide: explain why we need this here?
+}
+
 /* Signals to catch. */
 static const int fatal_signals[] = { SIGTERM, SIGINT, SIGHUP, SIGALRM };
 
@@ -187,6 +191,7 @@ static size_t n_files, max_files;
 
 static void unlink_files(void *aux);
 static void do_unlink_files(void);
+static void destroy_pipeline(void *aux);
 
 /* Registers 'file' to be unlinked when the program terminates via exit() or a
  * fatal signal. */
@@ -197,6 +202,7 @@ fatal_signal_add_file_to_unlink(const char *file)
     if (!added_hook) {
         added_hook = true;
         fatal_signal_add_hook(unlink_files, NULL, true);
+        fatal_signal_add_hook(destroy_pipeline, NULL, true);
     }
 
     fatal_signal_block();
@@ -241,6 +247,13 @@ do_unlink_files(void)
     }
 }
 
+
+static void
+destroy_pipeline(void *aux UNUSED)
+{
+    dp_destroy(dp_ref);
+}
+
 /* Disables the fatal signal hook mechanism.  Following a fork, one of the
  * resulting processes can call this function to allow it to terminate without
  * triggering fatal signal processing or removing files.  Fatal signal

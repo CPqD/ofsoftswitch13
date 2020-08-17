@@ -107,7 +107,7 @@ mac_table_bucket(const struct mac_learning *ml,
 {
     uint32_t hash = mac_table_hash(mac, vlan);
     const struct list *list = &ml->table[hash & MAC_HASH_BITS];
-    return (struct list *) list;
+    return CONST_CAST(struct list *, list);
 }
 
 static struct mac_entry *
@@ -296,6 +296,6 @@ mac_learning_wait(struct mac_learning *ml)
 {
     if (!list_is_empty(&ml->lrus)) {
         struct mac_entry *e = mac_entry_from_lru_node(ml->lrus.next);
-        poll_timer_wait((e->expires - time_now()) * 1000);
+        poll_set_timer_wait((e->expires - time_now()) * 1000);
     }
 }

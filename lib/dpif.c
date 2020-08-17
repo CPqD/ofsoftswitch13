@@ -1,6 +1,6 @@
 /* Copyright (c) 2008, 2009 The Board of Trustees of The Leland Stanford
  * Junior University
- * 
+ *
  * We are making the OpenFlow specification and associated documentation
  * (Software) available for public use and benefit with the expectation
  * that others will use, modify and enhance the Software and contribute
@@ -13,10 +13,10 @@
  * distribute, sublicense, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -25,7 +25,7 @@
  * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * 
+ *
  * The name and trademarks of copyright holder(s) may NOT be used in
  * advertising or publicity pertaining to the Software or any
  * derivatives without specific, written prior permission.
@@ -102,7 +102,7 @@ dpif_open(int subscribe_dp_idx, struct dpif *dp)
 
 /* Closes 'dp'. */
 void
-dpif_close(struct dpif *dp) 
+dpif_close(struct dpif *dp)
 {
     if (dp) {
         nl_sock_destroy(dp->sock);
@@ -137,6 +137,7 @@ dpif_recv_openflow(struct dpif *dp, int dp_idx, struct ofpbuf **bufferp,
     struct ofpbuf *buffer;
     struct ofp_header *oh;
     uint16_t ofp_len;
+    const void *ret;
 
     buffer = *bufferp = NULL;
     do {
@@ -174,7 +175,8 @@ dpif_recv_openflow(struct dpif *dp, int dp_idx, struct ofpbuf **bufferp,
         }
     } while (nl_attr_get_u32(attrs[DP_GENL_A_DP_IDX]) != dp_idx);
 
-    oh = buffer->data = (void *) nl_attr_get(attrs[DP_GENL_A_OPENFLOW]);
+    ret = nl_attr_get(attrs[DP_GENL_A_OPENFLOW]);
+    oh = buffer->data = CONST_CAST(void *, ret);
     buffer->size = nl_attr_get_size(attrs[DP_GENL_A_OPENFLOW]);
     ofp_len = ntohs(oh->length);
     if (ofp_len != buffer->size) {
@@ -200,7 +202,7 @@ error:
  *
  * If the send is successful, then the kernel module will receive it, but there
  * is no guarantee that any reply will not be dropped (see nl_sock_transact()
- * for details). 
+ * for details).
  */
 int
 dpif_send_openflow(struct dpif *dp, int dp_idx, struct ofpbuf *buffer)
@@ -238,7 +240,7 @@ dpif_send_openflow(struct dpif *dp, int dp_idx, struct ofpbuf *buffer)
         static char zeros[NLA_ALIGNTO];
         n_iov++;
         iov[2].iov_base = zeros;
-        iov[2].iov_len = pad_bytes; 
+        iov[2].iov_len = pad_bytes;
     }
     retval = nl_sock_sendv(dp->sock, iov, n_iov, false);
     if (retval && retval != EAGAIN) {
@@ -291,8 +293,8 @@ static const struct nl_policy openflow_multicast_policy[] = {
 };
 
 /* Looks up the Netlink multicast group and datapath index of a datapath
- * by either the datapath index or name.  If 'dp_idx' points to a value 
- * of '-1', then 'dp_name' is used to lookup the datapath.  If successful, 
+ * by either the datapath index or name.  If 'dp_idx' points to a value
+ * of '-1', then 'dp_name' is used to lookup the datapath.  If successful,
  * stores the multicast group in '*multicast_group' and the index in
  * '*dp_idx' and returns 0. Otherwise, returns a positive errno value. */
 static int
@@ -363,7 +365,7 @@ dpif_get_idx(const char *name)
 
 /* Sends the given 'command' to datapath 'dp', related to the local datapath
  * numbered 'dp_idx'.  If 'arg' is nonnull, adds it to the command as the
- * datapath or port name attribute depending on the requested operation.  
+ * datapath or port name attribute depending on the requested operation.
  * Returns 0 if successful, otherwise a positive errno value. */
 static int
 send_mgmt_command(struct dpif *dp, int dp_idx, int command, const char *arg)

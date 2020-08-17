@@ -73,7 +73,7 @@ csum_continue(uint32_t partial, const void *data_, size_t n)
         partial = csum_add16(partial, *data++);
     }
     if (n) {
-        partial += *(uint8_t *) data;
+        partial += *(uint8_t const *) data;
     }
     return partial;
 }
@@ -129,14 +129,14 @@ recalc_csum64(uint16_t old_csum, uint64_t old_u64, uint64_t new_u64)
  * contained 'old_csum' and in which a field that contained 'old_u32' was
  * changed to contain 'new_u12'. */
 uint16_t
-recalc_csum128(uint16_t old_csum, uint8_t old_u128[16], uint8_t new_u128[16])
+recalc_csum128(uint16_t old_csum, uint8_t const old_u128[16], uint8_t const new_u128[16])
 {
     uint64_t old_left, old_right;
     uint64_t new_left, new_right;
-    old_right = *((uint64_t*) ( old_u128 + 8 ));
-    new_right = *((uint64_t*) ( new_u128 + 8 ));
-    old_left = *((uint64_t*) ( old_u128 ));
-    new_left = *((uint64_t*) ( new_u128 ));
+    old_right = *((uint64_t const*) ( old_u128 + 8 ));
+    new_right = *((uint64_t const*) ( new_u128 + 8 ));
+    old_left  = *((uint64_t const*) ( old_u128 ));
+    new_left  = *((uint64_t const*) ( new_u128 ));
     return recalc_csum64(recalc_csum64(old_csum, old_right, new_right),
                          old_left, new_left);
 }

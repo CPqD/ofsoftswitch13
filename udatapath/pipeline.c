@@ -1,4 +1,4 @@
-/* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary
+/*
  * Copyright (c) 2012, CPqD, Brazil
  * All rights reserved.
  *
@@ -50,7 +50,8 @@
 #include "hash.h"
 #include "oflib/oxm-match.h"
 #include "vlog.h"
-
+#include "dp_capabilities.h"
+#include "oflib-exp/ofl-exp-beba.h"
 
 #define LOG_MODULE VLM_pipeline
 
@@ -69,7 +70,6 @@ pipeline_create(struct datapath *dp) {
         pl->tables[i] = flow_table_create(dp, i);
     }
     pl->dp = dp;
-    nblink_initialize();
     return pl;
 }
 
@@ -77,6 +77,7 @@ static bool
 is_table_miss(struct flow_entry *entry){
     return ((entry->stats->priority) == 0 && (entry->match->length <= 4));
 }
+
 
 /* Sends a packet to the controller in a packet_in message */
 static void
@@ -103,7 +104,7 @@ send_packet_to_controller(struct pipeline *pl, struct packet *pkt, uint8_t table
         msg.data_length = pkt->buffer->size;
     }
 
-    m = &pkt->handle_std->match;
+    m = &pkt->handle_std.match;
     /* In this implementation the fields in_port and in_phy_port
         always will be the same, because we are not considering logical
         ports                                 */
@@ -114,8 +115,12 @@ send_packet_to_controller(struct pipeline *pl, struct packet *pkt, uint8_t table
 /* Pass the packet through the flow tables.
  * This function takes ownership of the packet and will destroy it. */
 void
-pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
+pipeline_process_packet(struct pipeline *pl, struct packet *pkt)
+{
     struct flow_table *table, *next_table;
+    struct ofl_match_tlv *f;
+    struct ofl_match_tlv *state_hdr = NULL;
+    bool gstate_set = false;
 
     if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
         char *pkt_str = packet_to_string(pkt);
@@ -123,7 +128,7 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
         free(pkt_str);
     }
 
-    if (!packet_handle_std_is_ttl_valid(pkt->handle_std)) {
+    if (!packet_handle_std_is_ttl_valid(&pkt->handle_std)) {
         send_packet_to_controller(pl, pkt, 0/*table_id*/, OFPR_INVALID_TTL);
         packet_destroy(pkt);
         return;
@@ -136,43 +141,79 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
         VLOG_DBG_RL(LOG_MODULE, &rl, "trying table %u.", next_table->stats->table_id);
 
         pkt->table_id = next_table->stats->table_id;
-        table         = next_table;
-        next_table    = NULL;
+        table = next_table;
+        next_table = NULL;
 
-        // EEDBEH: additional printout to debug table lookup
+        /* BEBA EXTENSION BEGIN */
+
+        if (state_table_is_enabled(table->state_table)) {
+            struct state_entry *state_entry;
+            state_entry = state_table_lookup(table->state_table, pkt);
+
+            if (state_hdr == NULL) {
+                // Allocate state to packet headers (experimenter).
+                state_hdr = ofl_structs_match_exp_put32(&pkt->handle_std.match, OXM_EXP_STATE, 0xBEBABEBA,
+                                                        state_entry->state);
+            } else {
+                // Rewrite existing header.
+                state_table_write_state_header(state_entry, state_hdr);
+            }
+
+            //TODO save global state header field ptr
+            if (!gstate_set) {
+                // Append global states to packet headers.
+                HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv, hmap_node,
+                                        hash_int(OXM_EXP_GLOBAL_STATE, 0), &pkt->handle_std.match.match_fields) {
+                    uint32_t *flags = (uint32_t *) (f->value + EXP_ID_LEN);
+                    *flags = (*flags & 0x00000000) | (pkt->dp->global_state);
+                    gstate_set = true;
+                }
+            }
+        } else {
+            // FIXME: avoid matching on state on non-stateful stages.
+            // hint: don't touch the packet, avoid installing flowmods that match on state.
+        }
+
+        /* BEBA EXTENSION END */
+
         if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
-            char *m = ofl_structs_match_to_string((struct ofl_match_header*)&(pkt->handle_std->match), pkt->dp->exp);
-            VLOG_DBG_RL(LOG_MODULE, &rl, "searching table entry for packet match: %s.", m);
+            char *m = ofl_structs_match_to_string((struct ofl_match_header *) &(pkt->handle_std.match), pkt->dp->exp);
+            VLOG_DBG_RL(LOG_MODULE, &rl, "searching table entry in table %d for packet match: %s.",
+                        table->stats->table_id, m);
             free(m);
         }
-        entry = flow_table_lookup(table, pkt);
+
+        entry = flow_table_lookup(table, pkt, pkt->dp->exp);
+
         if (entry != NULL) {
-	        if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
+            if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
                 char *m = ofl_structs_flow_stats_to_string(entry->stats, pkt->dp->exp);
                 VLOG_DBG_RL(LOG_MODULE, &rl, "found matching entry: %s.", m);
                 free(m);
             }
-            pkt->handle_std->table_miss = is_table_miss(entry);
+
+            pkt->handle_std.table_miss = is_table_miss(entry);
             execute_entry(pl, entry, &next_table, &pkt);
             /* Packet could be destroyed by a meter instruction */
             if (!pkt)
                 return;
 
             if (next_table == NULL) {
-               /* Cookie field is set 0xffffffffffffffff
-                because we cannot associate it to any
-                particular flow */
-                action_set_execute(pkt->action_set, pkt, 0xffffffffffffffff);
+                /* Cookie field is set 0xffffffffffffffff
+                 because we cannot associate it to any
+                 particular flow */
+                action_set_execute(&pkt->action_set, pkt, 0xffffffffffffffff);
                 return;
             }
 
         } else {
-			/* OpenFlow 1.3 default behavior on a table miss */
-			VLOG_DBG_RL(LOG_MODULE, &rl, "No matching entry found. Dropping packet.");
-			packet_destroy(pkt);
-			return;
+            /* OpenFlow 1.3 default behavior on a table miss */
+            VLOG_DBG_RL(LOG_MODULE, &rl, "No matching entry found. Dropping packet.");
+            packet_destroy(pkt);
+            return;
         }
     }
+
     VLOG_WARN_RL(LOG_MODULE, &rl, "Reached outside of pipeline processing cycle.");
 }
 
@@ -185,6 +226,33 @@ int inst_compare(const void *inst1, const void *inst2){
         return i1->type > i2->type;
 
     return i1->type < i2->type;
+}
+
+void
+send_flow_notification(struct datapath *dp, struct ofl_msg_flow_mod *msg,const struct sender *sender){
+    struct ofl_instruction_header * instruction;
+    size_t i;
+
+    /* Flow Mod Sync: Notification is sent to acknowledge a flow modification */
+    struct ofl_exp_msg_notify_flow_change ntf = {{{{.type = OFPT_EXPERIMENTER},
+                                                   .experimenter_id = BEBA_VENDOR_ID},
+                                                   .type = OFPT_EXP_FLOW_NOTIFICATION},
+                                                   .table_id = msg->table_id,
+                                                   .ntf_type = OFPT_FLOW_MOD,
+                                                   .match = msg->match,
+                                                   .instruction_num = msg->instructions_num,
+                                                   .instructions = NULL};
+
+    if (ntf.instruction_num>0){
+        ntf.instructions = (uint32_t *) xmalloc(ntf.instruction_num * sizeof(uint32_t));
+        instruction = *(msg->instructions);
+        for(i=0;i<ntf.instruction_num;i++){
+            ntf.instructions[i] = instruction[i].type;
+        }
+    }
+
+    dp_send_message(dp,(struct ofl_msg_header*)&ntf, sender);
+    if (ntf.instructions != NULL) free(ntf.instructions);
 }
 
 ofl_err
@@ -234,7 +302,7 @@ pipeline_handle_flow_mod(struct pipeline *pl, struct ofl_msg_flow_mod *msg,
 
             error = 0;
             for (i=0; i < PIPELINE_TABLES; i++) {
-                error = flow_table_flow_mod(pl->tables[i], msg, &match_kept, &insts_kept);
+                error = flow_table_flow_mod(pl->tables[i], msg, &match_kept, &insts_kept, pl->dp->exp);
                 if (error) {
                     break;
                 }
@@ -242,6 +310,7 @@ pipeline_handle_flow_mod(struct pipeline *pl, struct ofl_msg_flow_mod *msg,
             if (error) {
                 return error;
             } else {
+                send_flow_notification(pl->dp, msg, sender);
                 ofl_msg_free_flow_mod(msg, !match_kept, !insts_kept, pl->dp->exp);
                 return 0;
             }
@@ -249,7 +318,7 @@ pipeline_handle_flow_mod(struct pipeline *pl, struct ofl_msg_flow_mod *msg,
             return ofl_error(OFPET_FLOW_MOD_FAILED, OFPFMFC_BAD_TABLE_ID);
         }
     } else {
-        error = flow_table_flow_mod(pl->tables[msg->table_id], msg, &match_kept, &insts_kept);
+        error = flow_table_flow_mod(pl->tables[msg->table_id], msg, &match_kept, &insts_kept, pl->dp->exp);
         if (error) {
             return error;
         }
@@ -265,11 +334,11 @@ pipeline_handle_flow_mod(struct pipeline *pl, struct ofl_msg_flow_mod *msg,
                 VLOG_WARN_RL(LOG_MODULE, &rl, "The buffer flow_mod referred to was empty (%u).", msg->buffer_id);
             }
         }
-
+        
+        send_flow_notification(pl->dp, msg, sender);
         ofl_msg_free_flow_mod(msg, !match_kept, !insts_kept, pl->dp->exp);
         return 0;
     }
-
 }
 
 ofl_err
@@ -306,10 +375,10 @@ pipeline_handle_stats_request_flow(struct pipeline *pl,
     if (msg->table_id == 0xff) {
         size_t i;
         for (i=0; i<PIPELINE_TABLES; i++) {
-            flow_table_stats(pl->tables[i], msg, &stats, &stats_size, &stats_num);
+            flow_table_stats(pl->tables[i], msg, &stats, &stats_size, &stats_num, pl->dp->exp);
         }
     } else {
-        flow_table_stats(pl->tables[msg->table_id], msg, &stats, &stats_size, &stats_num);
+        flow_table_stats(pl->tables[msg->table_id], msg, &stats, &stats_size, &stats_num, pl->dp->exp);
     }
 
     {
@@ -424,7 +493,7 @@ pipeline_handle_stats_request_table_features_request(struct pipeline *pl,
 	VLOG_DBG(LOG_MODULE, "multipart request: create reassembly buffer (%zu)", feat->tables_num);
 
 	/* Create a buffer the do reassembly. */
-	saved_msg = (struct ofl_msg_multipart_request_table_features*) malloc(sizeof(struct ofl_msg_multipart_request_table_features));
+	saved_msg = (struct ofl_msg_multipart_request_table_features*) xmalloc(sizeof(struct ofl_msg_multipart_request_table_features));
 	saved_msg->header.header.type = OFPT_MULTIPART_REQUEST;
 	saved_msg->header.type = OFPMP_TABLE_FEATURES;
 	saved_msg->header.flags = 0;
@@ -586,6 +655,17 @@ pipeline_timeout(struct pipeline *pl) {
     }
 }
 
+void
+pipeline_flush_state_tables(struct pipeline *pl) {
+    int i;
+
+    for (i = 0; i < PIPELINE_TABLES; i++) {
+        if (state_table_is_enabled(pl->tables[i]->state_table)) {
+            state_table_flush(pl->tables[i]->state_table);
+        }
+    }
+}
+
 
 /* Executes the instructions associated with a flow entry */
 static void
@@ -624,10 +704,10 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
 
                 /* NOTE: Hackish solution. If packet had multiple handles, metadata
                  *       should be updated in all. */
-                packet_handle_std_validate((*pkt)->handle_std);
+                packet_handle_std_validate(&(*pkt)->handle_std);
                 /* Search field on the description of the packet. */
                 HMAP_FOR_EACH_WITH_HASH(f, struct ofl_match_tlv,
-                    hmap_node, hash_int(OXM_OF_METADATA,0), &(*pkt)->handle_std->match.match_fields){
+                    hmap_node, hash_int(OXM_OF_METADATA,0), &(*pkt)->handle_std.match.match_fields){
                     uint64_t *metadata = (uint64_t*) f->value;
                     *metadata = (*metadata & ~wi->metadata_mask) | (wi->metadata & wi->metadata_mask);
                     VLOG_DBG_RL(LOG_MODULE, &rl, "Executing write metadata: 0x%"PRIx64"", *metadata);
@@ -636,7 +716,7 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
             }
             case OFPIT_WRITE_ACTIONS: {
                 struct ofl_instruction_actions *wa = (struct ofl_instruction_actions *)inst;
-                action_set_write_actions((*pkt)->action_set, wa->actions_num, wa->actions);
+                action_set_write_actions(&(*pkt)->action_set, wa->actions_num, wa->actions);
                 break;
             }
             case OFPIT_APPLY_ACTIONS: {
@@ -645,12 +725,12 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
                 break;
             }
             case OFPIT_CLEAR_ACTIONS: {
-                action_set_clear_actions((*pkt)->action_set);
+                action_set_clear_actions(&(*pkt)->action_set);
                 break;
             }
             case OFPIT_METER: {
             	struct ofl_instruction_meter *im = (struct ofl_instruction_meter *)inst;
-                meter_table_apply(pl->dp->meters, pkt , im->meter_id);
+                meter_table_apply(pl->dp->meters, pkt, im->meter_id);
                 break;
             }
             case OFPIT_EXPERIMENTER: {
@@ -660,4 +740,3 @@ execute_entry(struct pipeline *pl, struct flow_entry *entry,
         }
     }
 }
-

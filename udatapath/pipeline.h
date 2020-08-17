@@ -102,9 +102,16 @@ pipeline_handle_stats_request_aggregate(struct pipeline *pl,
 void
 pipeline_timeout(struct pipeline *pl);
 
+/* Commands pipeline to check if any state entry in any state table is timed out. */
+void
+pipeline_flush_state_tables(struct pipeline *pl);
+
 /* Detroys the pipeline. */
 void
 pipeline_destroy(struct pipeline *pl);
+
+void
+send_flow_notification(struct datapath *dp, struct ofl_msg_flow_mod *msg,const struct sender *sender);
 
 
 #endif /* PIPELINE_H */

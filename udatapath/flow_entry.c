@@ -1,5 +1,5 @@
 /* Copyright (c) 2011, TrafficLab, Ericsson Research, Hungary
- * Copyright (c) 2012, CPqD, Brazil 
+ * Copyright (c) 2012, CPqD, Brazil
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -108,28 +108,28 @@ flow_entry_has_out_group(struct flow_entry *entry, uint32_t group) {
 
 
 bool
-flow_entry_matches(struct flow_entry *entry, struct ofl_msg_flow_mod *mod, bool strict, bool check_cookie) {
+flow_entry_matches(struct flow_entry *entry, struct ofl_msg_flow_mod *mod, bool strict, bool check_cookie, struct ofl_exp *exp) {
 	if (check_cookie && ((entry->stats->cookie & mod->cookie_mask) != (mod->cookie & mod->cookie_mask))) {
 		return false;
 	}
-    
+
     if (strict) {
         return ( (entry->stats->priority == mod->priority) &&
                  match_std_strict((struct ofl_match *)mod->match,
-                                (struct ofl_match *)entry->stats->match));
+                                (struct ofl_match *)entry->stats->match, exp));
     } else {
         return match_std_nonstrict((struct ofl_match *)mod->match,
-                                   (struct ofl_match *)entry->stats->match);
+                                   (struct ofl_match *)entry->stats->match, exp);
     }
 }
 
 bool
-flow_entry_overlaps(struct flow_entry *entry, struct ofl_msg_flow_mod *mod) {
+flow_entry_overlaps(struct flow_entry *entry, struct ofl_msg_flow_mod *mod, struct ofl_exp *exp) {
         return (entry->stats->priority == mod->priority &&
             (mod->out_port == OFPP_ANY || flow_entry_has_out_port(entry, mod->out_port)) &&
             (mod->out_group == OFPG_ANY || flow_entry_has_out_group(entry, mod->out_group)) &&
             match_std_overlap((struct ofl_match *)entry->stats->match,
-                                            (struct ofl_match *)mod->match));
+                                            (struct ofl_match *)mod->match, exp));
 }
 
 
@@ -212,7 +212,6 @@ static void
 init_group_refs(struct flow_entry *entry) {
     struct group_ref_entry *e;
     size_t i,j;
-
     for (i=0; i<entry->stats->instructions_num; i++) {
         if (entry->stats->instructions[i]->type == OFPIT_APPLY_ACTIONS ||
             entry->stats->instructions[i]->type == OFPIT_WRITE_ACTIONS) {
@@ -347,14 +346,14 @@ flow_entry_create(struct datapath *dp, struct flow_table *table, struct ofl_msg_
     entry->stats->flags            = mod->flags;
     entry->stats->cookie           = mod->cookie;
     entry->no_pkt_count = ((mod->flags & OFPFF_NO_PKT_COUNTS) != 0 );
-    entry->no_byt_count = ((mod->flags & OFPFF_NO_BYT_COUNTS) != 0 ); 
+    entry->no_byt_count = ((mod->flags & OFPFF_NO_BYT_COUNTS) != 0 );
     if (entry->no_pkt_count)
         entry->stats->packet_count     = 0xffffffffffffffff;
-    else 
+    else
         entry->stats->packet_count     = 0;
     if (entry->no_byt_count)
         entry->stats->byte_count       = 0xffffffffffffffff;
-    else 
+    else
         entry->stats->byte_count       = 0;
 
     entry->stats->match            = mod->match;
@@ -364,8 +363,7 @@ flow_entry_create(struct datapath *dp, struct flow_table *table, struct ofl_msg_
     entry->match = mod->match; /* TODO: MOD MATCH? */
 
     entry->created      = now;
-    entry->remove_at    = mod->hard_timeout == 0 ? 0
-                                  : now + mod->hard_timeout * 1000;
+    entry->remove_at    = mod->hard_timeout == 0 ? 0 : now + mod->hard_timeout * 1000;
     entry->last_used    = now;
     entry->send_removed = ((mod->flags & OFPFF_SEND_FLOW_REM) != 0);
     list_init(&entry->match_node);

@@ -69,6 +69,17 @@ struct ofl_msg_error {
 +                                  request. */
 };
 
+/* Experimenter error */
+struct ofl_msg_exp_error {
+    struct ofl_msg_header   header; /* OFPT_ERROR */
+
+    enum ofp_error_type   type;
+    uint16_t              exp_type;
+    uint32_t              experimenter;
+    size_t                data_length;
+    uint8_t               *data;          /* textual errors (OFPET_HELLO_FAILED) or original request. */   
+};
+
 
 /* Echo messages */
 struct ofl_msg_echo {
@@ -165,7 +176,7 @@ struct ofl_msg_port_status {
 /* Asynchronous message configuration. */
 struct ofl_msg_async_config {
     struct ofl_msg_header header; /* OFPT_GET_ASYNC_REPLY or OFPT_SET_ASYNC. */
-    struct ofl_async_config *config; 
+    struct ofl_async_config *config;
 };
 
 struct ofl_msg_packet_out {
@@ -252,9 +263,9 @@ struct ofl_msg_table_mod {
 struct ofl_msg_meter_mod {
     struct ofl_msg_header header;
     uint16_t command;  /* One of OFPMC_*. */
-    uint16_t flags;    /* One of OFPMF_*. */   
+    uint16_t flags;    /* One of OFPMF_*. */
     uint32_t meter_id; /* Meter instance. */
-    size_t  meter_bands_num; 
+    size_t  meter_bands_num;
     struct ofl_meter_band_header **bands; /* The bands length is
                                               inferred from the length field
                                               in the header. */
@@ -314,12 +325,12 @@ struct ofl_msg_multipart_request_group {
 struct ofl_msg_multipart_request_table_features{
     struct ofl_msg_multipart_request_header   header; /* OFPMP_TABLE_FEATURES */
     size_t tables_num;
-    struct ofl_table_features **table_features;    
+    struct ofl_table_features **table_features;
 };
 
 struct ofl_msg_multipart_meter_request {
     struct ofl_msg_multipart_request_header   header; /* OFPMP_METER */
-    
+
     uint32_t meter_id; /* Meter instance, or OFPM_ALL. */
 };
 
@@ -422,8 +433,8 @@ struct ofl_msg_multipart_reply_meter {
 
 struct ofl_msg_multipart_reply_meter_features {
     struct ofl_msg_multipart_reply_header   header; /* OFPMP_METER_FEATURES */
-    
-    struct ofl_meter_features *features;   
+
+    struct ofl_meter_features *features;
 };
 
 struct ofl_msg_multipart_reply_meter_conf {
@@ -445,8 +456,8 @@ struct ofl_msg_multipart_reply_experimenter {
 
     uint32_t  experimenter_id;
 
-    size_t    data_length;
-    uint8_t  *data;
+    //size_t    data_length;
+    //uint8_t  *data;
 };
 
 /*******************
@@ -483,16 +494,14 @@ struct ofl_msg_queue_get_config_reply {
  * success. In case of an experimenter features, it uses the passed in
  * experimenter callbacks. */
 int
-ofl_msg_pack(struct ofl_msg_header *msg, uint32_t xid, uint8_t **buf, size_t *buf_len, struct ofl_exp *exp);
+ofl_msg_pack(struct ofl_msg_header const *msg, uint32_t xid, uint8_t **buf, size_t *buf_len, struct ofl_exp const *exp);
 
 /* Unpacks the wire format message in buf to a new OFLib message pointed at by
  * msg. If xid is not null, it will hold the transaction ID of the received
  * message. Returns zero on success. In case of experimenter features, the
  * function uses the passed in experimenter callback. */
 ofl_err
-ofl_msg_unpack(uint8_t *buf, size_t buf_len,
-               struct ofl_msg_header **msg, uint32_t *xid, struct ofl_exp *exp);
-
+ofl_msg_unpack(uint8_t const *buf, size_t buf_len, struct ofl_msg_header **msg, uint32_t *xid, struct ofl_exp const *exp);
 
 
 
@@ -503,23 +512,23 @@ ofl_msg_unpack(uint8_t *buf, size_t buf_len,
 /* Calling this function frees the passed in message. In case of experimenter
  * features, it uses the passed in experimenter callback. */
 int
-ofl_msg_free(struct ofl_msg_header *msg, struct ofl_exp *exp);
+ofl_msg_free(struct ofl_msg_header *msg, struct ofl_exp const *exp);
 
 /* Calling this function frees the passed meter_mod message.*/
-int 
+int
 ofl_msg_free_meter_mod(struct ofl_msg_meter_mod * msg, bool with_bands);
 
 /* Calling this function frees the passed in packet_out message. If with_data
  * is true, the data in the packet is also freed. In case of experimenter
  * features, it uses the passed in experimenter callback. */
 int
-ofl_msg_free_packet_out(struct ofl_msg_packet_out *msg, bool with_data, struct ofl_exp *exp);
+ofl_msg_free_packet_out(struct ofl_msg_packet_out *msg, bool with_data, struct ofl_exp const *exp);
 
 /* Calling this function frees the passed in group_mod message. If with_buckets
  * is true, the buckets of the message is also freed. In case of experimenter
  * features, it uses the passed in experimenter callback. */
 int
-ofl_msg_free_group_mod(struct ofl_msg_group_mod *msg, bool with_buckets, struct ofl_exp *exp);
+ofl_msg_free_group_mod(struct ofl_msg_group_mod *msg, bool with_buckets, struct ofl_exp const *exp);
 
 /* Calling this function frees the passed in flow_modmessage. If with_match is
  * true, the associated match structure is also freed. If with_instructions is
@@ -527,13 +536,13 @@ ofl_msg_free_group_mod(struct ofl_msg_group_mod *msg, bool with_buckets, struct 
  * case of experimenter features, it uses the passed in experimenter callback.
  */
 int
-ofl_msg_free_flow_mod(struct ofl_msg_flow_mod *msg, bool with_match, bool with_instructions, struct ofl_exp *exp);
+ofl_msg_free_flow_mod(struct ofl_msg_flow_mod *msg, bool with_match, bool with_instructions, struct ofl_exp const *exp);
 
 /* Calling this function frees the passed in flow_removed message. If
  * with_stats is true, the associated stats structure is also freed. In case of
  * experimenter features, it uses the passed in experimenter callback. */
 int
-ofl_msg_free_flow_removed(struct ofl_msg_flow_removed *msg, bool with_stats, struct ofl_exp *exp);
+ofl_msg_free_flow_removed(struct ofl_msg_flow_removed *msg, bool with_stats, struct ofl_exp const *exp);
 
 /****************************************************************************
  * Functions for merging messages
@@ -542,7 +551,8 @@ ofl_msg_free_flow_removed(struct ofl_msg_flow_removed *msg, bool with_stats, str
 /* Merges two table feature requests messages. Returns true if the merged
  * message was the last in a series of multi-messages. */
 bool
-ofl_msg_merge_multipart_request_table_features(struct ofl_msg_multipart_request_table_features *orig, struct ofl_msg_multipart_request_table_features *merge);
+ofl_msg_merge_multipart_request_table_features(struct ofl_msg_multipart_request_table_features *orig,
+					       struct ofl_msg_multipart_request_table_features *merge);
 
 /* Merges two flow stats reply messages. Returns true if the merged message was
  * the last in a series of multi-messages. */
@@ -577,13 +587,13 @@ ofl_msg_merge_multipart_reply_queue(struct ofl_msg_multipart_reply_queue *orig,
 /* Converts the passed in message to a string format. In case of experimenter
  * features, it uses the passed in experimenter callbacks. */
 char *
-ofl_msg_to_string(struct ofl_msg_header *msg, struct ofl_exp *exp);
+ofl_msg_to_string(struct ofl_msg_header const *msg, struct ofl_exp const *exp);
 
 /* Converts the passed in message to a string format and adds it to the dynamic
  * string. In case of experimenter features, it uses the passed in experimenter
  * callbacks. */
 void
-ofl_msg_print(FILE *stream, struct ofl_msg_header *msg, struct ofl_exp *exp);
+ofl_msg_print(FILE *stream, struct ofl_msg_header const *msg, struct ofl_exp const *exp);
 
 
 #endif /* OFL_MESSAGES_H */

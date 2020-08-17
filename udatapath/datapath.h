@@ -1,6 +1,6 @@
 /* Copyright (c) 2008 The Board of Trustees of The Leland Stanford
  * Junior University
- * 
+ *
  * We are making the OpenFlow specification and associated documentation
  * (Software) available for public use and benefit with the expectation
  * that others will use, modify and enhance the Software and contribute
@@ -13,10 +13,10 @@
  * distribute, sublicense, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -25,7 +25,7 @@
  * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * 
+ *
  * The name and trademarks of copyright holder(s) may NOT be used in
  * advertising or publicity pertaining to the Software or any
  * derivatives without specific, written prior permission.
@@ -50,6 +50,7 @@
 #include "oflib/ofl-messages.h"
 #include "oflib/ofl-structs.h"
 #include "oflib-exp/ofl-exp-nicira.h"
+#include "oflib-exp/ofl-exp-beba.h"
 #include "group_table.h"
 #include "timeval.h"
 #include "list.h"
@@ -63,10 +64,14 @@ struct sender;
  * The datapath
  ****************************************************************************/
 
+#define DP_RELAX_FACTOR_MASK	((1UL << BEBA_CTRL_PLANE_RELAX)-1)
+#define DP_RELAX_WITH(n)	if ((n & DP_RELAX_FACTOR_MASK)== 0)
 
-struct datapath {
+struct datapath
+{
     /* Strings to describe the manufacturer, hardware, and software. This data
      * is queriable through switch stats request. */
+
     char  *mfr_desc;
     char  *hw_desc;
     char  *sw_desc;
@@ -74,6 +79,8 @@ struct datapath {
     char  *serial_num;
 
     uint64_t  id;               /* Unique identifier for this datapath. */
+
+    uint32_t  global_state;    /* Global state for this datapath. */
 
     struct list remotes;        /* Remote connections. */
 
@@ -84,8 +91,8 @@ struct datapath {
     size_t n_listeners;
     struct pvconn **listeners_aux;
     size_t n_listeners_aux;
-    
     time_t last_timeout;
+    time_t next_state_table_flush;
 
     struct dp_buffers *buffers;
 
@@ -94,6 +101,8 @@ struct datapath {
     struct group_table *groups; /* Group tables */
 
     struct meter_table *meters; /* Meter tables */
+
+    struct pkttmp_table *pkttmps; /* Packet template table */
 
     struct ofl_config config; /* Configuration, set from controller. */
 
@@ -130,7 +139,7 @@ struct remote {
     struct list node;
     struct rconn *rconn;
     struct rconn *rconn_aux;
-    
+
 #define TXQ_LIMIT 128           /* Max number of packets to queue for tx. */
     int n_txq;                  /* Number of packets queued for tx on rconn. */
 
@@ -144,7 +153,7 @@ struct remote {
     void *cb_aux;
 
     uint32_t role; /*OpenFlow controller role.*/
-    struct ofl_async_config config;  /* Asynchronous messages configuration, 
+    struct ofl_async_config config;  /* Asynchronous messages configuration,
                                             set from controller*/
 
     /* Multipart request message pending reassembly. */
@@ -156,19 +165,23 @@ struct remote {
 struct datapath *
 dp_new(void);
 
+/* Destroy a datapath */
+void
+dp_destroy(struct datapath *);
+
 void
 dp_add_pvconn(struct datapath *dp, struct pvconn *pvconn, struct pvconn *pvconn_aux);
 
 /* Executes the datapath. The datapath works if this function is run
  * repeatedly. */
 void
-dp_run(struct datapath *dp);
+dp_run(struct datapath *dp, int run);
 
 /* This function should be called after dp_run. It sets up polling on all
  * event sources (listeners, remotes, ...), so that poll_block() will block
  * until an event occurs on any source. */
 void
-dp_wait(struct datapath *dp);
+dp_wait(struct datapath *dp, int run);
 
 
 /* Setter functions for various datapath fields */

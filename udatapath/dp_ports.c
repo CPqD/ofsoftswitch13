@@ -37,6 +37,7 @@
  * Author: Zoltán Lajos Kis <zoltan.lajos.kis@ericsson.com>
  */
 
+#include <sys/time.h>
 #include <arpa/inet.h>
 #include <assert.h>
 #include <errno.h>
@@ -69,6 +70,7 @@ static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(60, 60);
 static pthread_mutex_t pkt_q_mutex = PTHREAD_MUTEX_INITIALIZER;
 #define PKT_Q_LOCK pthread_mutex_lock(&pkt_q_mutex)
 #define PKT_Q_UNLOCK pthread_mutex_unlock(&pkt_q_mutex)
+
 
 static void
 enqueue_pkt(struct datapath *dp, struct ofpbuf *buffer, of_port_t port_no,
@@ -212,26 +214,32 @@ dp_hw_drv_init(struct datapath *dp)
 
 /* Runs a datapath packet through the pipeline, if the port is not set to down. */
 static void
-process_buffer(struct datapath *dp, struct sw_port *p, struct ofpbuf *buffer) {
-    struct packet *pkt;
+process_buffer(struct datapath *dp, struct sw_port *p, struct ofpbuf *buffer, struct timeval *tv)
+{
+    struct packet pkt;
 
     if ((p->conf->config & (OFPPC_NO_RECV | OFPPC_PORT_DOWN)) != 0) {
         ofpbuf_delete(buffer);
         return;
     }
 
-    // packet takes ownership of ofpbuf buffer
-    pkt = packet_create(dp, p->stats->port_no, buffer, false);
-    pipeline_process_packet(dp->pipeline, pkt);
+    packet_emplace(&pkt, dp, p->stats->port_no, buffer, false);
+    pkt.ts = *tv;
+
+    pipeline_process_packet(dp->pipeline, &pkt);
 }
 
+
 void
-dp_ports_run(struct datapath *dp) {
+dp_ports_run(struct datapath *dp, int nrun) {
+
     // static, so an unused buffer can be reused at the dp_ports_run call
-    static struct ofpbuf *buffer = NULL;
-    int max_mtu = 0;
+    static struct ofpbuf buffer;
+
+    static int max_mtu = 1500;
 
     struct sw_port *p, *pn;
+    struct timeval tv;
 
 #if defined(OF_HW_PLAT) && !defined(USE_NETDEV)
     { /* Process packets received from callback thread */
@@ -248,52 +256,70 @@ dp_ports_run(struct datapath *dp) {
     }
 #endif
 
-    // find largest MTU on our interfaces
-    // buffer is shared among all (idle) interfaces...
-    LIST_FOR_EACH_SAFE (p, pn, struct sw_port, node, &dp->port_list) {        
-        const int mtu = netdev_get_mtu(p->netdev);
-        if (IS_HW_PORT(p)) 
-            continue;
-        if (mtu > max_mtu)
-            max_mtu = mtu;
+    DP_RELAX_WITH(nrun)
+    {
+        // find largest MTU on our interfaces
+        // buffer is shared among all (idle) interfaces...
+        LIST_FOR_EACH_SAFE (p, pn, struct sw_port, node, &dp->port_list)
+        {
+            const int mtu = netdev_get_mtu(p->netdev);
+            if (IS_HW_PORT(p))
+                continue;
+            if (mtu > max_mtu)
+                max_mtu = mtu;
+        }
     }
 
     LIST_FOR_EACH_SAFE (p, pn, struct sw_port, node, &dp->port_list) {
+
         int error;
-        /* Check for interface state change */
-        enum netdev_link_state link_state = netdev_link_state(p->netdev);
-        if (link_state == NETDEV_LINK_UP){
-            p->conf->state &= ~OFPPS_LINK_DOWN;
-            dp_port_live_update(p);
-        }
-        else if (link_state == NETDEV_LINK_DOWN){
-            p->conf->state |= OFPPS_LINK_DOWN;
-            dp_port_live_update(p);
+        size_t x;
+
+        DP_RELAX_WITH(nrun)
+        {
+            /* Check for interface state change */
+            enum netdev_link_state link_state = netdev_link_state(p->netdev);
+            if (link_state == NETDEV_LINK_UP) {
+                p->conf->state &= ~OFPPS_LINK_DOWN;
+                dp_port_live_update(p);
+            } else if (link_state == NETDEV_LINK_DOWN) {
+                p->conf->state |= OFPPS_LINK_DOWN;
+                dp_port_live_update(p);
+            }
         }
 
+#if defined(OF_HW_PLAT)
         if (IS_HW_PORT(p)) {
             continue;
         }
-        if (buffer == NULL) {
-            /* Allocate buffer with some headroom to add headers in forwarding
-             * to the controller or adding a vlan tag, plus an extra 2 bytes to
-             * allow IP headers to be aligned on a 4-byte boundary.  */
-            const int headroom = 128 + 2;
-            buffer = ofpbuf_new_with_headroom(VLAN_ETH_HEADER_LEN + max_mtu, headroom);
-        }
-        error = netdev_recv(p->netdev, buffer, VLAN_ETH_HEADER_LEN + max_mtu);
-        if (!error) {
-            p->stats->rx_packets++;
-            p->stats->rx_bytes += buffer->size;
-            // process_buffer takes ownership of ofpbuf buffer
-            process_buffer(dp, p, buffer);
-            buffer = NULL;
-        } else if (error != EAGAIN) {
-            VLOG_ERR_RL(LOG_MODULE, &rl, "error receiving data from %s: %s",
-                        netdev_get_name(p->netdev), strerror(error));
-        }
-    }
+#endif
 
+	for(x = 0; x < BEBA_WORK_BUDGET; x++)
+	{
+#if BEBA_USE_LIBPCAP_ZEROCOPY
+	    ofpbuf_emplace(&buffer, 0, 0);
+#else
+	    /* Emplace a buffer with some headroom to add headers in forwarding
+	     * to the controller or adding a vlan tag, plus an extra 2 bytes to
+	     * allow IP headers to be aligned on a 4-byte boundary.  */
+
+	    const int headroom = 128 + 2;
+	    ofpbuf_emplace(&buffer, VLAN_ETH_HEADER_LEN + max_mtu, headroom);
+#endif
+
+	    error = netdev_recv(p->netdev, &buffer, &tv, VLAN_ETH_HEADER_LEN + max_mtu);
+	    if (!error) {
+	        p->stats->rx_packets++;
+	        p->stats->rx_bytes += buffer.size;
+	        // process_buffer takes ownership of ofpbuf buffer
+	        process_buffer(dp, p, &buffer, &tv);
+	    }
+	    else {
+		ofpbuf_delete(&buffer);
+		break;
+	    }
+	}
+    }
 }
 
 /* Returns the speed value in kbps of the highest bit set in the bitfield. */
@@ -584,7 +610,7 @@ dp_ports_output(struct datapath *dp, struct ofpbuf *buffer, uint32_t out_port,
     p = dp_ports_lookup(dp, out_port);
 
     /* FIXME:  Needs update for queuing */
-    #if defined(OF_HW_PLAT) && !defined(USE_NETDEV)
+#if defined(OF_HW_PLAT) && !defined(USE_NETDEV)
     if ((p != NULL) && IS_HW_PORT(p)) {
         if (dp && dp->hw_drv) {
             if (dp->hw_drv->port_link_get(dp->hw_drv, p->port_no)) {
@@ -604,9 +630,9 @@ dp_ports_output(struct datapath *dp, struct ofpbuf *buffer, uint32_t out_port,
         }
         return;
     }
+#endif
 
     /* Fall through to software controlled ports if not HW port */
-#endif
     if (p != NULL && p->netdev != NULL) {
         if (!(p->conf->config & OFPPC_PORT_DOWN)) {
             /* avoid the queue lookup for best-effort traffic */
@@ -665,11 +691,10 @@ dp_ports_output_all(struct datapath *dp, struct ofpbuf *buffer, int in_port, boo
 }
 
 ofl_err
-dp_ports_handle_port_mod(struct datapath *dp, struct ofl_msg_port_mod *msg,
-                                                const struct sender *sender) {
-
-    struct sw_port *p;
+dp_ports_handle_port_mod(struct datapath *dp, struct ofl_msg_port_mod *msg, const struct sender *sender)
+{
     struct ofl_msg_port_status rep_msg;
+    struct sw_port *p;
 
     if(sender->remote->role == OFPCR_ROLE_SLAVE)
         return ofl_error(OFPET_BAD_REQUEST, OFPBRC_IS_SLAVE);
@@ -694,9 +719,11 @@ dp_ports_handle_port_mod(struct datapath *dp, struct ofl_msg_port_mod *msg,
     }
 
     /*Notify all controllers that the port status has changed*/
-    rep_msg.header.type = OFPT_PORT_STATUS;
-    rep_msg.reason =   OFPPR_MODIFY;
-    rep_msg.desc = p->conf;      
+    rep_msg = (struct ofl_msg_port_status)
+    {	{.type = OFPT_PORT_STATUS},
+	.reason = OFPPR_MODIFY, .desc = p->conf
+    };
+
     dp_send_message(dp, (struct ofl_msg_header *)&rep_msg, NULL/*sender*/);
     ofl_msg_free((struct ofl_msg_header *)msg, dp->exp);
     return 0;

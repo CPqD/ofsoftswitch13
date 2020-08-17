@@ -151,17 +151,24 @@ in_band_local_packet_cb(struct relay *r, void *in_band_)
     if (!get_ofp_packet_eth_header(r, &opi, &eth) || !in_band->of_device) {
         return false;
     }
+
+    // FIXME (totally broken!!!)
+    //
+
     /*TODO: OFP 1.2 change */
     in_port = 0;
     //in_port = ntohs(opi->in_port);
+
     get_ofp_packet_payload(opi, &payload);
     flow_extract(&payload, in_port, &flow);
     /* Deal with local stuff. */
-    if (in_port == OFPP_LOCAL) {
-        /* Sent by secure channel. */
+    // FIXME: the first condition is always false.
+    // OFPP_LOCAL is not uint16_t like in_port!
+    /* if (in_port == OFPP_LOCAL) {
+        // Sent by secure channel.
         out_port = mac_learning_lookup(in_band->ml, eth->eth_dst, 0);
-    } else if (eth_addr_equals(eth->eth_dst,
-                               netdev_get_etheraddr(in_band->of_device))) {
+    } else */
+    if (eth_addr_equals(eth->eth_dst, netdev_get_etheraddr(in_band->of_device))) {
         /* Sent to secure channel. */
         out_port = OFPP_LOCAL;
         in_band_learn_mac(in_band, in_port, eth->eth_src);
@@ -260,9 +267,10 @@ in_band_status_cb(struct status_reply *sr, void *in_band_)
 void
 get_ofp_packet_payload(struct ofp_packet_in *opi UNUSED, struct ofpbuf *payload UNUSED)
 {
+    // TODO
     //payload->data = opi->data;
     //payload->size = ntohs(opi->header.length) - offsetof(struct ofp_packet_in,
-      //                                                   data);
+    //                                                   data);
 }
 
 static void

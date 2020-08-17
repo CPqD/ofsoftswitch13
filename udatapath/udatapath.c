@@ -37,6 +37,12 @@
  * Author: Zoltán Lajos Kis <zoltan.lajos.kis@ericsson.com>
  */
 
+#define _GNU_SOURCE	       /* See feature_test_macros(7) */
+#include <sched.h>
+
+#include <sys/types.h>
+#include <unistd.h>
+
 #include <config.h>
 #include <errno.h>
 #include <getopt.h>
@@ -68,6 +74,8 @@
 #define THIS_MODULE VLM_udatapath
 #include "vlog.h"
 
+extern struct datapath *dp_ref;
+
 int udatapath_cmd(int argc, char *argv[]);
 
 static void parse_options(struct datapath *dp, int argc, char *argv[]);
@@ -97,7 +105,7 @@ int
 main(int argc, char *argv[])
 {
     return udatapath_cmd(argc, argv);
-    
+
 }
 #endif
 
@@ -106,7 +114,7 @@ udatapath_cmd(int argc, char *argv[])
 {
     int n_listeners;
     int error;
-    int i;
+    int i, n;
 
     set_program_name(argv[0]);
     register_fault_handlers();
@@ -114,6 +122,7 @@ udatapath_cmd(int argc, char *argv[])
     vlog_init();
 
     dp = dp_new();
+    dp_ref = dp;
 
     parse_options(dp, argc, argv);
     signal(SIGPIPE, SIG_IGN);
@@ -125,7 +134,7 @@ udatapath_cmd(int argc, char *argv[])
 
     if (use_multiple_connections && (argc - optind) % 2 != 0)
         OFP_FATAL(0, "when using multiple connections, you must specify an even number of listeners");
-        
+
     n_listeners = 0;
     for (i = optind; i < argc; i += 2) {
         const char *pvconn_name = argv[i];
@@ -174,10 +183,12 @@ udatapath_cmd(int argc, char *argv[])
     die_if_already_running();
     daemonize();
 
-    for (;;) {
-        dp_run(dp);
-        dp_wait(dp);
+    for (n = 0;; n++) {
+        dp_run(dp, n);
+#if !defined(BEBA_USE_LIBPCAP)
+        dp_wait(dp, n);
         poll_block();
+#endif
     }
 
     return 0;
@@ -212,7 +223,8 @@ parse_options(struct datapath *dp, int argc, char *argv[])
         OPT_SERIAL_NUM,
         OPT_BOOTSTRAP_CA_CERT,
         OPT_NO_LOCAL_PORT,
-        OPT_NO_SLICING
+        OPT_NO_SLICING,
+        OPT_CORE_AFFINITY
     };
 
     static struct option long_options[] = {
@@ -228,6 +240,7 @@ parse_options(struct datapath *dp, int argc, char *argv[])
         {"mfr-desc",    required_argument, 0, OPT_MFR_DESC},
         {"hw-desc",     required_argument, 0, OPT_HW_DESC},
         {"sw-desc",     required_argument, 0, OPT_SW_DESC},
+        {"core",	required_argument, 0, 'C'},
         {"dp_desc",  required_argument, 0, OPT_DP_DESC},
         {"serial_num",  required_argument, 0, OPT_SERIAL_NUM},
         DAEMON_LONG_OPTIONS,
@@ -264,12 +277,12 @@ parse_options(struct datapath *dp, int argc, char *argv[])
             dp_set_dpid(dp, dpid);
             break;
         }
-        
+
         case 'm': {
             use_multiple_connections = true;
             break;
         }
-        
+
         case 'h':
             usage();
 
@@ -322,6 +335,13 @@ parse_options(struct datapath *dp, int argc, char *argv[])
             dp_set_max_queues(dp, 0);
             break;
 
+        case 'C': {
+	    cpu_set_t cpuset;
+            CPU_ZERO(&cpuset); CPU_SET(atoi(optarg), &cpuset);
+	    if (sched_setaffinity(getpid(), sizeof(cpuset), &cpuset) < 0)
+                ofp_fatal(0, "sched_setaffinity: invalid argument");
+	} break;
+
         DAEMON_OPTION_HANDLERS
 
 #ifdef HAVE_OPENSSL
@@ -363,6 +383,7 @@ usage(void)
            "  --no-slicing            disable slicing\n"
            "\nOther options:\n"
            "  -D, --detach            run in background as daemon\n"
+           "  -C, --core[=ID]         run on the given cpu number\n"
            "  -P, --pidfile[=FILE]    create pidfile (default: %s/ofdatapath.pid)\n"
            "  -f, --force             with -P, start even if already running\n"
            "  -v, --verbose=MODULE[:FACILITY[:LEVEL]]  set logging levels\n"

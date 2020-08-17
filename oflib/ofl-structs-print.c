@@ -37,8 +37,10 @@
 #include <ctype.h>
 #include <inttypes.h>
 #include <netinet/in.h>
+#include <math.h>
 #include "oxm-match.h"
 #include "openflow/openflow.h"
+#include "openflow/beba-ext.h"
 
 #include "ofl.h"
 #include "ofl-actions.h"
@@ -55,7 +57,8 @@
 #define IP_FMT "%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8
 
 char *
-ofl_structs_port_to_string(struct ofl_port *port) {
+ofl_structs_port_to_string(struct ofl_port const *port)
+{
         char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
@@ -65,7 +68,8 @@ ofl_structs_port_to_string(struct ofl_port *port) {
 }
 
 void
-ofl_structs_port_print(FILE *stream, struct ofl_port *port) {
+ofl_structs_port_print(FILE *stream, struct ofl_port const *port)
+{
     fprintf(stream, "{no=\"");
     ofl_port_print(stream, port->port_no);
     fprintf(stream, "\", hw_addr=\""ETH_ADDR_FMT"\", name=\"%s\", "
@@ -79,7 +83,8 @@ ofl_structs_port_print(FILE *stream, struct ofl_port *port) {
 }
 
 char *
-ofl_structs_instruction_to_string(struct ofl_instruction_header *inst, struct ofl_exp *exp) {
+ofl_structs_instruction_to_string(struct ofl_instruction_header const *inst, struct ofl_exp const *exp)
+{
         char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
@@ -88,8 +93,10 @@ ofl_structs_instruction_to_string(struct ofl_instruction_header *inst, struct of
     return str;
 }
 
+
 void
-ofl_structs_instruction_print(FILE *stream, struct ofl_instruction_header *inst, struct ofl_exp *exp) {
+ofl_structs_instruction_print(FILE *stream, struct ofl_instruction_header const *inst, struct ofl_exp const *exp)
+{
     ofl_instruction_type_print(stream, inst->type);
 
     switch(inst->type) {
@@ -147,7 +154,8 @@ ofl_structs_instruction_print(FILE *stream, struct ofl_instruction_header *inst,
 }
 
 char *
-ofl_structs_match_to_string(struct ofl_match_header *match, struct ofl_exp *exp) {
+ofl_structs_match_to_string(struct ofl_match_header *match, struct ofl_exp const *exp)
+{
     char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
@@ -157,7 +165,8 @@ ofl_structs_match_to_string(struct ofl_match_header *match, struct ofl_exp *exp)
 }
 
 void
-ofl_structs_match_print(FILE *stream, struct ofl_match_header *match, struct ofl_exp *exp) {
+ofl_structs_match_print(FILE *stream, struct ofl_match_header *match, struct ofl_exp const *exp)
+{
 
     switch (match->type) {
         case (OFPMT_OXM): {
@@ -179,7 +188,8 @@ ofl_structs_match_print(FILE *stream, struct ofl_match_header *match, struct ofl
 
 
 char *
-ofl_structs_oxm_match_to_string(struct ofl_match *m) {
+ofl_structs_oxm_match_to_string(struct ofl_match *m)
+{
     char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
@@ -191,7 +201,8 @@ ofl_structs_oxm_match_to_string(struct ofl_match *m) {
 
 
 void
-ofl_structs_oxm_match_print(FILE *stream, const struct ofl_match *omt) {
+ofl_structs_oxm_match_print(FILE *stream, const struct ofl_match *omt)
+{
 	struct ofl_match_tlv   *f;
 	int 					i;
 	size_t 					size;
@@ -220,7 +231,8 @@ ofl_structs_oxm_match_print(FILE *stream, const struct ofl_match *omt) {
 
 
 char *
-ofl_structs_oxm_tlv_to_string(struct ofl_match_tlv *f) {
+ofl_structs_oxm_tlv_to_string(struct ofl_match_tlv *f)
+{
     char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
@@ -234,8 +246,10 @@ ofl_structs_oxm_tlv_to_string(struct ofl_match_tlv *f) {
 void
 ofl_structs_oxm_tlv_print(FILE *stream, struct ofl_match_tlv *f)
 {
+	uint16_t class = OXM_VENDOR(f->header);
 	uint8_t field = OXM_FIELD(f->header);
 
+<<<<<<< HEAD
 	switch (field) {
 
 		case OFPXMT_OFB_IN_PORT:
@@ -421,16 +435,247 @@ ofl_structs_oxm_tlv_print(FILE *stream, struct ofl_match_tlv *f)
 			fprintf(stream, "\"");
 			if (OXM_HASMASK(f->header)) {
 				fprintf(stream, ", ext_hdr_mask=\"0x%x\"", *((uint16_t*)(f->value+4)));
+=======
+	switch (class) {
+		case(OFPXMC_OPENFLOW_BASIC):
+			switch (field) {
+
+				case OFPXMT_OFB_IN_PORT:
+					fprintf(stream, "in_port=\"%d\"", *((uint32_t*) f->value));
+					break;
+				case OFPXMT_OFB_IN_PHY_PORT:
+					fprintf(stream, "in_phy_port=\"%d\"", *((uint32_t*) f->value));
+					break;
+				case OFPXMT_OFB_VLAN_VID: {
+					uint16_t v = *((uint16_t *) f->value);
+					if (v == OFPVID_NONE)
+						fprintf(stream, "vlan_vid= none");
+					else if (v == OFPVID_PRESENT && OXM_HASMASK(f->header))
+						fprintf(stream, "vlan_vid= any");
+					else
+						fprintf(stream, "vlan_vid=\"%d\"",v & VLAN_VID_MASK);
+					break;
+				}
+				case OFPXMT_OFB_VLAN_PCP:
+					fprintf(stream, "vlan_pcp=\"%d\"", *f->value & 0x7);
+					break;
+				case OFPXMT_OFB_ETH_TYPE:
+					fprintf(stream, "eth_type=\"0x%x\"",  *((uint16_t *) f->value));
+					break;
+				case OFPXMT_OFB_TCP_SRC:
+					fprintf(stream, "tcp_src=\"%d\"", *((uint16_t*) f->value));
+					break;
+				case OFPXMT_OFB_TCP_DST:
+					fprintf(stream, "tcp_dst=\"%d\"", *((uint16_t*) f->value));
+					break;
+				case OFPXMT_OFB_UDP_SRC:
+					fprintf(stream, "udp_src=\"%d\"", *((uint16_t*) f->value));
+					break;
+				case OFPXMT_OFB_UDP_DST:
+					fprintf(stream, "udp_dst=\"%d\"", *((uint16_t*) f->value));
+					break;
+				case OFPXMT_OFB_SCTP_SRC:
+					fprintf(stream, "sctp_src=\"%d\"", *((uint16_t*) f->value));
+					break;
+				case OFPXMT_OFB_SCTP_DST:
+					fprintf(stream, "sctp_dst=\"%d\"", *((uint16_t*) f->value));
+					break;
+				case OFPXMT_OFB_ETH_SRC:
+					fprintf(stream, "eth_src=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value));
+					if (OXM_HASMASK(f->header)) {
+						fprintf(stream, ", eth_src_mask=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value + 6));
+					}
+					break;
+				case OFPXMT_OFB_ETH_DST:
+					fprintf(stream, "eth_dst=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value));
+					if (OXM_HASMASK(f->header)) {
+						fprintf(stream, ", eth_dst_mask=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value + 6));
+					}
+					break;
+
+				case  OFPXMT_OFB_TCP_FLAGS:
+					fprintf(stream, "tcp_flags=\"0x%"PRIx16"\"", *((uint16_t*)(f->value)));
+					if (OXM_HASMASK(f->header)) {
+						fprintf(stream, ", tcp_flags_mask=\"0x%"PRIx16"\"", *((uint16_t*)(f->value + 2)));
+					}
+					break;
+
+				case OFPXMT_OFB_IPV4_DST:
+					fprintf(stream, "ipv4_dst=\""IP_FMT"\"", IP_ARGS(f->value));
+					if (OXM_HASMASK(f->header)) {
+						fprintf(stream, ", ipv4_dst_mask=\""IP_FMT"\"", IP_ARGS(f->value + 4));
+					}
+					break;
+				case OFPXMT_OFB_IPV4_SRC:
+					fprintf(stream, "ipv4_src=\""IP_FMT"\"", IP_ARGS(f->value));
+					if (OXM_HASMASK(f->header)) {
+						fprintf(stream, ", ipv4_src_mask=\""IP_FMT"\"", IP_ARGS(f->value + 4));
+					}
+					break;
+				case OFPXMT_OFB_IP_PROTO:
+					fprintf(stream, "ip_proto=\"%d\"", *f->value);
+					break;
+				case OFPXMT_OFB_IP_DSCP:
+					fprintf(stream, "ip_dscp=\"%d\"", *f->value & 0x3f);
+					break;
+				case OFPXMT_OFB_IP_ECN:
+					fprintf(stream, "ip_ecn=\"%d\"", *f->value & 0x3);
+					break;
+				case OFPXMT_OFB_ICMPV4_TYPE:
+					fprintf(stream, "icmpv4_type= \"%d\"", *f->value);
+					break;
+				case OFPXMT_OFB_ICMPV4_CODE:
+					fprintf(stream, "icmpv4_code=\"%d\"", *f->value);
+					break;
+				case OFPXMT_OFB_ARP_SHA:
+					fprintf(stream, "arp_sha=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value));
+					if (OXM_HASMASK(f->header)) {
+						fprintf(stream, ", arp_sha_mask=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value + 6));
+					}
+					break;
+				case OFPXMT_OFB_ARP_THA:
+					fprintf(stream, "arp_tha=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value));
+					if (OXM_HASMASK(f->header)) {
+						fprintf(stream, ", arp_tha_mask=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value + 6));
+					}
+					break;
+				case OFPXMT_OFB_ARP_SPA:
+					fprintf(stream, "arp_spa=\""IP_FMT"\"", IP_ARGS(f->value));
+					if (OXM_HASMASK(f->header)) {
+						fprintf(stream, ", arp_sha_mask=\""IP_FMT"\"", IP_ARGS(f->value + 4));
+					}
+					break;
+				case OFPXMT_OFB_ARP_TPA:
+					fprintf(stream, "arp_tpa=\""IP_FMT"\"", IP_ARGS(f->value));
+					if (OXM_HASMASK(f->header)) {
+						fprintf(stream, ", arp_tpa_mask=\""IP_FMT"\"", IP_ARGS(f->value + 4));
+					}
+					break;
+				case OFPXMT_OFB_ARP_OP:
+					fprintf(stream, "arp_op=\"0x%x\"", *((uint16_t*) f->value));
+					break;
+				case OFPXMT_OFB_IPV6_SRC: {
+					char addr_str[INET6_ADDRSTRLEN];
+					inet_ntop(AF_INET6, f->value, addr_str, INET6_ADDRSTRLEN);
+					fprintf(stream, "nw_src_ipv6=\"%s\"", addr_str);
+					if (OXM_HASMASK(f->header)) {
+						inet_ntop(AF_INET6, f->value + 16, addr_str, INET6_ADDRSTRLEN);
+						fprintf(stream, ", nw_src_ipv6_mask=\"%s\"", addr_str);
+					}
+					break;
+				}
+				case OFPXMT_OFB_IPV6_DST: {
+					char addr_str[INET6_ADDRSTRLEN];
+					inet_ntop(AF_INET6, f->value, addr_str, INET6_ADDRSTRLEN);
+					fprintf(stream, "nw_dst_ipv6=\"%s\"", addr_str);
+					if (OXM_HASMASK(f->header)) {
+						inet_ntop(AF_INET6, f->value + 16, addr_str, INET6_ADDRSTRLEN);
+						fprintf(stream, ", nw_dst_ipv6_mask=\"%s\"", addr_str);
+					}
+					break;
+				}
+				case OFPXMT_OFB_IPV6_ND_TARGET: {
+					char addr_str[INET6_ADDRSTRLEN];
+					inet_ntop(AF_INET6, f->value, addr_str, INET6_ADDRSTRLEN);
+					fprintf(stream, "ipv6_nd_target=\"%s\"", addr_str);
+					break;
+				}
+				case OFPXMT_OFB_IPV6_ND_SLL:
+					fprintf(stream, "ipv6_nd_sll=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value));
+					break;
+				case OFPXMT_OFB_IPV6_ND_TLL:
+					fprintf(stream, "ipv6_nd_tll=\""ETH_ADDR_FMT"\"", ETH_ADDR_ARGS(f->value));
+					break;
+				case OFPXMT_OFB_IPV6_FLABEL:
+					fprintf(stream, "ipv6_flow_label=\"%d\"", *((uint32_t*) f->value) & 0x000fffff);
+					if (OXM_HASMASK(f->header)) {
+						fprintf(stream, ", ipv6_flow_label_mask=\"%d\"", *((uint32_t*) (f->value+4)));
+					}
+					break;
+				case OFPXMT_OFB_ICMPV6_TYPE:
+					fprintf(stream, "icmpv6_type=\"%d\"", *f->value);
+					break;
+				case OFPXMT_OFB_ICMPV6_CODE:
+					fprintf(stream, "icmpv6_code=\"%d\"", *f->value);
+					break;
+				case OFPXMT_OFB_MPLS_LABEL:
+					fprintf(stream, "mpls_label=\"%d\"",((uint32_t) *f->value) & 0x000fffff);
+					break;
+				case OFPXMT_OFB_MPLS_TC:
+					fprintf(stream, "mpls_tc=\"%d\"", *f->value & 0x3);
+					break;
+				case OFPXMT_OFB_MPLS_BOS:
+					fprintf(stream, "mpls_bos=\"%d\"", *f->value & 0x1);
+					break;
+				case OFPXMT_OFB_METADATA:
+					fprintf(stream, "metadata=\"0x%"PRIu64"\"", *((uint64_t *) f->value));
+					if (OXM_HASMASK(f->header)) {
+						fprintf(stream, ", metadata_mask=\"0x%"PRIu64"\"", *((uint64_t *) (f->value + 8)));
+					}
+					break;
+				case OFPXMT_OFB_PBB_ISID   :
+					fprintf(stream, "pbb_isid=\"%d\"", *((uint32_t *) f->value));
+					if (OXM_HASMASK(f->header)) {
+						fprintf(stream, ", pbb_isid_mask=\"%x%x%x\"", (f->value + 4)[0], (f->value + 4)[1], (f->value + 4)[2]);
+					}
+					break;
+				case OFPXMT_OFB_TUNNEL_ID:
+					fprintf(stream, "tunnel_id=\"0x%"PRIu64"\"", *((uint64_t *) f->value));
+					if (OXM_HASMASK(f->header)) {
+						fprintf(stream, ", tunnel_id_mask=\"0x%"PRIu64"\"", *((uint64_t *) (f->value + 8)));
+					}
+					break;
+				case OFPXMT_OFB_IPV6_EXTHDR:
+					fprintf(stream, "ext_hdr=\"");
+					ofl_ipv6_ext_hdr_print(stream, *((uint16_t*) f->value));
+					fprintf(stream, "\"");
+					if (OXM_HASMASK(f->header)) {
+						fprintf(stream, ", ext_hdr_mask=\"0x%x\"", *((uint16_t*)(f->value+4)));
+					}
+					break;
+		                        
+		        default:
+					fprintf(stream, "unknown type %d", field);					
+				
+				}
+				break;
+
+
+        case(OFPXMC_EXPERIMENTER):
+        	switch (field) {
+	        	case OFPXMT_EXP_STATE:
+		        	fprintf(stream, "state=\"%"PRIu32"\"", *((uint32_t*)(f->value + EXP_ID_LEN)));
+					if (OXM_HASMASK(f->header)) {
+						fprintf(stream, ",state_mask=\"%"PRIu32"\"", *((uint32_t*)(f->value + EXP_ID_LEN + 4)));
+					}
+		 			break;
+
+				case OFPXMT_EXP_GLOBAL_STATE:
+					fprintf(stream, "global_state=");
+					if (!OXM_HASMASK(f->header)) {
+						char string_value[33];
+			            masked_value_print(string_value,decimal_to_binary(*((uint32_t*) (f->value + EXP_ID_LEN))),decimal_to_binary((uint32_t)(pow(2,32)-1)));
+			            fprintf(stream,"%s",string_value);
+					} else {
+						char string_value[33];
+			            masked_value_print(string_value,decimal_to_binary(*((uint32_t*) (f->value + EXP_ID_LEN))),decimal_to_binary(*((uint32_t*)(f->value + EXP_ID_LEN + 4))));
+			            fprintf(stream,"%s",string_value);
+			        }
+					break;
+	
+				default:
+					fprintf(stream, "unknown type %d", field);
 			}
 			break;
 		default:
-			fprintf(stream, "unknown type %d", field);
+			fprintf(stream, "unknown vendor %"PRIu16"", class);	
 	}
 }
 
 
 char *
-ofl_structs_config_to_string(struct ofl_config *c) {
+ofl_structs_config_to_string(struct ofl_config *c)
+{
         char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
@@ -440,13 +685,15 @@ ofl_structs_config_to_string(struct ofl_config *c) {
 }
 
 void
-ofl_structs_config_print(FILE *stream, struct ofl_config *c) {
+ofl_structs_config_print(FILE *stream, struct ofl_config *c)
+{
     fprintf(stream, "{flags=\"0x%"PRIx16"\", mlen=\"%u\"}",
                   c->flags, c->miss_send_len);
 }
 
 char *
-ofl_structs_bucket_to_string(struct ofl_bucket *b, struct ofl_exp *exp) {
+ofl_structs_bucket_to_string(struct ofl_bucket *b, struct ofl_exp const *exp)
+{
         char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
@@ -456,7 +703,8 @@ ofl_structs_bucket_to_string(struct ofl_bucket *b, struct ofl_exp *exp) {
 }
 
 void
-ofl_structs_bucket_print(FILE *stream, struct ofl_bucket *b, struct ofl_exp *exp) {
+ofl_structs_bucket_print(FILE *stream, struct ofl_bucket *b, struct ofl_exp const *exp)
+{
     size_t i;
 
     fprintf(stream, "{w=\"%u\", wprt=\"", b->weight);
@@ -474,7 +722,8 @@ ofl_structs_bucket_print(FILE *stream, struct ofl_bucket *b, struct ofl_exp *exp
 }
 
 char *
-ofl_structs_queue_to_string(struct ofl_packet_queue *q) {
+ofl_structs_queue_to_string(struct ofl_packet_queue *q)
+{
         char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
@@ -484,7 +733,8 @@ ofl_structs_queue_to_string(struct ofl_packet_queue *q) {
 }
 
 void
-ofl_structs_queue_print(FILE *stream, struct ofl_packet_queue *q) {
+ofl_structs_queue_print(FILE *stream, struct ofl_packet_queue *q)
+{
     size_t i;
 
     fprintf(stream, "{q=\"");
@@ -500,7 +750,8 @@ ofl_structs_queue_print(FILE *stream, struct ofl_packet_queue *q) {
 }
 
 char *
-ofl_structs_queue_prop_to_string(struct ofl_queue_prop_header *p) {
+ofl_structs_queue_prop_to_string(struct ofl_queue_prop_header *p)
+{
         char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
@@ -510,7 +761,8 @@ ofl_structs_queue_prop_to_string(struct ofl_queue_prop_header *p) {
 }
 
 void
-ofl_structs_queue_prop_print(FILE *stream, struct ofl_queue_prop_header *p) {
+ofl_structs_queue_prop_print(FILE *stream, struct ofl_queue_prop_header *p)
+{
     ofl_queue_prop_type_print(stream, p->type);
 
     switch(p->type) {
@@ -532,7 +784,8 @@ ofl_structs_queue_prop_print(FILE *stream, struct ofl_queue_prop_header *p) {
 }
 
 char *
-ofl_structs_flow_stats_to_string(struct ofl_flow_stats *s, struct ofl_exp *exp) {
+ofl_structs_flow_stats_to_string(struct ofl_flow_stats *s, struct ofl_exp const *exp)
+{
         char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
@@ -542,30 +795,48 @@ ofl_structs_flow_stats_to_string(struct ofl_flow_stats *s, struct ofl_exp *exp) 
 }
 
 void
-ofl_structs_flow_stats_print(FILE *stream, struct ofl_flow_stats *s, struct ofl_exp *exp) {
+ofl_structs_flow_stats_print(FILE *stream, struct ofl_flow_stats *s, struct ofl_exp const *exp)
+{
     size_t i;
+    if(ofl_colored_output())
+    {
+	    fprintf(stream, "{\x1B[31mtable\x1B[0m=\"");
+	    ofl_table_print(stream, s->table_id);
+	    fprintf(stream, "\", \x1B[31mmatch\x1B[0m=\"");
+	    ofl_structs_match_print(stream, s->match, exp);
+	    fprintf(stream, "\", dur_s=\"%u\", dur_ns=\"%u\", prio=\"%u\", "
+	                          "idle_to=\"%u\", hard_to=\"%u\", cookie=\"0x%"PRIx64"\", "
+	                          "pkt_cnt=\"%"PRIu64"\", byte_cnt=\"%"PRIu64"\", \x1B[31minsts\x1B[0m=[",
+	                  s->duration_sec, s->duration_nsec, s->priority,
+	                  s->idle_timeout, s->hard_timeout, s->cookie,
+	                  s->packet_count, s->byte_count);
+	}
 
-    fprintf(stream, "{table=\"");
-    ofl_table_print(stream, s->table_id);
-    fprintf(stream, "\", match=\"");
-    ofl_structs_match_print(stream, s->match, exp);
-    fprintf(stream, "\", dur_s=\"%u\", dur_ns=\"%u\", prio=\"%u\", "
-                          "idle_to=\"%u\", hard_to=\"%u\", cookie=\"0x%"PRIx64"\", "
-                          "pkt_cnt=\"%"PRIu64"\", byte_cnt=\"%"PRIu64"\", insts=[",
-                  s->duration_sec, s->duration_nsec, s->priority,
-                  s->idle_timeout, s->hard_timeout, s->cookie,
-                  s->packet_count, s->byte_count);
+	else 
+	{
+		fprintf(stream, "{table=\"");
+	    ofl_table_print(stream, s->table_id);
+	    fprintf(stream, "\", match=\"");
+	    ofl_structs_match_print(stream, s->match, exp);
+	    fprintf(stream, "\", dur_s=\"%u\", dur_ns=\"%u\", prio=\"%u\", "
+	                          "idle_to=\"%u\", hard_to=\"%u\", cookie=\"0x%"PRIx64"\", "
+	                          "pkt_cnt=\"%"PRIu64"\", byte_cnt=\"%"PRIu64"\", insts=[",
+	                  s->duration_sec, s->duration_nsec, s->priority,
+	                  s->idle_timeout, s->hard_timeout, s->cookie,
+	                  s->packet_count, s->byte_count);
+	}
 
     for (i=0; i<s->instructions_num; i++) {
         ofl_structs_instruction_print(stream, s->instructions[i], exp);
         if (i < s->instructions_num - 1) { fprintf(stream, ", "); };
     }
-
-    fprintf(stream, "]}");
+    if (ofl_colored_output())
+    	fprintf(stream, "]}");
 }
 
 char *
-ofl_structs_bucket_counter_to_string(struct ofl_bucket_counter *s) {
+ofl_structs_bucket_counter_to_string(struct ofl_bucket_counter *s)
+{
         char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
@@ -575,13 +846,23 @@ ofl_structs_bucket_counter_to_string(struct ofl_bucket_counter *s) {
 }
 
 void
-ofl_structs_bucket_counter_print(FILE *stream, struct ofl_bucket_counter *c) {
-    fprintf(stream, "{pkt_cnt=\"%"PRIu64"\", byte_cnt=\"%"PRIu64"\"}",
+ofl_structs_bucket_counter_print(FILE *stream, struct ofl_bucket_counter *c)
+{
+    if (ofl_colored_output()){
+		fprintf(stream, "{\x1B[32mpkt_cnt\x1B[0m=\"%"PRIu64"\", byte_cnt=\"%"PRIu64"\"}",
                   c->packet_count, c->byte_count);
+    }
+    else
+    {
+		fprintf(stream, "{pkt_cnt=\"%"PRIu64"\", byte_cnt=\"%"PRIu64"\"}",
+                  c->packet_count, c->byte_count);
+    }
 }
 
+
 char *
-ofl_structs_group_stats_to_string(struct ofl_group_stats *s) {
+ofl_structs_group_stats_to_string(struct ofl_group_stats *s)
+{
     char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
@@ -591,24 +872,40 @@ ofl_structs_group_stats_to_string(struct ofl_group_stats *s) {
 }
 
 void
-ofl_structs_group_stats_print(FILE *stream, struct ofl_group_stats *s) {
+ofl_structs_group_stats_print(FILE *stream, struct ofl_group_stats *s)
+{
     size_t i;
+    if (ofl_colored_output())
+    {
+    	fprintf(stream, "{\x1B[31mgroup\x1B[0m=\"");
+		ofl_group_print(stream, s->group_id);
+		fprintf(stream, "\", ref_cnt=\"%u\", \x1B[36mpkt_cnt\x1B[0m=\"%"PRIu64"\", byte_cnt=\"%"PRIu64"\", cntrs=[",
+		              s->ref_count, s->packet_count, s->byte_count);
 
-    fprintf(stream, "{group=\"");
-    ofl_group_print(stream, s->group_id);
-    fprintf(stream, "\", ref_cnt=\"%u\", pkt_cnt=\"%"PRIu64"\", byte_cnt=\"%"PRIu64"\", cntrs=[",
-                  s->ref_count, s->packet_count, s->byte_count);
+    }
+    else
+    {
+		fprintf(stream, "{group=\"");
+		ofl_group_print(stream, s->group_id);
+		fprintf(stream, "\", ref_cnt=\"%u\", pkt_cnt=\"%"PRIu64"\", byte_cnt=\"%"PRIu64"\", cntrs=[",
+		              s->ref_count, s->packet_count, s->byte_count);
+	}
 
     for (i=0; i<s->counters_num; i++) {
         ofl_structs_bucket_counter_print(stream, s->counters[i]);
         if (i < s->counters_num - 1) { fprintf(stream, ", "); };
     }
 
-    fprintf(stream, "]}");
+    if(ofl_colored_output())
+    	fprintf(stream, "]}\n\n");
+    else
+    	fprintf(stream, "]}");
 }
 
+
 char*
-ofl_structs_meter_band_to_string(struct ofl_meter_band_header* s){
+ofl_structs_meter_band_to_string(struct ofl_meter_band_header* s)
+{
     char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
@@ -616,11 +913,12 @@ ofl_structs_meter_band_to_string(struct ofl_meter_band_header* s){
     fclose(stream);
     return str;
 
-
 }
 
+
 void
-ofl_structs_meter_band_print(FILE *stream, struct ofl_meter_band_header* s){
+ofl_structs_meter_band_print(FILE *stream, struct ofl_meter_band_header* s)
+{
     fprintf(stream, "{type = ");
     ofl_meter_band_type_print(stream, s->type);
     switch(s->type){
@@ -645,8 +943,10 @@ ofl_structs_meter_band_print(FILE *stream, struct ofl_meter_band_header* s){
     }
 }
 
+
 char* 
-ofl_structs_meter_band_stats_to_string(struct ofl_meter_band_stats* s){
+ofl_structs_meter_band_stats_to_string(struct ofl_meter_band_stats* s)
+{
     char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
@@ -656,13 +956,15 @@ ofl_structs_meter_band_stats_to_string(struct ofl_meter_band_stats* s){
 }
 
 void
-ofl_structs_meter_band_stats_print(FILE *stream, struct ofl_meter_band_stats* s){
+ofl_structs_meter_band_stats_print(FILE *stream, struct ofl_meter_band_stats* s)
+{
     fprintf(stream, "{pkt_band_cnt=\"%"PRIu64"\", byte_band_cnt=\"%"PRIu64"\"}",
                   s->packet_band_count, s->byte_band_count);
 }
 
 char* 
-ofl_structs_meter_stats_to_string(struct ofl_meter_stats* s){
+ofl_structs_meter_stats_to_string(struct ofl_meter_stats* s)
+{
     char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
@@ -672,7 +974,8 @@ ofl_structs_meter_stats_to_string(struct ofl_meter_stats* s){
 }
 
 void
-ofl_structs_meter_stats_print(FILE *stream, struct ofl_meter_stats* s){
+ofl_structs_meter_stats_print(FILE *stream, struct ofl_meter_stats* s)
+{
     size_t i;
 
     fprintf(stream, "{meter= %x\"", s->meter_id);
@@ -690,7 +993,8 @@ ofl_structs_meter_stats_print(FILE *stream, struct ofl_meter_stats* s){
 }
 
 char* 
-ofl_structs_meter_config_to_string(struct ofl_meter_config* s){
+ofl_structs_meter_config_to_string(struct ofl_meter_config* s)
+{
     char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
@@ -700,7 +1004,8 @@ ofl_structs_meter_config_to_string(struct ofl_meter_config* s){
 }
 
 void
-ofl_structs_meter_config_print(FILE *stream, struct ofl_meter_config* s){
+ofl_structs_meter_config_print(FILE *stream, struct ofl_meter_config* s)
+{
     size_t i;
     
     fprintf(stream, "{meter= %x\"", s->meter_id);
@@ -713,11 +1018,12 @@ ofl_structs_meter_config_print(FILE *stream, struct ofl_meter_config* s){
     }
 
     fprintf(stream, "]}"); 
-
 }
 
+
 char* 
-ofl_structs_meter_features_to_string(struct ofl_meter_features* s){
+ofl_structs_meter_features_to_string(struct ofl_meter_features* s)
+{
     char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
@@ -727,7 +1033,8 @@ ofl_structs_meter_features_to_string(struct ofl_meter_features* s){
 }
 
 void
-ofl_structs_meter_features_print(FILE *stream, struct ofl_meter_features* s){
+ofl_structs_meter_features_print(FILE *stream, struct ofl_meter_features* s)
+{
     
     fprintf(stream, "{max_meter=\"%"PRIu32"\", band_types=\"0x%"PRIx32"\","
             "capabilities =\"0x%"PRIx32"\", max_bands = %u , max_color = %u",  
@@ -737,7 +1044,8 @@ ofl_structs_meter_features_print(FILE *stream, struct ofl_meter_features* s){
 }
 
 char *
-ofl_structs_table_stats_to_string(struct ofl_table_stats *s) {
+ofl_structs_table_stats_to_string(struct ofl_table_stats *s)
+{
     char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
@@ -749,7 +1057,8 @@ ofl_structs_table_stats_to_string(struct ofl_table_stats *s) {
 }
 
 void
-ofl_structs_table_stats_print(FILE *stream, struct ofl_table_stats *s) {
+ofl_structs_table_stats_print(FILE *stream, struct ofl_table_stats *s)
+{
     fprintf(stream, "{table=\"");
     ofl_table_print(stream, s->table_id);
     fprintf(stream, "\", active=\"%u\", "
@@ -759,7 +1068,8 @@ ofl_structs_table_stats_print(FILE *stream, struct ofl_table_stats *s) {
 }
 
 char *
-ofl_structs_table_properties_to_string(struct ofl_table_feature_prop_header *s){
+ofl_structs_table_properties_to_string(struct ofl_table_feature_prop_header *s)
+{
     char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
@@ -769,7 +1079,8 @@ ofl_structs_table_properties_to_string(struct ofl_table_feature_prop_header *s){
 }
 
 void
-ofl_structs_table_properties_print(FILE * stream, struct ofl_table_feature_prop_header* s){
+ofl_structs_table_properties_print(FILE * stream, struct ofl_table_feature_prop_header* s)
+{
     int i;    
     fprintf(stream, "{property=\"");
     ofl_properties_type_print(stream, s->type);
@@ -841,7 +1152,8 @@ ofl_structs_table_properties_print(FILE * stream, struct ofl_table_feature_prop_
 }
 
 char *
-ofl_structs_table_features_to_string(struct ofl_table_features *s){
+ofl_structs_table_features_to_string(struct ofl_table_features *s)
+{
     char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
@@ -851,7 +1163,8 @@ ofl_structs_table_features_to_string(struct ofl_table_features *s){
 }
 
 void
-ofl_structs_table_features_print(FILE *stream, struct ofl_table_features *s){
+ofl_structs_table_features_print(FILE *stream, struct ofl_table_features *s)
+{
     int i;
     fprintf(stream, "{table=\"");
     ofl_table_print(stream, s->table_id);  
@@ -865,7 +1178,8 @@ ofl_structs_table_features_print(FILE *stream, struct ofl_table_features *s){
 }
 
 char *
-ofl_structs_port_stats_to_string(struct ofl_port_stats *s) {
+ofl_structs_port_stats_to_string(struct ofl_port_stats *s)
+{
         char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
@@ -875,7 +1189,8 @@ ofl_structs_port_stats_to_string(struct ofl_port_stats *s) {
 }
 
 void
-ofl_structs_port_stats_print(FILE *stream, struct ofl_port_stats *s) {
+ofl_structs_port_stats_print(FILE *stream, struct ofl_port_stats *s)
+{
 
     fprintf(stream, "{port=\"");
     ofl_port_print(stream, s->port_no);
@@ -894,7 +1209,8 @@ ofl_structs_port_stats_print(FILE *stream, struct ofl_port_stats *s) {
 };
 
 char *
-ofl_structs_queue_stats_to_string(struct ofl_queue_stats *s) {
+ofl_structs_queue_stats_to_string(struct ofl_queue_stats *s)
+{
         char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
@@ -904,7 +1220,8 @@ ofl_structs_queue_stats_to_string(struct ofl_queue_stats *s) {
 }
 
 void
-ofl_structs_queue_stats_print(FILE *stream, struct ofl_queue_stats *s) {
+ofl_structs_queue_stats_print(FILE *stream, struct ofl_queue_stats *s)
+{
 
     fprintf(stream, "{port=\"");
     ofl_port_print(stream, s->port_no);
@@ -916,7 +1233,8 @@ ofl_structs_queue_stats_print(FILE *stream, struct ofl_queue_stats *s) {
 };
 
 char *
-ofl_structs_group_desc_stats_to_string(struct ofl_group_desc_stats *s, struct ofl_exp *exp) {
+ofl_structs_group_desc_stats_to_string(struct ofl_group_desc_stats *s, struct ofl_exp const *exp)
+{
         char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
@@ -926,25 +1244,44 @@ ofl_structs_group_desc_stats_to_string(struct ofl_group_desc_stats *s, struct of
 }
 
 void
-ofl_structs_group_desc_stats_print(FILE *stream, struct ofl_group_desc_stats *s, struct ofl_exp *exp) {
+ofl_structs_group_desc_stats_print(FILE *stream, struct ofl_group_desc_stats *s, struct ofl_exp const *exp)
+{
     size_t i;
 
     fprintf(stream, "{type=\"");
     ofl_group_type_print(stream, s->type);
-    fprintf(stream, "\", group=\"");
-    ofl_group_print(stream, s->group_id);
-    fprintf(stream, "\", buckets=[");
+    if(ofl_colored_output())
+    {
+    	fprintf(stream, "\", \x1B[31mgroup\x1B[0m=\"");
+    	ofl_group_print(stream, s->group_id);
+    	fprintf(stream, "\", buckets=[\n\n");
+    }
+    else
+    {
+    	fprintf(stream, "\", group=\"");
+    	ofl_group_print(stream, s->group_id);
+    	fprintf(stream, "\", buckets=[");
+    }
 
     for (i=0; i<s->buckets_num; i++) {
         ofl_structs_bucket_print(stream, s->buckets[i], exp);
-        if (i < s->buckets_num - 1) { fprintf(stream, ", "); };
+        if (i < s->buckets_num - 1) {
+        	if(ofl_colored_output())
+                fprintf(stream, ",\n\n");
+            else
+                fprintf(stream, ", "); };
     }
 
-    fprintf(stream, "]}");
+    if(ofl_colored_output())
+    	fprintf(stream, "]}\n\n");
+    else
+    	fprintf(stream, "]}");
 }
 
+
 char *
-ofl_structs_async_config_to_string(struct ofl_async_config *s) {
+ofl_structs_async_config_to_string(struct ofl_async_config *s)
+{
     char *str;
     size_t str_size;
     FILE *stream = open_memstream(&str, &str_size);
@@ -955,7 +1292,8 @@ ofl_structs_async_config_to_string(struct ofl_async_config *s) {
 
 
 void
-ofl_structs_async_config_print(FILE * stream, struct ofl_async_config *s){
+ofl_structs_async_config_print(FILE * stream, struct ofl_async_config *s)
+{
     fprintf(stream, "{equal=[");
     ofl_async_packet_in(stream, s->packet_in_mask[0]);
     ofl_async_port_status(stream, s->port_status_mask[0]);
@@ -967,3 +1305,4 @@ ofl_structs_async_config_print(FILE * stream, struct ofl_async_config *s){
     ofl_async_flow_removed(stream, s->flow_removed_mask[1]);
     fprintf(stream, "]}");        
 }
+

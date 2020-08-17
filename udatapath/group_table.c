@@ -353,7 +353,7 @@ group_table_destroy(struct group_table *table) {
     HMAP_FOR_EACH_SAFE(entry, next, struct group_entry, node, &table->entries) {
         group_entry_destroy(entry);
     }
-
+    free(table->features);
     free(table);
 }
 

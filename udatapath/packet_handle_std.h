@@ -33,11 +33,9 @@
 
 #include <stdbool.h>
 #include <stdio.h>
-#include "packet.h"
 #include "packets.h"
 #include "match_std.h"
 #include "oflib/ofl-structs.h"
-#include "nbee_link/nbee_link.h"
 
 /****************************************************************************
  * A handler processing a datapath packet for standard matches.
@@ -46,20 +44,26 @@
 /* The data associated with the handler */
 struct packet_handle_std {
    struct packet              *pkt;
-   struct protocols_std       *proto;
+   struct protocols_std        proto;
+
    struct ofl_match  match;  /* Match fields extracted from the packet
-                                           are also stored in a match structure
-                                           for convenience */
-   bool                        valid; /* Set to true if the handler data is valid.
-                                           if false, it is revalidated before
+                                are also stored in a match structure
+                                for convenience */
+
+   bool  valid; /* Set to true if the handler data is valid.
+                   if false, it is revalidated before
                                            executing any methods. */
-   bool						   table_miss; /*Packet was matched
-   											against table miss flow*/
+   bool	 table_miss; /* Packet was matched
+   					    against table miss flow*/
 };
+
 
 /* Creates a handler */
 struct packet_handle_std *
 packet_handle_std_create(struct packet *pkt);
+
+void
+packet_handle_std_init(struct packet_handle_std *, struct packet *pkt);
 
 /* Destroys a handler */
 void
@@ -75,7 +79,7 @@ packet_handle_std_is_fragment(struct packet_handle_std *handle);
 
 /* Returns true if the packet matches the given standard match structure. */
 bool
-packet_handle_std_match(struct packet_handle_std *handle,  struct ofl_match *match);
+packet_handle_std_match(struct packet_handle_std *handle,  struct ofl_match *match, struct ofl_exp *exp);
 
 /* Converts the packet to a string representation */
 char *

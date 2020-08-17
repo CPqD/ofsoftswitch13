@@ -20,8 +20,8 @@
 #include <sys/types.h>
 #include <inttypes.h>
 
-enum byte_order{
-
+enum byte_order
+{
     NETWORK_ORDER = 0,
     HOST_ORDER = 1,
 };

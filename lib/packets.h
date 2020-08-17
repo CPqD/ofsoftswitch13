@@ -113,6 +113,7 @@ static inline bool eth_addr_is_reserved(const uint8_t ea[ETH_ADDR_LEN])
 #define ETH_TYPE_IP            0x0800
 #define ETH_TYPE_IPV6          0x86dd
 #define ETH_TYPE_ARP           0x0806
+#define ETH_TYPE_TRILL         0x22f3
 #define ETH_TYPE_VLAN          0x8100
 #define ETH_TYPE_SVLAN         0x9200
 #define ETH_TYPE_VLAN_QinQ     0x9100
@@ -200,10 +201,11 @@ BUILD_ASSERT_DECL(VLAN_ETH_HEADER_LEN == sizeof(struct vlan_eth_header));
  * pointer to IP_ARGS. */
 #define IP_FMT "%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8
 #define IP_ARGS(ip)                             \
-        ((void) (ip)[0], ((uint8_t *) ip)[0]),  \
-        ((uint8_t *) ip)[1],                    \
-        ((uint8_t *) ip)[2],                    \
-        ((uint8_t *) ip)[3]
+        ((void) (ip)[0],			\
+        ((uint8_t const *) ip)[0]),		\
+        ((uint8_t const *) ip)[1],              \
+        ((uint8_t const *) ip)[2],              \
+        ((uint8_t const *) ip)[3]
 
 #define IP_VER(ip_ihl_ver) ((ip_ihl_ver) >> 4)
 #define IP_IHL(ip_ihl_ver) ((ip_ihl_ver) & 15)

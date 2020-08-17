@@ -35,6 +35,7 @@ The following components are available in this package:
 * `dpctl`: a tool for configuring the switch from the console
 
 
+<<<<<<< HEAD
 # Getting Started
 
 These instructions have been tested on Ubuntu 16.04. Other distributions or versions may need different steps. 
@@ -69,11 +70,13 @@ The switch makes use of the NetBee library to parse packets, so we need to insta
     $ sudo ldconfig
     ```
 
-5. Put the contens of folder `nbeesrc/include` in the `/usr/include`
+5. Put the contents of folder `nbeesrc/include` in the `/usr/include`
 
     ```
     $ sudo cp -R ../include/* /usr/include/
     ```
+=======
+These instructions have been tested on Ubuntu 14.04. Other distributions or versions may need different steps.
 
 ## Building
 Run the following commands in the `ofsoftswitch13` directory to build and install everything:
@@ -129,6 +132,10 @@ You can send requests to the switch using the `dpctl` utility.
 
 For a complete list of commands and arguments, use the `--help` argument. Also, check the wiki for [Flow Mod examples](https://github.com/CPqD/ofsoftswitch13/wiki/Dpctl-Flow-Mod-Cases)
 
+The `dpctl` utility has some limitations at the moment:
+* No support for OXM masks
+* Some set_field action fields are not present
+
 # Contribute
 Please submit your bug reports, fixes and suggestions as pull requests on
 GitHub, or by contacting us directly.
@@ -143,6 +150,30 @@ This project was supported by Ericsson Innovation Center in Brazil.
 Formerly maintained by CPqD in technical collaboration with Ericsson Research.
 
 [**List of Contributors**](https://github.com/CPqD/ofsoftswitch13/wiki/List-of-Contributors)
+=======
+**Contributions:**
+
+In alphabetical order:
+
+* Carmelo Cascone, OpenState implementation
+* Davide Sanvito, OpenState implementation, improved support for OF 1.3 experimenter extensions and lots of memory bug fixes
+* Hanieh Rajabi, first OpenState implementation
+* Hiroyasu OHYAMA, correct URL of NetBee Library.
+* Jean Tourrilhes, lots of critical memory bug fixes on table features.
+* Khai Nguyen Dinh and Thanh Le Dinh, contributions on meter features.
+* Libor Polčák, fixed handling of VLAN packets
+* Luca Pollini, OpenState implementation and improved support for OF 1.3 experimenter extensions
+* Marco Bonola, first OpenState implementation
+* Nicola Bonelli, lots of performance improvements
+* Pavel Benacek, match on TCP flags and OpenState implementation
+* Pierre-Alexis Nardin, OpenState implementation
+* Rade Rudic, OpenState's state synchronization
+* Rich Lane, added the right compiler linker.
+* Roberto Bifulco, implementation of InSP (packet generation)
+* yu-iwata, fixed flow deletion without matching out_port.
+* Yuval Adler, bug fixes related to matching on vlan and ethertype.
+* Zoltán Lajos Kis, ofsoftswitch 1.1 implementation and guidance for OpenFlow spec related subjects.
+* ... *"Your name here" -- please, let us know if we forgot to add your name to the list of contributors!*
 
 # Contact
 E-mail: Eder Leao Fernandes (ederleaofernandes at gmail . com)

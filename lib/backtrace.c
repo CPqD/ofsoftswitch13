@@ -37,6 +37,7 @@
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <execinfo.h>
 #include "compiler.h"
 
 #define LOG_MODULE VLM_backtrace
@@ -102,7 +103,7 @@ stack_low(void)
 #endif
 }
 
-static bool
+static bool UNUSED
 in_stack(void *p)
 {
     uintptr_t address = (uintptr_t) p;
@@ -110,18 +111,9 @@ in_stack(void *p)
 }
 
 void
-backtrace_capture(struct backtrace *backtrace)
+backtrace_capture(struct backtrace_info *info)
 {
-    void **frame;
-    size_t n;
-
-    n = 0;
-    for (frame = __builtin_frame_address(0);
-         frame != NULL && in_stack(frame) && frame[0] != NULL
-             && n < BACKTRACE_MAX_FRAMES;
-         frame = frame[0])
-    {
-        backtrace->frames[n++] = (uintptr_t) frame[1];
-    }
-    backtrace->n_frames = n;
+    int n = backtrace((void **)info->frames, BACKTRACE_MAX_FRAMES);
+    info->n_frames = n < 0 ? 0 : n;
 }
+

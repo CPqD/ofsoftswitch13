@@ -1,0 +1,11 @@
+language: c
+compiler:
+  - gcc
+
+install:
+  - "./boot.sh"
+
+script:
+  - "./configure"
+  - "make"
+  - "sudo make install"
