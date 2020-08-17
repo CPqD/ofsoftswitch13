@@ -134,11 +134,14 @@ dp_buffers_save(struct dp_buffers *dpb, struct packet *pkt) {
      * special. */
     if (++p->cookie >= (1u << PKT_COOKIE_BITS) - 1)
         p->cookie = 0;
-    p->pkt = pkt;
+    /* Create a copy of the packet because the packet is in the stack */
+    p->pkt = packet_create(pkt->dp, pkt->in_port, pkt->buffer, false);
+   VLOG_WARN_RL(LOG_MODULE, &rl, "SAVING > SIZE? %ld",
+                          pkt->buffer->size);
     p->timeout = time_now() + OVERWRITE_SECS;
     id = dpb->buffer_idx | (p->cookie << PKT_BUFFER_BITS);
 
-    pkt->buffer_id  = id;
+    p->pkt->buffer_id  = id;
 
     return id;
 }
@@ -159,7 +162,8 @@ dp_buffers_retrieve(struct dp_buffers *dpb, uint32_t id) {
         VLOG_WARN_RL(LOG_MODULE, &rl, "cookie mismatch: %x != %x\n",
                           id >> PKT_BUFFER_BITS, p->cookie);
     }
-
+    VLOG_WARN_RL(LOG_MODULE, &rl, "is packet SIZE? %ld",
+                          pkt->buffer->size);
     return pkt;
 }
 
