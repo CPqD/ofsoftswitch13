@@ -450,7 +450,7 @@ ofl_structs_table_features_pack(struct ofl_table_features const *src, struct ofp
     total_len = sizeof(struct ofp_table_features) + ofl_structs_table_features_properties_ofp_total_len((struct ofl_table_feature_prop_header const **)src->properties,src->properties_num,exp);
     dst->table_id = src->table_id;
     memset(dst->pad, 0x0,5);
-    strncpy(dst->name,src->name, OFP_MAX_TABLE_NAME_LEN);
+    snprintf(dst->name, OFP_MAX_TABLE_NAME_LEN, "%s", src->name);
     dst->metadata_match = hton64(src->metadata_match);
     dst->metadata_write = hton64(src->metadata_write);
     dst->config = htonl(src->config);
@@ -867,7 +867,7 @@ ofl_structs_port_pack(struct ofl_port const *src, struct ofp_port *dst)
     memset(dst->pad, 0x00, 4);
     memcpy(dst->hw_addr, src->hw_addr, ETH_ADDR_LEN);
     memset(dst->pad2, 0x00, 2);
-    strncpy(dst->name, src->name, OFP_MAX_PORT_NAME_LEN);
+    snprintf(dst->name, OFP_MAX_PORT_NAME_LEN, "%s", src->name);
     dst->config     = htonl(src->config);
     dst->state      = htonl(src->state);
     dst->curr       = htonl(src->curr);

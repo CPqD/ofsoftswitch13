@@ -384,7 +384,7 @@ open_queue_socket(const char * name, uint16_t class_id, int * fd)
     }
 
     /* Get ethernet device index. */
-    strncpy(ifr.ifr_name, name, sizeof ifr.ifr_name);
+    snprintf(ifr.ifr_name, sizeof ifr.ifr_name, "%s", name);
     if (ioctl(*fd, SIOCGIFINDEX, &ifr) < 0) {
         VLOG_ERR(LOG_MODULE, "ioctl(SIOCGIFINDEX) on %s device failed: %s",
                  name, strerror(errno));
@@ -554,7 +554,7 @@ do_ethtool(struct netdev *netdev)
     netdev->speed = SPEED_1000;  /* default to 1Gbps link */
 
     memset(&ifr, 0, sizeof ifr);
-    strncpy(ifr.ifr_name, netdev->name, sizeof ifr.ifr_name);
+    snprintf(ifr.ifr_name, sizeof ifr.ifr_name, "%s", netdev->name);
     ifr.ifr_data = (caddr_t) &ecmd;
 
     memset(&ecmd, 0, sizeof ecmd);
@@ -711,7 +711,7 @@ netdev_open_tap(const char *name, struct netdev **netdevp)
     memset(&ifr, 0, sizeof ifr);
     ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
     if (name) {
-        strncpy(ifr.ifr_name, name, sizeof ifr.ifr_name);
+	snprintf(ifr.ifr_name, sizeof ifr.ifr_name, "%s", name);    
     }
     if (ioctl(tap_fd, TUNSETIFF, &ifr) < 0) {
         int error = errno;
@@ -820,7 +820,7 @@ do_open_netdev(const char *name, int ethertype, int tap_fd, struct netdev **netd
     }
 
     /* Get ethernet device index. */
-    strncpy(ifr.ifr_name, name, sizeof ifr.ifr_name);
+    snprintf(ifr.ifr_name, sizeof ifr.ifr_name, "%s", name);
     if (ioctl(netdev_fd, SIOCGIFINDEX, &ifr) < 0) {
         VLOG_ERR(LOG_MODULE, "ioctl(SIOCGIFINDEX) on %s device failed: %s",
                  name, strerror(errno));
@@ -1332,7 +1332,7 @@ netdev_set_etheraddr(struct netdev *netdev, const uint8_t mac[ETH_ADDR_LEN])
     struct ifreq ifr;
 
     memset(&ifr, 0, sizeof ifr);
-    strncpy(ifr.ifr_name, netdev->name, sizeof ifr.ifr_name);
+    snprintf(ifr.ifr_name, sizeof ifr.ifr_name, "%s", netdev->name);
     ifr.ifr_hwaddr.sa_family = netdev->hwaddr_family;
     memcpy(ifr.ifr_hwaddr.sa_data, mac, ETH_ADDR_LEN);
     if (ioctl(netdev->netdev_fd, SIOCSIFHWADDR, &ifr) < 0) {
@@ -1398,7 +1398,7 @@ netdev_get_in4(const struct netdev *netdev, struct in_addr *in4)
     struct ifreq ifr;
     struct in_addr ip = { INADDR_ANY };
 
-    strncpy(ifr.ifr_name, netdev->name, sizeof ifr.ifr_name);
+    snprintf(ifr.ifr_name, sizeof ifr.ifr_name, "%s", ifr.ifr_name); 
     ifr.ifr_addr.sa_family = AF_INET;
     if (ioctl(af_inet_sock, SIOCGIFADDR, &ifr) == 0) {
         struct sockaddr_in *sin = (struct sockaddr_in *) &ifr.ifr_addr;
@@ -1433,7 +1433,7 @@ do_set_addr(struct netdev *netdev, int sock,
     struct ifreq ifr;
     int error;
 
-    strncpy(ifr.ifr_name, netdev->name, sizeof ifr.ifr_name);
+    snprintf(ifr.ifr_name, sizeof ifr.ifr_name, "%s", netdev->name);
     make_in4_sockaddr(&ifr.ifr_addr, addr);
     error = ioctl(sock, ioctl_nr, &ifr) < 0 ? errno : 0;
     if (error) {
@@ -1589,7 +1589,7 @@ netdev_arp_lookup(const struct netdev *netdev,
     pa->sin_port = 0;
     r.arp_ha.sa_family = ARPHRD_ETHER;
     r.arp_flags = 0;
-    strncpy(r.arp_dev, netdev->name, sizeof r.arp_dev);
+    snprintf(r.arp_dev, sizeof r.arp_dev, "%s", netdev->name);
     retval = ioctl(af_inet_sock, SIOCGARP, &r) < 0 ? errno : 0;
     if (!retval) {
         memcpy(mac, r.arp_ha.sa_data, ETH_ADDR_LEN);
@@ -1847,7 +1847,7 @@ restore_flags(struct netdev *netdev)
     int restore_flags;
 
     /* Get current flags. */
-    strncpy(ifr.ifr_name, netdev->name, sizeof ifr.ifr_name);
+    snprintf(ifr.ifr_name, sizeof ifr.ifr_name, "%s", netdev->name);
     if (ioctl(netdev->netdev_fd, SIOCGIFFLAGS, &ifr) < 0) {
         return errno;
     }
@@ -1880,7 +1880,7 @@ static int
 get_flags(const char *netdev_name, int *flags)
 {
     struct ifreq ifr;
-    strncpy(ifr.ifr_name, netdev_name, sizeof ifr.ifr_name);
+    snprintf(ifr.ifr_name, sizeof ifr.ifr_name, "%s", netdev_name);
     if (ioctl(af_inet_sock, SIOCGIFFLAGS, &ifr) < 0) {
         VLOG_ERR(LOG_MODULE, "ioctl(SIOCGIFFLAGS) on %s device failed: %s",
                  netdev_name, strerror(errno));
@@ -1894,7 +1894,7 @@ static int
 set_flags(const char *netdev_name, int flags)
 {
     struct ifreq ifr;
-    strncpy(ifr.ifr_name, netdev_name, sizeof ifr.ifr_name);
+    snprintf(ifr.ifr_name, sizeof ifr.ifr_name, "%s", netdev_name);
     ifr.ifr_flags = flags;
     if (ioctl(af_inet_sock, SIOCSIFFLAGS, &ifr) < 0) {
         VLOG_ERR(LOG_MODULE, "ioctl(SIOCSIFFLAGS) on %s device failed: %s",
