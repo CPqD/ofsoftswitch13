@@ -312,8 +312,10 @@ parse_oxm_entry(struct ofl_match *match, const struct oxm_field *f, const void *
         }
         case OFI_OXM_OF_IN_PHY_PORT:{
             /* Check for inport presence */
-            if (check_present_prereq(match,OXM_OF_IN_PORT))
+            if (check_present_prereq(match,OXM_OF_IN_PORT)){
                 ofl_structs_match_put32(match, f->header, ntohl(*((uint32_t const*) value)));
+	        return 0;
+	    }
             else return ofp_mkerr(OFPET_BAD_MATCH, OFPBMC_BAD_PREREQ);
 
         }

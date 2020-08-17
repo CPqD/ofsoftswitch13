@@ -113,8 +113,8 @@ set_field(struct packet *pkt, struct ofl_action_set_field *act )
                 if(vlan != NULL){
                     vlan->vlan_tci = (vlan->vlan_tci & ~htons(VLAN_PCP_MASK))
                                     | htons(*act->field->value << VLAN_PCP_SHIFT);
-                    break;
                 }
+		break;
             }
             case OXM_OF_IP_DSCP:{
                 if (pkt->handle_std.proto.ipv4){

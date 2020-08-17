@@ -210,11 +210,11 @@ dp_new(void)
 
     if(strlen(dp->dp_desc) == 0) {
         /* just use "$HOSTNAME pid=$$" */
-        char hostnametmp[DESC_STR_LEN];
+        char hostnametmp[DESC_STR_LEN-128];
         char pid[10];
         gethostname(hostnametmp,sizeof hostnametmp);
         sprintf(pid, "%u", getpid());
-        snprintf(dp->dp_desc, strlen(hostnametmp) + 5 + strlen(pid),"%s pid=%s",hostnametmp, pid);
+        snprintf(dp->dp_desc, DESC_STR_LEN ,"%s pid=%s",hostnametmp, pid);
     }
 
     /* FIXME: Should not depend on udatapath_as_lib */
@@ -613,6 +613,7 @@ send_openflow_buffer(struct datapath *dp, struct ofpbuf *buffer,
                             continue;
                         if((p->reason == OFPPR_MODIFY) && !(r->config.port_status_mask[0] & 0x4))
                             continue;
+			break;
                     }
                     case (OFPT_FLOW_REMOVED):{
                         struct ofp_flow_removed *p= (struct ofp_flow_removed *)buffer->data;
@@ -626,6 +627,7 @@ send_openflow_buffer(struct datapath *dp, struct ofpbuf *buffer,
                             continue;
                         if((p->reason == OFPRR_METER_DELETE) && !(r->config.flow_removed_mask[0] & 0x10))
                             continue;
+			break;
                     }
                 }
             }

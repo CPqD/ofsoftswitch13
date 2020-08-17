@@ -180,7 +180,7 @@ parse_options(int argc, char *argv[])
 
         case 'h':
             usage();
-
+            break;
         case 'V':
             printf("%s %s compiled "__DATE__" "__TIME__"\n",
                    program_name, VERSION BUILDNR);

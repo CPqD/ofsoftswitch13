@@ -824,7 +824,7 @@ ofl_msg_print(FILE *stream, struct ofl_msg_header const *msg, struct ofl_exp con
         /*Role messages */
         case OFPT_ROLE_REQUEST:
         case OFPT_ROLE_REPLY:{
-            ofl_msg_print_role_msg((struct ofl_msg_role_request const *)msg, stream);
+            ofl_msg_print_role_msg((struct ofl_msg_role_request const *)msg, stream); return;
         }
         /* Queue Configuration messages. */
         case OFPT_QUEUE_GET_CONFIG_REQUEST: { ofl_msg_print_queue_get_config_request((struct ofl_msg_queue_get_config_request const *)msg, stream); return; }

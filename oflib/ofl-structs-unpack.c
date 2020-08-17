@@ -200,7 +200,7 @@ ofl_structs_instructions_unpack(struct ofp_instruction const *src, size_t *len, 
     }
 
     // must set type before check, so free works correctly
-    inst->type = (enum ofp_instruction_type)ntohs(src->type);
+    inst->type = (enum ofp_instruction_type) ((int)ntohs(src->type));
     (*dst) = inst;
 
     if (!error &&  (ilen != 0)) {

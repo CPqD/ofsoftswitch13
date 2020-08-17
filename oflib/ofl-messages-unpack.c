@@ -72,7 +72,7 @@ ofl_msg_unpack_error(struct ofp_header const *src, size_t *len, struct ofl_msg_h
             dexpe = (struct ofl_msg_exp_error *)malloc(sizeof(struct ofl_msg_exp_error));
             *len -= sizeof(struct ofp_error_experimenter_msg);
 
-            dexpe->type = (enum ofp_error_type)ntohs(sexpe->type);
+            dexpe->type = (enum ofp_error_type) ((int)ntohs(sexpe->type));
             dexpe->exp_type = ntohs(sexpe->exp_type);
             dexpe->experimenter = ntohl(sexpe->experimenter);
             dexpe->data_length = *len;
@@ -88,7 +88,7 @@ ofl_msg_unpack_error(struct ofp_header const *src, size_t *len, struct ofl_msg_h
 	   de = (struct ofl_msg_error *)malloc(sizeof(struct ofl_msg_error));
            *len -= sizeof(struct ofp_error_msg);
     
-    de->type = (enum ofp_error_type)ntohs(se->type);
+    de->type = (enum ofp_error_type)((int)ntohs(se->type));
     de->code = ntohs(se->code);
     de->data_length = *len;
     de->data = *len > 0 ? (uint8_t *)memcpy(malloc(*len), se->data, *len) : NULL;
