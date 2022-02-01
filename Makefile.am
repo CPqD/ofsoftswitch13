@@ -17,7 +17,7 @@ AM_CPPFLAGS = $(SSL_CFLAGS) -g
 AM_CPPFLAGS += -I $(top_srcdir)/include
 AM_CPPFLAGS += -I $(top_srcdir)/lib
 
-AM_CFLAGS = -Wstrict-prototypes -Werror
+AM_CFLAGS = -Wstrict-prototypes -Werror -Wno-error=stringop-truncation -Wno-error=format-truncation=
 
 if NDEBUG
 AM_CPPFLAGS += -DNDEBUG
