@@ -162,7 +162,7 @@ dp_new(void) {
         char pid[10];
         gethostname(hostnametmp,sizeof hostnametmp);
         sprintf(pid, "%u", getpid());
-        snprintf(dp->dp_desc, strlen(hostnametmp) + 5 + strlen(pid),"%s pid=%s",hostnametmp, pid);
+        snprintf(dp->dp_desc, strlen(hostnametmp) + 6 + strlen(pid),"%s pid=%s",hostnametmp, pid);
     }
 
     /* FIXME: Should not depend on udatapath_as_lib */

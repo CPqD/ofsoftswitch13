@@ -1453,7 +1453,7 @@ netdev_arp_lookup(const struct netdev *netdev,
     pa->sin_port = 0;
     r.arp_ha.sa_family = ARPHRD_ETHER;
     r.arp_flags = 0;
-    strncpy(r.arp_dev, netdev->name, sizeof r.arp_dev);
+    strncpy(r.arp_dev, netdev->name, sizeof r.arp_dev -1);
     retval = ioctl(af_inet_sock, SIOCGARP, &r) < 0 ? errno : 0;
     if (!retval) {
         memcpy(mac, r.arp_ha.sa_data, ETH_ADDR_LEN);
