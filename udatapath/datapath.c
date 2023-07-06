@@ -158,7 +158,9 @@ dp_new(void) {
 
     if(strlen(dp->dp_desc) == 0) {
         /* just use "$HOSTNAME pid=$$" */
-        char hostnametmp[DESC_STR_LEN];
+        // We need to adjust for it to fit dp 
+        size_t prefix_len = strlen(" pid=") + 10;
+        char hostnametmp[DESC_STR_LEN-prefix_len-1];
         char pid[10];
         gethostname(hostnametmp,sizeof hostnametmp);
         sprintf(pid, "%u", getpid());

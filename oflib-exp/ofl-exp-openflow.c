@@ -75,7 +75,7 @@ ofl_exp_openflow_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf, size_
                 ofp->header.vendor  = htonl(exp->header.experimenter_id);
                 ofp->header.subtype = htonl(exp->type);
                 //We need a a byte less on DESC_STR_LEN
-                memset(ofp->dp_desc, 0, DESC_STR_LEN)
+                memset(ofp->dp_desc, 0, DESC_STR_LEN);
                 strncpy(ofp->dp_desc, s->dp_desc, DESC_STR_LEN-1);
 
                 return 0;
